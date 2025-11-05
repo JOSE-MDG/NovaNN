@@ -5,4 +5,5 @@ data/FashionMnist/fashion-mnist_test.csv
 data/Mnist/MNIST_Test.csv
 data/Mnist/MNIST_Validation.csv
 data/Mnist/MNIST_Train.csv
+logs/logs.log
 __pycache__/
