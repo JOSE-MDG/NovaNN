@@ -5,7 +5,7 @@ from typing import Iterable
 class Parameters:
     def __init__(self, data: np.ndarray):
         self.data = data
-        self.grad = np.zeros_like(data)
+        self.grad = np.zeros_like(data, dtype=np.float32)
 
     def zero_grad(self):
         self.grad.fill(0.0)
