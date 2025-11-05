@@ -19,7 +19,7 @@ class Sequential(Layer):
                                    executed in sequence.
         """
         super().__init__()
-        self.layers = modules
+        self._layers = modules
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Makes the class instance callable as a function, aliasing the forward pass.
@@ -53,7 +53,7 @@ class Sequential(Layer):
         """
         input = x
         # Apply each layer sequentially
-        for layer in self.layers:
+        for layer in self._layers:
             input = layer.forward(input)
         return input
 
@@ -69,7 +69,7 @@ class Sequential(Layer):
         """
         grad_input = grad
         # Apply backpropagation through each layer in reverse order
-        for layer in reversed(self.layers):
+        for layer in reversed(self._layers):
             grad_input = layer.backward(grad_input)
         return grad_input
 
@@ -91,7 +91,7 @@ class Sequential(Layer):
 
     def zero_grad(self):
         """Resets the gradients of all parameters in the model to zero."""
-        for layer in self.layers:
+        for layer in self._layers:
             # It's good practice to let the layer handle its own parameters.
             # This check ensures we only call zero_grad on layers that have it implemented
             # and are expected to have parameters.
