@@ -4,7 +4,7 @@ from src.module.module import Parameters
 from typing import List, Iterable
 
 
-class Sequential:
+class Sequential(Layer):
     def __init__(self, modules: List[Layer]):
         super().__init__()
         self.layers = modules
@@ -14,12 +14,12 @@ class Sequential:
         return self.forward(x)
 
     def train(self):
-        for layer in self.layers:
-            layer.train()
+        for m in self._modules:
+            m.train()
 
     def eval(self):
-        for layer in self.layers:
-            layer.eval()
+        for m in self._modules:
+            m.eval()
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         input = x
@@ -36,9 +36,11 @@ class Sequential:
     def parameters(self) -> Iterable[Parameters]:
         parameters = []
         for layer in self.layers:
-            parameters.append(list(layer.parameters()))
+            if layer.__getattribute__("_have_params"):
+                parameters.extend(list(layer.parameters()))
         return parameters
 
     def zero_grad(self):
         for layer in self.layers:
-            layer.zero_grad()
+            if layer.__getattribute__("_have_params"):
+                layer.zero_grad()
