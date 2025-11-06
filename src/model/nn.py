@@ -34,12 +34,12 @@ class Sequential(Layer):
 
     def train(self):
         """Sets all modules in the container to training mode."""
-        for m in self.layers:
+        for m in self._layers:
             m.train()
 
     def eval(self):
         """Sets all modules in the container to evaluation mode."""
-        for m in self.layers:
+        for m in self._layers:
             m.eval()
 
     def forward(self, x: np.ndarray) -> np.ndarray:
@@ -76,24 +76,17 @@ class Sequential(Layer):
     def parameters(self) -> Iterable[Parameters]:
         """Gathers and returns all parameters from the layers in the container.
 
-        It iterates through each layer and collects its parameters if the layer
-        is marked as having them.
+        It iterates through each layer and collects its parameters.
 
         Returns:
             Iterable[Parameters]: An iterable of all parameters in the model.
         """
         parameters = []
-        for layer in self.layers:
-            # Check if the layer has parameters to contribute
-            if layer.__getattribute__("_have_params"):
-                parameters.extend(list(layer.parameters()))
+        for layer in self._layers:
+            parameters.extend(layer.parameters())
         return parameters
 
     def zero_grad(self):
         """Resets the gradients of all parameters in the model to zero."""
         for layer in self._layers:
-            # It's good practice to let the layer handle its own parameters.
-            # This check ensures we only call zero_grad on layers that have it implemented
-            # and are expected to have parameters.
-            if layer.__getattribute__("_have_params"):
-                layer.zero_grad()
+            layer.zero_grad()

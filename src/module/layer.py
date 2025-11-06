@@ -11,13 +11,8 @@ class Layer(Module):
     """
 
     def __init__(self):
-        """Initializes the layer.
-
-        Sets a `_have_params` flag to False by default. Subclasses with
-        trainable parameters should set this flag to True.
-        """
+        """Initializes the layer."""
         super().__init__()
-        self._have_params = False
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         """Defines the computation performed at every call (forward pass).
