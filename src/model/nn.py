@@ -1,7 +1,7 @@
 import numpy as np
 from src.module.layer import Layer
 from src.module.module import Parameters
-from typing import List, Iterable
+from typing import Iterable
 
 
 class Sequential(Layer):
@@ -11,11 +11,11 @@ class Sequential(Layer):
     The forward pass will apply each module sequentially.
     """
 
-    def __init__(self, modules: List[Layer]):
+    def __init__(self, *modules: Layer):
         """Initializes the Sequential container.
 
         Args:
-            modules (List[Layer]): An ordered list of layers/modules to be
+            modules (list[Layer]): An ordered list of layers/modules to be
                                    executed in sequence.
         """
         super().__init__()
