@@ -7,7 +7,7 @@ from src.module.layer import Layer
 class Linear(Layer):
     def __init__(self, in_features: int, out_features: int, bias: bool):
         super().__init__()
-        self.weight = Parameters(None)
+        self.weight = Parameters(np.zeros((out_features, in_features)))
         self.bias = Parameters(np.zeros((1, out_features))) if bias else None
         self._cache_input = None
 
@@ -22,7 +22,7 @@ class Linear(Layer):
         x = self._cache_input
         self.weight.grad = grad.T @ x
         if self.bias is not None:
-            self.bias.grad = np.sum(grad, axis=0, keepdims=True)
+            self.bias.grad = np.sum(grad, axis=1, keepdims=True)
         grad_input = grad @ self.weight.data
         return grad_input
 
