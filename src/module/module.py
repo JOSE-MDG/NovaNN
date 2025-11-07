@@ -58,12 +58,3 @@ class Module:
             Iterable[Parameters]: An iterable of the module's parameters.
         """
         return []
-
-    def zero_grad(self):
-        """Sets gradients of all model parameters to zero.
-
-        It iterates through all parameters returned by the `parameters()` method
-        and calls `zero_grad()` on each one.
-        """
-        for p in self.parameters():
-            p.zero_grad()

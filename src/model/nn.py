@@ -117,8 +117,3 @@ class Sequential(Layer):
         for layer in self._layers:
             parameters.extend(layer.parameters())
         return parameters
-
-    def zero_grad(self):
-        """Resets the gradients of all parameters in the model to zero."""
-        for layer in self._layers:
-            layer.zero_grad()
