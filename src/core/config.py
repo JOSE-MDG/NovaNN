@@ -27,6 +27,7 @@ LOGGER_DATE_FORMAT = os.getenv("LOGGER_DEFAULT_LEVEL")
 # initializations dicts
 DEFAULT_NORMAL_INIT_MAP = {
     "relu": kaiming_normal_,
+    "leakyrelu": kaiming_normal_,
     "tanh": xavier_normal_,
     "sigmoid": xavier_normal_,
     "default": random_init_,
@@ -34,6 +35,7 @@ DEFAULT_NORMAL_INIT_MAP = {
 
 DEFAULT_UNIFORM_INIT_MAP = {
     "relu": kaiming_uniform_,
+    "leakyrelu": kaiming_uniform_,
     "tanh": xavier_uniform_,
     "sigmoid": xavier_uniform_,
     "default": random_init_,

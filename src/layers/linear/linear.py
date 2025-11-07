@@ -2,6 +2,7 @@ import numpy as np
 
 from src.module.module import Parameters
 from src.module.layer import Layer
+from src.core import config
 from typing import Optional, Callable
 
 
@@ -23,7 +24,10 @@ class Linear(Layer):
         self._cache_input = None
         self.reset_parameters()
 
-    def reset_parameters(self, initializer: Optional[Callable] = None): ...
+    def reset_parameters(self, initializer: Optional[Callable] = None):
+        init = initializer or self.init_fn or config.DEFAULT_NORMAL_INIT_MAP["default"]
+        self.weight = Parameters(init((self.out_features, self.in_features)))
+        self.bias = Parameters(init(1, self.out_features))
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         self._cache_input = x

@@ -24,7 +24,7 @@ class Sequential(Layer):
         """
         super().__init__()
         self._layers = modules
-        self._aply_initializer_for_linear()
+        self._aply_initializer_for_linear_layers()
 
     def _is_activation(self, layer: Activation):
         return isinstance(layer, Activation)
@@ -38,7 +38,7 @@ class Sequential(Layer):
                     return key  # Name of activation layer
         return None
 
-    def _aply_initializer_for_linear(self):
+    def _aply_initializer_for_linear_layers(self):
         for idx, layer in enumerate(self._layers):
             if isinstance(layer, Linear):
                 if getattr(layer, "init_fn", None) is not None:
