@@ -1,6 +1,10 @@
 import numpy as np
 from src.module.layer import Layer
+from src.layers.activations.activations import Activation
+from src.layers.linear.linear import Linear
+from src.core import config
 from src.module.module import Parameters
+
 from typing import Iterable
 
 
@@ -20,6 +24,34 @@ class Sequential(Layer):
         """
         super().__init__()
         self._layers = modules
+        self._aply_initializer_for_linear()
+
+    def _is_activation(self, layer: Activation):
+        return isinstance(layer, Activation)
+
+    def _find_next_activation(self, start_idx: int):
+        for i in range(start_idx + 1, len(self._layers)):
+            act = self._layers[i]
+            if self._is_activation(act):
+                key = act.get_init_key()
+                if key is not None:
+                    return key  # Name of activation layer
+        return None
+
+    def _aply_initializer_for_linear(self):
+        for idx, layer in enumerate(self._layers):
+            if isinstance(layer, Linear):
+                if getattr(layer, "init_fn", None) is not None:
+                    continue
+
+                init_key = self._find_next_activation(idx)
+                if init_key is not None:
+                    init_fn = config.DEFAULT_NORMAL_INIT_MAP.get(
+                        init_key, config.DEFAULT_NORMAL_INIT_MAP["default"]
+                    )
+                else:
+                    init_fn = config.DEFAULT_NORMAL_INIT_MAP["default"]
+                layer.reset_parameters(init_fn)
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Makes the class instance callable as a function, aliasing the forward pass.
