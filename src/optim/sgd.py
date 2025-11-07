@@ -18,9 +18,18 @@ class SGD:
         self.beta = momentum
         self.wd = weight_decay
         self.l1 = lambda_l1
+        self.velocities = [np.zeros_like(p.data) for p in parameters]
 
     def step(self):
-        for p in self.params:
-            grad = p.grad.copy()
+        for i, p in enumerate(self.params):
             if self.wd > 0:
-                pass
+                p.grad += self.wd * np.sign(p.data) if self.l1 else self.wd * p.data
+            if self.beta > 0:
+                self.velocities[i] = self.beta * self.velocities[i] - self.lr * p.grad
+                p.data += self.velocities[i]
+            else:
+                p.data -= self.lr * p.grad
+
+    def zero_grad(self):
+        for p in self.params:
+            p.zero_grad()
