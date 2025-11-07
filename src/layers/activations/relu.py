@@ -1,12 +1,13 @@
 import numpy as np
 
-from src.module.layer import Layer
+from src.layers.activations.activations import Activation
 
 
-class ReLU(Layer):
+class ReLU(Activation):
     def __init__(self):
         super().__init__()
         self._mask = None
+        self.affect_init = True
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         self._mask = x > 0
@@ -16,10 +17,11 @@ class ReLU(Layer):
         return grad * self._mask
 
 
-class LeakyReLU(Layer):
+class LeakyReLU(Activation):
     def __init__(self, alpha: float):
         super().__init__()
         self.a = alpha
+        self.affect_init = True
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         return np.where(x >= 0, x, self.a * x)
