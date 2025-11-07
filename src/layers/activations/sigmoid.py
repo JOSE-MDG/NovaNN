@@ -14,3 +14,4 @@ class Sigmoid(Activation):
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
         grad = grad * (self.out * (1 - self.out))
+        return grad
