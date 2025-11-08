@@ -38,7 +38,7 @@ class BatchNormalization(Activation):
         return out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
-        B = grad.shape[1]
+        B = grad.shape[1]  # (in,B)
 
         dbeta = np.sum(grad, axis=1, keepdims=True)
         dgamma = np.sum(grad * self.x_hat, axis=1, keepdims=True)
