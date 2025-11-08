@@ -13,11 +13,11 @@ class SoftMax(Activation):
         logits_max = np.max(x, axis=1, keepdims=True)
         stable_logits = x - logits_max
         logits_exp = np.exp(stable_logits)
-        logits_sum = np.sum(logits_exp, axis=1, keepdims=True)
+        logits_sum = np.sum(logits_exp, axis=0, keepdims=True)
         self.out = logits_exp / logits_sum
         return self.out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
-        s = np.sum(self.out * grad, axis=1, keepdims=True)
+        s = np.sum(self.out * grad, axis=0, keepdims=True)
         grad = self.out * (grad - s)
         return grad

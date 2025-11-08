@@ -7,6 +7,7 @@ from src.core.init import (
     xavier_uniform_,
     kaiming_uniform_,
     random_init_,
+    calculate_gain,
 )
 
 load_dotenv()
@@ -26,17 +27,21 @@ LOGGER_DATE_FORMAT = os.getenv("LOGGER_DEFAULT_LEVEL")
 
 # initializations dicts
 DEFAULT_NORMAL_INIT_MAP = {
-    "relu": kaiming_normal_,
-    "leakyrelu": kaiming_normal_,
-    "tanh": xavier_normal_,
-    "sigmoid": xavier_normal_,
-    "default": random_init_,
+    "relu": lambda shape: kaiming_normal_(shape, a=0.0, nonlinearity="relu"),
+    "leakyrelu": lambda shape: kaiming_normal_(shape, a=0.01, nonlinearity="leakyrelu"),
+    "tanh": lambda shape: xavier_normal_(shape, gain=calculate_gain("tanh")),
+    "sigmoid": lambda shape: xavier_normal_(shape, gain=calculate_gain("sigmoid")),
+    "default": lambda shape: random_init_(shape),
 }
 
 DEFAULT_UNIFORM_INIT_MAP = {
-    "relu": kaiming_uniform_,
-    "leakyrelu": kaiming_uniform_,
-    "tanh": xavier_uniform_,
-    "sigmoid": xavier_uniform_,
-    "default": random_init_,
+    "relu": lambda shape: kaiming_uniform_(shape, a=0.0, nonlinearity="relu"),
+    "leakyrelu": lambda shape: kaiming_uniform_(
+        shape, a=0.01, nonlinearity="leakyrelu"
+    ),
+    "tanh": lambda shape: xavier_uniform_(shape, calculate_gain(nonlinearity="tanh")),
+    "sigmoid": lambda shape: xavier_uniform_(
+        shape, calculate_gain(nonlinearity="sigmoid")
+    ),
+    "default": lambda shape: random_init_(shape),
 }

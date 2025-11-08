@@ -27,11 +27,11 @@ class Linear(Layer):
     def reset_parameters(self, initializer: Optional[Callable] = None):
         init = initializer or self.init_fn or config.DEFAULT_NORMAL_INIT_MAP["default"]
         self.weight = Parameters(init((self.out_features, self.in_features)))
-        self.bias = Parameters(init(1, self.out_features)) if self.b else None
+        self.bias = Parameters(np.zeros((self.out_features, 1))) if self.b else None
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         self._cache_input = x
-        out = x @ self.weight.data.T
+        out = self.weight.data @ x
         if self.bias is not None:
             out += self.bias.data
         return out

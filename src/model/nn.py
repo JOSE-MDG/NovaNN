@@ -16,12 +16,6 @@ class Sequential(Layer):
     """
 
     def __init__(self, *modules: Layer):
-        """Initializes the Sequential container.
-
-        Args:
-            modules (list[Layer]): An ordered list of layers/modules to be
-                                   executed in sequence.
-        """
         super().__init__()
         self._layers = modules
         self._aply_initializer_for_linear_layers()
@@ -31,12 +25,13 @@ class Sequential(Layer):
 
     def _find_next_activation(self, start_idx: int):
         for i in range(start_idx + 1, len(self._layers)):
-            act = self._layers[i]
-            if self._is_activation(act):
-                key = act.get_init_key()
+            layer = self._layers[i]
+            if self._is_activation(layer):
+                key = layer.get_init_key()
                 if key is not None:
-                    return key  # Name of activation layer
-        return None
+                    activation_params = getattr(layer, "activation_param", None)
+                    return key, activation_params
+        return None, None
 
     def _aply_initializer_for_linear_layers(self):
         for idx, layer in enumerate(self._layers):
@@ -44,14 +39,32 @@ class Sequential(Layer):
                 if getattr(layer, "init_fn", None) is not None:
                     continue
 
-                init_key = self._find_next_activation(idx)
+                init_key, activation_param = self._find_next_activation(idx)
                 if init_key is not None:
-                    init_fn = config.DEFAULT_NORMAL_INIT_MAP.get(
+                    init_fn_base = config.DEFAULT_NORMAL_INIT_MAP.get(
                         init_key, config.DEFAULT_NORMAL_INIT_MAP["default"]
                     )
+
+                    if activation_param is not None:
+                        init_fn = self._create_custom_init_fn(
+                            init_fn_base, activation_param, init_key
+                        )
+                    else:
+                        init_fn = init_fn_base
                 else:
                     init_fn = config.DEFAULT_NORMAL_INIT_MAP["default"]
                 layer.reset_parameters(init_fn)
+
+    def _create_custom_init_fn(self, init_fn_base, a, nonlinearity):
+        from src.core.init import kaiming_normal_
+
+        def custom_init(shape):
+            if nonlinearity == "leakyrelu":
+                return kaiming_normal_(shape, a=a, nonlinearity="leakyrelu")
+            else:
+                return init_fn_base(shape)
+
+        return custom_init
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Makes the class instance callable as a function, aliasing the forward pass.

@@ -22,9 +22,12 @@ class LeakyReLU(Activation):
         super().__init__()
         self.a = alpha
         self.affect_init = True
+        self.activation_param = alpha
 
     def forward(self, x: np.ndarray) -> np.ndarray:
+        self._cache_intput = x
         return np.where(x >= 0, x, self.a * x)
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
-        return np.where(grad > 0, 1, self.a)
+        x = self._cache_intput
+        return grad * np.where(x >= 0, 1, self.a)
