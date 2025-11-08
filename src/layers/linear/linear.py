@@ -36,7 +36,7 @@ class Linear(Layer):
             out += self.bias.data
         return out
 
-    def backward(self, grad) -> np.ndarray:
+    def backward(self, grad: np.ndarray) -> np.ndarray:
         x = self._cache_input
         self.weight.grad = grad.T @ x
         if self.bias is not None:
