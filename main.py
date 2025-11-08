@@ -1,5 +1,4 @@
 from src.core import config
-
-init = config.DEFAULT_NORMAL_INIT_MAP["relu"]
-
-w = init((200, 784))
+from src.model.nn import Sequential
+from src.layers.activations.relu import ReLU
+from src.layers.linear.linear import Linear
