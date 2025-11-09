@@ -13,8 +13,8 @@ class BatchNormalization(Activation):
 
         self.gamma = Parameters(np.ones((num_features, 1)))
         self.beta = Parameters(np.zeros((num_features, 1)))
-        self.beta.name = 'beta'
-        self.gamma.name = 'gamma'
+        self.beta.name = "beta"
+        self.gamma.name = "gamma"
 
         self.running_mean = np.zeros((num_features, 1))
         self.running_var = np.ones((num_features, 1))
@@ -44,16 +44,19 @@ class BatchNormalization(Activation):
             self.x_mu = x_mu
             self.x_hat = x_hat
 
-
             out = self.gamma.data * x_hat + self.beta.data
 
-            self.running_mean = self.momentum * self.running_mean + (1 - self.momentum) * mu
-            self.running_var = self.momentum * self.rnning_var + (1 - self.momentum) * var
+            self.running_mean = (
+                self.momentum * self.running_mean + (1 - self.momentum) * mu
+            )
+            self.running_var = (
+                self.momentum * self.running_var + (1 - self.momentum) * var
+            )
 
             return out
         else:
             x_hat = (x - self.running_mean) / np.sqrt(self.running_var + self.eps)
-            out = self.gamma.data * x_hat = self.beta.data
+            out = self.gamma.data * x_hat + self.beta.data
             return out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
@@ -65,15 +68,15 @@ class BatchNormalization(Activation):
         eps = self.eps
 
         self.gamma.grad = np.sum(grad * x_hat, axis=1, keepdims=True)
-        self.beta.grad  = np.sum(grad, axis=1, keepdims=True)
+        self.beta.grad = np.sum(grad, axis=1, keepdims=True)
 
         dx_hat = grad * self.gamma.data
 
-        inv_std = (var + eps) ** (-0.5)   # 1 / sqrt(var + eps)
+        inv_std = (var + eps) ** (-0.5)  # 1 / sqrt(var + eps)
         inv_std3 = (var + eps) ** (-1.5)  # 1 / (var + eps)^(3/2)
 
         dvar = np.sum(dx_hat * x_mu * (-0.5) * inv_std3, axis=1, keepdims=True)
-        dmu  = np.sum(dx_hat * (-inv_std), axis=1, keepdims=True)
+        dmu = np.sum(dx_hat * (-inv_std), axis=1, keepdims=True)
 
         dx = dx_hat * inv_std + dvar * (2 * x_mu) / m + dmu / m
 
@@ -81,5 +84,3 @@ class BatchNormalization(Activation):
 
     def parameters(self):
         return [self.gamma, self.beta]
-
-        
