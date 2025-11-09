@@ -17,6 +17,9 @@ def test_sequential_forward_backward_shape_and_parameters_collection():
     seq = Sequential(l1, act, l2)  # Automatically detects the activation function Tanh
     seq.train()
 
+    activation, _ = seq._find_next_activation(0)
+    assert activation == "tanh"
+
     X = RNG.randn(in_f, B)
     out = seq.forward(X)
     assert out.shape == (out_f, B)
