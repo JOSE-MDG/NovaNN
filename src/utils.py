@@ -3,3 +3,35 @@ import numpy as np
 
 def accuracy(nn, x, y, batch_size):
     pass
+
+
+def numeric_grad_elementwise(act_forward, x, eps=1e-6):
+    g = np.zeros_like(x, dtype=float)
+    it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
+    while not it.finished:
+        idx = it.multi_index
+        orig = x[idx]
+        x[idx] = orig + eps
+        f_plus = act_forward(x).copy()
+        x[idx] = orig - eps
+        f_minus = act_forward(x).copy()
+        g[idx] = (f_plus[idx] - f_minus[idx]) / (2 * eps)
+        x[idx] = orig
+        it.iternext()
+    return g
+
+
+def numeric_grad_scalar_from_softmax(softmax_forward, x, G, eps=1e-6):
+    grad = np.zeros_like(x, dtype=float)
+    it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
+    while not it.finished:
+        idx = it.multi_index
+        orig = x[idx]
+        x[idx] = orig + eps
+        L_plus = np.sum(softmax_forward(x) * G)
+        x[idx] = orig - eps
+        L_minus = np.sum(softmax_forward(x) * G)
+        grad[idx] = (L_plus - L_minus) / (2 * eps)
+        x[idx] = orig
+        it.iternext()
+    return grad

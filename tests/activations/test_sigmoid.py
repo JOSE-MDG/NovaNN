@@ -1,0 +1,23 @@
+import pytest
+import numpy as np
+
+from src.layers.activations.sigmoid import Sigmoid
+from src.utils import numeric_grad_elementwise
+
+RNG = np.random.RandomState(0)
+
+
+def test_sigmoid_forward_backward_and_numeric():
+    X = RNG.randn(5, 5)
+    act = Sigmoid()
+
+    Y = act.forward(X)
+    assert Y.shape == X.shape
+    assert np.all(Y > 0) and np.all(Y < 1)
+
+    numg = numeric_grad_elementwise(lambda z: act.forward(z), X.copy(), eps=1e-6)
+    act.forward(X)
+    back = act.backward(np.ones_like(X))  # upstream ones -> d sum(sigmoid) / dx
+    expected = Y * (1 - Y)
+    assert np.allclose(numg, expected, atol=1e-6, rtol=1e-6)
+    assert np.allclose(back, expected, atol=1e-6, rtol=1e-6)

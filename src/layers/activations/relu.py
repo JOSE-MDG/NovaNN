@@ -18,11 +18,11 @@ class ReLU(Activation):
 
 
 class LeakyReLU(Activation):
-    def __init__(self, alpha: float):
+    def __init__(self, negative_slope: float = 0.01):
         super().__init__()
-        self.a = alpha
+        self.a = negative_slope
         self.affect_init = True
-        self.activation_param = alpha
+        self.activation_param = negative_slope
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         self._cache_intput = x
