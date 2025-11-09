@@ -42,7 +42,10 @@ def xavier_uniform_(shape: tuple[int, int], gain: float = 1.0) -> np.ndarray:
 
 
 def kaiming_normal_(
-    shape: tuple[int, int], a: float, nonlinearity: str = "relu", mode: str = "fan_in"
+    shape: tuple[int, int],
+    a: float = None,
+    nonlinearity: str = "relu",
+    mode: str = "fan_in",
 ) -> np.ndarray:
     if len(shape) < 2:
         raise ValueError(f"The shape must be grater than {len(shape)}")
@@ -63,7 +66,10 @@ def kaiming_normal_(
 
 
 def kaiming_uniform_(
-    shape: tuple[int, int], a: float, nonlinearity: str = "relu", mode: str = "fan_in"
+    shape: tuple[int, int],
+    a: float = None,
+    nonlinearity: str = "relu",
+    mode: str = "fan_in",
 ) -> np.ndarray:
     if len(shape) < 2:
         raise ValueError(f"The shape must be grater than {len(shape)}")
@@ -84,4 +90,4 @@ def kaiming_uniform_(
 
 
 def random_init_(shape: tuple[int, int], gain: float = 0.001) -> np.ndarray:
-    return np.random.randn(shape) * gain
+    return np.random.randn(*shape) * gain
