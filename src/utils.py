@@ -35,3 +35,37 @@ def numeric_grad_scalar_from_softmax(softmax_forward, x, G, eps=1e-6):
         x[idx] = orig
         it.iternext()
     return grad
+
+
+def numeric_grad_scalar_wrt_x(forward_fn, x, G, eps=1e-6):
+    grad = np.zeros_like(x, dtype=float)
+    it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
+    while not it.finished:
+        idx = it.multi_index
+        orig = x[idx]
+        x[idx] = orig + eps
+        L_plus = np.sum(forward_fn(x) * G)
+        x[idx] = orig - eps
+        L_minus = np.sum(forward_fn(x) * G)
+        grad[idx] = (L_plus - L_minus) / (2 * eps)
+        x[idx] = orig
+        it.iternext()
+    return grad
+
+
+def numeric_grad_wrt_param(layer, param_attr, x, G, eps=1e-6):
+    p = getattr(layer, param_attr)
+    shape = p.data.shape
+    grad = np.zeros_like(p.data, dtype=float)
+    it = np.nditer(p.data, flags=["multi_index"], op_flags=["readwrite"])
+    while not it.finished:
+        idx = it.multi_index
+        orig = p.data[idx]
+        p.data[idx] = orig + eps
+        L_plus = np.sum(layer.forward(x) * G)
+        p.data[idx] = orig - eps
+        L_minus = np.sum(layer.forward(x) * G)
+        grad[idx] = (L_plus - L_minus) / (2 * eps)
+        p.data[idx] = orig
+        it.iternext()
+    return grad

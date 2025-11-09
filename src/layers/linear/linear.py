@@ -38,10 +38,10 @@ class Linear(Layer):
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
         x = self._cache_input
-        self.weight.grad = grad.T @ x
+        self.weight.grad = grad @ x.T
         if self.bias is not None:
             self.bias.grad = np.sum(grad, axis=1, keepdims=True)
-        grad_input = grad @ self.weight.data
+        grad_input = self.weight.data.T @ grad
         return grad_input
 
     def parameters(self):
