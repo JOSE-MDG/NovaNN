@@ -1,9 +1,11 @@
 .venv/
 data/FashionMnist/fashion-mnist_train.csv
+data/FashionMnist/fashion-mnist_train_e.csv
 data/FashionMnist/fashion-mnist_validation.csv
 data/FashionMnist/fashion-mnist_test.csv
 data/Mnist/MNIST_Test.csv
 data/Mnist/MNIST_Validation.csv
 data/Mnist/MNIST_Train.csv
+data/Mnist/MNIST_Train_e.csv
 logs/logs.log
 __pycache__/
