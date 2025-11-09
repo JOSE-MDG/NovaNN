@@ -4,7 +4,7 @@ from src.layers.activations.activations import Activation
 
 class Tanh(Activation):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         self.affect_init = True
         self.out = None
 
