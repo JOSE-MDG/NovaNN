@@ -22,7 +22,7 @@ class SGD:
 
     def step(self):
         for i, p in enumerate(self.params):
-            if self.wd > 0:
+            if getattr(p, "name", None) is None and self.wd > 0:
                 p.grad += self.wd * np.sign(p.data) if self.l1 else self.wd * p.data
             if self.beta > 0:
                 self.velocities[i] = self.beta * self.velocities[i] - self.lr * p.grad

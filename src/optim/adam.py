@@ -27,7 +27,7 @@ class Adam:
     def step(self):
         self.t += 1
         for i, p in enumerate(self.params):
-            if self.wd > 0:
+            if getattr(p, "name", None) is None and self.wd > 0:
                 p.grad += self.wd * np.sign(p.data) if self.l1 else self.wd * p.data
 
             self.velocities[i] = self.b1 * self.velocities[i] + (1 - self.b1) * p.grad

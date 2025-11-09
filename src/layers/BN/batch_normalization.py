@@ -13,6 +13,8 @@ class BatchNormalization(Activation):
 
         self.gamma = Parameters(np.ones((num_features, 1)))
         self.beta = Parameters(np.zeros((num_features, 1)))
+        self.beta.name = 'beta'
+        self.gamma.name = 'gamma'
 
         self.running_mean = np.zeros((num_features, 1))
         self.running_var = np.ones((num_features, 1))
@@ -76,5 +78,8 @@ class BatchNormalization(Activation):
         dx = dx_hat * inv_std + dvar * (2 * x_mu) / m + dmu / m
 
         return dx
+
+    def parameters(self):
+        return [self.gamma, self.beta]
 
         

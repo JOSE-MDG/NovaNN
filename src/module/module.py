@@ -18,6 +18,7 @@ class Parameters:
         self.data = data
         # Initialize gradient with the same shape as data, filled with zeros.
         self.grad = np.zeros_like(data, dtype=np.float32)
+        self.name = None
 
     def zero_grad(self):
         """Resets the gradient of the parameter to zero."""
