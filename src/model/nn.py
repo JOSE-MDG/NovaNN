@@ -1,9 +1,13 @@
 import numpy as np
+import inspect
+import re
 from src.module.layer import Layer
 from src.layers.activations.activations import Activation
 from src.layers.linear.linear import Linear
 from src.core import config
 from src.module.module import Parameters
+from src.core.logger import logger
+
 
 from typing import Iterable
 
@@ -30,6 +34,7 @@ class Sequential(Layer):
                 key = layer.get_init_key()
                 if key is not None:
                     activation_params = getattr(layer, "activation_param", None)
+                    logger.debug(f"Current activation is: '{key}'")
                     return key, activation_params
         return None, None
 
@@ -49,18 +54,39 @@ class Sequential(Layer):
                         init_fn = self._create_custom_init_fn(
                             init_fn_base, activation_param, init_key
                         )
+                        logger.debug(
+                            f"Initializing '{init_key}' is '{self.__get_lambda_name(init_fn)}' <- (with params)"
+                        )
                     else:
                         init_fn = init_fn_base
+                        logger.debug(
+                            f"Initializing '{init_key}' with '{self.__get_lambda_name(init_fn)}' <- (without parameters)"
+                        )
                 else:
                     init_fn = config.DEFAULT_NORMAL_INIT_MAP["default"]
+                    logger.debug(
+                        f"Initializing by default '{self.__get_lambda_name(init_fn)}' <- (without activations)"
+                    )
+
                 layer.reset_parameters(init_fn)
+
+    def __get_lambda_name(self, lambda_fn):
+        try:
+            source_code = inspect.getsource(lambda_fn)
+            match = re.search(r"lambda\s+shape\s*:\s*([a-zA-Z_]\w*)\s*\(", source_code)
+            if match:
+                return str(match.group(1))
+            else:
+                return f"({lambda_fn.__name__})"
+        except:
+            return f"The resource could not be found."
 
     def _create_custom_init_fn(self, init_fn_base, a, nonlinearity):
         from src.core.init import kaiming_normal_
 
         def custom_init(shape):
             if nonlinearity == "leakyrelu":
-                return kaiming_normal_(shape, a=a, nonlinearity="leakyrelu")
+                return kaiming_normal_(shape, a=a, nonlinearity=nonlinearity)
             else:
                 return init_fn_base(shape)
 

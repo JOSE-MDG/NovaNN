@@ -1,10 +1,10 @@
 import numpy as np
 
-from src.layers.activations.activations import Activation
+from src.module.layer import Layer
 from src.module.module import Parameters
 
 
-class BatchNormalization(Activation):
+class BatchNormalization(Layer):
     def __init__(self, num_features: int, momentum: float = 0.1, eps: float = 1e-5):
         super().__init__()
         self.num_features = num_features
