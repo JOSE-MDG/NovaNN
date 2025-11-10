@@ -20,11 +20,11 @@ def test_sequential_forward_backward_shape_and_parameters_collection():
     activation, _ = seq._find_next_activation(0)
     assert activation == "tanh"
 
-    X = RNG.randn(in_f, B)
+    X = RNG.randn(B, in_f)
     out = seq.forward(X)
-    assert out.shape == (out_f, B)
+    assert out.shape == (B, out_f)
 
-    G = RNG.randn(out_f, B)
+    G = RNG.randn(B, out_f)
     dx = seq.backward(G)
     assert dx.shape == X.shape
 
