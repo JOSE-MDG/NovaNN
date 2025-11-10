@@ -38,6 +38,17 @@ class Sequential(Layer):
                     return key, activation_params
         return None, None
 
+    def _find_last_activation(self, last_idx: int):
+        for i in reversed(range(0, last_idx)):
+            layer = self._layers[i]
+            if self._is_activation(layer):
+                key = layer.get_init_key()
+                if key is not None:
+                    activation_params = getattr(layer, "activation_param", None)
+                    logger.debug(f"Last activation was: {key}")
+                    return key, activation_params
+        return None, None
+
     def _aply_initializer_for_linear_layers(self):
         for idx, layer in enumerate(self._layers):
             if isinstance(layer, Linear):
@@ -62,6 +73,28 @@ class Sequential(Layer):
                         logger.debug(
                             f"Initializing '{init_key}' with '{self.__get_lambda_name(init_fn)}' <- (without parameters)"
                         )
+
+                elif layer == self._layers[-1]:
+
+                    init_key, activation_param = self._find_last_activation(idx)
+
+                    if init_key is not None:
+                        init_fn_base = config.DEFAULT_NORMAL_INIT_MAP.get(
+                            init_key, config.DEFAULT_NORMAL_INIT_MAP["default"]
+                        )
+
+                        if activation_param is not None:
+                            init_fn = self._create_custom_init_fn(
+                                init_fn_base, activation_param, init_key
+                            )
+                            logger.debug(
+                                f"Prev Initialization was '{init_key}' so the initialization is {self.__get_lambda_name(init_fn_base)} <- (with params)"
+                            )
+                        else:
+                            init_fn = init_fn_base
+                            logger.debug(
+                                f"Prev Initialization was '{init_key}' so the initialization is {self.__get_lambda_name(init_fn_base)} <- (without params)"
+                            )
                 else:
                     init_fn = config.DEFAULT_NORMAL_INIT_MAP["default"]
                     logger.debug(
