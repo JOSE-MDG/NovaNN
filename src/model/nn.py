@@ -8,8 +8,7 @@ from src.core import config
 from src.module.module import Parameters
 from src.core.logger import logger
 
-
-from typing import Iterable
+from typing import Iterable, Optional, Tuple, Callable, Any
 
 
 class Sequential(Layer):
@@ -19,15 +18,21 @@ class Sequential(Layer):
     The forward pass will apply each module sequentially.
     """
 
-    def __init__(self, *modules: Layer):
+    def __init__(self, *modules: Layer) -> None:
         super().__init__()
         self._layers = modules
         self._aply_initializer_for_linear_layers()
 
-    def _is_activation(self, layer: Activation):
+    def _is_activation(self, layer: Layer) -> bool:
+        """Return True if `layer` is an activation layer."""
         return isinstance(layer, Activation)
 
-    def _find_next_activation(self, start_idx: int):
+    def _find_next_activation(self, start_idx: int) -> Tuple[Optional[str], Optional[float]]:
+        """Find the next activation after `start_idx` and return its init key and param.
+
+        Returns:
+            Tuple of (init_key, activation_param) where either can be None.
+        """
         for i in range(start_idx + 1, len(self._layers)):
             layer = self._layers[i]
             if self._is_activation(layer):
@@ -38,7 +43,12 @@ class Sequential(Layer):
                     return key, activation_params
         return None, None
 
-    def _find_last_activation(self, last_idx: int):
+    def _find_last_activation(self, last_idx: int) -> Tuple[Optional[str], Optional[float]]:
+        """Find the last activation before `last_idx` and return its init key and param.
+
+        Returns:
+            Tuple of (init_key, activation_param) where either can be None.
+        """
         for i in reversed(range(0, last_idx)):
             layer = self._layers[i]
             if self._is_activation(layer):
@@ -49,7 +59,13 @@ class Sequential(Layer):
                     return key, activation_params
         return None, None
 
-    def _aply_initializer_for_linear_layers(self):
+    def _aply_initializer_for_linear_layers(self) -> None:
+        """Apply sensible default initializers to Linear layers based on nearby activations.
+
+        Walks the contained layers and sets a seed initializer on Linear layers that
+        do not already have one. Chooses initializers according to the next (or
+        previous for final linear) activation's init key.
+        """
         for idx, layer in enumerate(self._layers):
             if isinstance(layer, Linear):
                 if getattr(layer, "init_fn", None) is not None:
@@ -87,13 +103,14 @@ class Sequential(Layer):
                             init_fn = self._create_custom_init_fn(
                                 init_fn_base, activation_param, init_key
                             )
+                            # log the actual initializer selected (init_fn), not the base
                             logger.debug(
-                                f"Prev initialization was '{init_key}', so the initialization is '{self.__get_lambda_name(init_fn_base)}' <- (with params)"
+                                f"Prev initialization was '{init_key}', so the initialization is '{self.__get_lambda_name(init_fn)}' <- (with params)"
                             )
                         else:
                             init_fn = init_fn_base
                             logger.debug(
-                                f"Prev initialization was '{init_key}', so the initialization is '{self.__get_lambda_name(init_fn_base)}' <- (without params)"
+                                f"Prev initialization was '{init_key}', so the initialization is '{self.__get_lambda_name(init_fn)}' <- (without params)"
                             )
                 else:
                     init_fn = config.DEFAULT_NORMAL_INIT_MAP["default"]
@@ -103,21 +120,29 @@ class Sequential(Layer):
 
                 layer.reset_parameters(init_fn)
 
-    def __get_lambda_name(self, lambda_fn):
+    def __get_lambda_name(self, lambda_fn: Callable[..., Any]) -> str:
+        """Try to infer a readable name for an initializer (works for simple lambdas)."""
         try:
             source_code = inspect.getsource(lambda_fn)
             match = re.search(r"lambda\s+shape\s*:\s*([a-zA-Z_]\w*)\s*\(", source_code)
             if match:
                 return str(match.group(1))
             else:
-                return f"({lambda_fn.__name__})"
-        except:
-            return f"The resource could not be found."
+                # fall back to callable __name__ (lambda -> '<lambda>')
+                return f"({getattr(lambda_fn, '__name__', str(type(lambda_fn)))})"
+        except Exception:
+            return "unable to retrieve source"
 
-    def _create_custom_init_fn(self, init_fn_base, a, nonlinearity):
+    def _create_custom_init_fn(
+        self, init_fn_base: Callable[[Tuple[int, int]], Any], a: float, nonlinearity: str
+    ) -> Callable[[Tuple[int, int]], Any]:
+        """Wrap a base initializer to inject nonlinearity-specific parameters.
+
+        Currently only special-cases leakyrelu (uses kaiming_normal_ with slope `a`).
+        """
         from src.core.init import kaiming_normal_
 
-        def custom_init(shape):
+        def custom_init(shape: Tuple[int, int]) -> Any:
             if nonlinearity == "leakyrelu":
                 return kaiming_normal_(shape, a=a, nonlinearity=nonlinearity)
             else:
@@ -136,12 +161,12 @@ class Sequential(Layer):
         """
         return self.forward(x)
 
-    def train(self):
+    def train(self) -> None:
         """Sets all modules in the container to training mode."""
         for m in self._layers:
             m.train()
 
-    def eval(self):
+    def eval(self) -> None:
         """Sets all modules in the container to evaluation mode."""
         for m in self._layers:
             m.eval()
@@ -155,11 +180,10 @@ class Sequential(Layer):
         Returns:
             np.ndarray: The output tensor from the last layer.
         """
-        input = x
-        # Apply each layer sequentially
+        out = x
         for layer in self._layers:
-            input = layer.forward(input)
-        return input
+            out = layer.forward(out)
+        return out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
         """Performs a backward pass through the layers in reverse order.
@@ -172,7 +196,6 @@ class Sequential(Layer):
             np.ndarray: The gradient with respect to the input of the first layer.
         """
         grad_input = grad
-        # Apply backpropagation through each layer in reverse order
         for layer in reversed(self._layers):
             grad_input = layer.backward(grad_input)
         return grad_input
@@ -185,13 +208,10 @@ class Sequential(Layer):
         Returns:
             Iterable[Parameters]: An iterable of all parameters in the model.
         """
-        parameters = []
         for layer in self._layers:
-            parameters.extend(layer.parameters())
-        return parameters
+            yield from layer.parameters()
 
-    def zero_grad(self):
-        params = []
+    def zero_grad(self) -> None:
+        """Zero gradients for all submodules' parameters."""
         for layer in self._layers:
-            params.extend(layer.parameters())
-        return params
+            layer.zero_grad()

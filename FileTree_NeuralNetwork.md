@@ -30,11 +30,10 @@
 │   │   │   └── 🐍 linear.py
 │   │   ├── 📁 regularization
 │   │   │   └── 🐍 dropout.py
-│   │   ├── 🐍 __init__.py
-│   │   └── 🐍 make_block.py
-│   ├── 📁 losses
-│   │   ├── 🐍 Functional.py
 │   │   └── 🐍 __init__.py
+│   ├── 📁 losses
+│   │   ├── 🐍 __init__.py
+│   │   └── 🐍 functional.py
 │   ├── 📁 model
 │   │   ├── 🐍 __init__.py
 │   │   └── 🐍 nn.py
@@ -66,8 +65,9 @@
 │   ├── 🐍 test_linear_layer.py
 │   └── 🐍 test_sequential_module.py
 ├── ⚙️ .gitignore
+├── 📝 FileTree_NeuralNetwork.md
 ├── 📝 README.md
-├── 📄 fast_test.txt
+├── 🐍 example.py
 ├── 🐍 main.py
 └── 📄 requirements.txt
 ```

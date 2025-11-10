@@ -1,30 +1,50 @@
+# filepath: /home/juancho_col/Documents/Neural Network/src/utils.py
 import numpy as np
+from typing import Callable, Iterator, Tuple, Any, Optional
 
 
-import numpy as np
+def accuracy(
+    model: Callable[[np.ndarray], np.ndarray],
+    data_loader: Iterator[Tuple[np.ndarray, np.ndarray]],
+) -> float:
+    """Compute classification accuracy for a model over a dataloader.
 
+    Args:
+        model: Callable that maps a batch of inputs X (np.ndarray) to logits/probabilities.
+        data_loader: Iterator that yields (X_batch, y_batch) tuples. y_batch should
+            contain integer class labels.
 
-import numpy as np
-
-
-def accuracy(model, data_loader):
-
+    Returns:
+        Fraction of correctly predicted samples (float in [0, 1]).
+    """
     total_correct = 0
     total_samples = 0
 
     for X_batch, y_batch in data_loader:
-
         y_pred = model(X_batch)
-
         pred_classes = np.argmax(y_pred, axis=1)
-
         total_correct += np.sum(pred_classes == y_batch)
         total_samples += y_batch.shape[0]
 
     return total_correct / total_samples
 
 
-def numeric_grad_elementwise(act_forward, x, eps=1e-6):
+def numeric_grad_elementwise(
+    act_forward: Callable[[np.ndarray], np.ndarray], x: np.ndarray, eps: float = 1e-6
+) -> np.ndarray:
+    """Compute elementwise numerical gradient of a vector-valued function.
+
+    This computes d act_forward(x) / d x elementwise using central differences.
+    The input array `x` is temporarily modified but restored to its original values.
+
+    Args:
+        act_forward: Callable that accepts `x` and returns an array of the same shape.
+        x: Input array to differentiate with respect to.
+        eps: Small perturbation used for finite differences.
+
+    Returns:
+        Array with the same shape as `x` containing the numerical gradient.
+    """
     grad = np.zeros_like(x, dtype=float)
     it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
@@ -40,7 +60,25 @@ def numeric_grad_elementwise(act_forward, x, eps=1e-6):
     return grad
 
 
-def numeric_grad_scalar_from_softmax(softmax_forward, x, G, eps=1e-6):
+def numeric_grad_scalar_from_softmax(
+    softmax_forward: Callable[[np.ndarray], np.ndarray],
+    x: np.ndarray,
+    G: np.ndarray,
+    eps: float = 1e-6,
+) -> np.ndarray:
+    """Numerical gradient of scalar loss L = sum(softmax(x) * G) with respect to x.
+
+    Useful for testing softmax + cross-entropy style Jacobian-vector products.
+
+    Args:
+        softmax_forward: Callable that returns softmax probabilities for input x.
+        x: Input logits array to differentiate with respect to.
+        G: Gradient / weighting matrix used to form the scalar L = sum(softmax(x) * G).
+        eps: Finite difference step.
+
+    Returns:
+        Numerical gradient dL/dx with same shape as `x`.
+    """
     grad = np.zeros_like(x, dtype=float)
     it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
@@ -56,7 +94,25 @@ def numeric_grad_scalar_from_softmax(softmax_forward, x, G, eps=1e-6):
     return grad
 
 
-def numeric_grad_scalar_wrt_x(forward_fn, x, G, eps=1e-6):
+def numeric_grad_scalar_wrt_x(
+    forward_fn: Callable[[np.ndarray], np.ndarray],
+    x: np.ndarray,
+    G: np.ndarray,
+    eps: float = 1e-6,
+) -> np.ndarray:
+    """Numerical gradient of scalar S = sum(forward_fn(x) * G) w.r.t. x.
+
+    Generic helper for computing dS/dx using central differences.
+
+    Args:
+        forward_fn: Callable producing an array of same shape as x.
+        x: Input array.
+        G: Weighting array used to form scalar S = sum(forward_fn(x) * G).
+        eps: Finite difference epsilon.
+
+    Returns:
+        Numerical gradient array with the same shape as `x`.
+    """
     grad = np.zeros_like(x, dtype=float)
     it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
@@ -72,7 +128,22 @@ def numeric_grad_scalar_wrt_x(forward_fn, x, G, eps=1e-6):
     return grad
 
 
-def numeric_grad_wrt_param(layer, param_attr, x, G, eps=1e-6):
+def numeric_grad_wrt_param(
+    layer: Any, param_attr: str, x: np.ndarray, G: np.ndarray, eps: float = 1e-6
+) -> np.ndarray:
+    """Numerical gradient of scalar S = sum(layer.forward(x) * G) w.r.t. a layer parameter.
+
+    Args:
+        layer: Layer object that exposes a Parameters-like attribute named `param_attr`
+               (i.e., has `.data` which is a numpy array).
+        param_attr: Attribute name on `layer` that returns the Parameters wrapper.
+        x: Input array passed to `layer.forward`.
+        G: Weighting array used to form the scalar S = sum(output * G).
+        eps: Finite difference step.
+
+    Returns:
+        Numerical gradient array with same shape as the parameter `.data`.
+    """
     p = getattr(layer, param_attr)
     shape = p.data.shape
     grad = np.zeros_like(p.data, dtype=float)

@@ -1,10 +1,17 @@
 import numpy as np
-
+from typing import Iterable, List
 from src.module.module import Parameters
-from typing import Iterable
 
 
 class RMSProp:
+    """RMSProp optimizer (simple reference implementation).
+
+    Notes:
+        - Accepts an iterable of Parameters; the iterable is materialized to a
+          list so multiple passes are safe.
+        - Skips parameters with `grad is None` and parameters named 'gamma'/'beta'.
+    """
+
     def __init__(
         self,
         parameters: Iterable[Parameters],
@@ -13,24 +20,42 @@ class RMSProp:
         weight_decay: float = 0,
         lambda_l1: bool = False,
         epsilon: float = 1e-9,
-    ):
-        self.params = parameters
-        self.lr = learning_rate
-        self.beta = beta
-        self.wd = weight_decay
-        self.l1 = lambda_l1
-        self.moments = [np.zeros_like(p.data) for p in parameters]
-        self.eps = epsilon
+    ) -> None:
+        # Materialize parameters to avoid generator exhaustion and allow indexing.
+        self.params: List[Parameters] = list(parameters)
+        self.lr: float = float(learning_rate)
+        self.beta: float = float(beta)
+        self.wd: float = float(weight_decay)
+        self.l1: bool = bool(lambda_l1)
+        # Initialize moment buffers to match each parameter's shape.
+        self.moments: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
+        self.eps: float = float(epsilon)
 
-    def step(self):
+    def step(self) -> None:
+        """Perform a single optimization step."""
         for i, p in enumerate(self.params):
-            if getattr(p, "name", None) is None and self.wd > 0:
-                p.grad += self.wd * np.sign(p.data) if self.l1 else self.wd * p.data
-            self.moments[i] = self.beta * self.moments[i] + (1 - self.beta) * (
+            # Skip normalization params or parameters without gradient
+            if getattr(p, "name", None) in ("gamma", "beta"):
+                continue
+            if p.grad is None:
+                continue
+
+            # Apply weight decay (L1 or L2) to the gradient if configured
+            if self.wd > 0:
+                if self.l1:
+                    p.grad = p.grad + self.wd * np.sign(p.data)
+                else:
+                    p.grad = p.grad + self.wd * p.data
+
+            # Update running average of squared gradients
+            self.moments[i] = self.beta * self.moments[i] + (1.0 - self.beta) * (
                 p.grad**2
             )
-            p.data -= self.lr * (p.grad / np.sqrt(self.moments[i] + self.eps))
 
-    def zero_grad(self, set_to_none: bool = False):
+            # Parameter update
+            p.data -= self.lr * (p.grad / (np.sqrt(self.moments[i]) + self.eps))
+
+    def zero_grad(self, set_to_none: bool = False) -> None:
+        """Zero or clear gradients for all managed parameters."""
         for p in self.params:
             p.zero_grad(set_to_none=set_to_none)

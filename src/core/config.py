@@ -1,35 +1,56 @@
 import os
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from dotenv import load_dotenv
 from src.core.init import (
-    xavier_normal_,
+    calculate_gain,
     kaiming_normal_,
-    xavier_uniform_,
     kaiming_uniform_,
     random_init_,
-    calculate_gain,
+    xavier_normal_,
+    xavier_uniform_,
 )
 
 load_dotenv()
 
-# Data variables
-FASHION_TRAIN_DATA_PATH = os.getenv("FASHION_TRAIN_DATA_PATH")
-EXPORTATION_FASHION_TRAIN_DATA_PATH = os.getenv("EXPORTATION_FASHION_TRAIN_DATA_PATH")
-FASHION_TEST_DATA_PATH = os.getenv("FASHION_TEST_DATA_PATH")
-FASHION_VALIDATION_DATA_PATH = os.getenv("FASHION_VALIDATION_DATA_PATH")
+Shape = Tuple[int, ...]
+InitFn = Callable[[Shape], Any]
 
-MNIST_TRAIN_DATA_PATH = os.getenv("MNIST_TRAIN_DATA_PATH")
-EXPORTATION_MNIST_TRAIN_DATA_PATH = os.getenv("EXPORTATION_MNIST_TRAIN_DATA_PATH")
-MNIST_VALIDATION_DATA_PATH = os.getenv("MNIST_VALIDATION_DATA_PATH")
-MNIST_TEST_DATA_PATH = os.getenv("MNIST_TEST_DATA_PATH")
+"""
+Core configuration constants and default initialization maps.
+
+This module exposes environment-configured paths and logger settings, plus
+two dictionaries that map activation names to default weight initialization
+functions.
+
+Docstrings and type hints follow the Google style where applicable.
+"""
+
+# Data paths (may be None if not set in environment)
+FASHION_TRAIN_DATA_PATH: Optional[str] = os.getenv("FASHION_TRAIN_DATA_PATH")
+EXPORTATION_FASHION_TRAIN_DATA_PATH: Optional[str] = os.getenv(
+    "EXPORTATION_FASHION_TRAIN_DATA_PATH"
+)
+FASHION_TEST_DATA_PATH: Optional[str] = os.getenv("FASHION_TEST_DATA_PATH")
+FASHION_VALIDATION_DATA_PATH: Optional[str] = os.getenv("FASHION_VALIDATION_DATA_PATH")
+
+MNIST_TRAIN_DATA_PATH: Optional[str] = os.getenv("MNIST_TRAIN_DATA_PATH")
+EXPORTATION_MNIST_TRAIN_DATA_PATH: Optional[str] = os.getenv(
+    "EXPORTATION_MNIST_TRAIN_DATA_PATH"
+)
+MNIST_VALIDATION_DATA_PATH: Optional[str] = os.getenv("MNIST_VALIDATION_DATA_PATH")
+MNIST_TEST_DATA_PATH: Optional[str] = os.getenv("MNIST_TEST_DATA_PATH")
 
 # Logger config
-LOG_FILE = os.getenv("LOG_FILE")
-LOGGER_DEFAULT_FORMAT = os.getenv("LOGGER_DEFAULT_FORMAT")
-LOGGER_DATE_FORMAT = os.getenv("LOGGER_DEFAULT_LEVEL")
+LOG_FILE: Optional[str] = os.getenv("LOG_FILE")
+LOGGER_DEFAULT_FORMAT: Optional[str] = os.getenv("LOGGER_DEFAULT_FORMAT")
+LOGGER_DEFAULT_LEVEL: Optional[str] = os.getenv("LOGGER_DEFAULT_LEVEL")
+LOGGER_DATE_FORMAT: Optional[str] = os.getenv("LOGGER_DATE_FORMAT")
 
-# initializations dicts
-DEFAULT_NORMAL_INIT_MAP = {
+# Default initialization maps
+# Keys correspond to activation identifiers used elsewhere in the project.
+# Each value is a callable that receives a shape and applies an initialization.
+DEFAULT_NORMAL_INIT_MAP: Dict[str, InitFn] = {
     "relu": lambda shape: kaiming_normal_(shape, a=0.0, nonlinearity="relu"),
     "leakyrelu": lambda shape: kaiming_normal_(shape, a=0.01, nonlinearity="leakyrelu"),
     "tanh": lambda shape: xavier_normal_(shape, gain=calculate_gain("tanh")),
@@ -37,14 +58,12 @@ DEFAULT_NORMAL_INIT_MAP = {
     "default": lambda shape: random_init_(shape),
 }
 
-DEFAULT_UNIFORM_INIT_MAP = {
+DEFAULT_UNIFORM_INIT_MAP: Dict[str, InitFn] = {
     "relu": lambda shape: kaiming_uniform_(shape, a=0.0, nonlinearity="relu"),
     "leakyrelu": lambda shape: kaiming_uniform_(
         shape, a=0.01, nonlinearity="leakyrelu"
     ),
-    "tanh": lambda shape: xavier_uniform_(shape, calculate_gain(nonlinearity="tanh")),
-    "sigmoid": lambda shape: xavier_uniform_(
-        shape, calculate_gain(nonlinearity="sigmoid")
-    ),
+    "tanh": lambda shape: xavier_uniform_(shape, gain=calculate_gain("tanh")),
+    "sigmoid": lambda shape: xavier_uniform_(shape, gain=calculate_gain("sigmoid")),
     "default": lambda shape: random_init_(shape),
 }

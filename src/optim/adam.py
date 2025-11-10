@@ -1,9 +1,17 @@
 import numpy as np
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, List
 from src.module.module import Parameters
 
 
 class Adam:
+    """Simple Adam optimizer.
+
+    Notes:
+        - Expects an iterable of Parameters. The iterable is consumed into a
+          list to allow multiple passes (moment/velocity buffers).
+        - Skips parameters whose `.grad` is None.
+    """
+
     def __init__(
         self,
         parameters: Iterable[Parameters],
@@ -12,32 +20,49 @@ class Adam:
         weight_decay: float = 0,
         lambda_l1: bool = False,
         epsilon: float = 1e-9,
-    ):
-        self.params = parameters
-        self.lr = learning_rate
-        self.wd = weight_decay
-        self.l1 = lambda_l1
-        self.moments = [np.zeros_like(p.data) for p in parameters]
-        self.velocities = [np.zeros_like(p.data) for p in parameters]
-        self.b1 = betas[0]
-        self.b2 = betas[1]
-        self.eps = epsilon
-        self.t = 0
+    ) -> None:
+        # Materialize parameters to a list to avoid issues if a generator is passed.
+        self.params: List[Parameters] = list(parameters)
+        self.lr: float = float(learning_rate)
+        self.wd: float = float(weight_decay)
+        self.l1: bool = bool(lambda_l1)
+        # First and second moment buffers (kept as in original naming)
+        self.moments: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
+        self.velocities: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
+        self.b1: float = float(betas[0])
+        self.b2: float = float(betas[1])
+        self.eps: float = float(epsilon)
+        self.t: int = 0
 
-    def step(self):
+    def step(self) -> None:
+        """Perform a single optimization step over the provided parameters."""
         self.t += 1
         for i, p in enumerate(self.params):
-            if getattr(p, "name", None) is None and self.wd > 0:
-                p.grad += self.wd * np.sign(p.data) if self.l1 else self.wd * p.data
+            # Skip params without gradient or BN params (gamma/beta)
+            if getattr(p, "name", None) in ("gamma", "beta"):
+                continue
+            if p.grad is None:
+                continue
 
+            # Apply weight decay (L1 or L2) to the gradient
+            if self.wd > 0:
+                if self.l1:
+                    p.grad = p.grad + self.wd * np.sign(p.data)
+                else:
+                    p.grad = p.grad + self.wd * p.data
+
+            # Update first and second moment estimates
             self.velocities[i] = self.b1 * self.velocities[i] + (1 - self.b1) * p.grad
             self.moments[i] = self.b2 * self.moments[i] + (1 - self.b2) * (p.grad**2)
 
+            # Bias-corrected estimates
             m_hat = self.velocities[i] / (1 - self.b1**self.t)
             v_hat = self.moments[i] / (1 - self.b2**self.t)
 
+            # Parameter update
             p.data -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
 
-    def zero_grad(self, set_to_none: bool = False):
+    def zero_grad(self, set_to_none: bool = False) -> None:
+        """Zero or clear gradients for all parameters managed by this optimizer."""
         for p in self.params:
             p.zero_grad(set_to_none=set_to_none)

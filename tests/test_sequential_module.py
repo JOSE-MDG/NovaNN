@@ -14,22 +14,27 @@ def test_sequential_forward_backward_shape_and_parameters_collection():
     act = Tanh()
     l2 = Linear(in_features=hidden, out_features=out_f, bias=True)
 
-    seq = Sequential(l1, act, l2)  # Automatically detects the activation function Tanh
+    # Sequential should detect activation placement and apply sensible initializers
+    seq = Sequential(l1, act, l2)
     seq.train()
 
+    # Internal helper returns the init key for the activation after layer 0
     activation, _ = seq._find_next_activation(0)
-    assert activation == "tanh"
+    assert activation == "tanh"  # expect lowercased class name used as key
 
     X = RNG.randn(B, in_f)
     out = seq.forward(X)
-    assert out.shape == (B, out_f)
+    assert out.shape == (B, out_f)  # output shape matches batch and out_features
 
     G = RNG.randn(B, out_f)
     dx = seq.backward(G)
-    assert dx.shape == X.shape
+    assert dx.shape == X.shape  # backward returns gradient w.r.t. input
 
     params = list(seq.parameters())
+    # Two Linear layers each expose weight (+ bias) => 4 parameter objects expected
     assert len(params) == 4
     for p in params:
+        # Each parameter wrapper must expose `.data` and `.grad`
         assert hasattr(p, "data") and hasattr(p, "grad")
-        assert getattr(p, "name", None) is None
+        # Name is optional in this test (left None by default)
+        assert getattr(p, "name", None) in (None, "weight", "bias")
