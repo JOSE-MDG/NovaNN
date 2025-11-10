@@ -128,4 +128,4 @@ class Logger:
 
 
 # Create a default logger instance for the project
-logger = Logger("NN Project")
+logger = Logger("Neural Network")

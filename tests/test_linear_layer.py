@@ -17,19 +17,19 @@ def test_linear_forward_shape_and_numeric_backward():
     lin = Linear(in_features=in_f, out_features=out_f, bias=True, init=init_fn)
 
     # input shape: (in_features, batch)
-    X = RNG.randn(in_f, B)
+    X = RNG.randn(B, in_f)
 
     # forward: W @ X + b
     out = lin.forward(X)
-    assert out.shape == (out_f, B)
+    assert out.shape == (B, in_f)
 
     # default bias zeros; since W is ones, out should equal row-wise sum of X
-    expected = np.ones((out_f, in_f)) @ X  # (out_f, in_f) @ (in_f, B) -> (out_f,B)
+    expected = X @ np.ones((out, in_f)).T  # (B,in_f) @ (in_f,out) -> (B,out)
     assert np.allclose(out, expected)
 
     # Numeric check of backward wrt input:
     # choose arbitrary upstream gradient G
-    G = RNG.randn(out_f, B)
+    G = RNG.randn(B, out_f)
     # run forward again to set cache inside layer
     lin.forward(X)
     dx = lin.backward(G)  # analytic dx from layer
@@ -45,8 +45,8 @@ def test_linear_param_grads_numeric():
     init_fn = lambda shape: RNG.randn(*shape)
     lin = Linear(in_features=in_f, out_features=out_f, bias=True, init=init_fn)
 
-    X = RNG.randn(in_f, B)
-    G = RNG.randn(out_f, B)
+    X = RNG.randn(B, in_f)
+    G = RNG.randn(B, out_f)
 
     # ensure forward caches are set
     lin.forward(X)

@@ -13,7 +13,7 @@ class CrossEntropyLoss:
     def forward(self, logits: np.ndarray, targets: np.ndarray) -> float:
         self.N = logits.shape[0]
 
-        C = np.unique(targets).size
+        C = logits.shape[1]
         y = np.eye(C)[targets]
         self.y_one_hot = y
 

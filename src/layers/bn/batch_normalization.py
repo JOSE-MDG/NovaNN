@@ -11,13 +11,13 @@ class BatchNormalization(Layer):
         self.momentum = momentum
         self.eps = eps
 
-        self.gamma = Parameters(np.ones((num_features, 1)))
-        self.beta = Parameters(np.zeros((num_features, 1)))
+        self.gamma = Parameters(np.ones((1, num_features)))
+        self.beta = Parameters(np.zeros((1, num_features)))
         self.beta.name = "beta"
         self.gamma.name = "gamma"
 
-        self.running_mean = np.zeros((num_features, 1))
-        self.running_var = np.ones((num_features, 1))
+        self.running_mean = np.zeros((1, num_features))
+        self.running_var = np.ones((1, num_features))
 
         self.x = None
         self.x_hat = None
@@ -31,10 +31,10 @@ class BatchNormalization(Layer):
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         self.x = x
-        self.m = x.shape[1]
+        self.m = x.shape[0]
         if self._training:
-            mu = np.mean(x, axis=1, keepdims=True)
-            var = np.var(x, axis=1, keepdims=True)
+            mu = np.mean(x, axis=0, keepdims=True)
+            var = np.var(x, axis=0, keepdims=True)
 
             x_mu = x - mu
             x_hat = x_mu / np.sqrt(var + self.eps)
@@ -66,21 +66,19 @@ class BatchNormalization(Layer):
         x_mu = self.x_mu
         eps = self.eps
 
-        self.gamma.grad = np.sum(grad * x_hat, axis=1, keepdims=True)
-        self.beta.grad = np.sum(grad, axis=1, keepdims=True)
+        self.gamma.grad = np.sum(grad * x_hat, axis=0, keepdims=True)
+        self.beta.grad = np.sum(grad, axis=0, keepdims=True)
 
         dx_hat = grad * self.gamma.data
 
         inv_std = (var + eps) ** (-0.5)  # (F,1)
         inv_std3 = (var + eps) ** (-1.5)  # (F,1)
 
-        dvar = np.sum(dx_hat * x_mu * (-0.5) * inv_std3, axis=1, keepdims=True)  # (F,1)
-
+        dvar = np.sum(dx_hat * x_mu * (-0.5) * inv_std3, axis=0, keepdims=True)
         dmu = (
-            np.sum(dx_hat * (-inv_std), axis=1, keepdims=True)
-            + dvar * np.sum(-2.0 * x_mu, axis=1, keepdims=True) / m
+            np.sum(dx_hat * (-inv_std), axis=0, keepdims=True)
+            + dvar * np.sum(-2.0 * x_mu, axis=0, keepdims=True) / m
         )
-
         dx = dx_hat * inv_std + dvar * (2.0 * x_mu) / m + dmu / m
         return dx
 

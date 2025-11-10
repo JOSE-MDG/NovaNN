@@ -8,11 +8,11 @@ RNG = np.random.RandomState(0)
 
 
 def test_softmax_forward_properties_and_shift_invariance_columnwise():
-    X = RNG.randn(6, 10) * 30.0
+    X = RNG.randn(10, 6) * 30.0
     act = SoftMax()
 
     Y = act.forward(X)
-    sums = Y.sum(axis=0)
+    sums = Y.sum(axis=1)
     assert np.allclose(sums, np.ones_like(sums), atol=1e-7)
     assert np.all(Y >= 0)
 
@@ -22,7 +22,7 @@ def test_softmax_forward_properties_and_shift_invariance_columnwise():
 
 
 def test_softmax_backward_numeric_columnwise():
-    X = RNG.randn(5, 7)
+    X = RNG.randn(7, 5)
     act = SoftMax()
     G = RNG.randn(*X.shape)
 

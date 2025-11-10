@@ -4,7 +4,7 @@ from src.layers.activations.activations import Activation
 
 
 class SoftMax(Activation):
-    def __init__(self, axis: int = 0):
+    def __init__(self, axis: int = 1):
         super().__init__()
         self.affect_init = False
         self.out = None

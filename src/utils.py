@@ -6,7 +6,7 @@ def accuracy(nn, x, y, batch_size):
 
 
 def numeric_grad_elementwise(act_forward, x, eps=1e-6):
-    g = np.zeros_like(x, dtype=float)
+    grad = np.zeros_like(x, dtype=float)
     it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
         idx = it.multi_index
@@ -15,10 +15,10 @@ def numeric_grad_elementwise(act_forward, x, eps=1e-6):
         f_plus = act_forward(x).copy()
         x[idx] = orig - eps
         f_minus = act_forward(x).copy()
-        g[idx] = (f_plus[idx] - f_minus[idx]) / (2 * eps)
+        grad[idx] = (f_plus[idx] - f_minus[idx]) / (2 * eps)
         x[idx] = orig
         it.iternext()
-    return g
+    return grad
 
 
 def numeric_grad_scalar_from_softmax(softmax_forward, x, G, eps=1e-6):
