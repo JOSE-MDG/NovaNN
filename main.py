@@ -27,8 +27,8 @@ y = data_train["6"].values
 x_test = data_test.drop(columns=["7"]).values
 y_test = data_test["7"].values
 
-loader_train = DataLoader(x, y, batch_size=512)
-loader_test = DataLoader(x_test, y_test, batch_size=512)
+loader_train = DataLoader(x, y, batch_size=1024)
+loader_test = DataLoader(x_test, y_test, batch_size=1024)
 
 net = nn.Sequential(
     Linear(784, 636, bias=False),
@@ -42,10 +42,12 @@ net = nn.Sequential(
     Linear(174, 10, bias=False),
 )
 
-epochs = 50
+epochs = 20
 learning_rate = 0.01
-optimizer1 = Adam(net.parameters(), learning_rate, betas=(0.9, 0.999))
-optimizer2 = RMSProp(net.parameters(), learning_rate, beta=0.9)
+optimizer1 = Adam(
+    net.parameters(), learning_rate, betas=(0.9, 0.999), weight_decay=0.0001
+)
+optimizer2 = RMSProp(net.parameters(), learning_rate, beta=0.9, weight_decay=0.0001)
 
 loss_fn = F.CrossEntropyLoss()
 
@@ -73,10 +75,7 @@ for epoch in range(epochs):
         logits = net(xb)
         cost, grad = loss_fn(logits, yb)
         net.backward(grad)
-        optimizer1.step()
+        optimizer2.step()
 
     acc = accuracy(net, loader_test)
-    if epoch % 5 == 0:
-        print(
-            f"(RMSProp) - Epoch: {epoch} - Loss: {round(cost, 3)} - Acc: {acc*100:.3f}%"
-        )
+    print(f"(RMSProp) - Epoch: {epoch} - Loss: {round(cost, 3)} - Acc: {acc*100:.3f}%")

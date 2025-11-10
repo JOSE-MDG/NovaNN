@@ -88,12 +88,12 @@ class Sequential(Layer):
                                 init_fn_base, activation_param, init_key
                             )
                             logger.debug(
-                                f"Prev Initialization was '{init_key}' so the initialization is {self.__get_lambda_name(init_fn_base)} <- (with params)"
+                                f"Prev initialization was '{init_key}', so the initialization is '{self.__get_lambda_name(init_fn_base)}' <- (with params)"
                             )
                         else:
                             init_fn = init_fn_base
                             logger.debug(
-                                f"Prev Initialization was '{init_key}' so the initialization is {self.__get_lambda_name(init_fn_base)} <- (without params)"
+                                f"Prev initialization was '{init_key}', so the initialization is '{self.__get_lambda_name(init_fn_base)}' <- (without params)"
                             )
                 else:
                     init_fn = config.DEFAULT_NORMAL_INIT_MAP["default"]
