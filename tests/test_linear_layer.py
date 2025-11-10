@@ -16,7 +16,7 @@ def test_linear_forward_shape_and_numeric_backward():
     init_fn = lambda shape: np.ones(shape, dtype=float)
     lin = Linear(in_features=in_f, out_features=out_f, bias=True, init=init_fn)
 
-    # input shape: (in_features, batch)
+    # input shape: (batch,in_features)
     X = RNG.randn(B, in_f)
 
     out = lin.forward(X)
