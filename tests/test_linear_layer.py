@@ -23,7 +23,7 @@ def test_linear_forward_shape_and_numeric_backward():
     assert out.shape == (B, out_f)
 
     # default bias zeros; since W is ones, out should equal row-wise sum of X
-    expected = X @ np.ones((out, in_f)).T  # (B,in_f) @ (in_f,out) -> (B,out)
+    expected = X @ np.ones((out_f, in_f)).T  # (B,in_f) @ (in_f,out) -> (B,out)
     assert np.allclose(out, expected)
 
     # Numeric check of backward wrt input:
