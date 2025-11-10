@@ -1,8 +1,27 @@
 import numpy as np
 
 
-def accuracy(nn, x, y, batch_size):
-    pass
+import numpy as np
+
+
+import numpy as np
+
+
+def accuracy(model, data_loader):
+
+    total_correct = 0
+    total_samples = 0
+
+    for X_batch, y_batch in data_loader:
+
+        y_pred = model.forward(X_batch)
+
+        pred_classes = np.argmax(y_pred, axis=1)
+
+        total_correct += np.sum(pred_classes == y_batch)
+        total_samples += y_batch.shape[0]
+
+    return total_correct / total_samples
 
 
 def numeric_grad_elementwise(act_forward, x, eps=1e-6):
