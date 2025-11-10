@@ -11,8 +11,7 @@ class Sigmoid(Activation):
         sigma(x) = 1 / (1 + exp(-x))
 
     This layer stores the last forward output to compute the gradient during
-    the backward pass. The stored output is cleared after backward to avoid
-    holding references between batches.
+    the backward pass.
 
     Attributes:
         out (Optional[np.ndarray]): Cached output from the forward pass.

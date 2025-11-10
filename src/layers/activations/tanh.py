@@ -8,7 +8,6 @@ class Tanh(Activation):
     """Hyperbolic tangent activation layer.
 
     Caches the forward output to compute the derivative during backward pass.
-    The cache is cleared after backward to avoid holding references between batches.
 
     Attributes:
         out (Optional[np.ndarray]): Cached output from the forward pass.
