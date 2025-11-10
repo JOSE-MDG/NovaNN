@@ -37,3 +37,7 @@ class Adam:
             v_hat = self.moments[i] / (1 - self.b2**self.t)
 
             p.data -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
+
+    def zero_grad(self, set_to_none: bool = False):
+        for p in self.params:
+            p.zero_grad(set_to_none=set_to_none)

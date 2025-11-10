@@ -31,6 +31,6 @@ class RMSProp:
             )
             p.data -= self.lr * (p.grad / np.sqrt(self.moments[i] + self.eps))
 
-    def zero_grad(self):
+    def zero_grad(self, set_to_none: bool = False):
         for p in self.params:
-            p.zero_grad()
+            p.zero_grad(set_to_none=set_to_none)

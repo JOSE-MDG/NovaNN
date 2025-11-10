@@ -4,7 +4,7 @@ import src.model.nn as nn
 import src.losses.Functional as F
 from src.layers.linear.linear import Linear
 from src.layers.activations.sigmoid import Sigmoid
-from src.layers.activations.relu import LeakyReLU
+from src.layers.activations.relu import LeakyReLU, ReLU
 from src.layers.regularization.dropout import Dropout
 from src.layers.bn.batch_normalization import BatchNormalization
 from src.core.dataloader import DataLoader
@@ -22,37 +22,33 @@ y = data["6"].values
 dl = DataLoader(x, y, batch_size=1024)
 
 net = nn.Sequential(
-    Linear(784, 200),
+    Linear(784, 200, bias=False),
     BatchNormalization(200),
-    LeakyReLU(),
-    Dropout(0.5),
-    Linear(200, 128),
+    ReLU(),
+    Dropout(0.4),
+    Linear(200, 128, bias=False),
     BatchNormalization(128),
-    LeakyReLU(),
-    Dropout(0.5),
-    Linear(128, 64),
+    ReLU(),
+    Dropout(0.3),
+    Linear(128, 64, bias=False),
     BatchNormalization(64),
-    LeakyReLU(),
+    ReLU(),
     Dropout(0.5),
-    Linear(64, 10),
+    Linear(64, 10, bias=False),
 )
 
-optimizer = Adam(net.parameters(), 3e-2, betas=(0.9, 0.999), weight_decay=0.001)
+optimizer = Adam(net.parameters(), 4e-3, betas=(0.9, 0.999))
+loss_fn = F.CrossEntropyLoss()
 
 net.train()
-for epoch in range(20):
+for epoch in range(50):
     for xb, yb in dl:
-
+        optimizer.zero_grad()
         logits = net(xb)
-
-        loss = F.CrossEntropyLoss()
-        cost, grad = loss(logits, yb)
-
+        cost, grad = loss_fn(logits, yb)
         net.backward(grad)
-
         optimizer.step()
-        net.zero_grad()
 
     acc = accuracy(net, dl)
     if epoch % 2 == 0:
-        print(f"Loss: {round(cost, 3)} Acc: {acc*100:.2f}%")
+        print(f" - Epoch: {epoch} - Loss: {round(cost, 3)} - Acc: {acc*100:.2f}%")

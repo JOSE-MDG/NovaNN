@@ -14,7 +14,7 @@ def accuracy(model, data_loader):
 
     for X_batch, y_batch in data_loader:
 
-        y_pred = model.forward(X_batch)
+        y_pred = model(X_batch)
 
         pred_classes = np.argmax(y_pred, axis=1)
 

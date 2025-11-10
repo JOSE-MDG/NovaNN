@@ -29,3 +29,7 @@ class SGD:
                 p.data += self.velocities[i]
             else:
                 p.data -= self.lr * p.grad
+
+    def zero_grad(self, set_to_none: bool = False):
+        for p in self.params:
+            p.zero_grad(set_to_none=set_to_none)

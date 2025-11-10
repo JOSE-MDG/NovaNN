@@ -16,13 +16,17 @@ class Parameters:
             data (np.ndarray): The initial data for the parameter.
         """
         self.data = data
-        # Initialize gradient with the same shape as data, filled with zeros.
         self.grad = np.zeros_like(data, dtype=np.float32)
         self.name = None
 
-    def zero_grad(self):
-        """Resets the gradient of the parameter to zero."""
-        self.grad.fill(0.0)
+    def zero_grad(self, set_to_none: bool = True):
+        if set_to_none:
+            self.grad = None
+        else:
+            if self.grad is None:
+                self.grad = np.zeros_like(self.data, dtype=np.float32)
+            else:
+                self.grad.fill(0.0)
 
 
 class Module:
