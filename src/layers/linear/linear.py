@@ -31,7 +31,7 @@ class Linear(Layer):
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         self._cache_input = x
-        out = x @ self.weight.data
+        out = x @ self.weight.data.T
         if self.bias is not None:
             out += self.bias.data
         return out

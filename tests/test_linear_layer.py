@@ -19,9 +19,8 @@ def test_linear_forward_shape_and_numeric_backward():
     # input shape: (in_features, batch)
     X = RNG.randn(B, in_f)
 
-    # forward: W @ X + b
     out = lin.forward(X)
-    assert out.shape == (B, in_f)
+    assert out.shape == (B, out_f)
 
     # default bias zeros; since W is ones, out should equal row-wise sum of X
     expected = X @ np.ones((out, in_f)).T  # (B,in_f) @ (in_f,out) -> (B,out)
