@@ -59,3 +59,7 @@ class Module:
             Iterable[Parameters]: An iterable of the module's parameters.
         """
         return []
+
+    def zero_grad(self):
+        for p in self.parameters():
+            p.zero_grad()

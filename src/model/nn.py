@@ -156,3 +156,9 @@ class Sequential(Layer):
         for layer in self._layers:
             parameters.extend(layer.parameters())
         return parameters
+
+    def zero_grad(self):
+        params = []
+        for layer in self._layers:
+            params.extend(layer.parameters())
+        return params

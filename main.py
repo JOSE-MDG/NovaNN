@@ -42,7 +42,7 @@ for epoch in range(20):
         net.backward(grad)
 
         optimizer.step()
-        optimizer.zero_grad()
+        nn.zero_grad()
 
     if epoch % 5 == 0:
         print("Loss:", cost)

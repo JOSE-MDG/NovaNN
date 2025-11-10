@@ -29,7 +29,7 @@ class RMSProp:
             self.moments[i] = self.beta * self.moments[i] + (1 - self.beta) * (
                 p.grad**2
             )
-            p.data -= self.lr * (p.grad / np.sqrt(self.moments[i]) + self.eps)
+            p.data -= self.lr * (p.grad / np.sqrt(self.moments[i] + self.eps))
 
     def zero_grad(self):
         for p in self.params:
