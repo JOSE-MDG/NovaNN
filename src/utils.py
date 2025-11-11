@@ -204,6 +204,7 @@ def load_fashion_mnist_data(
         fashion_train = pd.read_csv(train_path, dtype_backend="pyarrow")
         fashion_test = pd.read_csv(test_path, dtype_backend="pyarrow")
         fashion_val = pd.read_csv(val_path, dtype_backend="pyarrow")
+        logger.info("Fashion-MNIST data loaded successfully.")
 
         # Separate features and labels
         x_train = fashion_train.drop(columns=["label"]).values.astype(np.float32)
@@ -258,6 +259,7 @@ def load_mnist_data(
         mnist_train = pd.read_csv(train_path, dtype_backend="pyarrow")
         mnist_test = pd.read_csv(test_path, dtype_backend="pyarrow")
         mnist_val = pd.read_csv(val_path, dtype_backend="pyarrow")
+        logger.info("MNIST data loaded successfully.")
 
         # Separate features and labels
         x_train = mnist_train.drop(columns=["label"]).values.astype(np.float32)
