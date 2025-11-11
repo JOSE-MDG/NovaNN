@@ -186,7 +186,7 @@ def load_fashion_mnist_data(
     train_path: str = EXPORTATION_FASHION_TRAIN_DATA_PATH,
     test_path: str = FASHION_TEST_DATA_PATH,
     val_path: str = FASHION_VALIDATION_DATA_PATH,
-    normalize: bool = True,
+    do_normalize: bool = True,
 ) -> tuple:
     """
     Load Fashion-MNIST dataset from CSV files and optionally normalize it.
@@ -204,7 +204,7 @@ def load_fashion_mnist_data(
         fashion_train = pd.read_csv(train_path, dtype_backend="pyarrow")
         fashion_test = pd.read_csv(test_path, dtype_backend="pyarrow")
         fashion_val = pd.read_csv(val_path, dtype_backend="pyarrow")
-        logger.info("Fashion-MNIST data loaded successfully.")
+        logger.debug("Fashion-MNIST data loaded successfully.")
 
         # Separate features and labels
         x_train = fashion_train.drop(columns=["label"]).values.astype(np.float32)
@@ -217,7 +217,7 @@ def load_fashion_mnist_data(
         y_val = fashion_val["label"].values.astype(np.int64)
 
         # Normalize data if requested
-        if normalize:
+        if do_normalize:
             # Compute mean and std from training data
             mean = np.mean(x_train, axis=0)
             std = np.std(x_train, axis=0) + 1e-8
@@ -242,7 +242,7 @@ def load_mnist_data(
     train_path: str = EXPORTATION_MNIST_TRAIN_DATA_PATH,
     test_path: str = MNIST_TEST_DATA_PATH,
     val_path: str = MNIST_VALIDATION_DATA_PATH,
-    normalize: bool = True,
+    do_normalize: bool = True,
 ) -> tuple:
     """
     Load MNIST dataset from CSV files and optionally normalize it.
@@ -259,7 +259,7 @@ def load_mnist_data(
         mnist_train = pd.read_csv(train_path, dtype_backend="pyarrow")
         mnist_test = pd.read_csv(test_path, dtype_backend="pyarrow")
         mnist_val = pd.read_csv(val_path, dtype_backend="pyarrow")
-        logger.info("MNIST data loaded successfully.")
+        logger.debug("MNIST data loaded successfully.")
 
         # Separate features and labels
         x_train = mnist_train.drop(columns=["label"]).values.astype(np.float32)
@@ -272,7 +272,7 @@ def load_mnist_data(
         y_val = mnist_val["label"].values.astype(np.int64)
 
         # Normalize data if requested
-        if normalize:
+        if do_normalize:
             # Compute mean and std from training data
             mean = np.mean(x_train, axis=0)
             std = np.std(x_train, axis=0) + 1e-8

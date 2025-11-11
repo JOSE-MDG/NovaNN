@@ -86,7 +86,7 @@ class Logger:
             msg (str): The message to log.
             **kwargs: Extra data to include in the log message.
         """
-        self._logger(msg, extra=self._extra_data(**kwargs))
+        self._logger.info(msg, extra=self._extra_data(**kwargs))
 
     def debug(self, msg: str, **kwargs):
         """Logs a message with the DEBUG level.
