@@ -159,3 +159,16 @@ def numeric_grad_wrt_param(
         p.data[idx] = orig
         it.iternext()
     return grad
+
+
+def normalize(x_data: np.ndarray, x_mean: np.float32, x_std: np.float32) -> np.ndarray:
+    """Normalize input data using provided mean and standard deviation.
+
+    Args:
+        x_data: Input data array to normalize.
+        x_mean: Mean value for normalization.
+        x_std: Standard deviation for normalization.
+    Returns:
+        Normalized data array.
+    """
+    return (x_data - x_mean) / x_std
