@@ -27,7 +27,9 @@ class Sequential(Layer):
         """Return True if `layer` is an activation layer."""
         return isinstance(layer, Activation)
 
-    def _find_next_activation(self, start_idx: int) -> Tuple[Optional[str], Optional[float]]:
+    def _find_next_activation(
+        self, start_idx: int
+    ) -> Tuple[Optional[str], Optional[float]]:
         """Find the next activation after `start_idx` and return its init key and param.
 
         Returns:
@@ -43,7 +45,9 @@ class Sequential(Layer):
                     return key, activation_params
         return None, None
 
-    def _find_last_activation(self, last_idx: int) -> Tuple[Optional[str], Optional[float]]:
+    def _find_last_activation(
+        self, last_idx: int
+    ) -> Tuple[Optional[str], Optional[float]]:
         """Find the last activation before `last_idx` and return its init key and param.
 
         Returns:
@@ -134,7 +138,10 @@ class Sequential(Layer):
             return "unable to retrieve source"
 
     def _create_custom_init_fn(
-        self, init_fn_base: Callable[[Tuple[int, int]], Any], a: float, nonlinearity: str
+        self,
+        init_fn_base: Callable[[Tuple[int, int]], Any],
+        a: float,
+        nonlinearity: str,
     ) -> Callable[[Tuple[int, int]], Any]:
         """Wrap a base initializer to inject nonlinearity-specific parameters.
 
@@ -208,8 +215,10 @@ class Sequential(Layer):
         Returns:
             Iterable[Parameters]: An iterable of all parameters in the model.
         """
+        parameters = []
         for layer in self._layers:
-            yield from layer.parameters()
+            parameters.extend(layer.parameters())
+        return parameters
 
     def zero_grad(self) -> None:
         """Zero gradients for all submodules' parameters."""

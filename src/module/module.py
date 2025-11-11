@@ -9,7 +9,6 @@ Provides:
 - Module: base class for all network modules with a default parameters
   discovery implementation that walks attributes to yield Parameters
   (and recurses into nested Modules).
-Docstrings follow the Google style.
 """
 
 
@@ -30,7 +29,7 @@ class Parameters:
 
     def __init__(self, data: np.ndarray) -> None:
         self.data: np.ndarray = data
-        # Initialize gradient with the same shape/dtype as the parameter data.
+        # Initialize gradient with the same shape as the parameter data.
         self.grad: Optional[np.ndarray] = np.zeros_like(self.data)
         self.name: Optional[str] = None
 
@@ -75,30 +74,20 @@ class Module:
         self._training = False
 
     def parameters(self) -> Iterable[Parameters]:
-        """Yield Parameters belonging to this module.
+        """Return an iterable of Parameters belonging to this module.
 
-        Default implementation inspects attributes of the instance and yields:
-          - direct Parameters attributes,
-          - Parameters contained in lists/tuples,
-          - Parameters from nested Module attributes (recursing).
+        Subclasses should override this method to expose their trainable parameters.
+        Typical overrides either return a list Parameters, for example:
+
+            def parameters(self):
+                return [self.weight]
+                if self.bias is not None:
+                    reutrn [self.bias]
 
         Returns:
-            An iterable (generator) of Parameters objects.
+            Empty list by default; override in subclasses to return actual parameters.
         """
-        def _iter_params() -> Iterator[Parameters]:
-            for attr in vars(self).values():
-                if isinstance(attr, Parameters):
-                    yield attr
-                elif isinstance(attr, Module):
-                    yield from attr.parameters()
-                elif isinstance(attr, (list, tuple)):
-                    for item in attr:
-                        if isinstance(item, Parameters):
-                            yield item
-                        elif isinstance(item, Module):
-                            yield from item.parameters()
-
-        return _iter_params()
+        return []
 
     def zero_grad(self) -> None:
         """Zero or clear gradients for all parameters in this module."""
