@@ -145,7 +145,6 @@ def numeric_grad_wrt_param(
         Numerical gradient array with same shape as the parameter `.data`.
     """
     p = getattr(layer, param_attr)
-    shape = p.data.shape
     grad = np.zeros_like(p.data, dtype=float)
     it = np.nditer(p.data, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
