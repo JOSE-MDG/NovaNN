@@ -1,6 +1,15 @@
-# filepath: /home/juancho_col/Documents/Neural Network/src/utils.py
 import numpy as np
-from typing import Callable, Iterator, Tuple, Any, Optional
+import pandas as pd
+from typing import Callable, Iterator, Tuple, Any
+from src.core.logger import logger
+from src.core.config import (
+    EXPORTATION_FASHION_TRAIN_DATA_PATH,
+    FASHION_TEST_DATA_PATH,
+    FASHION_VALIDATION_DATA_PATH,
+    EXPORTATION_MNIST_TRAIN_DATA_PATH,
+    MNIST_TEST_DATA_PATH,
+    MNIST_VALIDATION_DATA_PATH,
+)
 
 
 def accuracy(
@@ -171,3 +180,112 @@ def normalize(x_data: np.ndarray, x_mean: np.float32, x_std: np.float32) -> np.n
         Normalized data array.
     """
     return (x_data - x_mean) / x_std
+
+
+def load_fashion_mnist_data(
+    train_path: str = EXPORTATION_FASHION_TRAIN_DATA_PATH,
+    test_path: str = FASHION_TEST_DATA_PATH,
+    val_path: str = FASHION_VALIDATION_DATA_PATH,
+    normalize: bool = True,
+) -> tuple:
+    """
+    Load Fashion-MNIST dataset from CSV files and optionally normalize it.
+    Args:
+        train_path: Path to the training data CSV file.
+        test_path: Path to the test data CSV file.
+        val_path: Path to the validation data CSV file.
+        normalize: Whether to normalize the data using training set statistics.
+    Returns:
+        A tuple containing (x_train, y_train), (x_test, y_test), (x_val, y_val).
+    """
+
+    try:
+        # Load CSV data using pandas with pyarrow backend for efficiency
+        fashion_train = pd.read_csv(train_path, dtype_backend="pyarrow")
+        fashion_test = pd.read_csv(test_path, dtype_backend="pyarrow")
+        fashion_val = pd.read_csv(val_path, dtype_backend="pyarrow")
+
+        # Separate features and labels
+        x_train = fashion_train.drop(columns=["label"]).values.astype(np.float32)
+        y_train = fashion_train["label"].values.astype(np.int64)
+
+        x_test = fashion_test.drop(columns=["label"]).values.astype(np.float32)
+        y_test = fashion_test["label"].values.astype(np.int64)
+
+        x_val = fashion_val.drop(columns=["label"]).values.astype(np.float32)
+        y_val = fashion_val["label"].values.astype(np.int64)
+
+        # Normalize data if requested
+        if normalize:
+            # Compute mean and std from training data
+            mean = np.mean(x_train, axis=0)
+            std = np.std(x_train, axis=0) + 1e-8
+
+            # Apply normalization
+            x_train_norm = normalize(x_train, mean, std)
+            x_test_norm = normalize(x_test, mean, std)
+            x_val_norm = normalize(x_val, mean, std)
+
+            # Return normalized datasets
+            return (x_train_norm, y_train), (x_test_norm, y_test), (x_val_norm, y_val)
+        else:
+            # Return raw datasets
+            return (x_train, y_train), (x_test, y_test), (x_val, y_val)
+
+    # Handle exceptions during data loading
+    except Exception as e:
+        logger.error(f"Error loading Fashion-MNIST data: {e}")
+
+
+def load_mnist_data(
+    train_path: str = EXPORTATION_MNIST_TRAIN_DATA_PATH,
+    test_path: str = MNIST_TEST_DATA_PATH,
+    val_path: str = MNIST_VALIDATION_DATA_PATH,
+    normalize: bool = True,
+) -> tuple:
+    """
+    Load MNIST dataset from CSV files and optionally normalize it.
+    Args:
+        train_path: Path to the training data CSV file.
+        test_path: Path to the test data CSV file.
+        val_path: Path to the validation data CSV file.
+        normalize: Whether to normalize the data using training set statistics.
+    Returns:
+        A tuple containing (x_train, y_train), (x_test, y_test), (x_val, y_val).
+    """
+    try:
+        # Load CSV data using pandas with pyarrow backend for efficiency
+        mnist_train = pd.read_csv(train_path, dtype_backend="pyarrow")
+        mnist_test = pd.read_csv(test_path, dtype_backend="pyarrow")
+        mnist_val = pd.read_csv(val_path, dtype_backend="pyarrow")
+
+        # Separate features and labels
+        x_train = mnist_train.drop(columns=["label"]).values.astype(np.float32)
+        y_train = mnist_train["label"].values.astype(np.int64)
+
+        x_test = mnist_test.drop(columns=["label"]).values.astype(np.float32)
+        y_test = mnist_test["label"].values.astype(np.int64)
+
+        x_val = mnist_val.drop(columns=["label"]).values.astype(np.float32)
+        y_val = mnist_val["label"].values.astype(np.int64)
+
+        # Normalize data if requested
+        if normalize:
+            # Compute mean and std from training data
+            mean = np.mean(x_train, axis=0)
+            std = np.std(x_train, axis=0) + 1e-8
+
+            # Apply normalization with training stastistics
+            x_train_norm = normalize(x_train, mean, std)
+            x_test_norm = normalize(x_test, mean, std)
+            x_val_norm = normalize(x_val, mean, std)
+
+            # Return normalized datasets
+            return (x_train_norm, y_train), (x_test_norm, y_test), (x_val_norm, y_val)
+        else:
+            # Return raw datasets
+            return (x_train, y_train), (x_test, y_test), (x_val, y_val)
+
+    # Handle exceptions during data loading
+    except Exception as e:
+        logger.error(f"Error loading MNIST data: {e}")
