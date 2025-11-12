@@ -18,29 +18,33 @@ loss_history = []
 )  # (50K, 784), (10K, 784), (10K, 784) samples
 
 # Data loaders
-train_loader = DataLoader(x_train, y_train, batch_size=128, shuffle=True)
-val_loader = DataLoader(x_val, y_val, batch_size=128, shuffle=False)
-test_loader = DataLoader(x_test, y_test, batch_size=128, shuffle=False)
+train_loader = DataLoader(x_train, y_train, batch_size=256, shuffle=True)
+val_loader = DataLoader(x_val, y_val, batch_size=256, shuffle=False)
+test_loader = DataLoader(x_test, y_test, batch_size=256, shuffle=False)
 
 # Define model
 net = Sequential(
+    # Layer 1
     Linear(28 * 28, 512),
     BatchNormalization(512),
     ReLU(),
-    Dropout(0.2),
+    Dropout(0.3),
+    # Layer 2
     Linear(512, 256),
     BatchNormalization(256),
     ReLU(),
     Dropout(0.3),
+    # Layer 3
     Linear(256, 128),
     BatchNormalization(128),
     ReLU(),
-    Dropout(0.4),
+    Dropout(0.2),
+    # Output Layer
     Linear(128, 10),
 )
 
 # Hyperparameters
-learning_rate = 1e-2
+learning_rate = 1e-3
 weight_decay = 1e-4
 optimizer = Adam(
     net.parameters(),
@@ -49,8 +53,8 @@ optimizer = Adam(
     weight_decay=weight_decay,
     epsilon=1e-8,
 )
-epochs = 20
-batch_size = 4096
+epochs = 50
+batch_size = 256
 
 # Loss function
 loss_fn = F.CrossEntropyLoss()
@@ -75,7 +79,7 @@ for epoch in range(epochs):
 
     # Validation accuracy after each epoch
     acc = accuracy(net, val_loader)
-    if epoch % 2 == 0:
+    if epoch % 5 == 0:
         logger.info(
             f"Epoch {epoch + 1}/{epochs}, Loss: {cost:.4f}, Validation Accuracy: {acc:.4f}"
         )
@@ -87,8 +91,8 @@ for epoch in range(epochs):
 test_accuracy = accuracy(net, test_loader)
 logger.info(f"Test Accuracy: {test_accuracy:.4f}", final_accuracy=round(test_accuracy))
 
-# Save training history
-history = {"accuracy": accuracy_history, "loss": loss_history}
+# Save training history within a JSON file for later comparison
+history = {"accuracy": round(accuracy_history, 4), "loss": round(loss_history, 4)}
 with open("training_history.json", "w") as f:
     json.dump(history, f)
 logger.info("Training history saved to 'training_history.json'")
