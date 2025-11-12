@@ -43,6 +43,9 @@ net = Sequential(
     Linear(128, 10),
 )
 
+# prepare for training
+net.train()
+
 # Hyperparameters
 learning_rate = 1e-3
 weight_decay = 1e-4
@@ -78,7 +81,10 @@ for epoch in range(epochs):
         optimizer.step()
 
     # Validation accuracy after each epoch
+    net.eval()
     acc = accuracy(net, val_loader)
+
+    net.train()
     if epoch % 5 == 0:
         logger.info(
             f"Epoch {epoch + 1}/{epochs}, Loss: {cost:.4f}, Validation Accuracy: {acc:.4f}"
@@ -88,6 +94,7 @@ for epoch in range(epochs):
 
 
 # Test the model
+net.eval()
 test_accuracy = accuracy(net, test_loader)
 logger.info(f"Test Accuracy: {test_accuracy:.4f}", final_accuracy=round(test_accuracy))
 
@@ -95,4 +102,7 @@ logger.info(f"Test Accuracy: {test_accuracy:.4f}", final_accuracy=round(test_acc
 history = {"accuracy": round(accuracy_history, 4), "loss": round(loss_history, 4)}
 with open("training_history.json", "w") as f:
     json.dump(history, f)
-logger.info("Training history saved to 'training_history.json'")
+logger.info(
+    "Training history saved to `training_history.json` ",
+    history_file="training_history.json",
+)
