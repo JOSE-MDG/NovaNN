@@ -85,7 +85,7 @@ for epoch in range(epochs):
     acc = accuracy(net, val_loader)
 
     net.train()
-    if epoch % 5 == 0:
+    if (epoch + 1) % 5 == 0:
         logger.info(
             f"Epoch {epoch + 1}/{epochs}, Loss: {cost:.4f}, Validation Accuracy: {acc:.4f}"
         )
@@ -99,7 +99,7 @@ test_accuracy = accuracy(net, test_loader)
 logger.info(f"Test Accuracy: {test_accuracy:.4f}", final_accuracy=round(test_accuracy))
 
 # Save training history within a JSON file for later comparison
-history = {"accuracy": round(accuracy_history, 4), "loss": round(loss_history, 4)}
+history = {"accuracy": accuracy_history, "loss": loss_history}
 with open("training_history.json", "w") as f:
     json.dump(history, f)
 logger.info(
