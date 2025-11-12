@@ -4,72 +4,73 @@
 **Root Path:** `/home/juancho_col/Documents/Neural Network`
 
 ```
-├── 📁 data
-│   ├── 📁 FashionMnist
-│   └── 📁 Mnist
-├── 📁 logs
-├── 📁 notebooks
-│   └── 📄 exploration.ipynb
-├── 📁 src
-│   ├── 📁 core
-│   │   ├── 🐍 __init__.py
-│   │   ├── 🐍 config.py
-│   │   ├── 🐍 dataloader.py
-│   │   ├── 🐍 init.py
-│   │   └── 🐍 logger.py
-│   ├── 📁 layers
-│   │   ├── 📁 activations
-│   │   │   ├── 🐍 activations.py
-│   │   │   ├── 🐍 relu.py
-│   │   │   ├── 🐍 sigmoid.py
-│   │   │   ├── 🐍 softmax.py
-│   │   │   └── 🐍 tanh.py
-│   │   ├── 📁 bn
-│   │   │   └── 🐍 batch_normalization.py
-│   │   ├── 📁 linear
-│   │   │   └── 🐍 linear.py
-│   │   ├── 📁 regularization
-│   │   │   └── 🐍 dropout.py
-│   │   └── 🐍 __init__.py
-│   ├── 📁 losses
-│   │   ├── 🐍 __init__.py
-│   │   └── 🐍 functional.py
-│   ├── 📁 model
-│   │   ├── 🐍 __init__.py
-│   │   └── 🐍 nn.py
-│   ├── 📁 module
-│   │   ├── 🐍 __init__.py
-│   │   ├── 🐍 layer.py
-│   │   └── 🐍 module.py
-│   ├── 📁 optim
-│   │   ├── 🐍 __init__.py
-│   │   ├── 🐍 adam.py
-│   │   ├── 🐍 rmsprop.py
-│   │   └── 🐍 sgd.py
-│   ├── 🐍 __init__.py
-│   └── 🐍 utils.py
-├── 📁 tests
-│   ├── 📁 activations
-│   │   ├── 🐍 test_leaky_relu.py
-│   │   ├── 🐍 test_relu.py
-│   │   ├── 🐍 test_sigmoid.py
-│   │   ├── 🐍 test_softmax.py
-│   │   └── 🐍 test_tanh.py
-│   ├── 📁 batch_norm
-│   │   └── 🐍 test_batch_norm.py
-│   ├── 📁 dataloader
-│   │   └── 🐍 test_dataloader.py
-│   ├── 📁 initializers
-│   │   └── 🐍 test_init.py
-│   ├── 🐍 test_dropout_regularization.py
-│   ├── 🐍 test_linear_layer.py
-│   └── 🐍 test_sequential_module.py
-├── ⚙️ .gitignore
-├── 📝 FileTree_NeuralNetwork.md
-├── 📝 README.md
-├── 🐍 example.py
-├── 🐍 main.py
-└── 📄 requirements.txt
+├── data
+│   ├── FashionMnist
+│   └── Mnist
+├── logs
+├── notebooks
+│   └── exploration.ipynb
+├── src
+│   ├── core
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── dataloader.py
+│   │   ├── init.py
+│   │   └── logger.py
+│   ├── layers
+│   │   ├── activations
+│   │   │   ├── activations.py
+│   │   │   ├── relu.py
+│   │   │   ├── sigmoid.py
+│   │   │   ├── softmax.py
+│   │   │   └── tanh.py
+│   │   ├── bn
+│   │   │   └── batch_normalization.py
+│   │   ├── linear
+│   │   │   └── linear.py
+│   │   ├── regularization
+│   │   │   └── dropout.py
+│   │   └── __init__.py
+│   ├── losses
+│   │   ├── __init__.py
+│   │   └── functional.py
+│   ├── model
+│   │   ├── __init__.py
+│   │   └── nn.py
+│   ├── module
+│   │   ├── __init__.py
+│   │   ├── layer.py
+│   │   └── module.py
+│   ├── optim
+│   │   ├── __init__.py
+│   │   ├── adam.py
+│   │   ├── rmsprop.py
+│   │   └── sgd.py
+│   ├── __init__.py
+│   └── utils.py
+├── tests
+│   ├── activations
+│   │   ├── test_leaky_relu.py
+│   │   ├── test_relu.py
+│   │   ├── test_sigmoid.py
+│   │   ├── test_softmax.py
+│   │   └── test_tanh.py
+│   ├── batch_norm
+│   │   └── test_batch_norm.py
+│   ├── dataloader
+│   │   └── test_dataloader.py
+│   ├── initializers
+│   │   └── test_init.py
+│   ├── test_dropout_regularization.py
+│   ├── test_linear_layer.py
+│   └── test_sequential_module.py
+├── .gitignore
+├── FileTree_NeuralNetwork.md
+├── README.md
+├── example.py
+├── main.py
+├── requirements.txt
+└── training_history.json
 ```
 
 ---

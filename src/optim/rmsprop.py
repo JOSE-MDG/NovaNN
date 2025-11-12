@@ -3,7 +3,7 @@ from typing import Iterable, List
 from src.module.module import Parameters
 
 
-class RMSProp:
+class RMSprop:
     """RMSProp optimizer (simple reference implementation).
 
     Notes:
