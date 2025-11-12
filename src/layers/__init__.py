@@ -7,4 +7,4 @@ __all__ = [
     "Linear",
     "BatchNormalization",
     "Dropout",
-] + __all__  # activations adds its names
+]
