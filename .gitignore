@@ -9,4 +9,5 @@ data/Mnist/MNIST_Train.csv
 .pytest_cache/
 data/Mnist/MNIST_Train_e.csv
 logs/logs.log
+training_history.json
 __pycache__/
