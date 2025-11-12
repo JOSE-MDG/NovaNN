@@ -1,4 +1,13 @@
-"""
+import json
+import src.losses.functional as F
+
+from src.core.logger import logger
+from src.core.dataloader import DataLoader
+from src.layers import Linear, ReLU, BatchNormalization, Dropout
+from src.model.nn import Sequential
+from src.optim import Adam
+from src.utils import load_fashion_mnist_data, accuracy
+
 # History records
 accuracy_history = []
 loss_history = []
@@ -14,10 +23,24 @@ val_loader = DataLoader(x_val, y_val, batch_size=128, shuffle=False)
 test_loader = DataLoader(x_test, y_test, batch_size=128, shuffle=False)
 
 # Define model
-net = nn.Sequential()
+net = Sequential(
+    Linear(28 * 28, 512),
+    BatchNormalization(512),
+    ReLU(),
+    Dropout(0.2),
+    Linear(512, 256),
+    BatchNormalization(256),
+    ReLU(),
+    Dropout(0.3),
+    Linear(256, 128),
+    BatchNormalization(128),
+    ReLU(),
+    Dropout(0.4),
+    Linear(128, 10),
+)
 
 # Hyperparameters
-learning_rate = 1e-3
+learning_rate = 1e-2
 weight_decay = 1e-4
 optimizer = Adam(
     net.parameters(),
@@ -26,8 +49,8 @@ optimizer = Adam(
     weight_decay=weight_decay,
     epsilon=1e-8,
 )
-epochs = 5
-batch_size = 1024
+epochs = 20
+batch_size = 4096
 
 # Loss function
 loss_fn = F.CrossEntropyLoss()
@@ -62,11 +85,10 @@ for epoch in range(epochs):
 
 # Test the model
 test_accuracy = accuracy(net, test_loader)
-logger.info(f"Test Accuracy: {test_accuracy:.4f}")
+logger.info(f"Test Accuracy: {test_accuracy:.4f}", final_accuracy=round(test_accuracy))
 
 # Save training history
 history = {"accuracy": accuracy_history, "loss": loss_history}
 with open("training_history.json", "w") as f:
     json.dump(history, f)
 logger.info("Training history saved to 'training_history.json'")
-"""
