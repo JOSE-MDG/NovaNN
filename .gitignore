@@ -10,4 +10,5 @@ data/Mnist/MNIST_Train.csv
 data/Mnist/MNIST_Train_e.csv
 logs/logs.log
 training_history.json
+pytorch_training_history.json
 __pycache__/
