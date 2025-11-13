@@ -6,7 +6,8 @@ from src.core.dataloader import DataLoader
 from src.layers import Linear, ReLU, BatchNormalization, Dropout
 from src.model.nn import Sequential
 from src.optim import Adam
-from src.utils import load_fashion_mnist_data, accuracy
+from src.utils import load_fashion_mnist_data
+from src.metrics import accuracy
 
 # History records
 accuracy_history = []
