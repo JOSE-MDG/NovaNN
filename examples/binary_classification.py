@@ -53,14 +53,14 @@ optimizer = Adam(
 loss_fn = BinaryCrossEntropy()
 
 # DataLoaders
-training_dataLoader = DataLoader(x=x_train, y=y_train)
+training_dataloader = DataLoader(x=x_train, y=y_train)
 validation_dataloader = DataLoader(x=x_val, y=y_val)
 test_dataloader = DataLoader(x=x_test, y=y_test)
 
 # Training
 model.train()
 for epoch in range(epochs):
-    for input, target in training_dataLoader:
+    for input, target in training_dataloader:
         # Set gradients to None
         optimizer.zero_grad()
 
