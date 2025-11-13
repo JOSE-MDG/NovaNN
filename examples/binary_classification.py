@@ -1,10 +1,8 @@
-import numpy as np
-
 from src.core.logger import logger
 from src.core.dataloader import DataLoader
 from src.model.nn import Sequential
 from src.layers import Linear, Sigmoid, Tanh, Dropout
-from src.utils import binary_accuracy
+from src.metrics import binary_accuracy
 from src.losses import BinaryCrossEntropy
 from src.optim import Adam
 from sklearn.datasets import make_moons
