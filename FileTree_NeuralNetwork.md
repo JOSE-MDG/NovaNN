@@ -7,8 +7,12 @@
 ├── 📁 data
 │   ├── 📁 FashionMnist
 │   └── 📁 Mnist
+├── 📁 examples
+│   ├── 🐍 binary_classification.py
+│   ├── 🐍 multiclass_classification.py
+│   └── 🐍 regresion.py
 ├── 📁 images
-│   └── 🖼️ training_visualizations.png
+│   └── 🖼️ both_comparisons.png
 ├── 📁 logs
 ├── 📁 notebooks
 │   └── 📄 exploration.ipynb
