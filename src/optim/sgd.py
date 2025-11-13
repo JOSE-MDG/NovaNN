@@ -7,7 +7,7 @@ from typing import Iterable, List
 Stochastic Gradient Descent optimizer with optional momentum and weight decay.
 
 Improvements made (non-breaking):
-- Materialize `parameters` iterable to a list to avoid generator exhaustion.
+- Materialize `parameters` iterable to a list
 - Skip parameters with `grad is None`.
 - Skip normalization params named 'gamma'/'beta'.
 - Add type hints and concise Google-style docstrings.

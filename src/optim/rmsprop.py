@@ -21,12 +21,14 @@ class RMSprop:
         lambda_l1: bool = False,
         epsilon: float = 1e-9,
     ) -> None:
-        # Materialize parameters to avoid generator exhaustion and allow indexing.
+
+        # Materialize parameters to a list
         self.params: List[Parameters] = list(parameters)
         self.lr: float = float(learning_rate)
         self.beta: float = float(beta)
         self.wd: float = float(weight_decay)
         self.l1: bool = bool(lambda_l1)
+
         # Initialize moment buffers to match each parameter's shape.
         self.moments: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
         self.eps: float = float(epsilon)

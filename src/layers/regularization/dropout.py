@@ -67,4 +67,5 @@ class Dropout(Layer):
 
         keep_prob = 1.0 - self.p
         res = (grad * self._mask) / keep_prob
+        self._mask = None
         return res

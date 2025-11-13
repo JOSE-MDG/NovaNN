@@ -26,7 +26,6 @@ functions.
 Docstrings and type hints follow the Google style where applicable.
 """
 
-# Data paths (may be None if not set in environment)
 FASHION_TRAIN_DATA_PATH: Optional[str] = os.getenv("FASHION_TRAIN_DATA_PATH")
 EXPORTATION_FASHION_TRAIN_DATA_PATH: Optional[str] = os.getenv(
     "EXPORTATION_FASHION_TRAIN_DATA_PATH"

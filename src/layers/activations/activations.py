@@ -7,7 +7,7 @@ class Activation(Layer):
     """Base class for activation layers.
 
     This class centralizes common behaviour for activation layers used by the
-    library (e.g. relu, tanh, sigmoid). It provides a stable `name` used as an
+    project (e.g. relu, tanh, sigmoid). It provides a stable `name` used as an
     initialization key and a flag (`affect_init`) to indicate whether the
     activation should influence default weight initialization.
 
@@ -19,7 +19,6 @@ class Activation(Layer):
     def __init__(self) -> None:
         super().__init__()
         self.name: str = self.__class__.__name__.lower()
-        # Keep existing attribute name for compatibility across the codebase.
         self.affect_init: bool = True
 
     def get_init_key(self) -> Optional[str]:

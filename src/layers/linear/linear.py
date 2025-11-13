@@ -30,7 +30,7 @@ class Linear(Layer):
         out_features (int)
         weight (Parameters): Weight matrix with shape (out_features, in_features).
         bias (Optional[Parameters]): Bias row vector with shape (1, out_features) or None.
-        b (bool): Original bias flag (kept for compatibility).
+        b (bool): Original bias flag.
         init_fn (Optional[Callable]): Stored initializer function.
         _cache_input (Optional[np.ndarray]): Cached input used in backward.
     """
@@ -50,7 +50,6 @@ class Linear(Layer):
         self.weight: Optional[Parameters] = None
         self.bias: Optional[Parameters] = None
 
-        # Keep compatibility names/flags used elsewhere
         self.b: bool = bool(bias)
         self.init_fn: Optional[InitFn] = init
 
@@ -114,7 +113,7 @@ class Linear(Layer):
         self.weight.grad = grad.T @ x
 
         if self.bias is not None:
-            # bias gradient is per-output summed over batch, keep shape (1, out_features)
+            # bias gradient is per-output summed over batch
             self.bias.grad = np.sum(grad, axis=0, keepdims=True)
 
         # gradient w.r.t. input: grad @ W
@@ -127,7 +126,7 @@ class Linear(Layer):
         Returns:
             List[Parameters]: [weight] or [weight, bias] if bias is present.
         """
-        params: List[Parameters] = [self.weight]  # type: ignore[arg-type]
+        params: List[Parameters] = [self.weight]
         if self.bias is not None:
             params.append(self.bias)
         return params

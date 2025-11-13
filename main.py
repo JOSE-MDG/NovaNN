@@ -25,22 +25,22 @@ test_loader = DataLoader(x_test, y_test, batch_size=256, shuffle=False)
 # Define model
 net = Sequential(
     # Layer 1
-    Linear(28 * 28, 512),
+    Linear(28 * 28, 512, bias=False),
     BatchNormalization(512),
     ReLU(),
     Dropout(0.3),
     # Layer 2
-    Linear(512, 256),
+    Linear(512, 256, bias=False),
     BatchNormalization(256),
     ReLU(),
     Dropout(0.3),
     # Layer 3
-    Linear(256, 128),
+    Linear(256, 128, bias=False),
     BatchNormalization(128),
     ReLU(),
     Dropout(0.2),
     # Output Layer
-    Linear(128, 10),
+    Linear(128, 10, bias=False),
 )
 
 # prepare for training

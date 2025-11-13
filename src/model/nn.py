@@ -30,7 +30,7 @@ class Sequential(Layer):
     def _find_next_activation(
         self, start_idx: int
     ) -> Tuple[Optional[str], Optional[float]]:
-        """Find the next activation after `start_idx` and return its init key and param.
+        """Find the next activation after `start_idx` and return its init key (name) and param.
 
         Returns:
             Tuple of (init_key, activation_param) where either can be None.
@@ -38,7 +38,7 @@ class Sequential(Layer):
         for i in range(start_idx + 1, len(self._layers)):
             layer = self._layers[i]
             if self._is_activation(layer):
-                key = layer.get_init_key()
+                key = layer.init_key
                 if key is not None:
                     activation_params = getattr(layer, "activation_param", None)
                     logger.debug(f"Current activation is: '{key}'")
@@ -56,7 +56,7 @@ class Sequential(Layer):
         for i in reversed(range(0, last_idx)):
             layer = self._layers[i]
             if self._is_activation(layer):
-                key = layer.get_init_key()
+                key = layer.init_key
                 if key is not None:
                     activation_params = getattr(layer, "activation_param", None)
                     logger.debug(f"Last activation was: {key}")

@@ -40,9 +40,6 @@ class ReLU(Activation):
         Returns:
             Gradient w.r.t. the input of this layer.
         """
-        if self._mask is None:
-            # Forward has not been called; return zero-shaped gradient.
-            return np.zeros_like(grad)
         return grad * self._mask
 
 
@@ -53,7 +50,7 @@ class LeakyReLU(Activation):
 
     Attributes:
         a: Negative slope coefficient.
-        activation_param: same value as `a`, kept for external compatibility.
+        activation_param: same value as `a`
         _cache_input: Saved input for backward computation.
     """
 

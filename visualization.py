@@ -27,7 +27,7 @@ palette = sns.color_palette("muted")
 
 fig, axes = plt.subplots(2, 2, figsize=(20, 10), constrained_layout=True)
 
-# Accuracy plot (library)
+# Accuracy plot (project)
 axes[0, 0].set_title("Project: Training Accuracy")
 sns.lineplot(
     x=x[: len(acc)], y=acc, ax=axes[0, 0], marker="o", color=palette[0], linewidth=2
@@ -37,7 +37,7 @@ axes[0, 0].set_ylabel("Accuracy")
 axes[0, 0].set_xlim(1, n_epochs)
 axes[0, 0].grid(alpha=0.4)
 
-# annotate final value (library acc)
+# annotate final value (project acc)
 axes[0, 0].annotate(
     f"{acc[-1]:.4f}",
     xy=(len(acc), acc[-1]),
@@ -48,7 +48,7 @@ axes[0, 0].annotate(
     color=palette[0],
 )
 
-# Loss plot (library)
+# Loss plot (project)
 axes[0, 1].set_title("Project: Training Loss")
 sns.lineplot(
     x=x[: len(loss)], y=loss, ax=axes[0, 1], marker="o", color=palette[1], linewidth=2
@@ -58,7 +58,7 @@ axes[0, 1].set_ylabel("Loss")
 axes[0, 1].set_xlim(1, n_epochs)
 axes[0, 1].grid(alpha=0.4)
 
-# annotate final value (library loss)
+# annotate final value (project loss)
 axes[0, 1].annotate(
     f"{loss[-1]:.4f}",
     xy=(len(loss), loss[-1]),

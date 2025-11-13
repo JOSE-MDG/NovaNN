@@ -21,12 +21,14 @@ class Adam:
         lambda_l1: bool = False,
         epsilon: float = 1e-9,
     ) -> None:
-        # Materialize parameters to a list to avoid issues if a generator is passed.
+
+        # Materialize parameters to a list
         self.params: List[Parameters] = list(parameters)
         self.lr: float = float(learning_rate)
         self.wd: float = float(weight_decay)
         self.l1: bool = bool(lambda_l1)
-        # First and second moment buffers (kept as in original naming)
+
+        # First and second moment buffers
         self.moments: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
         self.velocities: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
         self.b1: float = float(betas[0])

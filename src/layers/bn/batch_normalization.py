@@ -105,7 +105,7 @@ class BatchNormalization(Layer):
             Gradient with respect to the input, same shape as grad.
         """
         # Local aliases to clarify math
-        m = int(self.m) if self.m is not None else grad.shape[0]
+        m = self.m
         x_hat = self.x_hat
         var = self.var
         x_mu = self.x_mu

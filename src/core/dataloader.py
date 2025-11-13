@@ -7,13 +7,13 @@ class DataLoader:
     """Iterable data loader that yields mini-batches from a dataset.
 
     This class wraps feature and label arrays and provides an iterator that
-    yields (xb, yb) batches. It supports shuffling the data at the start of
+    return (xb, yb) batches. It supports shuffling the data at the start of
     each epoch.
 
     Attributes:
         x (np.ndarray): Input feature array of shape (N, ...).
         y (np.ndarray): Label array of shape (N, ...).
-        bs (int): Batch size (kept as .bs for compatibility).
+        bs (int): Batch size (i.e., number of samples per batch).
         shuffle (bool): Whether to shuffle samples each epoch.
     """
 
@@ -73,7 +73,6 @@ class DataLoader:
         """
         self.x: np.ndarray = x
         self.y: np.ndarray = y
-        # Keep internal attribute name for compatibility with existing code/tests
         self.bs: int = int(batch_size)
         self.shuffle: bool = bool(shuffle)
 
