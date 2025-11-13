@@ -58,7 +58,6 @@ optimizer = Adam(
     epsilon=1e-8,
 )
 epochs = 50
-batch_size = 256
 
 # Loss function
 loss_fn = F.CrossEntropyLoss()
