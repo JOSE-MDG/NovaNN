@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from typing import Callable, Iterator, Tuple, Any
+from typing import Callable, Any
 from src.core.logger import logger
 from src.core.config import (
     EXPORTATION_FASHION_TRAIN_DATA_PATH,
@@ -156,6 +156,23 @@ def normalize(x_data: np.ndarray, x_mean: np.float32, x_std: np.float32) -> np.n
     return (x_data - x_mean) / x_std
 
 
+def _split_features_and_labels(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+    """Split a tabular dataset into features and integer labels.
+
+    This helper is robust to whether the CSV includes an explicit "label"
+    column header or not. If a "label" column exists, it is used; otherwise,
+    the first column is treated as the label column.
+    """
+    if "label" in df.columns:
+        y = df["label"].to_numpy(dtype=np.int64)
+        x = df.drop(columns=["label"]).to_numpy(dtype=np.float32)
+    else:
+        # Assume the first column holds labels when no explicit header is present
+        y = df.iloc[:, 0].to_numpy(dtype=np.int64)
+        x = df.iloc[:, 1:].to_numpy(dtype=np.float32)
+    return x, y
+
+
 def load_fashion_mnist_data(
     train_path: str = EXPORTATION_FASHION_TRAIN_DATA_PATH,
     test_path: str = FASHION_TEST_DATA_PATH,
@@ -180,15 +197,10 @@ def load_fashion_mnist_data(
         fashion_val = pd.read_csv(val_path, dtype_backend="pyarrow")
         logger.debug("Fashion-MNIST data loaded successfully.")
 
-        # Separate features and labels
-        x_train = fashion_train.drop(columns=["label"]).values.astype(np.float32)
-        y_train = fashion_train["label"].values.astype(np.int64)
-
-        x_test = fashion_test.drop(columns=["label"]).values.astype(np.float32)
-        y_test = fashion_test["label"].values.astype(np.int64)
-
-        x_val = fashion_val.drop(columns=["label"]).values.astype(np.float32)
-        y_val = fashion_val["label"].values.astype(np.int64)
+        # Separate features and labels (support both headered and headerless CSVs)
+        x_train, y_train = _split_features_and_labels(fashion_train)
+        x_test, y_test = _split_features_and_labels(fashion_test)
+        x_val, y_val = _split_features_and_labels(fashion_val)
 
         # Normalize data if requested
         if do_normalize:
@@ -210,6 +222,7 @@ def load_fashion_mnist_data(
     # Handle exceptions during data loading
     except Exception as e:
         logger.error(f"Error loading Fashion-MNIST data: {e}")
+        raise
 
 
 def load_mnist_data(
@@ -235,15 +248,10 @@ def load_mnist_data(
         mnist_val = pd.read_csv(val_path, dtype_backend="pyarrow")
         logger.debug("MNIST data loaded successfully.")
 
-        # Separate features and labels
-        x_train = mnist_train.drop(columns=["label"]).values.astype(np.float32)
-        y_train = mnist_train["label"].values.astype(np.int64)
-
-        x_test = mnist_test.drop(columns=["label"]).values.astype(np.float32)
-        y_test = mnist_test["label"].values.astype(np.int64)
-
-        x_val = mnist_val.drop(columns=["label"]).values.astype(np.float32)
-        y_val = mnist_val["label"].values.astype(np.int64)
+        # Separate features and labels (support both headered and headerless CSVs)
+        x_train, y_train = _split_features_and_labels(mnist_train)
+        x_test, y_test = _split_features_and_labels(mnist_test)
+        x_val, y_val = _split_features_and_labels(mnist_val)
 
         # Normalize data if requested
         if do_normalize:
@@ -265,3 +273,4 @@ def load_mnist_data(
     # Handle exceptions during data loading
     except Exception as e:
         logger.error(f"Error loading MNIST data: {e}")
+        raise
