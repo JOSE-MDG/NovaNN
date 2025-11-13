@@ -38,6 +38,8 @@ class SGD:
         self.beta: float = float(momentum)
         self.wd: float = float(weight_decay)
         self.l1: bool = bool(lambda_l1)
+        self.is_bn_param: bool = False
+
         # Initialize velocities matching parameter shapes
         self.velocities: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
 
@@ -50,8 +52,11 @@ class SGD:
             if p.grad is None:
                 continue
 
-            # Apply weight decay (L1 or L2) to the gradient if configured
-            if self.wd > 0:
+            # Skip params without gradient or BN params (gamma/beta)
+            self.is_bn_param = getattr(p, "name", None) in ("gamma", "beta")
+
+            # Apply weight decay (L1 or L2) to the gradient
+            if self.wd > 0 and not self.is_bn_param:
                 if self.l1:
                     p.grad = p.grad + self.wd * np.sign(p.data)
                 else:

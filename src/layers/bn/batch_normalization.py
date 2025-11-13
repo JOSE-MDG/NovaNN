@@ -66,13 +66,14 @@ class BatchNormalization(Layer):
         self.m = x.shape[0]
         if self._training:
             mu = np.mean(x, axis=0, keepdims=True)
-            var = np.var(x, axis=0, keepdims=True)
+            var_biased = np.var(x, axis=0, keepdims=True)
+            var_unbiased = var_biased * (m / (m - 1))
 
             x_mu = x - mu
             x_hat = x_mu / np.sqrt(var + self.eps)
 
             self.mu = mu
-            self.var = var
+            self.var = var_unbiased
             self.x_mu = x_mu
             self.x_hat = x_hat
 
@@ -84,7 +85,7 @@ class BatchNormalization(Layer):
             ) * self.running_mean + self.momentum * mu
             self.running_var = (
                 1 - self.momentum
-            ) * self.running_var + self.momentum * var
+            ) * self.running_var + self.momentum * var_unbiased
 
             return out
         else:

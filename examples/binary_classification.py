@@ -70,8 +70,7 @@ for epoch in range(epochs):
         outputs = model(input)
 
         # Compute loss
-        probs = (outputs >= 0.5).astype(np.int64)
-        loss, grad = loss_fn(probs, target)
+        loss, grad = loss_fn(outputs, target)
 
         # Backward pass
         model.backward(grad)
@@ -88,3 +87,7 @@ for epoch in range(epochs):
         logger.info(
             f"Epoch {epoch + 1}/{epochs}, Loss: {loss:.4f}, Validation Accuracy: {acc:.4f}"
         )
+
+# Final accuracy
+accuracy = binary_accuracy(model, test_dataloader)
+logger.info(f"Test Accuracy: {accuracy:.4f}", test_accuracy=round(accuracy))

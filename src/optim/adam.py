@@ -34,20 +34,21 @@ class Adam:
         self.b1: float = float(betas[0])
         self.b2: float = float(betas[1])
         self.eps: float = float(epsilon)
+        self.is_bn_param: bool = False
         self.t: int = 0
 
     def step(self) -> None:
         """Perform a single optimization step over the provided parameters."""
         self.t += 1
         for i, p in enumerate(self.params):
-            # Skip params without gradient or BN params (gamma/beta)
-            if getattr(p, "name", None) in ("gamma", "beta"):
-                continue
             if p.grad is None:
                 continue
 
+            # Skip params without gradient or BN params (gamma/beta)
+            self.is_bn_param = getattr(p, "name", None) in ("gamma", "beta")
+
             # Apply weight decay (L1 or L2) to the gradient
-            if self.wd > 0:
+            if self.wd > 0 and not self.is_bn_param:
                 if self.l1:
                     p.grad = p.grad + self.wd * np.sign(p.data)
                 else:
