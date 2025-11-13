@@ -5,13 +5,13 @@ from src.core.logger import logger
 from src.core.dataloader import DataLoader
 from src.model import Sequential
 from src.optim import SGD
-from src.layers import Linear, Dropout, LeakyReLU
+from src.layers import Linear, Dropout, LeakyReLU, BatchNormalization
 from src.metrics import r2_score
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 
 x_data, y_data = make_regression(
-    n_samples=50000, n_features=44, n_targets=1, noise=10.0, random_state=8
+    n_samples=40000, n_features=10, n_targets=1, noise=10.0, random_state=8
 )
 
 # Split data in train/val/test
@@ -27,13 +27,16 @@ y_test = y_test.reshape(-1, 1)
 
 # Define regresor
 model = Sequential(
-    Linear(44, 368),
+    Linear(10, 368),
+    BatchNormalization(368),
     LeakyReLU(),
     Dropout(0.2),
     Linear(368, 368),
+    BatchNormalization(368),
     LeakyReLU(),
     Dropout(0.3),
     Linear(368, 176),
+    BatchNormalization(176),
     LeakyReLU(),
     Dropout(0.4),
     Linear(176, 1),
@@ -53,6 +56,7 @@ optimizer = SGD(
     learning_rate=leaning_rate,
     momentum=0.9,
     weight_decay=weight_decay,
+    lambda_l1=True,
 )
 loss_fn = F.MSE()
 

@@ -37,13 +37,9 @@ class RMSprop:
     def step(self) -> None:
         """Perform a single optimization step."""
         for i, p in enumerate(self.params):
-            # Skip normalization params or parameters without gradient
-            if getattr(p, "name", None) in ("gamma", "beta"):
-                continue
             if p.grad is None:
                 continue
 
-            # Skip params without gradient or BN params (gamma/beta)
             self.is_bn_param = getattr(p, "name", None) in ("gamma", "beta")
 
             # Apply weight decay (L1 or L2) to the gradient
