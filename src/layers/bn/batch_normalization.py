@@ -67,10 +67,10 @@ class BatchNormalization(Layer):
         if self._training:
             mu = np.mean(x, axis=0, keepdims=True)
             var_biased = np.var(x, axis=0, keepdims=True)
-            var_unbiased = var_biased * (m / (m - 1))
+            var_unbiased = var_biased * (self.m / (self.m - 1))
 
             x_mu = x - mu
-            x_hat = x_mu / np.sqrt(var + self.eps)
+            x_hat = x_mu / np.sqrt(var_unbiased + self.eps)
 
             self.mu = mu
             self.var = var_unbiased
