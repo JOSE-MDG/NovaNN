@@ -11,7 +11,7 @@ from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 
 x_data, y_data = make_regression(
-    n_samples=40000, n_features=10, n_targets=1, noise=10.0, random_state=8
+    n_samples=40000, n_features=45, n_targets=1, noise=10.0, random_state=8
 )
 
 # Split data in train/val/test
@@ -25,9 +25,9 @@ y_train = y_train.reshape(-1, 1)
 y_val = y_val.reshape(-1, 1)
 y_test = y_test.reshape(-1, 1)
 
-# Define regresor
+# Define the regresor
 model = Sequential(
-    Linear(10, 368),
+    Linear(45, 368),
     BatchNormalization(368),
     LeakyReLU(),
     Dropout(0.2),
@@ -44,19 +44,19 @@ model = Sequential(
 
 # dataloaders
 training_loader = DataLoader(x_train, y_train, batch_size=256, shuffle=True)
-validaion_loader = DataLoader(x_val, y_val, batch_size=256, shuffle=False)
+validation_loader = DataLoader(x_val, y_val, batch_size=256, shuffle=False)
 test_loader = DataLoader(x_test, y_test, batch_size=256, shuffle=False)
 
 # Hyperparameters
-leaning_rate = 1e-2
+learning_rate = 1e-2
 weight_decay = 1e-5
 epochs = 50
 optimizer = SGD(
     model.parameters(),
-    learning_rate=leaning_rate,
+    learning_rate=learning_rate,
     momentum=0.9,
     weight_decay=weight_decay,
-    lambda_l1=True,
+    max_grad_norm=1.0,
 )
 loss_fn = F.MSE()
 
@@ -79,14 +79,14 @@ for epoch in range(epochs):
 
         # Update paramters
         optimizer.step()
-    losses.append(loss)
+        losses.append(loss)
 
     # Average training loss
     avg_losses = np.mean(losses)
 
     # Compute validation
     model.eval()
-    r2 = r2_score(model, validaion_loader)
+    r2 = r2_score(model, validation_loader)
 
     model.train()
     if (epoch + 1) % 5 == 0:
