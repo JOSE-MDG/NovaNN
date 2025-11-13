@@ -142,24 +142,24 @@ class BinaryCrossEntropy:
 
     def __init__(self) -> None:
         self.y: Optional[np.ndarray] = None
-        self.y_hat: Optional[np.ndarray] = None
+        self.p: Optional[np.ndarray] = None
         self.N: int = 0
         self.eps: float = 1e-12
 
-    def forward(self, logits: np.ndarray, targets: np.ndarray) -> float:
-        self.N = int(logits.shape[0])
+    def forward(self, probs: np.ndarray, targets: np.ndarray) -> float:
+        self.N = int(probs.shape[0])
         self.y = targets
-        self.y_hat = Sigmoid().forward(logits)
+        self.p = probs
         loss = -np.mean(
-            self.y * np.log(self.y_hat + self.eps)
-            + (1 - self.y) * np.log(1 - self.y_hat + self.eps)
+            self.y * np.log(self.p + self.eps)
+            + (1 - self.y) * np.log(1 - self.p + self.eps)
         )
         return float(loss)
 
     def backward(self) -> np.ndarray:
-        if self.y_hat is None or self.y is None:
+        if self.p is None or self.y is None:
             raise RuntimeError("forward must be called before backward")
-        grad = (self.y_hat - self.y) / self.N
+        grad = (self.p - self.y) / self.N
         return grad
 
     def __call__(

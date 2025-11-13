@@ -1,1 +1,1 @@
-prompt for documentation with gemini: "Hola, podes ayudarme a documentar brevemente mi codigo con breves comentarios y docstrings donde lo requiera siguiendo buenas practicas. (Tiene que ser en ingles)"
+# Neural Network (from scratch)
