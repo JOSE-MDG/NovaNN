@@ -163,8 +163,8 @@ class BinaryCrossEntropy:
         return grad
 
     def __call__(
-        self, logits: np.ndarray, targets: np.ndarray
+        self, probabilities: np.ndarray, targets: np.ndarray
     ) -> Tuple[float, np.ndarray]:
-        loss = self.forward(logits=logits, targets=targets)
+        loss = self.forward(probs=probabilities, targets=targets)
         grad = self.backward()
         return loss, grad
