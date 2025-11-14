@@ -4,82 +4,87 @@
 **Root Path:** `/home/juancho_col/Documents/Neural Network`
 
 ```
-├── 📁 data
-│   ├── 📁 FashionMnist
-│   └── 📁 Mnist
-├── 📁 examples
-│   ├── 🐍 binary_classification.py
-│   ├── 🐍 multiclass_classification.py
-│   └── 🐍 regresion.py
-├── 📁 images
-│   └── 🖼️ both_comparisons.png
-├── 📁 logs
-├── 📁 notebooks
-│   └── 📄 exploration.ipynb
-├── 📁 src
-│   ├── 📁 core
-│   │   ├── 🐍 __init__.py
-│   │   ├── 🐍 config.py
-│   │   ├── 🐍 dataloader.py
-│   │   ├── 🐍 init.py
-│   │   └── 🐍 logger.py
-│   ├── 📁 layers
-│   │   ├── 📁 activations
-│   │   │   ├── 🐍 __init__.py
-│   │   │   ├── 🐍 activations.py
-│   │   │   ├── 🐍 relu.py
-│   │   │   ├── 🐍 sigmoid.py
-│   │   │   ├── 🐍 softmax.py
-│   │   │   └── 🐍 tanh.py
-│   │   ├── 📁 bn
-│   │   │   ├── 🐍 __init__.py
-│   │   │   └── 🐍 batch_normalization.py
-│   │   ├── 📁 linear
-│   │   │   ├── 🐍 __init__.py
-│   │   │   └── 🐍 linear.py
-│   │   ├── 📁 regularization
-│   │   │   ├── 🐍 __init__.py
-│   │   │   └── 🐍 dropout.py
-│   │   └── 🐍 __init__.py
-│   ├── 📁 losses
-│   │   ├── 🐍 __init__.py
-│   │   └── 🐍 functional.py
-│   ├── 📁 model
-│   │   ├── 🐍 __init__.py
-│   │   └── 🐍 nn.py
-│   ├── 📁 module
-│   │   ├── 🐍 __init__.py
-│   │   ├── 🐍 layer.py
-│   │   └── 🐍 module.py
-│   ├── 📁 optim
-│   │   ├── 🐍 __init__.py
-│   │   ├── 🐍 adam.py
-│   │   ├── 🐍 rmsprop.py
-│   │   └── 🐍 sgd.py
-│   ├── 🐍 __init__.py
-│   └── 🐍 utils.py
-├── 📁 tests
-│   ├── 📁 activations
-│   │   ├── 🐍 test_leaky_relu.py
-│   │   ├── 🐍 test_relu.py
-│   │   ├── 🐍 test_sigmoid.py
-│   │   ├── 🐍 test_softmax.py
-│   │   └── 🐍 test_tanh.py
-│   ├── 📁 batch_norm
-│   │   └── 🐍 test_batch_norm.py
-│   ├── 📁 dataloader
-│   │   └── 🐍 test_dataloader.py
-│   ├── 📁 initializers
-│   │   └── 🐍 test_init.py
-│   ├── 🐍 test_dropout_regularization.py
-│   ├── 🐍 test_linear_layer.py
-│   └── 🐍 test_sequential_module.py
-├── ⚙️ .gitignore
-├── 📝 FileTree_NeuralNetwork.md
-├── 📝 README.md
-├── 🐍 main.py
-├── 📄 requirements.txt
-└── 🐍 visualization.py
+📁 Neural Networks
+    ├── 📁 data
+    │   ├── 📁 FashionMnist
+    │   └── 📁 Mnist
+    ├── 📁 examples
+    │   ├── 🐍 binary_classification.py
+    │   ├── 🐍 multiclass_classification.py
+    │   └── 🐍 regresion.py
+    ├── 📁 images
+    │   └── 🖼️ comparison.png
+    ├── 📁 logs
+    ├── 📁 notebooks
+    │   └── 📄 exploration.ipynb
+    ├── 📁 src
+    │   ├── 📁 core
+    │   │   ├── 🐍 __init__.py
+    │   │   ├── 🐍 config.py
+    │   │   ├── 🐍 dataloader.py
+    │   │   ├── 🐍 init.py
+    │   │   └── 🐍 logger.py
+    │   ├── 📁 layers
+    │   │   ├── 📁 activations
+    │   │   │   ├── 🐍 __init__.py
+    │   │   │   ├── 🐍 activations.py
+    │   │   │   ├── 🐍 relu.py
+    │   │   │   ├── 🐍 sigmoid.py
+    │   │   │   ├── 🐍 softmax.py
+    │   │   │   └── 🐍 tanh.py
+    │   │   ├── 📁 bn
+    │   │   │   ├── 🐍 __init__.py
+    │   │   │   └── 🐍 batch_normalization.py
+    │   │   ├── 📁 linear
+    │   │   │   ├── 🐍 __init__.py
+    │   │   │   └── 🐍 linear.py
+    │   │   ├── 📁 regularization
+    │   │   │   ├── 🐍 __init__.py
+    │   │   │   └── 🐍 dropout.py
+    │   │   └── 🐍 __init__.py
+    │   ├── 📁 losses
+    │   │   ├── 🐍 __init__.py
+    │   │   └── 🐍 functional.py
+    │   ├── 📁 metrics
+    │   │   ├── 🐍 __init__.py
+    │   │   └── 🐍 metrics.py
+    │   ├── 📁 model
+    │   │   ├── 🐍 __init__.py
+    │   │   └── 🐍 nn.py
+    │   ├── 📁 module
+    │   │   ├── 🐍 __init__.py
+    │   │   ├── 🐍 layer.py
+    │   │   └── 🐍 module.py
+    │   ├── 📁 optim
+    │   │   ├── 🐍 __init__.py
+    │   │   ├── 🐍 adam.py
+    │   │   ├── 🐍 rmsprop.py
+    │   │   └── 🐍 sgd.py
+    │   ├── 🐍 __init__.py
+    │   └── 🐍 utils.py
+    ├── 📁 tests
+    │   ├── 📁 activations
+    │   │   ├── 🐍 test_leaky_relu.py
+    │   │   ├── 🐍 test_relu.py
+    │   │   ├── 🐍 test_sigmoid.py
+    │   │   ├── 🐍 test_softmax.py
+    │   │   └── 🐍 test_tanh.py
+    │   ├── 📁 batch_norm
+    │   │   └── 🐍 test_batch_norm.py
+    │   ├── 📁 dataloader
+    │   │   └── 🐍 test_dataloader.py
+    │   ├── 📁 initializers
+    │   │   └── 🐍 test_init.py
+    │   ├── 🐍 test_dropout_regularization.py
+    │   ├── 🐍 test_linear_layer.py
+    │   └── 🐍 test_sequential_module.py
+    ├── ⚙️ .gitignore
+    ├── 📝 FileTree_NeuralNetwork.md
+    ├── 📝 README.en.md
+    ├── 📝 README.es.md
+    ├── 🐍 main.py
+    ├── 📄 requirements.txt
+    └── 🐍 visualization.py
 ```
 
 ---
