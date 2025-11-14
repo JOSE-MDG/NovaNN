@@ -1,6 +1,5 @@
 import numpy as np
 import src.losses.functional as F
-
 from src.core.logger import logger
 from src.core.dataloader import DataLoader
 from src.model import Sequential
@@ -73,15 +72,15 @@ for epoch in range(epochs):
 
         # Compute loss
         loss, grad = loss_fn(outputs, target)
+        losses.append(loss)
 
         # Backward pass
         model.backward(grad)
 
         # Update paramters
         optimizer.step()
-        losses.append(loss)
 
-    # Average training loss
+    # Average losses per epoch
     avg_losses = np.mean(losses)
 
     # Compute validation

@@ -1,5 +1,5 @@
+import numpy as np
 import src.losses.functional as F
-
 from src.core.logger import logger
 from src.core.dataloader import DataLoader
 from src.layers import Linear, ReLU, BatchNormalization, Dropout
@@ -52,6 +52,7 @@ model.train()
 
 # Training loop
 for epoch in range(epochs):
+    losses = []
     for input, label in train_loader:
         # Set gradients to None
         optimizer.zero_grad()
@@ -61,12 +62,16 @@ for epoch in range(epochs):
 
         # Compute loss and gradients
         loss, grad = loss_fn(logits, label)
+        losses.append(loss)
 
         # Backward pass
         model.backward(grad)
 
         # Update parameters
         optimizer.step()
+
+    # Average losses per epoch
+    avg_losses = np.mean(losses)
 
     # Validation accuracy after each epoch
     model.eval()
@@ -75,7 +80,7 @@ for epoch in range(epochs):
     model.train()
     if (epoch + 1) % 5 == 0:
         logger.info(
-            f"Epoch {epoch + 1}/{epochs}, Loss: {loss:.4f}, Validation Accuracy: {acc:.4f}"
+            f"Epoch {epoch + 1}/{epochs}, Loss: {avg_losses:.4f}, Validation Accuracy: {acc:.4f}"
         )
 
 # Final accuracy
