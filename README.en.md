@@ -16,7 +16,7 @@
 ## 🌐 Available languages
 
 - 🇬🇧 [English](README.en.md)
-- 🇪🇸 [Español](README.es.md)
+- 🇪🇸 [Español](README.md)
 
 This mini framework provides tools and examples for creating **MLP** neural networks along with modules that support and enhance network training. This project aims to demonstrate a solid understanding and mastery of how these networks work, inspired by popular deep learning frameworks like **PyTorch** and **TensorFlow**, especially **PyTorch** which was the main inspiration for this project.
 
