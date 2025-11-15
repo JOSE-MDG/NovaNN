@@ -288,22 +288,22 @@ Aquí que se va a explicar a detalle que hace cada submodulo y sus archivos
     $$y_i = \gamma \hat{x}_i + \beta$$
 
     **Actualización de estadísticas móviles**:
-    $$\text{running\_mean} = (1 - \text{momentum}) \cdot \text{running\_mean} + \text{momentum} \cdot \mu$$
-    $$\text{running\_var} = (1 - \text{momentum}) \cdot \text{running\_var} + \text{momentum} \cdot \sigma^2$$
+    running_mean = (1 - momentum) _ running_mean + momentum _ μ
+    running_var = (1 - momentum) _ running_var + momentum _ σ²
 
-  - **Fórmulas del Backward Pass**:
+    **Fórmulas del Backward Pass**:
 
     **Gradientes respecto a parámetros**:
-    $$\frac{\partial L}{\partial \gamma} = \sum_{i=1}^{m} \frac{\partial L}{\partial y_i} \cdot \hat{x}_i$$
-    $$\frac{\partial L}{\partial \beta} = \sum_{i=1}^{m} \frac{\partial L}{\partial y_i}$$
+    ∂L/∂γ = Σ[i=1 to m] (∂L/∂y_i \* x̂_i)
+    ∂L/∂β = Σ[i=1 to m] ∂L/∂y_i
 
     **Gradiente respecto a la entrada** (versión vectorizada eficiente):
-    $$\frac{\partial L}{\partial x_i} = \frac{\gamma}{m \sqrt{\sigma^2 + \epsilon}} \left( m \frac{\partial L}{\partial \hat{x}_i} - \sum_{j=1}^{m} \frac{\partial L}{\partial \hat{x}_j} - \hat{x}_i \sum_{j=1}^{m} \frac{\partial L}{\partial \hat{x}_j} \hat{x}_j \right)$$
+    ∂L/∂x_i = (γ / (m _ √(σ² + ε))) _ (m _ ∂L/∂x̂_i - Σ[j=1 to m] ∂L/∂x̂_j - x̂_i _ Σ[j=1 to m] (∂L/∂x̂_j \* x̂_j))
 
     Donde:
 
-    - $\frac{\partial L}{\partial \hat{x}_i} = \frac{\partial L}{\partial y_i} \cdot \gamma$
-    - $m$ es el tamaño del minibatch
+    - ∂L/∂x̂_i = ∂L/∂y_i \* γ
+    - m es el tamaño del minibatch
 
   - **Modo Evaluación**:
     $$\hat{x}_i = \frac{x_i - \text{running\_mean}}{\sqrt{\text{running\_var} + \epsilon}}$$
