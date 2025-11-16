@@ -20,7 +20,7 @@
 
 Este mini framework ofrece herramientas y ejemplos para la creación de redes neuronales **Fully Connected** junto con módulos que brindan soporte y mejoran el entrenamiento de la red. Este proyecto intenta reflejar una buena comprensión y dominio sobre cómo funcionan estas redes, inspirado en cómo lo hacen los frameworks de deep learning más populares como **PyTorch** y **TensorFlow**, especialmente **PyTorch** que fue la base en la que se inspiró este proyecto.
 
-**Aclaración**: Este mini framework busca demostrar sólidas bases y conocimientos sobre cómo funcionan las redes neuronales, Deep Learning, Machine Learning, matemáticas, ingeniería de software, buenas prácticas, tests unitarios, diseño modular y preprocesamiento de datos.
+**Aclaración**: Este mini framework busca demostrar sólidos conocimientos sobre cómo funcionan las redes neuronales, Deep Learning, Machine Learning, matemáticas, ingeniería de software, buenas prácticas, tests unitarios, diseño modular y preprocesamiento de datos.
 
 ## Introducción
 
@@ -281,7 +281,7 @@ Aquí que se va a explicar a detalle que hace cada submodulo y sus archivos
 
     ![mu](https://latex.codecogs.com/svg.image?\mu=\frac{1}{m}\sum_{i=1}^{m}x_i)
 
-    ![sigma2](https://latex.codecogs.com/svg.image?\sigma^2=\frac{1}{m}\sum_{i=1}^{m}(x_i-\mu)^2)
+    ![sigma2](<https://latex.codecogs.com/svg.image?\sigma^2=\frac{1}{m}\sum_{i=1}^{m}(x_i-\mu)^2>)
 
     **Normalización**:
 
@@ -293,9 +293,9 @@ Aquí que se va a explicar a detalle que hace cada submodulo y sus archivos
 
     **Actualización de estadísticas móviles**:
 
-    ![rmean](https://latex.codecogs.com/svg.image?\mathrm{running\_mean}=(1-\mathrm{momentum})\mathrm{running\_mean}+\mathrm{momentum}\mu)
+    ![rmean](<https://latex.codecogs.com/svg.image?\mathrm{running_mean}=(1-\mathrm{momentum})\mathrm{running_mean}+\mathrm{momentum}\mu>)
 
-    ![rvar](https://latex.codecogs.com/svg.image?\mathrm{running\_var}=(1-\mathrm{momentum})\mathrm{running\_var}+\mathrm{momentum}\sigma^2)
+    ![rvar](<https://latex.codecogs.com/svg.image?\mathrm{running_var}=(1-\mathrm{momentum})\mathrm{running_var}+\mathrm{momentum}\sigma^2>)
 
     **Fórmulas del Backward Pass**:
 
@@ -309,7 +309,7 @@ Aquí que se va a explicar a detalle que hace cada submodulo y sus archivos
 
     ![dLdhatx](https://latex.codecogs.com/svg.image?\frac{\partial%20L}{\partial%20\hat{x}_i}=\frac{\partial%20L}{\partial%20y_i}\gamma)
 
-    ![dLdx](https://latex.codecogs.com/svg.image?\frac{\partial%20L}{\partial%20x_i}=\frac{\gamma}{m\sqrt{\sigma^2+\epsilon}}\left(m\frac{\partial%20L}{\partial%20\hat{x}_i}-\sum_{j=1}^{m}\frac{\partial%20L}{\partial%20\hat{x}_j}-\hat{x}_i\sum_{j=1}^{m}\frac{\partial%20L}{\partial%20\hat{x}_j}\hat{x}_j\right))
+    ![dLdx](<https://latex.codecogs.com/svg.image?\frac{\partial%20L}{\partial%20x_i}=\frac{\gamma}{m\sqrt{\sigma^2+\epsilon}}\left(m\frac{\partial%20L}{\partial%20\hat{x}_i}-\sum_{j=1}^{m}\frac{\partial%20L}{\partial%20\hat{x}_j}-\hat{x}_i\sum_{j=1}^{m}\frac{\partial%20L}{\partial%20\hat{x}_j}\hat{x}_j\right)>)
 
     Donde:
 
@@ -318,7 +318,7 @@ Aquí que se va a explicar a detalle que hace cada submodulo y sus archivos
 
   - **Modo Evaluación**:
 
-    ![xhat_eval](https://latex.codecogs.com/svg.image?\hat{x}_i=\frac{x_i-\mathrm{running\_mean}}{\sqrt{\mathrm{running\_var}+\epsilon}})
+    ![xhat_eval](https://latex.codecogs.com/svg.image?\hat{x}_i=\frac{x_i-\mathrm{running_mean}}{\sqrt{\mathrm{running_var}+\epsilon}})
 
     ![y_eval](https://latex.codecogs.com/svg.image?y_i=\gamma\hat{x}_i+\beta)
 
@@ -328,19 +328,19 @@ Aquí que se va a explicar a detalle que hace cada submodulo y sus archivos
 
 ### **Estabilidad Numérica**:
 
-- **Varianza sin bias**: Usa ![varunbias](https://latex.codecogs.com/svg.image?\frac{m}{m-1}) para corrección de bias en el entrenamiento  
+- **Varianza sin bias**: Usa ![varunbias](https://latex.codecogs.com/svg.image?\frac{m}{m-1}) para corrección de bias en el entrenamiento
 - **Épsilon**: Pequeño término ![epsilon](https://latex.codecogs.com/svg.image?\epsilon) para evitar división por cero
 
 ### **Cachés para Backward**:
 
-- `x_hat`: Valores normalizados ![xhat_i](https://latex.codecogs.com/svg.image?\hat{x}_i)  
-- `mu`, `var`: Media y varianza del minibatch  
+- `x_hat`: Valores normalizados ![xhat_i](https://latex.codecogs.com/svg.image?\hat{x}_i)
+- `mu`, `var`: Media y varianza del minibatch
 - `x_mu`: Diferencias ![xmu](https://latex.codecogs.com/svg.image?x_i-\mu)
 
 ### **Propiedades Clave**:
 
-- **Reducción de Internal Covariate Shift**: Estabiliza distribución de entradas  
-- **Efecto regularizador**: Reduce dependencia de Dropout  
+- **Reducción de Internal Covariate Shift**: Estabiliza distribución de entradas
+- **Efecto regularizador**: Reduce dependencia de Dropout
 - **Permite mayores learning rates**: Entrenamiento más rápido y estable
 
 ### `layers/linear/`
