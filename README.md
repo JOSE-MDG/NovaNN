@@ -275,66 +275,73 @@ Aquí que se va a explicar a detalle que hace cada submodulo y sus archivos
 - **Clase `BatchNormalization`**:
 
   - **Algoritmo**: Batch Normalization (Ioffe & Szegedy, 2015)
+
   - **Fórmulas del Forward Pass (Modo Entrenamiento)**:
 
     **Estadísticas del minibatch**:
+
     $$
-    \mu = \frac{1}{m}\sum_{i=1}^{m} x_i
+    \mu = \frac{1}{m} \sum_{i=1}^{m} x_i
     $$
+
     $$
-    \sigma^{2} = \frac{1}{m}\sum_{i=1}^{m} (x_i - \mu)^{2}
+    \sigma^2 = \frac{1}{m} \sum_{i=1}^{m} (x_i - \mu)^2
     $$
 
     **Normalización**:
+
     $$
-    \hat{x}_i = \frac{x_i - \mu}{\sqrt{\sigma^{2} + \epsilon}}
+    \hat{x}_i = \frac{x_i - \mu}{\sqrt{\sigma^2 + \epsilon}}
     $$
 
     **Escala y desplazamiento**:
+
     $$
-    y_i = \gamma\,\hat{x}_i + \beta
+    y_i = \gamma \hat{x}_i + \beta
     $$
 
     **Actualización de estadísticas móviles**:
+
     $$
-    \mathrm{running\_mean} \leftarrow (1-\mathrm{momentum})\,\mathrm{running\_mean} + \mathrm{momentum}\,\mu
-    $$
-    $$
-    \mathrm{running\_var} \leftarrow (1-\mathrm{momentum})\,\mathrm{running\_var} + \mathrm{momentum}\,\sigma^{2}
+    \text{running\_mean} = (1 - \text{momentum}) \cdot \text{running\_mean} + \text{momentum} \cdot \mu
     $$
 
-    **Fórmulas del Backward Pass**:
+    $$
+    \text{running\_var} = (1 - \text{momentum}) \cdot \text{running\_var} + \text{momentum} \cdot \sigma^2
+    $$
+
+  - **Fórmulas del Backward Pass**:
 
     **Gradientes respecto a parámetros**:
+
     $$
-    \frac{\partial L}{\partial \gamma} = \sum_{i=1}^{m} \frac{\partial L}{\partial y_i}\,\hat{x}_i
+    \frac{\partial L}{\partial \gamma} = \sum_{i=1}^{m} \frac{\partial L}{\partial y_i} \hat{x}_i
     $$
+
     $$
     \frac{\partial L}{\partial \beta} = \sum_{i=1}^{m} \frac{\partial L}{\partial y_i}
     $$
 
-    **Gradiente respecto a la entrada** (versión vectorizada eficiente):
+    **Gradiente respecto a la entrada**:
+
     $$
-    \frac{\partial L}{\partial x_i} = 
-    \frac{\gamma}{m\sqrt{\sigma^{2} + \epsilon}}
-    \left(
-      m\,\frac{\partial L}{\partial \hat{x}_i}
-      - \sum_{j=1}^{m}\frac{\partial L}{\partial \hat{x}_j}
-      - \hat{x}_i\sum_{j=1}^{m}\frac{\partial L}{\partial \hat{x}_j}\,\hat{x}_j
-    \right)
+    \frac{\partial L}{\partial \hat{x}_i} = \frac{\partial L}{\partial y_i} \cdot \gamma
     $$
 
-    Donde:
+    $$
+    \frac{\partial L}{\partial x_i} = \frac{\gamma}{m \sqrt{\sigma^2 + \epsilon}} \left[ m \frac{\partial L}{\partial \hat{x}_i} - \sum_{j=1}^{m} \frac{\partial L}{\partial \hat{x}_j} - \hat{x}_i \sum_{j=1}^{m} \frac{\partial L}{\partial \hat{x}_j} \hat{x}_j \right]
+    $$
 
-    - $\frac{\partial L}{\partial \hat{x}_i} = \frac{\partial L}{\partial y_i}\,\gamma$
-    - $m$ es el tamaño del minibatch
+    Donde $m$ es el tamaño del minibatch.
 
   - **Modo Evaluación**:
+
     $$
-    \hat{x}_i = \frac{x_i - \mathrm{running\_mean}}{\sqrt{\mathrm{running\_var} + \epsilon}}
+    \hat{x}_i = \frac{x_i - \text{running\_mean}}{\sqrt{\text{running\_var} + \epsilon}}
     $$
+
     $$
-    y_i = \gamma\,\hat{x}_i + \beta
+    y_i = \gamma \hat{x}_i + \beta
     $$
 
   - **Referencia**: Ioffe, S., & Szegedy, C. (2015). "Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift"
@@ -343,19 +350,19 @@ Aquí que se va a explicar a detalle que hace cada submodulo y sus archivos
 
 ### **Estabilidad Numérica**:
 
-- **Varianza sin bias**: Usa $\frac{m}{m-1}$ para corrección de bias en el entrenamiento  
+- **Varianza sin bias**: Usa $\frac{m}{m-1}$ para corrección de bias en el entrenamiento
 - **Épsilon**: Pequeño término $\epsilon$ para evitar división por cero
 
 ### **Cachés para Backward**:
 
-- `x_hat`: Valores normalizados $\hat{x}_i$  
-- `mu`, `var`: Media y varianza del minibatch  
+- `x_hat`: Valores normalizados $\hat{x}_i$
+- `mu`, `var`: Media y varianza del minibatch
 - `x_mu`: Diferencias $x_i - \mu$
 
 ### **Propiedades Clave**:
 
-- **Reducción de Internal Covariate Shift**: Estabiliza distribución de entradas  
-- **Efecto regularizador**: Reduce dependencia de Dropout  
+- **Reducción de Internal Covariate Shift**: Estabiliza distribución de entradas
+- **Efecto regularizador**: Reduce dependencia de Dropout
 - **Permite mayores learning rates**: Entrenamiento más rápido y estable
 
 ### `layers/linear/`
