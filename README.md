@@ -18,7 +18,7 @@
 - 🇬🇧 [English](README.en.md)
 - 🇪🇸 [Español](README.md)
 
-Este mini framework ofrece herramientas y ejemplos para la creación de redes neuronales **MLP** junto con módulos que brindan soporte y mejoran el entrenamiento de la red. Este proyecto intenta reflejar una buena comprensión y dominio sobre cómo funcionan estas redes, inspirado en cómo lo hacen los frameworks de deep learning más populares como **PyTorch** y **TensorFlow**, especialmente **PyTorch** que fue la base en la que se inspiró este proyecto.
+Este mini framework ofrece herramientas y ejemplos para la creación de redes neuronales **Fully Connected** junto con módulos que brindan soporte y mejoran el entrenamiento de la red. Este proyecto intenta reflejar una buena comprensión y dominio sobre cómo funcionan estas redes, inspirado en cómo lo hacen los frameworks de deep learning más populares como **PyTorch** y **TensorFlow**, especialmente **PyTorch** que fue la base en la que se inspiró este proyecto.
 
 **Aclaración**: Este mini framework busca demostrar sólidas bases y conocimientos sobre cómo funcionan las redes neuronales, Deep Learning, Machine Learning, matemáticas, ingeniería de software, buenas prácticas, tests unitarios, diseño modular y preprocesamiento de datos.
 
