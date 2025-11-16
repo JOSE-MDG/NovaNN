@@ -306,8 +306,8 @@ Aquí que se va a explicar a detalle que hace cada submodulo y sus archivos
     - m es el tamaño del minibatch
 
   - **Modo Evaluación**:
-    $\hat{x}_i = \frac{x_i - \text{running\_mean}}{\sqrt{\text{running\_var} + \epsilon}}$
-    $y_i = \gamma \hat{x}_i + \beta$
+    x̂_i = (x_i - running_mean) / √(running_var + ε)
+    y_i = γ * x̂_i + β
 
   - **Referencia**: Ioffe, S., & Szegedy, C. (2015). "Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift"
 
