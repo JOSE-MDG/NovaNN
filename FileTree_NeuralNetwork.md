@@ -1,7 +1,6 @@
 # File Tree: Neural Network
 
 **Generated:** 11/12/2025, 1:15:57 PM
-**Root Path:** `/home/juancho_col/Documents/Neural Network`
 
 ```
 📁 Neural Networks
