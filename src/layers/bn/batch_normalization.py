@@ -52,23 +52,32 @@ class BatchNorm1d(Layer):
         """Set layer to evaluation mode and preserve running statistics."""
         super().eval()
 
-    def forward(self, x: np.ndarray) -> np.ndarray:
-        """Forward pass for batch normalization.
-
-        Uses batch statistics when training, otherwise uses running estimates.
-
-        Args:
-            x: Input array with shape (batch, features).
-
-        Returns:
-            Normalized, scaled and shifted output with same shape as x.
-        """
+    def _verify_dims(self, x: np.ndarray):
+        x = x.astype(np.float32, copy=False)
         self.x = x
-        self.m = x.shape[0]
+        dims = x.ndim
+        if dims == 2:  # (N, C)
+            axes = 0
+            self.m = x.shape[0]
+            return axes, dims
+        elif dims == 3:  # (N, C, L)
+            axes = (0, 2)
+            self.m = x.shape[0] * x.shape[2]  # N * L
+            self.gamma.data = self.gamma.data.reshape(1, self.num_features, 1)
+            self.beta.data = self.beta.data.reshape(1, self.num_features, 1)
+            return axes, dims
+        else:
+            raise ValueError(f"BatchNorm1d expect 2D o 3D, got {dims}D.")
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        axes, dims = self._verify_dims(x)
+
         if self._training:
-            mu = np.mean(x, axis=0, keepdims=True)
-            var_biased = np.var(x, axis=0, keepdims=True)
-            var_unbiased = var_biased * (self.m / (self.m - 1))
+            mu = np.mean(x, axis=axes, keepdims=True)
+            var_biased = np.var(x, axis=axes, keepdims=True)
+            var_unbiased = (
+                var_biased * (self.m / (self.m - 1)) if self.m > 1 else var_biased
+            )
 
             x_mu = x - mu
             x_hat = x_mu / np.sqrt(var_unbiased + self.eps)
@@ -80,17 +89,28 @@ class BatchNorm1d(Layer):
 
             out = self.gamma.data * x_hat + self.beta.data
 
-            # Update running statistics
+            mu_flat = mu.reshape(1, self.num_features)
+            var_flat = var_unbiased.reshape(1, self.num_features)
+
             self.running_mean = (
                 1 - self.momentum
-            ) * self.running_mean + self.momentum * mu
+            ) * self.running_mean + self.momentum * mu_flat
             self.running_var = (
                 1 - self.momentum
-            ) * self.running_var + self.momentum * var_unbiased
+            ) * self.running_var + self.momentum * var_flat
 
             return out
+
         else:
-            x_hat = (x - self.running_mean) / np.sqrt(self.running_var + self.eps)
+            dims = x.ndim
+            if dims == 3:
+                rm = self.running_mean.reshape(1, self.num_features, 1)
+                rv = self.running_var.reshape(1, self.num_features, 1)
+            else:
+                rm = self.running_mean
+                rv = self.running_var
+
+            x_hat = (x - rm) / np.sqrt(rv + self.eps)
             out = self.gamma.data * x_hat + self.beta.data
             return out
 
@@ -113,19 +133,26 @@ class BatchNorm1d(Layer):
         x_mu = self.x_mu
         eps = self.eps
 
-        # Parameter gradients
-        self.gamma.grad = np.sum(grad * x_hat, axis=0, keepdims=True)
-        self.beta.grad = np.sum(grad, axis=0, keepdims=True)
+        dims = self.x.ndim
+        if dims == 2:
+            axes = 0
+        elif dims == 3:
+            axes = (0, 2)
+        else:
+            raise ValueError("Unexpected dimensionality in reverse.")
+
+        self.gamma.grad = np.sum(grad * x_hat, axis=axes, keepdims=True)
+        self.beta.grad = np.sum(grad, axis=axes, keepdims=True)
 
         dx_hat = grad * self.gamma.data
 
         inv_std = (var + eps) ** (-0.5)
         inv_std3 = (var + eps) ** (-1.5)
 
-        dvar = np.sum(dx_hat * x_mu * (-0.5) * inv_std3, axis=0, keepdims=True)
+        dvar = np.sum(dx_hat * x_mu * (-0.5) * inv_std3, axis=axes, keepdims=True)
         dmu = (
-            np.sum(dx_hat * (-inv_std), axis=0, keepdims=True)
-            + dvar * np.sum(-2.0 * x_mu, axis=0, keepdims=True) / m
+            np.sum(dx_hat * (-inv_std), axis=axes, keepdims=True)
+            + dvar * np.sum(-2.0 * x_mu, axis=axes, keepdims=True) / m
         )
         dx = dx_hat * inv_std + dvar * (2.0 * x_mu) / m + dmu / m
         return dx

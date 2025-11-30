@@ -93,7 +93,6 @@ class Conv1d(Layer):
 
         N, C, L = self._cache["x_shape"]
         L_out = self._cache["L_out"]
-        L_p = L + 2 * self.padding - self.K
         x_p_shape = self._cache["x_p_shape"]
 
         cols_reshaped = col.reshape(C, self.K, N, L_out).transpose(2, 0, 1, 3)
@@ -110,7 +109,7 @@ class Conv1d(Layer):
         if self.padding == 0:
             return grad_input
 
-        return grad_input[:, :, self.padding : L_p - self.padding]
+        return grad_input[:, :, self.padding : self.padding + L]
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         x = x.astype(np.float32, copy=False)
