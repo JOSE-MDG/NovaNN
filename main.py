@@ -3,7 +3,7 @@ import src.losses.functional as F
 
 from src.core.logger import logger
 from src.core.dataloader import DataLoader
-from src.layers import Linear, ReLU, BatchNormalization1d, Dropout
+from src.layers import Linear, ReLU, BatchNorm1d, Dropout
 from src.model.nn import Sequential
 from src.optim import Adam
 from src.utils import load_fashion_mnist_data
@@ -27,17 +27,17 @@ test_loader = DataLoader(x_test, y_test, batch_size=256, shuffle=False)
 net = Sequential(
     # Layer 1
     Linear(28 * 28, 512, bias=False),
-    BatchNormalization1d(512),
+    BatchNorm1d(512),
     ReLU(),
     Dropout(0.3),
     # Layer 2
     Linear(512, 256, bias=False),
-    BatchNormalization1d(256),
+    BatchNorm1d(256),
     ReLU(),
     Dropout(0.3),
     # Layer 3
     Linear(256, 128, bias=False),
-    BatchNormalization1d(128),
+    BatchNorm1d(128),
     ReLU(),
     Dropout(0.2),
     # Output Layer
