@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Tuple, Union, Optional, Any, Callable, List
+from typing import Tuple, Any, Callable, List
 from src.module import Parameters
 
 Shape = Tuple[int, ...]

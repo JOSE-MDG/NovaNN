@@ -15,6 +15,7 @@ class Conv1d(Layer):
         stride: int = 1,
         padding: int = 0,
         bias: bool = True,
+        padding_mode: str = "zeros",
         initializer: InitFn = None,
     ):
         super().__init__()
@@ -24,6 +25,7 @@ class Conv1d(Layer):
         self.init_fn: InitFn = initializer
         self.stride: int = stride
         self.padding: int = padding
+        self.pm: str = padding_mode
 
         self.use_bias: bool = bias
         self.weight: Optional[Parameters] = None
@@ -49,9 +51,24 @@ class Conv1d(Layer):
 
     def _add_padding(self, x: np.ndarray) -> np.ndarray:
         pad_width = ((0, 0), (0, 0), (self.padding, self.padding))
-        return np.pad(x, pad_width, mode="constant", constant_values=0)
+        padding_modes = ("zeros", "reflect", "replicate", "circular")
+        if self.pm in padding_modes:
+            if self.pm == "zeros":
+                mode = "constant"
+            elif self.pm == "reflect":
+                mode = "reflect"
+            elif self.pm == "replicate":
+                mode = "edge"
+            else:
+                mode = "wrap"
+        else:
+            raise ValueError(
+                f"padding_mode Only accept {padding_modes} not '{self.pm}'"
+            )
 
-    def _im2col(self, x: np.ndarray, x_shape: Shape) -> tuple[np.ndarray, int, int]:
+        return np.pad(array=x, pad_width=pad_width, mode=mode)
+
+    def _im2col(self, x: np.ndarray, x_shape: Shape) -> tuple[np.ndarray, int]:
         N, C, L = x_shape
         x_p = self._add_padding(x)
         L_out = self._calc_out_size(L)
@@ -61,10 +78,10 @@ class Conv1d(Layer):
         shape = (N, C, L_out, self.K)
         sN, sC, sL = x_p.strides
         strides = (sN, sC, sL * self.stride, sL)
-        # (N 0,C 1,L_out 2,K 3)
-        winows = as_strided(x_p, shape=shape, strides=strides)
+        # (N,C,L_out,K)
+        windows = as_strided(x_p, shape=shape, strides=strides)
 
-        col = winows.transpose(1, 3, 0, 2).reshape(C * self.K, -1)  # -> (C*K, N*L_out)
+        col = windows.transpose(1, 3, 0, 2).reshape(C * self.K, -1)  # -> (C*K, N*L_out)
         return col, L_out
 
     def _col2im(self, col: np.ndarray) -> np.ndarray:
@@ -94,8 +111,8 @@ class Conv1d(Layer):
         x = x.astype(np.float32, copy=False)
         N, _, _ = x.shape
         col, L_out = self._im2col(x, x.shape)
-        weight_col = self.weight.data.reshape(self.out_channels, -1)
-        out = weight_col @ col  # (out_c, N*L_out)
+        w_col = self.weight.data.reshape(self.out_channels, -1)
+        out = w_col @ col  # (out_c, N*L_out)
         if self.bias is not None:
             out += self.bias.data
         out = out.reshape(self.out_channels, N, L_out).transpose(
@@ -103,7 +120,7 @@ class Conv1d(Layer):
         )  # (N, out_c, L_out)
 
         self._cache["col"] = col
-        self._cache["weight_col"] = weight_col
+        self._cache["w_col"] = w_col
         self._cache["x_shape"] = x.shape
         self._cache["L_out"] = L_out
 
@@ -112,7 +129,7 @@ class Conv1d(Layer):
     def backward(self, grad: np.ndarray) -> np.ndarray:
         grad = grad.astype(np.float32, copy=False)
         col = self._cache["col"]
-        weight_col = self._cache["weight_col"]
+        w_col = self._cache["w_col"]
 
         grad_reshaped = grad.transpose(1, 0, 2).reshape(
             self.out_channels, -1
@@ -123,7 +140,7 @@ class Conv1d(Layer):
         if self.bias is not None:
             self.bias.grad = np.sum(grad_reshaped, axis=1).reshape(-1, 1)
 
-        grad_col = weight_col.T @ grad_reshaped
+        grad_col = w_col.T @ grad_reshaped
         grad_input = self._col2im(grad_col)
         self._cache.clear()
         return grad_input
@@ -156,7 +173,6 @@ class Conv2d(Layer):
         self.pm: str = padding_mode
 
         self.init_fn = initializer
-
         self.use_bias = bias
         self.weight = None
         self.bias = None
@@ -167,12 +183,10 @@ class Conv2d(Layer):
     def reset_parameters(self, initializer: Optional[InitFn] = None):
         init = initializer or self.init_fn or DEFAULT_UNIFORM_INIT_MAP["relu"]
         w = init((self.out_channels, self.in_channels, self.KH, self.KW))
-        self.weight.data = Parameters(np.asarray(w))
+        self.weight = Parameters(np.asarray(w))
         self.weight.name = "kernel2d"
         if self.use_bias:
-            self.bias.data = Parameters(
-                np.zeros((self.out_channels, 1), dtype=np.float32)
-            )
+            self.bias = Parameters(np.zeros((self.out_channels, 1), dtype=np.float32))
             self.bias.name = "conv2d bias"
         else:
             self.bias = None
@@ -248,7 +262,7 @@ class Conv2d(Layer):
         strides = (sN, sC, sH * self.sh, sW * self.sw, sH, sW)
         windows = as_strided(
             x=x_padded, shape=shape, strides=strides
-        )  # ->  shape = (n0,C, out_h2, out_w3, kh4, kw5)
+        )  # ->  shape = (N,C, out_h, out_w, KH, KW)
 
         col = windows.transpose(1, 4, 5, 0, 2, 3).reshape(
             C * self.KH * self.KW, -1
@@ -264,7 +278,7 @@ class Conv2d(Layer):
         k, i, j = self._build_inidices(x_shape=x_shape)
 
         cols_reshaped = col.reshape(
-            C * self.KH, self.KW, N, out_height, out_width
+            C * self.KH * self.KW, N, out_height * out_width
         ).transpose(
             1, 0, 2
         )  # -> (N,C*KH*KW, out_height*out_width)

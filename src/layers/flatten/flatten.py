@@ -9,7 +9,9 @@ class Flatten(Layer):
 
     def forward(self, x) -> np.ndarray:
         self._origin_shape = x.shape
-        return x.reshape(x.shape[0], -1)
+        N, *E = x.shape
+        del E
+        return x.reshape(N, -1)
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
         return grad.reshape(*self._origin_shape)
