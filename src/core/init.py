@@ -9,6 +9,8 @@ small random initializer used as a default. Docstrings use the Google style.
 """
 
 Shape2D = Tuple[int, int]
+Shape3D = Tuple[int, int, int]
+Shape4D = Tuple[int, int, int, int]
 
 
 def calculate_gain(nonlinearity: str, param: Optional[float] = None) -> float:
