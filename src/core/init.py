@@ -1,5 +1,6 @@
 import numpy as np
-from typing import Optional, Tuple
+from typing import Optional
+from src._typing import Shape
 
 """
 Weight initialization utilities.
@@ -7,10 +8,6 @@ Weight initialization utilities.
 Functions follow the common initializers (Xavier / Glorot, Kaiming / He) and a
 small random initializer used as a default. Docstrings use the Google style.
 """
-
-Shape2D = Tuple[int, int]
-Shape3D = Tuple[int, int, int]
-Shape4D = Tuple[int, int, int, int]
 
 
 def calculate_gain(nonlinearity: str, param: Optional[float] = None) -> float:
@@ -41,7 +38,81 @@ def calculate_gain(nonlinearity: str, param: Optional[float] = None) -> float:
         raise ValueError(f"Unsupported activation function: {nonlinearity}")
 
 
-def xavier_normal_(shape: Shape2D, gain: float = 1.0) -> np.ndarray:
+def validate_option(mode: str) -> bool:
+    options = ("both", "fan_in", "fan_out")
+    if mode in options:
+        return True
+    return False
+
+
+def shape_validation(shape: Shape, mode: str = "fan_in") -> tuple[int, int]:
+
+    match len(shape):
+        case 2:
+            # shape -> (out,in)
+            OUT, IN = shape
+            fan_in = IN
+            fan_out = OUT
+            if mode == "both" and validate_option(mode):
+                return fan_in, fan_out
+            elif mode == "fan_in" and validate_option(mode):
+                return fan_in
+            elif mode == "fan_out" and validate_option(mode):
+                return fan_out
+            else:
+                raise ValueError(
+                    f"The mode must be 'both','fan_in','fan_out', got {mode}"
+                )
+        case 3:
+            # shape -> (out, in, k)
+            OUT, IN, K = shape
+            fan_in = IN * K
+            fan_out = OUT * K
+            if mode == "both" and validate_option(mode):
+                return fan_in, fan_out
+            elif mode == "fan_in" and validate_option(mode):
+                return fan_in
+            elif mode == "fan_out" and validate_option(mode):
+                return fan_out
+            else:
+                raise ValueError(
+                    f"The mode must be 'both','fan_in','fan_out', got {mode}"
+                )
+        case 4:
+            # shape -> (out, in, kh, kw)
+            OUT, IN, KH, KW = shape
+            fan_in = IN * KH * KW
+            fan_out = OUT * KH * KW
+            if mode == "both" and validate_option(mode):
+                return fan_in, fan_out
+            elif mode == "fan_in" and validate_option(mode):
+                return fan_in
+            elif mode == "fan_out" and validate_option(mode):
+                return fan_out
+            else:
+                raise ValueError(
+                    f"The mode must be 'both','fan_in','fan_out', got {mode}"
+                )
+        case 5:
+            # shape -> (out,in,kd,kh,kw)
+            OUT, IN, KD, KH, KW = shape
+            fan_in = IN * KD * KH * KW
+            fan_out = OUT * KD * KH * KW
+            if mode == "both" and validate_option(mode):
+                return fan_in, fan_out
+            elif mode == "fan_in" and validate_option(mode):
+                return fan_in
+            elif mode == "fan_out" and validate_option(mode):
+                return fan_out
+            else:
+                raise ValueError(
+                    f"The mode must be 'both','fan_in','fan_out', got {mode}"
+                )
+        case _:
+            raise ValueError(f"The shape must be 2...5, got {len(shape)}")
+
+
+def xavier_normal_(shape: Shape, gain: float = 1.0) -> np.ndarray:
     """Xavier (Glorot) normal initialization.
 
     Args:
@@ -54,17 +125,14 @@ def xavier_normal_(shape: Shape2D, gain: float = 1.0) -> np.ndarray:
     Raises:
         ValueError: If `shape` has fewer than 2 dimensions.
     """
-    if len(shape) < 2:
-        raise ValueError(f"The shape must be at least 2D, got {len(shape)}")
 
-    fan_in = shape[1]
-    fan_out = shape[0]
+    fan_in, fan_out = shape_validation(shape=shape, mod="both")
 
     std = gain * np.sqrt(2.0 / (fan_in + fan_out))
     return np.random.normal(0.0, std, shape)
 
 
-def xavier_uniform_(shape: Shape2D, gain: float = 1.0) -> np.ndarray:
+def xavier_uniform_(shape: Shape, gain: float = 1.0) -> np.ndarray:
     """Xavier (Glorot) uniform initialization.
 
     Args:
@@ -77,18 +145,14 @@ def xavier_uniform_(shape: Shape2D, gain: float = 1.0) -> np.ndarray:
     Raises:
         ValueError: If `shape` has fewer than 2 dimensions.
     """
-    if len(shape) < 2:
-        raise ValueError(f"The shape must be at least 2D, got {len(shape)}")
-
-    fan_in = shape[1]
-    fan_out = shape[0]
+    fan_in, fan_out = shape_validation(shape=shape, mode="both")
 
     limit = gain * np.sqrt(6.0 / (fan_in + fan_out))
     return np.random.uniform(-limit, limit, shape)
 
 
 def kaiming_normal_(
-    shape: Shape2D,
+    shape: Shape,
     a: Optional[float] = None,
     nonlinearity: str = "relu",
     mode: str = "fan_in",
@@ -107,26 +171,16 @@ def kaiming_normal_(
     Raises:
         ValueError: If `shape` has fewer than 2 dimensions or `mode` is invalid.
     """
-    if len(shape) < 2:
-        raise ValueError(f"The shape must be at least 2D, got {len(shape)}")
 
-    fan_in = shape[1]
-    fan_out = shape[0]
-
-    if mode == "fan_in":
-        fan = fan_in
-    elif mode == "fan_out":
-        fan = fan_out
-    else:
-        raise ValueError(f"mode must be 'fan_in' or 'fan_out', not {mode}")
-
+    fan = shape_validation(shape=shape, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
+
     std = gain / np.sqrt(fan)
     return np.random.normal(0.0, std, shape)
 
 
 def kaiming_uniform_(
-    shape: Shape2D,
+    shape: Shape,
     a: Optional[float] = None,
     nonlinearity: str = "relu",
     mode: str = "fan_in",
@@ -145,25 +199,14 @@ def kaiming_uniform_(
     Raises:
         ValueError: If `shape` has fewer than 2 dimensions or `mode` is invalid.
     """
-    if len(shape) < 2:
-        raise ValueError(f"The shape must be at least 2D, got {len(shape)}")
-
-    fan_in = shape[1]
-    fan_out = shape[0]
-
-    if mode == "fan_in":
-        fan = fan_in
-    elif mode == "fan_out":
-        fan = fan_out
-    else:
-        raise ValueError(f"mode must be 'fan_in' or 'fan_out', not {mode}")
+    fan = shape_validation(shape=shape, mode=mode)
 
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
     limit = gain * np.sqrt(3.0 / fan)
     return np.random.uniform(-limit, limit, shape)
 
 
-def random_init_(shape: Shape2D, gain: float = 0.001) -> np.ndarray:
+def random_init_(shape: Shape, gain: float = 0.001) -> np.ndarray:
     """Small random normal initializer (used as a conservative default).
 
     Args:
