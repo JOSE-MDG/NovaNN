@@ -129,7 +129,7 @@ def xavier_normal_(shape: Shape, gain: float = 1.0) -> np.ndarray:
     fan_in, fan_out = shape_validation(shape=shape, mod="both")
 
     std = gain * np.sqrt(2.0 / (fan_in + fan_out))
-    return np.random.normal(0.0, std, shape)
+    return np.random.normal(0.0, std, shape).astype(np.float32)
 
 
 def xavier_uniform_(shape: Shape, gain: float = 1.0) -> np.ndarray:
@@ -148,7 +148,7 @@ def xavier_uniform_(shape: Shape, gain: float = 1.0) -> np.ndarray:
     fan_in, fan_out = shape_validation(shape=shape, mode="both")
 
     limit = gain * np.sqrt(6.0 / (fan_in + fan_out))
-    return np.random.uniform(-limit, limit, shape)
+    return np.random.uniform(-limit, limit, shape).astype(np.float32)
 
 
 def kaiming_normal_(
@@ -176,7 +176,7 @@ def kaiming_normal_(
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
     std = gain / np.sqrt(fan)
-    return np.random.normal(0.0, std, shape)
+    return np.random.normal(0.0, std, shape).astype(np.float32)
 
 
 def kaiming_uniform_(
@@ -203,7 +203,7 @@ def kaiming_uniform_(
 
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
     limit = gain * np.sqrt(3.0 / fan)
-    return np.random.uniform(-limit, limit, shape)
+    return np.random.uniform(-limit, limit, shape).astype(np.float32)
 
 
 def random_init_(shape: Shape, gain: float = 0.001) -> np.ndarray:
@@ -216,4 +216,4 @@ def random_init_(shape: Shape, gain: float = 0.001) -> np.ndarray:
     Returns:
         Array sampled from N(0, 1) scaled by `gain`.
     """
-    return np.random.randn(*shape) * gain
+    return np.random.randn(*shape).astype(np.float32) * gain
