@@ -1,6 +1,9 @@
-from typing import Tuple, Any, Callable, List, Optional, Union
+from typing import Tuple, Any, Callable, List, Optional, Union, TYPE_CHECKING
 import numpy as np
-from src.module import Parameters
+
+# At runtime, this block is ignored.
+if TYPE_CHECKING:
+    from src.module import Parameters
 
 # Tensor shape definition (batch_size, channels, height, width, ...)
 Shape = Tuple[int, ...]
@@ -9,10 +12,12 @@ Shape = Tuple[int, ...]
 InitFn = Callable[[Shape], np.ndarray]
 
 # List of trainable parameters
-ListOfParameters = List[Parameters]
+# We use a forward reference (string literal "Parameters") since the class
+# is not available at runtime, but the type checker will recognize it.
+ListOfParameters = List["Parameters"]
 
 # Alternative initialization function signature (for compatibility)
-InitFnArg = Callable[[Shape], Any]  # Consider replacing with InitFn
+InitFnArg = Callable[[Shape], Any]
 
 # Flexible dimension specification (single value or tuple)
 IntOrPair = Union[int, Tuple[int, int]]

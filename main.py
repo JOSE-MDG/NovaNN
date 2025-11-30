@@ -1,10 +1,10 @@
 import json
 import src.losses.functional as F
 
-from src.core.logger import logger
-from src.core.dataloader import DataLoader
+from src.core import logger
+from src.core import DataLoader
 from src.layers import Linear, ReLU, BatchNorm1d, Dropout
-from src.model.nn import Sequential
+from src.model import Sequential
 from src.optim import Adam
 from src.utils import load_fashion_mnist_data
 from src.metrics import accuracy
