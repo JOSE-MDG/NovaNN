@@ -1,12 +1,10 @@
 import numpy as np
-from typing import Optional, Callable, List, Tuple, Any
+from typing import Optional, Callable
+from src._typing import ListOfParameters, InitFn
 
 from src.module.module import Parameters
 from src.module.layer import Layer
 from src.core import config
-
-
-InitFn = Callable[[Tuple[int, int]], Any]
 
 
 class Linear(Layer):
@@ -120,13 +118,13 @@ class Linear(Layer):
         grad_input = grad @ self.weight.data
         return grad_input
 
-    def parameters(self) -> List[Parameters]:
+    def parameters(self) -> ListOfParameters:
         """Return a list of Parameters owned by this layer.
 
         Returns:
             List[Parameters]: [weight] or [weight, bias] if bias is present.
         """
-        params: List[Parameters] = [self.weight]
+        params: ListOfParameters = [self.weight]
         if self.bias is not None:
             params.append(self.bias)
         return params

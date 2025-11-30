@@ -1,5 +1,6 @@
 import os
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Dict, Optional
+from src._typing import InitFnArg
 
 from dotenv import load_dotenv
 from src.core.init import (
@@ -13,8 +14,6 @@ from src.core.init import (
 
 load_dotenv()
 
-Shape = Tuple[int, ...]
-InitFn = Callable[[Shape], Any]
 
 """
 Core configuration constants and default initialization maps.
@@ -49,7 +48,7 @@ LOGGER_DATE_FORMAT: Optional[str] = os.getenv("LOGGER_DATE_FORMAT")
 # Default initialization maps
 # Keys correspond to activation identifiers used elsewhere in the project.
 # Each value is a callable that receives a shape and applies an initialization.
-DEFAULT_NORMAL_INIT_MAP: Dict[str, InitFn] = {
+DEFAULT_NORMAL_INIT_MAP: Dict[str, InitFnArg] = {
     "relu": lambda shape: kaiming_normal_(shape, a=0.0, nonlinearity="relu"),
     "leakyrelu": lambda shape: kaiming_normal_(shape, a=0.01, nonlinearity="leakyrelu"),
     "tanh": lambda shape: xavier_normal_(shape, gain=calculate_gain("tanh")),
@@ -57,7 +56,7 @@ DEFAULT_NORMAL_INIT_MAP: Dict[str, InitFn] = {
     "default": lambda shape: random_init_(shape),
 }
 
-DEFAULT_UNIFORM_INIT_MAP: Dict[str, InitFn] = {
+DEFAULT_UNIFORM_INIT_MAP: Dict[str, InitFnArg] = {
     "relu": lambda shape: kaiming_uniform_(shape, a=0.0, nonlinearity="relu"),
     "leakyrelu": lambda shape: kaiming_uniform_(
         shape, a=0.01, nonlinearity="leakyrelu"

@@ -1,5 +1,6 @@
 import numpy as np
-from typing import Optional, List
+from typing import Optional
+from src._typing import ListOfParameters
 
 from src.module.layer import Layer
 from src.module.module import Parameters
@@ -129,7 +130,7 @@ class BatchNorm1d(Layer):
         dx = dx_hat * inv_std + dvar * (2.0 * x_mu) / m + dmu / m
         return dx
 
-    def parameters(self) -> List[Parameters]:
+    def parameters(self) -> ListOfParameters:
         """Return the list of Parameters objects owned by this layer."""
         return [self.gamma, self.beta]
 
@@ -223,5 +224,5 @@ class BatchNorm2d(Layer):
         dx = dx_hat * inv_std + dvar * (2.0 * x_mu) / m + dmu / m
         return dx
 
-    def parameters(self) -> List[Parameters]:
+    def parameters(self) -> ListOfParameters:
         return [self.gamma, self.beta]
