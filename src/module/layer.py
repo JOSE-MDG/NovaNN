@@ -25,6 +25,9 @@ class Layer(Module, ABC):
         """Initializes the layer."""
         super().__init__()
 
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        return self.forward(x)
+
     @abstractmethod
     def forward(self, x: np.ndarray) -> np.ndarray:
         """Defines the computation performed at every call (forward pass).

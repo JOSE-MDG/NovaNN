@@ -1,14 +1,14 @@
 import numpy as np
 import inspect
 import re
-from src.module.layer import Layer
-from src.layers.activations.activations import Activation
-from src.layers.linear.linear import Linear
+from src.layers.activations import Activation
+from src.layers import Linear, Conv2d, Conv1d
 from src.core import config
-from src.module.module import Parameters
+from src.module import Parameters, Layer
 from src.core.logger import logger
 
-from typing import Iterable, Optional, Tuple, Callable, Any
+from src._typing import InitFn, ActivAndParams
+from typing import Iterable, Optional, Tuple, Any
 
 
 class Sequential(Layer):
@@ -27,9 +27,7 @@ class Sequential(Layer):
         """Return True if `layer` is an activation layer."""
         return isinstance(layer, Activation)
 
-    def _find_next_activation(
-        self, start_idx: int
-    ) -> Tuple[Optional[str], Optional[float]]:
+    def _find_next_activation(self, start_idx: int) -> ActivAndParams:
         """Find the next activation after `start_idx` and return its init key (name) and param.
 
         Returns:
@@ -45,9 +43,7 @@ class Sequential(Layer):
                     return key, activation_params
         return None, None
 
-    def _find_last_activation(
-        self, last_idx: int
-    ) -> Tuple[Optional[str], Optional[float]]:
+    def _find_last_activation(self, last_idx: int) -> ActivAndParams:
         """Find the last activation before `last_idx` and return its init key and param.
 
         Returns:
@@ -63,6 +59,11 @@ class Sequential(Layer):
                     return key, activation_params
         return None, None
 
+    def _is_initializable(self, layer: Layer) -> bool:
+        instances = (Linear, Conv1d, Conv2d)
+        if isinstance(layer, instances):
+            return True
+
     def _aply_initializer_for_linear_layers(self) -> None:
         """Apply sensible default initializers to Linear layers based on nearby activations.
 
@@ -71,7 +72,7 @@ class Sequential(Layer):
         previous for final linear) activation's init key.
         """
         for idx, layer in enumerate(self._layers):
-            if isinstance(layer, Linear):
+            if self._is_initializable(layer=layer):
                 if getattr(layer, "init_fn", None) is not None:
                     continue
 
@@ -124,7 +125,7 @@ class Sequential(Layer):
 
                 layer.reset_parameters(init_fn)
 
-    def __get_lambda_name(self, lambda_fn: Callable[..., Any]) -> str:
+    def __get_lambda_name(self, lambda_fn: InitFn) -> str:
         """Try to infer a readable name for an initializer (works for simple lambdas)."""
         try:
             source_code = inspect.getsource(lambda_fn)
@@ -139,10 +140,10 @@ class Sequential(Layer):
 
     def _create_custom_init_fn(
         self,
-        init_fn_base: Callable[[Tuple[int, int]], Any],
+        init_fn_base: InitFn,
         a: float,
         nonlinearity: str,
-    ) -> Callable[[Tuple[int, int]], Any]:
+    ) -> InitFn:
         """Wrap a base initializer to inject nonlinearity-specific parameters.
 
         Currently only special-cases leakyrelu (uses kaiming_normal_ with slope `a`).
@@ -156,17 +157,6 @@ class Sequential(Layer):
                 return init_fn_base(shape)
 
         return custom_init
-
-    def __call__(self, x: np.ndarray) -> np.ndarray:
-        """Makes the class instance callable as a function, aliasing the forward pass.
-
-        Args:
-            x (np.ndarray): The input data.
-
-        Returns:
-            np.ndarray: The output of the forward pass.
-        """
-        return self.forward(x)
 
     def train(self) -> None:
         """Sets all modules in the container to training mode."""
@@ -189,7 +179,7 @@ class Sequential(Layer):
         """
         out = x
         for layer in self._layers:
-            out = layer.forward(out)
+            out = layer(out)
         return out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
