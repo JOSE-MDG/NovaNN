@@ -5,7 +5,7 @@ from src.module.layer import Layer
 from src.module.module import Parameters
 
 
-class BatchNormalization(Layer):
+class BatchNormalization1d(Layer):
     """Batch normalization layer for fully-connected inputs.
 
     Normalizes activations per feature using running estimates during eval
