@@ -3,18 +3,6 @@ import numpy as np
 from src.module.module import Parameters
 from typing import Iterable, List, Optional
 
-"""
-Stochastic Gradient Descent optimizer with optional momentum, weight decay,
-and (optionally) gradient clipping.
-
-Improvements made (non-breaking):
-- Materialize `parameters` iterable to a list
-- Skip parameters with `grad is None`.
-- Skip normalization params named 'gamma'/'beta'.
-- Add type hints and concise Google-style docstrings.
-- Support optional max_grad_norm for basic gradient clipping.
-"""
-
 
 class SGD:
     """SGD optimizer.

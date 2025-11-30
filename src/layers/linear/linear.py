@@ -1,36 +1,26 @@
 import numpy as np
-from typing import Optional, Callable
+from typing import Optional
 from src._typing import ListOfParameters, InitFn
 
-from src.module.module import Parameters
-from src.module.layer import Layer
-from src.core import config
+from src.module import Parameters, Layer
+from src.core import DEFAULT_NORMAL_INIT_MAP
 
 
 class Linear(Layer):
-    """Fully connected (linear) layer.
+    """A fully connected (linear) layer.
 
-    Computes a linear transformation: y = x W^T + b
-
-    This class stores weights and optional bias as Parameters objects so the
-    training utilities in the project can inspect and update them.
+    Computes a linear transformation: y = x W^T + b.
 
     Args:
-        in_features (int): Number of input features.
-        out_features (int): Number of output features.
-        bias (bool): If True, include an additive bias term. Default: True.
-        init (Optional[Callable]): Optional initializer function that receives a
-            shape tuple (out_features, in_features) and returns an array. If
-            None, falls back to config.DEFAULT_NORMAL_INIT_MAP["default"].
+        in_features (int): Number of input features (D_in).
+        out_features (int): Number of output features (D_out).
+        bias (bool): If True, an additive bias term is included. Default: True.
+        init (InitFn, optional): Weight initialization function. If None,
+            falls back to config.DEFAULT_NORMAL_INIT_MAP["default"].
 
     Attributes:
-        in_features (int)
-        out_features (int)
         weight (Parameters): Weight matrix with shape (out_features, in_features).
-        bias (Optional[Parameters]): Bias row vector with shape (1, out_features) or None.
-        b (bool): Original bias flag.
-        init_fn (Optional[Callable]): Stored initializer function.
-        _cache_input (Optional[np.ndarray]): Cached input used in backward.
+        bias (Optional[Parameters]): Bias vector with shape (1, out_features) or None.
     """
 
     def __init__(
@@ -38,68 +28,66 @@ class Linear(Layer):
         in_features: int,
         out_features: int,
         bias: bool = True,
-        init: Optional[Callable] = None,
+        init: Optional[InitFn] = None,
     ) -> None:
+        """Initialize the Linear layer with given dimensions and optional bias."""
         super().__init__()
-        self.in_features: int = int(in_features)
-        self.out_features: int = int(out_features)
-
-        # Parameters are created in reset_parameters()
-        self.weight: Optional[Parameters] = None
-        self.bias: Optional[Parameters] = None
-
-        self.b: bool = bool(bias)
+        self.in_features: int = in_features
+        self.out_features: int = out_features
+        self.b: bool = bias  # Flag to track if bias was requested
         self.init_fn: Optional[InitFn] = init
 
-        # Cached input for computing gradients in backward()
+        self.weight: Optional[Parameters] = None
+        self.bias: Optional[Parameters] = None
         self._cache_input: Optional[np.ndarray] = None
 
         self.reset_parameters()
 
     def reset_parameters(self, initializer: Optional[InitFn] = None) -> None:
-        """(Re)initialize weight and bias Parameters.
-
-        Args:
-            initializer: Optional callable to create initial arrays. If None,
-                the layer uses self.init_fn or the project's default initializer.
-        """
+        """(Re)initialize weight and bias Parameters."""
         if initializer is not None:
             init = initializer
         elif self.init_fn is not None:
             init = self.init_fn
         else:
-            init = config.DEFAULT_NORMAL_INIT_MAP["default"]
+            # Fallback to default initializer if none specified
+            init = DEFAULT_NORMAL_INIT_MAP["default"]
+
+        # Weight shape: (out_features, in_features)
         w = init((self.out_features, self.in_features))
-        self.weight = Parameters(np.asarray(w))
-        self.weight.name = "weight"
+        self.weight = Parameters(np.asarray(w, dtype=np.float32))
+        self.weight.name = "linear weight"
 
         if self.b:
-            self.bias = Parameters(np.zeros((1, self.out_features)))
-            self.bias.name = "bias"
+            # Bias shape: (1, out_features)
+            b = np.zeros((1, self.out_features), dtype=np.float32)
+            self.bias = Parameters(np.asarray(b, dtype=np.float32))
+            self.bias.name = "linear bias"
         else:
             self.bias = None
 
     def forward(self, x: np.ndarray) -> np.ndarray:
-        """Forward pass: linear transformation.
+        """Forward pass: computes the linear transformation y = x W^T + b.
+
+        The input is cached for the backward pass.
 
         Args:
-            x (np.ndarray): Input array with shape (batch_size, in_features).
+            x (np.ndarray): Input tensor of shape (batch_size, in_features).
 
         Returns:
-            np.ndarray: Output array with shape (batch_size, out_features).
+            np.ndarray: Output tensor of shape (batch_size, out_features).
         """
+        x = x.astype(np.float32, copy=False)
         self._cache_input = x
+
+        # Matrix multiplication: (N, D_in) @ (D_in, D_out) -> (N, D_out)
         out = x @ self.weight.data.T
         if self.bias is not None:
             out = out + self.bias.data
         return out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
-        """Backward pass: compute gradients for parameters and return grad wrt input.
-
-        Updates:
-            - self.weight.grad shaped (out_features, in_features)
-            - self.bias.grad shaped (1, out_features) if bias exists
+        """Backward pass: computes gradients for parameters and returns grad w.r.t input.
 
         Args:
             grad (np.ndarray): Gradient w.r.t. the layer output,
@@ -109,26 +97,22 @@ class Linear(Layer):
             np.ndarray: Gradient w.r.t. the layer input,
                         shape (batch_size, in_features).
         """
+        grad = grad.astype(np.float32, copy=False)
         x = self._cache_input
 
-        # weight.grad: sum over batch of outer products between output-grad and input
-        # grad.T @ x -> (out_features, in_features)
+        # Gradient w.r.t. Weights (W): grad.T @ x -> (D_out, D_in)
         self.weight.grad = grad.T @ x
 
+        # Gradient w.r.t. Bias (b): sum over batch dimension
         if self.bias is not None:
-            # bias gradient is per-output summed over batch
             self.bias.grad = np.sum(grad, axis=0, keepdims=True)
 
-        # gradient w.r.t. input: grad @ W
+        # Gradient w.r.t. Input (x): grad @ W -> (N, D_in)
         grad_input = grad @ self.weight.data
         return grad_input
 
     def parameters(self) -> ListOfParameters:
-        """Return a list of Parameters owned by this layer.
-
-        Returns:
-            List[Parameters]: [weight] or [weight, bias] if bias is present.
-        """
+        """Return a list of Parameters owned by this layer."""
         params: ListOfParameters = [self.weight]
         if self.bias is not None:
             params.append(self.bias)

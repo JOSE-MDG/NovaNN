@@ -1,35 +1,32 @@
 import numpy as np
-from typing import Iterable, Iterator, Optional
+from typing import Optional
+from src._typing import ListOfParameters
 
 """
 Module and parameter container utilities.
 
 Provides:
-- Parameters: lightweight wrapper for trainable arrays and their gradients.
-- Module: base class for all network modules with a default parameters
-  discovery implementation that walks attributes to yield Parameters
-  (and recurses into nested Modules).
+- Parameters: Lightweight wrapper for trainable arrays and their gradients
+- Module: Base class for all network modules with parameter discovery
 """
 
 
 class Parameters:
-    """A wrapper for a tensor that is considered a model parameter.
+    """Wrapper for tensors that are considered model parameters.
 
-    This class holds the parameter data (e.g., weights or biases) and its
-    corresponding gradient.
+    Holds parameter data (weights/biases) and corresponding gradients.
 
     Args:
         data: Initial parameter array.
 
     Attributes:
-        data (np.ndarray): The parameter values.
-        grad (Optional[np.ndarray]): The accumulated gradient or None.
-        name (Optional[str]): Optional human-readable name assigned later.
+        data: Parameter values.
+        grad: Accumulated gradient or None.
+        name: Optional human-readable identifier.
     """
 
     def __init__(self, data: np.ndarray) -> None:
         self.data: np.ndarray = data
-        # Initialize gradient with the same shape as the parameter data.
         self.grad: Optional[np.ndarray] = np.zeros_like(self.data)
         self.name: Optional[str] = None
 
@@ -52,13 +49,11 @@ class Parameters:
 class Module:
     """Base class for all neural network modules.
 
-    Modules may contain Parameters and other Modules as attributes. The default
-    `parameters()` implementation inspects instance attributes and yields
-    found Parameters (recursing into nested Modules). Subclasses can override
-    `parameters()` for custom behaviour.
+    Modules may contain Parameters and other Modules. The default `parameters()`
+    method returns an empty list - subclasses should override to expose their
+    trainable parameters.
 
-    The Module tracks a training/eval mode flag which some layers use to
-    change behaviour (e.g., Dropout, BatchNorm).
+    Tracks training/eval mode for layers that change behavior (Dropout, BatchNorm).
     """
 
     def __init__(self) -> None:
@@ -73,23 +68,26 @@ class Module:
         """Set the module to evaluation mode (affects certain submodules)."""
         self._training = False
 
-    def parameters(self) -> Iterable[Parameters]:
-        """Return an iterable of Parameters belonging to this module.
+    def parameters(self) -> ListOfParameters:
+        """Return list of Parameters belonging to this module.
 
-        Subclasses should override this method to expose their trainable parameters.
-        Typical overrides either return a list Parameters, for example:
+        Subclasses must override this method to expose trainable parameters.
+        Example implementation:
 
-            def parameters(self):
-                return [self.weight]
-                if self.bias is not None:
-                    reutrn [self.bias]
+        ```python
+        def parameters(self):
+            params = [self.weight]
+            if self.bias is not None:
+                params.append(self.bias)
+            return params
+        ```
 
         Returns:
-            Empty list by default; override in subclasses to return actual parameters.
+            List of parameter objects. Empty list by default.
         """
         return []
 
     def zero_grad(self) -> None:
         """Zero or clear gradients for all parameters in this module."""
-        for p in self.parameters():
-            p.zero_grad()
+        for param in self.parameters():
+            param.zero_grad()

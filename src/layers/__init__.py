@@ -1,3 +1,5 @@
+"""Neural network layer exports: Linear, CNN, Pooling, BN, Dropout, and Activations."""
+
 from .activations import ReLU, LeakyReLU, Tanh, SoftMax, Sigmoid
 from .linear import Linear
 from .bn import BatchNorm1d, BatchNorm2d

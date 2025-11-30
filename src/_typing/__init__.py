@@ -1,17 +1,25 @@
+"""Type definitions for the framework."""
+
 from ._typing import (
-    ListOfParameters,
+    Shape,
     InitFn,
     InitFnArg,
-    Shape,
+    ListOfParameters,
     IntOrPair,
     ActivAndParams,
+    KernelSize,
+    Stride,
+    Padding,
 )
 
 __all__ = [
-    "ListOfParameters",
+    "Shape",
     "InitFn",
     "InitFnArg",
-    "Shape",
+    "ListOfParameters",
     "IntOrPair",
     "ActivAndParams",
+    "KernelSize",
+    "Stride",
+    "Padding",
 ]

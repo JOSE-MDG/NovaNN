@@ -8,30 +8,43 @@ from src.module import Parameters, Layer
 from src.core.logger import logger
 
 from src._typing import InitFn, ActivAndParams
-from typing import Iterable, Optional, Tuple, Any
+from typing import Iterable, Tuple, Any
 
 
 class Sequential(Layer):
-    """A sequential container for modules.
+    """A sequential container for neural network modules.
 
-    Modules will be added to it in the order they are passed in the constructor.
-    The forward pass will apply each module sequentially.
+    Modules are added in the order they are passed to the constructor.
+    The forward pass applies each module sequentially, and the backward
+    pass applies the gradient in reverse order.
+
+    This class attempts to automatically apply appropriate weight initializations
+    to Linear and Conv layers based on the nearest activation function.
+
+    Args:
+        *modules (Layer): Variable-length list of Layer instances to chain
+                          sequentially.
     """
 
     def __init__(self, *modules: Layer) -> None:
+        """Initializes the Sequential module and applies automatic weight initialization."""
         super().__init__()
         self._layers = modules
         self._aply_initializer_for_linear_layers()
 
     def _is_activation(self, layer: Layer) -> bool:
-        """Return True if `layer` is an activation layer."""
+        """Returns True if `layer` is an activation layer."""
         return isinstance(layer, Activation)
 
     def _find_next_activation(self, start_idx: int) -> ActivAndParams:
-        """Find the next activation after `start_idx` and return its init key (name) and param.
+        """Finds the next activation after `start_idx`.
+
+        Used to determine the initialization key and parameter required for
+        Linear/Conv layers.
 
         Returns:
-            Tuple of (init_key, activation_param) where either can be None.
+            Tuple[str | None, float | None]: The initialization key (name)
+                                             and its parameter (e.g., LeakyReLU slope).
         """
         for i in range(start_idx + 1, len(self._layers)):
             layer = self._layers[i]
@@ -44,10 +57,13 @@ class Sequential(Layer):
         return None, None
 
     def _find_last_activation(self, last_idx: int) -> ActivAndParams:
-        """Find the last activation before `last_idx` and return its init key and param.
+        """Finds the last activation before `last_idx`.
+
+        Used to initialize the final Linear/Conv layer based on the preceding activation.
 
         Returns:
-            Tuple of (init_key, activation_param) where either can be None.
+            Tuple[str | None, float | None]: The initialization key (name)
+                                             and its parameter.
         """
         for i in reversed(range(0, last_idx)):
             layer = self._layers[i]
@@ -60,16 +76,16 @@ class Sequential(Layer):
         return None, None
 
     def _is_initializable(self, layer: Layer) -> bool:
+        """Returns True if the layer is a weighted layer (Linear, Conv) that requires initialization."""
         instances = (Linear, Conv1d, Conv2d)
         if isinstance(layer, instances):
             return True
 
     def _aply_initializer_for_linear_layers(self) -> None:
-        """Apply sensible default initializers to Linear layers based on nearby activations.
+        """Applies default initializers to Linear/Conv layers based on nearby activations.
 
-        Walks the contained layers and sets a seed initializer on Linear layers that
-        do not already have one. Chooses initializers according to the next (or
-        previous for final linear) activation's init key.
+        Searches for the next activation (or the last one for the final layer) to
+        select the appropriate initialization function (e.g., Kaiming for ReLU).
         """
         for idx, layer in enumerate(self._layers):
             if self._is_initializable(layer=layer):
@@ -126,7 +142,7 @@ class Sequential(Layer):
                 layer.reset_parameters(init_fn)
 
     def __get_lambda_name(self, lambda_fn: InitFn) -> str:
-        """Try to infer a readable name for an initializer (works for simple lambdas)."""
+        """Attempts to infer a readable name for an initializer function for logging purposes."""
         try:
             source_code = inspect.getsource(lambda_fn)
             match = re.search(r"lambda\s+shape\s*:\s*([a-zA-Z_]\w*)\s*\(", source_code)
@@ -144,10 +160,7 @@ class Sequential(Layer):
         a: float,
         nonlinearity: str,
     ) -> InitFn:
-        """Wrap a base initializer to inject nonlinearity-specific parameters.
-
-        Currently only special-cases leakyrelu (uses kaiming_normal_ with slope `a`).
-        """
+        """Wraps a base initializer to inject non-linearity specific parameters (e.g., slope 'a' for LeakyReLU)."""
         from src.core.init import kaiming_normal_
 
         def custom_init(shape: Tuple[int, int]) -> Any:
@@ -159,12 +172,12 @@ class Sequential(Layer):
         return custom_init
 
     def train(self) -> None:
-        """Sets all modules in the container to training mode."""
+        """Sets all contained modules in the container to training mode."""
         for m in self._layers:
             m.train()
 
     def eval(self) -> None:
-        """Sets all modules in the container to evaluation mode."""
+        """Sets all contained modules in the container to evaluation mode."""
         for m in self._layers:
             m.eval()
 
@@ -200,10 +213,8 @@ class Sequential(Layer):
     def parameters(self) -> Iterable[Parameters]:
         """Gathers and returns all parameters from the layers in the container.
 
-        It iterates through each layer and collects its parameters.
-
         Returns:
-            Iterable[Parameters]: An iterable of all parameters in the model.
+            Iterable[Parameters]: An iterable of all trainable parameters in the model.
         """
         parameters = []
         for layer in self._layers:
@@ -211,6 +222,6 @@ class Sequential(Layer):
         return parameters
 
     def zero_grad(self) -> None:
-        """Zero gradients for all submodules' parameters."""
+        """Zeros the gradients for all submodules' parameters."""
         for layer in self._layers:
             layer.zero_grad()

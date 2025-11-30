@@ -1,12 +1,12 @@
 import numpy as np
-from typing import Optional
+from typing import Optional, Union
 from src._typing import Shape
 
 """
 Weight initialization utilities.
 
-Functions follow the common initializers (Xavier / Glorot, Kaiming / He) and a
-small random initializer used as a default. Docstrings use the Google style.
+Provides common initializers (Xavier/Glorot, Kaiming/He) and a small random 
+initializer used as default. All functions use Google-style docstrings.
 """
 
 
@@ -14,16 +14,16 @@ def calculate_gain(nonlinearity: str, param: Optional[float] = None) -> float:
     """Return the recommended gain value for the given nonlinearity.
 
     Args:
-        nonlinearity: Name of the activation function. Supported values include
+        nonlinearity: Name of the activation function. Supported values:
             "linear", "sigmoid", "tanh", "relu", "leakyrelu".
-        param: Optional parameter used by some nonlinearities (e.g. negative
-            slope for leaky ReLU). If None, sensible defaults are used.
+        param: Optional parameter for some nonlinearities (e.g., negative
+            slope for leaky ReLU). Uses sensible defaults if None.
 
     Returns:
-        The gain multiplier as a float.
+        Gain multiplier as float.
 
     Raises:
-        ValueError: If `nonlinearity` is not recognised.
+        ValueError: If `nonlinearity` is not supported.
     """
     if nonlinearity in ("linear", "sigmoid"):
         return 1.0
@@ -38,95 +38,96 @@ def calculate_gain(nonlinearity: str, param: Optional[float] = None) -> float:
         raise ValueError(f"Unsupported activation function: {nonlinearity}")
 
 
-def validate_option(mode: str) -> bool:
-    options = ("both", "fan_in", "fan_out")
-    if mode in options:
-        return True
-    return False
+def _validate_mode(mode: str) -> None:
+    """Validate initialization mode.
+
+    Args:
+        mode: Mode to validate.
+
+    Raises:
+        ValueError: If mode is not 'both', 'fan_in', or 'fan_out'.
+    """
+    valid_modes = ("both", "fan_in", "fan_out")
+    if mode not in valid_modes:
+        raise ValueError(f"Mode must be {valid_modes}, got '{mode}'")
 
 
-def shape_validation(shape: Shape, mode: str = "fan_in") -> tuple[int, int]:
+def _calculate_fans(shape: Shape) -> tuple[int, int]:
+    """Calculate fan_in and fan_out from shape.
 
-    match len(shape):
-        case 2:
-            # shape -> (out,in)
-            OUT, IN = shape
-            fan_in = IN
-            fan_out = OUT
-            if mode == "both" and validate_option(mode):
-                return fan_in, fan_out
-            elif mode == "fan_in" and validate_option(mode):
-                return fan_in
-            elif mode == "fan_out" and validate_option(mode):
-                return fan_out
-            else:
-                raise ValueError(
-                    f"The mode must be 'both','fan_in','fan_out', got {mode}"
-                )
-        case 3:
-            # shape -> (out, in, k)
-            OUT, IN, K = shape
-            fan_in = IN * K
-            fan_out = OUT * K
-            if mode == "both" and validate_option(mode):
-                return fan_in, fan_out
-            elif mode == "fan_in" and validate_option(mode):
-                return fan_in
-            elif mode == "fan_out" and validate_option(mode):
-                return fan_out
-            else:
-                raise ValueError(
-                    f"The mode must be 'both','fan_in','fan_out', got {mode}"
-                )
-        case 4:
-            # shape -> (out, in, kh, kw)
-            OUT, IN, KH, KW = shape
-            fan_in = IN * KH * KW
-            fan_out = OUT * KH * KW
-            if mode == "both" and validate_option(mode):
-                return fan_in, fan_out
-            elif mode == "fan_in" and validate_option(mode):
-                return fan_in
-            elif mode == "fan_out" and validate_option(mode):
-                return fan_out
-            else:
-                raise ValueError(
-                    f"The mode must be 'both','fan_in','fan_out', got {mode}"
-                )
-        case 5:
-            # shape -> (out,in,kd,kh,kw)
-            OUT, IN, KD, KH, KW = shape
-            fan_in = IN * KD * KH * KW
-            fan_out = OUT * KD * KH * KW
-            if mode == "both" and validate_option(mode):
-                return fan_in, fan_out
-            elif mode == "fan_in" and validate_option(mode):
-                return fan_in
-            elif mode == "fan_out" and validate_option(mode):
-                return fan_out
-            else:
-                raise ValueError(
-                    f"The mode must be 'both','fan_in','fan_out', got {mode}"
-                )
-        case _:
-            raise ValueError(f"The shape must be 2...5, got {len(shape)}")
+    Args:
+        shape: Weight shape of 2 to 5 dimensions.
+
+    Returns:
+        Tuple of (fan_in, fan_out).
+
+    Raises:
+        ValueError: If shape has invalid number of dimensions.
+    """
+    if len(shape) < 2:
+        raise ValueError(f"Shape must have at least 2 dimensions, got {len(shape)}")
+
+    # Linear layers: (out_features, in_features)
+    if len(shape) == 2:
+        fan_out, fan_in = shape
+        receptive_field_size = 1
+    # 1D layers: (out_channels, in_channels, kernel_size)
+    elif len(shape) == 3:
+        fan_out, fan_in, receptive_field_size = shape
+    # 2D layers: (out_channels, in_channels, kernel_height, kernel_width)
+    elif len(shape) == 4:
+        fan_out, fan_in, kh, kw = shape
+        receptive_field_size = kh * kw
+    # 3D layers: (out_channels, in_channels, kd, kh, kw)
+    elif len(shape) == 5:
+        fan_out, fan_in, kd, kh, kw = shape
+        receptive_field_size = kd * kh * kw
+    else:
+        raise ValueError(f"Shape must have 2 to 5 dimensions, got {len(shape)}")
+
+    fan_in *= receptive_field_size
+    fan_out *= receptive_field_size
+    return fan_in, fan_out
+
+
+def shape_validation(shape: Shape, mode: str = "fan_in") -> Union[int, tuple[int, int]]:
+    """Calculate fan values for weight initialization.
+
+    Args:
+        shape: Weight tensor shape.
+        mode: One of 'fan_in', 'fan_out', or 'both'.
+
+    Returns:
+        Single fan value or tuple (fan_in, fan_out) depending on mode.
+
+    Raises:
+        ValueError: If mode is invalid or shape has invalid dimensions.
+    """
+    _validate_mode(mode)
+    fan_in, fan_out = _calculate_fans(shape)
+
+    if mode == "both":
+        return fan_in, fan_out
+    elif mode == "fan_in":
+        return fan_in
+    else:  # mode == "fan_out"
+        return fan_out
 
 
 def xavier_normal_(shape: Shape, gain: float = 1.0) -> np.ndarray:
     """Xavier (Glorot) normal initialization.
 
     Args:
-        shape: Tuple (fan_out, fan_in).
-        gain: Optional scaling factor (often derived from activation gain).
+        shape: Weight tensor shape (fan_out, fan_in, ...).
+        gain: Optional scaling factor.
 
     Returns:
-        Array sampled from N(0, std^2) with the given shape.
+        Array sampled from N(0, std^2) with given shape.
 
     Raises:
-        ValueError: If `shape` has fewer than 2 dimensions.
+        ValueError: If shape has fewer than 2 dimensions.
     """
-
-    fan_in, fan_out = shape_validation(shape=shape, mod="both")
+    fan_in, fan_out = shape_validation(shape=shape, mode="both")
 
     std = gain * np.sqrt(2.0 / (fan_in + fan_out))
     return np.random.normal(0.0, std, shape).astype(np.float32)
@@ -136,14 +137,14 @@ def xavier_uniform_(shape: Shape, gain: float = 1.0) -> np.ndarray:
     """Xavier (Glorot) uniform initialization.
 
     Args:
-        shape: Tuple (fan_out, fan_in).
+        shape: Weight tensor shape (fan_out, fan_in, ...).
         gain: Optional scaling factor.
 
     Returns:
-        Array sampled uniformly in [-limit, limit] with the given shape.
+        Array sampled uniformly in [-limit, limit] with given shape.
 
     Raises:
-        ValueError: If `shape` has fewer than 2 dimensions.
+        ValueError: If shape has fewer than 2 dimensions.
     """
     fan_in, fan_out = shape_validation(shape=shape, mode="both")
 
@@ -160,18 +161,17 @@ def kaiming_normal_(
     """Kaiming (He) normal initialization.
 
     Args:
-        shape: Tuple (fan_out, fan_in).
-        a: Optional negative slope for leaky ReLU; used to compute gain.
+        shape: Weight tensor shape.
+        a: Negative slope for leaky ReLU (used to compute gain).
         nonlinearity: Activation name used to compute gain.
-        mode: Either "fan_in" or "fan_out" to control scaling.
+        mode: Either 'fan_in' or 'fan_out' to control scaling.
 
     Returns:
-        Array sampled from N(0, std^2) with the given shape.
+        Array sampled from N(0, std^2) with given shape.
 
     Raises:
-        ValueError: If `shape` has fewer than 2 dimensions or `mode` is invalid.
+        ValueError: If shape has invalid dimensions or mode is invalid.
     """
-
     fan = shape_validation(shape=shape, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
@@ -188,29 +188,29 @@ def kaiming_uniform_(
     """Kaiming (He) uniform initialization.
 
     Args:
-        shape: Tuple (fan_out, fan_in).
-        a: Optional negative slope for leaky ReLU; used to compute gain.
+        shape: Weight tensor shape.
+        a: Negative slope for leaky ReLU (used to compute gain).
         nonlinearity: Activation name used to compute gain.
-        mode: Either "fan_in" or "fan_out" to control scaling.
+        mode: Either 'fan_in' or 'fan_out' to control scaling.
 
     Returns:
-        Array sampled uniformly in [-limit, limit] with the given shape.
+        Array sampled uniformly in [-limit, limit] with given shape.
 
     Raises:
-        ValueError: If `shape` has fewer than 2 dimensions or `mode` is invalid.
+        ValueError: If shape has invalid dimensions or mode is invalid.
     """
     fan = shape_validation(shape=shape, mode=mode)
-
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
+
     limit = gain * np.sqrt(3.0 / fan)
     return np.random.uniform(-limit, limit, shape).astype(np.float32)
 
 
 def random_init_(shape: Shape, gain: float = 0.001) -> np.ndarray:
-    """Small random normal initializer (used as a conservative default).
+    """Small random normal initializer (conservative default).
 
     Args:
-        shape: Tuple (fan_out, fan_in).
+        shape: Output tensor shape.
         gain: Scale multiplier applied to standard normal samples.
 
     Returns:

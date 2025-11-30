@@ -1,6 +1,6 @@
 import os
 from typing import Dict, Optional
-from src._typing import InitFnArg
+from src._typing import InitFn
 
 from dotenv import load_dotenv
 from src.core.init import (
@@ -14,17 +14,14 @@ from src.core.init import (
 
 load_dotenv()
 
-
 """
 Core configuration constants and default initialization maps.
 
-This module exposes environment-configured paths and logger settings, plus
-two dictionaries that map activation names to default weight initialization
-functions.
-
-Docstrings and type hints follow the Google style where applicable.
+Exposes environment-configured paths, logger settings, and dictionaries
+that map activation names to default weight initialization functions.
 """
 
+# Dataset paths
 FASHION_TRAIN_DATA_PATH: Optional[str] = os.getenv("FASHION_TRAIN_DATA_PATH")
 EXPORTATION_FASHION_TRAIN_DATA_PATH: Optional[str] = os.getenv(
     "EXPORTATION_FASHION_TRAIN_DATA_PATH"
@@ -39,16 +36,14 @@ EXPORTATION_MNIST_TRAIN_DATA_PATH: Optional[str] = os.getenv(
 MNIST_VALIDATION_DATA_PATH: Optional[str] = os.getenv("MNIST_VALIDATION_DATA_PATH")
 MNIST_TEST_DATA_PATH: Optional[str] = os.getenv("MNIST_TEST_DATA_PATH")
 
-# Logger config
+# Logger configuration
 LOG_FILE: Optional[str] = os.getenv("LOG_FILE")
 LOGGER_DEFAULT_FORMAT: Optional[str] = os.getenv("LOGGER_DEFAULT_FORMAT")
 LOGGER_DEFAULT_LEVEL: Optional[str] = os.getenv("LOGGER_DEFAULT_LEVEL")
 LOGGER_DATE_FORMAT: Optional[str] = os.getenv("LOGGER_DATE_FORMAT")
 
 # Default initialization maps
-# Keys correspond to activation identifiers used elsewhere in the project.
-# Each value is a callable that receives a shape and applies an initialization.
-DEFAULT_NORMAL_INIT_MAP: Dict[str, InitFnArg] = {
+DEFAULT_NORMAL_INIT_MAP: Dict[str, InitFn] = {
     "relu": lambda shape: kaiming_normal_(shape, a=0.0, nonlinearity="relu"),
     "leakyrelu": lambda shape: kaiming_normal_(shape, a=0.01, nonlinearity="leakyrelu"),
     "tanh": lambda shape: xavier_normal_(shape, gain=calculate_gain("tanh")),
@@ -56,7 +51,7 @@ DEFAULT_NORMAL_INIT_MAP: Dict[str, InitFnArg] = {
     "default": lambda shape: random_init_(shape),
 }
 
-DEFAULT_UNIFORM_INIT_MAP: Dict[str, InitFnArg] = {
+DEFAULT_UNIFORM_INIT_MAP: Dict[str, InitFn] = {
     "relu": lambda shape: kaiming_uniform_(shape, a=0.0, nonlinearity="relu"),
     "leakyrelu": lambda shape: kaiming_uniform_(
         shape, a=0.01, nonlinearity="leakyrelu"

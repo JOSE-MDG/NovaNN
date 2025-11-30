@@ -1,7 +1,7 @@
 import logging
 
 from enum import Enum
-from src.core import config
+from src.core import LOG_FILE, LOGGER_DEFAULT_FORMAT, LOGGER_DATE_FORMAT
 from typing import Optional
 
 
@@ -27,9 +27,9 @@ class Logger:
     def __init__(
         self,
         name: str,
-        logs_file: Optional[str] = config.LOG_FILE,
+        logs_file: Optional[str] = LOG_FILE,
         level: LoggerLevel = LoggerLevel.DEBUG,
-        format_string: Optional[str] = config.LOGGER_DEFAULT_FORMAT,
+        format_string: Optional[str] = LOGGER_DEFAULT_FORMAT,
     ):
         """Initializes the Logger.
 
@@ -45,9 +45,7 @@ class Logger:
         self._logger.setLevel(level.value)
 
         if not self._logger.handlers:
-            formatter = logging.Formatter(
-                format_string, datefmt=config.LOGGER_DATE_FORMAT
-            )
+            formatter = logging.Formatter(format_string, datefmt=LOGGER_DATE_FORMAT)
 
             self._create_console_handler(level, formatter)
 

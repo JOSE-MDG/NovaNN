@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 from typing import Callable, Any
-from src.core.logger import logger
-from src.core.config import (
+from src.core import logger
+from src.core import (
     EXPORTATION_FASHION_TRAIN_DATA_PATH,
     FASHION_TEST_DATA_PATH,
     FASHION_VALIDATION_DATA_PATH,

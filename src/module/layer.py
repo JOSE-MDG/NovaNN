@@ -1,60 +1,67 @@
 """
 Layer base class.
 
-Defines the interface every layer must implement (forward / backward)
+Defines the interface every layer must implement (forward/backward)
 and inherits from Module. Using an abstract base class makes it explicit
 that Layer should not be instantiated directly.
 """
 
 import numpy as np
 from abc import ABC, abstractmethod
-from src.module.module import Module
+from src.module import Module
 
 
 class Layer(Module, ABC):
-    """Abstract base class for all layers in the neural network.
+    """Abstract base class for all neural network layers.
 
-    This class inherits from Module and defines the interface that all
-    neural network layers must implement, including the forward and backward
-    passes.
+    Inherits from Module and defines the interface that all layers must
+    implement. Subclasses must override `forward` and `backward` methods.
 
-    Subclasses must implement `forward` and `backward`.
+    The __call__ method is provided for convenience, allowing layers to be
+    called as functions: output = layer(input)
     """
 
     def __init__(self) -> None:
-        """Initializes the layer."""
+        """Initialize the layer."""
         super().__init__()
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
+        """Enable layer to be called as function: output = layer(input).
+
+        Args:
+            x: Input tensor of shape (batch_size, ...).
+
+        Returns:
+            Output tensor from forward pass.
+        """
         return self.forward(x)
 
     @abstractmethod
     def forward(self, x: np.ndarray) -> np.ndarray:
-        """Defines the computation performed at every call (forward pass).
-
-        This method must be overridden by all subclasses.
+        """Define the computation performed at every call (forward pass).
 
         Args:
-            x (np.ndarray): The input tensor.
-
-        Raises:
-            NotImplementedError: If the subclass does not implement this method.
+            x: Input tensor of shape (batch_size, ...).
 
         Returns:
-            np.ndarray: The output tensor.
+            Output tensor of shape (batch_size, ...).
+
+        Raises:
+            NotImplementedError: If subclass does not implement this method.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Layer subclasses must implement forward method")
 
     @abstractmethod
     def backward(self, grad: np.ndarray) -> np.ndarray:
-        """Defines the backward pass for computing gradients.
-
-        This method must be overridden by all subclasses.
+        """Define the backward pass for computing gradients.
 
         Args:
-            grad (np.ndarray): The gradient from the subsequent layer.
+            grad: Gradient from subsequent layer of shape (batch_size, ...).
 
         Returns:
-            np.ndarray: The gradient with respect to the input of this layer.
+            Gradient with respect to input of this layer.
+
+        Raises:
+            NotImplementedError: If subclass does not implement this method.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Layer subclasses must implement backward method")
