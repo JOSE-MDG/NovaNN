@@ -1,36 +1,52 @@
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
-from src._typing import IntOrPair, Shape
+from src._typing import IntOrPair
 from typing import Optional, Tuple
 from src.module import Layer
 
 
 class MaxPool1d(Layer):
-    def __init__(self, kernel_size: int, stride: int | None = None, padding: int = 0):
+    def __init__(
+        self,
+        kernel_size: int,
+        stride: int | None = None,
+        padding: int = 0,
+        padding_mode: str = "zeros",
+    ):
         super().__init__()
-        self.K = int(kernel_size)
-        self.stride = int(stride) if stride is not None else self.K
-        self.padding = int(padding)
-        self._cache = {}
+        self.K: int = int(kernel_size)
+        self.stride: int = int(stride) if stride is not None else self.K
+        self.padding: int = int(padding)
+        self.pm: str = padding_mode
+        self._cache: dict = {}
 
-    def _pad(self, x: np.ndarray) -> np.ndarray:
-        if self.padding == 0:
-            return x
-        return np.pad(
-            x,
-            ((0, 0), (0, 0), (self.padding, self.padding)),
-            mode="constant",
-            constant_values=-np.inf,
-        )
+    def _add_padding(self, x: np.ndarray) -> np.ndarray:
+        pad_width = ((0, 0), (0, 0), (self.padding, self.padding))
+        padding_modes = ("zeros", "reflect", "replicate", "circular")
+        if self.pm in padding_modes:
+            if self.pm == "zeros":
+                mode = "constant"
+            elif self.pm == "reflect":
+                mode = "reflect"
+            elif self.pm == "replicate":
+                mode = "edge"
+            else:
+                mode = "wrap"
+        else:
+            raise ValueError(
+                f"padding_mode Only accept {padding_modes} not '{self.pm}'"
+            )
 
-    def _out_length(self, L: int) -> int:
+        return np.pad(array=x, pad_width=pad_width, mode=mode)
+
+    def _calc_out_length(self, L: int) -> int:
         return (L + 2 * self.padding - self.K) // self.stride + 1
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         x = x.astype(np.float32, copy=False)  # (N, C, L)
         N, C, L = x.shape
-        x_p = self._pad(x)
-        L_out = self._out_length(L)
+        x_p = self._add_padding(x)
+        L_out = self._calc_out_length(L)
         sN, sC, sL = x_p.strides
         shape = (N, C, L_out, self.K)
         strides = (sN, sC, sL * self.stride, sL)
@@ -48,7 +64,7 @@ class MaxPool1d(Layer):
         grad_output = grad_output.astype(np.float32, copy=False)  # (N,C,L_out)
 
         windows = self._cache["windows"]  # (N,C,L_out,K)
-        _, _, L_out, _ = windows.shape
+        L_out = self._cache["L_out"]
         _, _, L = self._cache["x_shape"]
         padded_shape = self._cache["padded_shape"]
 

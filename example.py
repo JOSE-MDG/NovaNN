@@ -1,15 +1,14 @@
 import numpy as np
-from src.layers import BatchNorm1d, BatchNorm2d
+from src.layers import BatchNorm1d, Conv2d, Linear
+from src.core.config import DEFAULT_UNIFORM_INIT_MAP
 
-data = np.random.randn(512, 64)
-bn1 = BatchNorm1d(64)
-out = bn1.forward(data)
-print("BN1d: \n", out.mean(), out.std())
 
-data2 = np.random.randn(64, 3, 32, 32)
-bn2 = BatchNorm2d(3)
-out2 = bn2.forward(data2)
-print("BN2d: \n", out2.mean(), out2.std())
+in_channel = 3
+out_channel = 8
+kernel_size = 3
+init = DEFAULT_UNIFORM_INIT_MAP["relu"]
 
-a = np.arange(4).reshape(2, 2)
-print(np.pad(a, ((1, 1), (1, 1)), mode="wrap"))
+img = np.random.randn(5, 3, 10, 10)
+conv1 = Conv2d(in_channel, out_channel, kernel_size, initializer=init)
+out = conv1.forward(img)
+print(out.shape)

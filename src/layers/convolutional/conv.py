@@ -3,7 +3,7 @@ from numpy.lib.stride_tricks import as_strided
 from src.module import Layer, Parameters
 from typing import Optional, Tuple
 from src._typing import InitFn, Shape, IntOrPair, ListOfParameters
-from src.core.config import DEFAULT_UNIFORM_INIT_MAP
+from src.core import config
 
 
 class Conv1d(Layer):
@@ -35,7 +35,12 @@ class Conv1d(Layer):
         self.reset_parameters()
 
     def reset_parameters(self, initializer: Optional[InitFn] = None) -> None:
-        init = initializer or self.init_fn or DEFAULT_UNIFORM_INIT_MAP["relu"]
+        if initializer is not None:
+            init = initializer
+        elif self.init_fn is not None:
+            init = self.init_fn
+        else:
+            init = config.DEFAULT_UNIFORM_INIT_MAP["relu"]
         w = init((self.out_channels, self.in_channels, self.K))
         self.weight = Parameters(np.asarray(w, dtype=np.float32))
         self.weight.name = "kernel1d"
@@ -181,7 +186,12 @@ class Conv2d(Layer):
         self._cache = {}
 
     def reset_parameters(self, initializer: Optional[InitFn] = None):
-        init = initializer or self.init_fn or DEFAULT_UNIFORM_INIT_MAP["relu"]
+        if initializer is not None:
+            init = initializer
+        elif self.init_fn is not None:
+            init = self.init_fn
+        else:
+            init = config.DEFAULT_UNIFORM_INIT_MAP["relu"]
         w = init((self.out_channels, self.in_channels, self.KH, self.KW))
         self.weight = Parameters(np.asarray(w))
         self.weight.name = "kernel2d"
@@ -201,7 +211,7 @@ class Conv2d(Layer):
                 raise ValueError(f"The 'same' value is not currently supported")
             else:
                 raise ValueError(f"Unsopported value '{x}'")
-        return Tuple(x)
+        return tuple(x)
 
     def _calc_out_size(self, height: int, width: int) -> Tuple[int, int]:
         out_height = (height + 2 * self.ph - self.KH) // self.sh + 1
@@ -258,7 +268,7 @@ class Conv2d(Layer):
         out_height, out_width = self._calc_out_size(H, W)
 
         shape = (N, C, out_height, out_width, self.KH, self.KW)
-        sN, sC, sH, sW = x.strides
+        sN, sC, sH, sW = x_padded.strides
         strides = (sN, sC, sH * self.sh, sW * self.sw, sH, sW)
         windows = as_strided(
             x=x_padded, shape=shape, strides=strides
@@ -302,13 +312,15 @@ class Conv2d(Layer):
         if self.bias is not None:
             out += self.bias.data
 
-        out = out.reshape(self.out_channel, N, out_height, out_width).transpose(
+        out = out.reshape(self.out_channels, N, out_height, out_width).transpose(
             1, 0, 2, 3
         )
 
         self._cache["x_shape"] = x.shape
         self._cache["col"] = col
         self._cache["w_col"] = w_col
+
+        return out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
         grad = grad.astype(np.float32, copy=False)
@@ -317,7 +329,7 @@ class Conv2d(Layer):
         w_col = self._cache["w_col"]
 
         grad_reshaped = grad.reshape(self.out_channels, -1)
-        self.weith.grad = (grad_reshaped @ col.T).reshape(self.weight.data.shape)
+        self.weight.grad = (grad_reshaped @ col.T).reshape(self.weight.data.shape)
         if self.bias is not None:
             self.bias.grad = np.sum(grad_reshaped, axis=1).reshape(-1, 1)
 

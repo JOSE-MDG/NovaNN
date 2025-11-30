@@ -63,7 +63,12 @@ class Linear(Layer):
             initializer: Optional callable to create initial arrays. If None,
                 the layer uses self.init_fn or the project's default initializer.
         """
-        init = initializer or self.init_fn or config.DEFAULT_NORMAL_INIT_MAP["default"]
+        if initializer is not None:
+            init = initializer
+        elif self.init_fn is not None:
+            init = self.init_fn
+        else:
+            init = config.DEFAULT_NORMAL_INIT_MAP["default"]
         w = init((self.out_features, self.in_features))
         self.weight = Parameters(np.asarray(w))
         self.weight.name = "weight"
