@@ -1,11 +1,11 @@
 import numpy as np
 
-from src.losses import MSE
-from src.core import logger, DataLoader
-from src.model import Sequential
-from src.optim import SGD
-from src.layers import Linear, Dropout, LeakyReLU, BatchNorm1d
-from src.metrics import r2_score
+from novann.losses import MSE
+from novann.core import logger, DataLoader
+from novann.model import Sequential
+from novann.optim import SGD
+from novann.layers import Linear, Dropout, LeakyReLU, BatchNorm1d
+from novann.metrics import r2_score
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 

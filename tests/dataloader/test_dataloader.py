@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from src.core.dataloader import DataLoader
+from novann.core.dataloader import DataLoader
 
 # Small deterministic dataset for the test (shape: 10 x 4)
 x_data = np.random.randn(10, 4)

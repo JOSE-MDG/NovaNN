@@ -1,13 +1,13 @@
 import json
-import src.losses.functional as F
+import novann.losses.functional as F
 
-from src.core import logger
-from src.core import DataLoader
-from src.layers import Linear, ReLU, BatchNorm1d, Dropout
-from src.model import Sequential
-from src.optim import Adam
-from src.utils import load_fashion_mnist_data
-from src.metrics import accuracy
+from novann.core import logger
+from novann.core import DataLoader
+from novann.layers import Linear, ReLU, BatchNorm1d, Dropout
+from novann.model import Sequential
+from novann.optim import Adam
+from novann.utils import load_fashion_mnist_data
+from novann.metrics import accuracy
 
 # History records
 accuracy_history = []

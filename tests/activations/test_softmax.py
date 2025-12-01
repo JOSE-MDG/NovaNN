@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from src.layers.activations.softmax import SoftMax
-from src.utils import numeric_grad_scalar_from_softmax
+from novann.layers.activations.softmax import SoftMax
+from novann.utils import numeric_grad_scalar_from_softmax
 
 RNG = np.random.RandomState(0)
 

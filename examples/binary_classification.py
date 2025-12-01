@@ -1,10 +1,10 @@
 import numpy as np
-from src.losses import BinaryCrossEntropy
-from src.core import logger, DataLoader
-from src.model import Sequential
-from src.layers import Linear, Sigmoid, Tanh, Dropout
-from src.metrics import binary_accuracy
-from src.optim import Adam
+from novann.losses import BinaryCrossEntropy
+from novann.core import logger, DataLoader
+from novann.model import Sequential
+from novann.layers import Linear, Sigmoid, Tanh, Dropout
+from novann.metrics import binary_accuracy
+from novann.optim import Adam
 from sklearn.datasets import make_moons
 from sklearn.model_selection import train_test_split
 

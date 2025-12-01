@@ -2,9 +2,9 @@
 import numpy as np
 import pytest
 
-from src.layers.linear.linear import Linear
-from src.layers.linear.linear import Linear
-from src.utils import numeric_grad_scalar_wrt_x, numeric_grad_wrt_param
+from novann.layers.linear.linear import Linear
+from novann.layers.linear.linear import Linear
+from novann.utils import numeric_grad_scalar_wrt_x, numeric_grad_wrt_param
 
 
 RNG = np.random.RandomState(0)

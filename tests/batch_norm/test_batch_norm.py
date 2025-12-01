@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from src.layers.bn.batch_normalization import BatchNormalization
-from src.utils import numeric_grad_elementwise
+from novann.layers.bn.batch_normalization import BatchNormalization
+from novann.utils import numeric_grad_elementwise
 
 RNG = np.random.RandomState(0)
 

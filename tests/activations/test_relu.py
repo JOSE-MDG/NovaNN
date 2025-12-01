@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 
-from src.layers.activations.relu import ReLU
-from src.utils import numeric_grad_elementwise
+from novann.layers.activations.relu import ReLU
+from novann.utils import numeric_grad_elementwise
 
 RNG = np.random.RandomState(0)  # deterministic RNG for reproducible tests
 

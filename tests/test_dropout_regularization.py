@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.layers.regularization.dropout import Dropout
+from novann.layers.regularization.dropout import Dropout
 
 RNG = np.random.RandomState(0)
 

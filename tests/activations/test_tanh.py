@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 
-from src.layers.activations.tanh import Tanh
-from src.utils import numeric_grad_elementwise
+from novann.layers.activations.tanh import Tanh
+from novann.utils import numeric_grad_elementwise
 
 RNG = np.random.RandomState(0)
 

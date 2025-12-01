@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from src.core.init import (
+from novann.core.init import (
     kaiming_normal_,
     kaiming_uniform_,
     xavier_normal_,

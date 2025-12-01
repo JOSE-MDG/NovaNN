@@ -1,11 +1,11 @@
 import numpy as np
-from src.losses import CrossEntropyLoss
-from src.core import logger, DataLoader
-from src.layers import Linear, ReLU, BatchNorm1d, Dropout
-from src.model import Sequential
-from src.optim import Adam
-from src.utils import load_mnist_data
-from src.metrics import accuracy
+from novann.losses import CrossEntropyLoss
+from novann.core import logger, DataLoader
+from novann.layers import Linear, ReLU, BatchNorm1d, Dropout
+from novann.model import Sequential
+from novann.optim import Adam
+from novann.utils import load_mnist_data
+from novann.metrics import accuracy
 
 # Load data
 (x_train, y_train), (x_test, y_test), (x_val, y_val) = load_mnist_data()
