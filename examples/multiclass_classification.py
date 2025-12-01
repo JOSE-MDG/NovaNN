@@ -1,9 +1,8 @@
 import numpy as np
-import src.losses.functional as F
-from src.core.logger import logger
-from src.core.dataloader import DataLoader
-from src.layers import Linear, ReLU, BatchNormalization, Dropout
-from src.model.nn import Sequential
+from src.losses import CrossEntropyLoss
+from src.core import logger, DataLoader
+from src.layers import Linear, ReLU, BatchNorm1d, Dropout
+from src.model import Sequential
 from src.optim import Adam
 from src.utils import load_mnist_data
 from src.metrics import accuracy
@@ -19,15 +18,15 @@ test_loader = DataLoader(x_test, y_test, batch_size=64, shuffle=False)
 # Define Model
 model = Sequential(
     Linear(784, 256),
-    BatchNormalization(256),
+    BatchNorm1d(256),
     ReLU(),
     Dropout(0.3),
     Linear(256, 128),
-    BatchNormalization(128),
+    BatchNorm1d(128),
     ReLU(),
     Dropout(0.3),
     Linear(128, 64),
-    BatchNormalization(64),
+    BatchNorm1d(64),
     ReLU(),
     Dropout(0.2),
     Linear(64, 10),
@@ -46,7 +45,7 @@ optimizer = Adam(
 epochs = 50
 
 # Loss function
-loss_fn = F.CrossEntropyLoss()
+loss_fn = CrossEntropyLoss()
 
 model.train()
 

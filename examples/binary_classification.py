@@ -1,8 +1,7 @@
 import numpy as np
-import src.losses.functional as F
-from src.core.logger import logger
-from src.core.dataloader import DataLoader
-from src.model.nn import Sequential
+from src.losses import BinaryCrossEntropy
+from src.core import logger, DataLoader
+from src.model import Sequential
 from src.layers import Linear, Sigmoid, Tanh, Dropout
 from src.metrics import binary_accuracy
 from src.optim import Adam
@@ -51,7 +50,7 @@ optimizer = Adam(
 )
 
 # Loss function
-loss_fn = F.BinaryCrossEntropy()
+loss_fn = BinaryCrossEntropy()
 
 # DataLoaders
 training_dataloader = DataLoader(x=x_train, y=y_train)

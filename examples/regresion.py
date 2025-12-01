@@ -1,10 +1,10 @@
 import numpy as np
-import src.losses.functional as F
-from src.core.logger import logger
-from src.core.dataloader import DataLoader
+
+from src.losses import MSE
+from src.core import logger, DataLoader
 from src.model import Sequential
 from src.optim import SGD
-from src.layers import Linear, Dropout, LeakyReLU, BatchNormalization
+from src.layers import Linear, Dropout, LeakyReLU, BatchNorm1d
 from src.metrics import r2_score
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
@@ -27,15 +27,15 @@ y_test = y_test.reshape(-1, 1)
 # Define the regresor
 model = Sequential(
     Linear(45, 368),
-    BatchNormalization(368),
+    BatchNorm1d(368),
     LeakyReLU(),
     Dropout(0.2),
     Linear(368, 368),
-    BatchNormalization(368),
+    BatchNorm1d(368),
     LeakyReLU(),
     Dropout(0.3),
     Linear(368, 176),
-    BatchNormalization(176),
+    BatchNorm1d(176),
     LeakyReLU(),
     Dropout(0.4),
     Linear(176, 1),
@@ -57,7 +57,7 @@ optimizer = SGD(
     weight_decay=weight_decay,
     max_grad_norm=1.0,
 )
-loss_fn = F.MSE()
+loss_fn = MSE()
 
 # Training
 model.train()
