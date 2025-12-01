@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import Callable, Any
+from src._typing import TrainTestEvalSets
 from src.core import logger
 from src.core import (
     EXPORTATION_FASHION_TRAIN_DATA_PATH,
@@ -164,11 +165,11 @@ def _split_features_and_labels(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray
     the first column is treated as the label column.
     """
     if "label" in df.columns:
-        y = df["label"].to_numpy(dtype=np.int64)
+        y = df["label"].to_numpy(dtype=np.int32)
         x = df.drop(columns=["label"]).to_numpy(dtype=np.float32)
     else:
         # Assume the first column holds labels when no explicit header is present
-        y = df.iloc[:, 0].to_numpy(dtype=np.int64)
+        y = df.iloc[:, 0].to_numpy(dtype=np.int32)
         x = df.iloc[:, 1:].to_numpy(dtype=np.float32)
     return x, y
 
@@ -178,7 +179,8 @@ def load_fashion_mnist_data(
     test_path: str = FASHION_TEST_DATA_PATH,
     val_path: str = FASHION_VALIDATION_DATA_PATH,
     do_normalize: bool = True,
-) -> tuple:
+    tensor4d: bool = False,
+) -> TrainTestEvalSets:
     """
     Load Fashion-MNIST dataset from CSV files and optionally normalize it.
     Args:
@@ -201,6 +203,17 @@ def load_fashion_mnist_data(
         x_train, y_train = _split_features_and_labels(fashion_train)
         x_test, y_test = _split_features_and_labels(fashion_test)
         x_val, y_val = _split_features_and_labels(fashion_val)
+
+        if tensor4d:
+            # Get the number of samples
+            n_train = x_train.shape[0]
+            n_test = x_test.shape[0]
+            n_val = x_val.shape[0]
+
+            # compose to 4d tensor
+            x_train = x_train.reshape(n_train, 1, 28, 28)
+            x_test = x_test.reshape(n_test, 1, 28, 28)
+            x_val = x_val.reshape(n_val, 1, 28, 28)
 
         # Normalize data if requested
         if do_normalize:
@@ -230,7 +243,8 @@ def load_mnist_data(
     test_path: str = MNIST_TEST_DATA_PATH,
     val_path: str = MNIST_VALIDATION_DATA_PATH,
     do_normalize: bool = True,
-) -> tuple:
+    tensor4d: bool = False,
+) -> TrainTestEvalSets:
     """
     Load MNIST dataset from CSV files and optionally normalize it.
     Args:
@@ -252,6 +266,17 @@ def load_mnist_data(
         x_train, y_train = _split_features_and_labels(mnist_train)
         x_test, y_test = _split_features_and_labels(mnist_test)
         x_val, y_val = _split_features_and_labels(mnist_val)
+
+        if tensor4d:
+            # Get the number of samples
+            n_train = x_train.shape[0]
+            n_test = x_test.shape[0]
+            n_val = x_val.shape[0]
+
+            # compose to 4d tensor
+            x_train = x_train.reshape(n_train, 1, 28, 28)
+            x_test = x_test.reshape(n_test, 1, 28, 28)
+            x_val = x_val.reshape(n_val, 1, 28, 28)
 
         # Normalize data if requested
         if do_normalize:

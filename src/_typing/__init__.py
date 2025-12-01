@@ -10,6 +10,7 @@ from ._typing import (
     KernelSize,
     Stride,
     Padding,
+    TrainTestEvalSets,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "KernelSize",
     "Stride",
     "Padding",
+    "TrainTestEvalSets",
 ]

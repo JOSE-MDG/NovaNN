@@ -25,6 +25,13 @@ IntOrPair = Union[int, Tuple[int, int]]
 # Activation function configuration (name, parameter)
 ActivAndParams = Tuple[Optional[str], Optional[float]]
 
+# train, validation and test sets
+TrainTestEvalSets = Tuple[
+    tuple[np.ndarray, np.ndarray],
+    tuple[np.ndarray, np.ndarray],
+    tuple[np.ndarray, np.ndarray],
+]
+
 # Convolution-specific types
 KernelSize = Union[int, Tuple[int, int]]
 Stride = Union[int, Tuple[int, int]]
