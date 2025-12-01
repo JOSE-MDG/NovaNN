@@ -1,6 +1,6 @@
 # File Tree: Neural Network
 
-**Generated:** 12/1/2025, 12:05:09 AM
+**Generated:** 12/2/2025, 12:14:50 AM
 **Root Path:** `/home/juancho_col/Documents/Neural Network`
 
 ```
@@ -16,7 +16,7 @@
 ├── 📁 logs
 ├── 📁 notebooks
 │   └── 📄 exploration.ipynb
-├── 📁 src
+├── 📁 novann
 │   ├── 📁 _typing
 │   │   ├── 🐍 __init__.py
 │   │   └── 🐍 _typing.py
@@ -83,10 +83,18 @@
 │   │   └── 🐍 test_tanh.py
 │   ├── 📁 batch_norm
 │   │   └── 🐍 test_batch_norm.py
+│   ├── 📁 conv
+│   │   ├── 🐍 test_conv1d.py
+│   │   └── 🐍 test_conv2d.py
 │   ├── 📁 dataloader
 │   │   └── 🐍 test_dataloader.py
 │   ├── 📁 initializers
 │   │   └── 🐍 test_init.py
+│   ├── 📁 pooling
+│   │   ├── 🐍 test_gap1d.py
+│   │   ├── 🐍 test_gap2d.py
+│   │   ├── 🐍 test_maxpooling1d.py
+│   │   └── 🐍 test_maxpooling2d.py
 │   ├── 🐍 test_dropout_regularization.py
 │   ├── 🐍 test_linear_layer.py
 │   └── 🐍 test_sequential_module.py
@@ -97,7 +105,8 @@
 ├── 📝 README.md
 ├── 🐍 example.py
 ├── 🐍 main.py
-├── 📄 requirements.txt
+├── 📄 poetry.lock
+├── ⚙️ pyproject.toml
 └── 🐍 visualization.py
 ```
 
