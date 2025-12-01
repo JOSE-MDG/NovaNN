@@ -1,4 +1,6 @@
 from typing import Tuple, Any, Callable, List, Optional, Union, TYPE_CHECKING
+from novann.optim import Adam, SGD, RMSprop
+from novann.losses import CrossEntropyLoss, BinaryCrossEntropy, MAE, MSE
 import numpy as np
 
 # At runtime, this block is ignored.
@@ -31,6 +33,12 @@ TrainTestEvalSets = Tuple[
     tuple[np.ndarray, np.ndarray],
     tuple[np.ndarray, np.ndarray],
 ]
+
+# optimizer type alias
+Optimizer = Adam | SGD | RMSprop
+
+# Loss function type alias
+LossFunc = BinaryCrossEntropy | CrossEntropyLoss | MAE | MSE
 
 # Convolution-specific types
 KernelSize = Union[int, Tuple[int, int]]

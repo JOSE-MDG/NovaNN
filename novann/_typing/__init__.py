@@ -11,6 +11,8 @@ from ._typing import (
     Stride,
     Padding,
     TrainTestEvalSets,
+    Optimizer,
+    LossFunc,
 )
 
 __all__ = [
@@ -24,4 +26,6 @@ __all__ = [
     "Stride",
     "Padding",
     "TrainTestEvalSets",
+    "Optimizer",
+    "LossFunc",
 ]

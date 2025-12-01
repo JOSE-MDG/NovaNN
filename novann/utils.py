@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 from typing import Callable, Any
-from novann._typing import TrainTestEvalSets
+from novann._typing import TrainTestEvalSets, Optimizer, LossFunc
+from novann.core import DataLoader
+from novann.model import Sequential
 from novann.core import logger
 from novann.core import (
     EXPORTATION_FASHION_TRAIN_DATA_PATH,
@@ -299,3 +301,57 @@ def load_mnist_data(
     except Exception as e:
         logger.error(f"Error loading MNIST data: {e}")
         raise
+
+
+def train(
+    train_loader: DataLoader,
+    eval_loader: DataLoader,
+    net: Sequential,
+    optimizer: Optimizer,
+    loss_fn: LossFunc,
+    epochs: int,
+    show_logs_every: int = 0,
+    metric: Callable[[Sequential, DataLoader]] = None,
+    verbose: bool = True,
+    get_model: bool = True,
+):
+    # Training mode
+    net.train()
+
+    # Training loop
+    for epoch in range(epochs):
+        for input, target in train_loader:
+            # Set gradients to None
+            optimizer.zero_grad()
+
+            # Foward pass
+            outputs = net(input)
+
+            # Compute loss and gradients
+            cost, grad = loss_fn(outputs, target)
+
+            # Backward pass
+            net.backward(grad)
+
+            # Update parameters
+            optimizer.step()
+
+        # Validation result after each epoch
+        if metric is not None:
+            net.eval()
+            result = metric(net, eval_loader)
+
+        if verbose:
+            if show_logs_every > 0:
+                if (epoch + 1) % show_logs_every == 0:
+                    net.train()
+                    logger.info(
+                        f"Epoch {epoch + 1}/{epochs}, Loss: {cost:.4f}, Validation {metric.__name__}: {result:.4f}"
+                    )
+            else:
+                net.train()
+                logger.info(
+                    f"Epoch {epoch + 1}/{epochs}, Loss: {cost:.4f}, Validation {metric.__name__}: {result:.4f}"
+                )
+    if get_model:
+        return net
