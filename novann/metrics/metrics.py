@@ -105,6 +105,3 @@ def r2_score(
 
     # R^2 = 1 - (SSE / SST)
     return 1 - (sse / sst)
-
-
-accuracy()
