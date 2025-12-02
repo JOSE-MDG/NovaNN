@@ -35,19 +35,19 @@ test_loader = DataLoader(x_test, y_test, batch_size=256, shuffle=False)
 
 # Create Model
 model = Sequential(
-    Conv2d(3, 128, 3, padding=1, bias=False),
-    BatchNorm2d(128),
+    Conv2d(1, 16, 3, padding=1, bias=False),
+    BatchNorm2d(16),
     ReLU(),
     MaxPool2d(2, 2),
-    Conv2d(128, 256, 3, padding=1, bias=False),
-    BatchNorm2d(256),
+    Conv2d(16, 32, 3, padding=1, bias=False),
+    BatchNorm2d(32),
     ReLU(),
     MaxPool2d(2, 2),
     Flatten(),
-    Linear(128, 64, bias=False),
+    Linear(32 * 7 * 7, 64, bias=False),
     BatchNorm1d(64),
     ReLU(),
-    Dropout(0.5),
+    Dropout(0.35),
     Linear(64, 10),
 )
 
