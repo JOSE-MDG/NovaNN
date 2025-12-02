@@ -4,7 +4,12 @@ from novann.core import logger
 
 
 def measure_exc_time(func):
-    """Decorator function to measure the execution time of a function."""
+    """Decorator function to measure the execution time of a function.
+    Args:
+        func (function): function to measure
+    Return:
+        wrapper (function): wrapper that adds functionalities before or after the function
+    """
 
     @wraps(func)
     def wrapper(*args, **kwargs):
