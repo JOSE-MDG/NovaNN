@@ -1,62 +1,59 @@
-import time
 import numpy as np
 from novann.model import Sequential
 from novann.losses import CrossEntropyLoss
 from novann.metrics import accuracy
 from novann.core import DataLoader, logger
 from novann.optim import Adam
-from novann.utils import load_mnist_data, train
+from novann.utils import train, load_mnist_data
 from novann.layers import (
     Linear,
     ReLU,
     Conv2d,
     BatchNorm2d,
     Flatten,
-    GlobalAvgPool2d,
     MaxPool2d,
     BatchNorm1d,
     Dropout,
 )
 
-np.random.seed(0)
+np.random.seed(8)  # Established for reproducibility
 
-# (x_train, y_train), (x_test, y_test), (x_val, y_val) = load_mnist_data(
-#     tensor4d=True, do_normalize=True
-# )
+# Load data
+(x_train, y_train), (x_test, y_test), (x_val, y_val) = load_mnist_data(
+    tensor4d=True, do_normalize=True
+)
 
-x_train, y_train = np.random.randn(64, 3, 32, 32), np.random.randint(0, 3, 64)
-x_val, y_val = np.random.randn(64, 3, 32, 32), np.random.randint(0, 3, 64)
-x_test, y_test = np.random.randn(64, 3, 32, 32), np.random.randint(0, 3, 64)
-
+# Shape validation
 logger.info(f"training shape: {x_train.shape}")
 logger.info(f"validation shape: {x_val.shape}")
 logger.info(f"test shape: {x_test.shape}")
 
-# Data loaders
-train_loader = DataLoader(x_train, y_train, batch_size=64, shuffle=True)
-val_loader = DataLoader(x_val, y_val, batch_size=64, shuffle=True)
-test_loader = DataLoader(x_test, y_test, batch_size=64, shuffle=False)
+# Create loaders
+train_loader = DataLoader(x_train, y_train, batch_size=256, shuffle=True)
+val_loader = DataLoader(x_val, y_val, batch_size=256, shuffle=True)
+test_loader = DataLoader(x_test, y_test, batch_size=256, shuffle=False)
 
-# Define Model
+# Create Model
 model = Sequential(
-    Conv2d(3, 256, 3, stride=2, padding=1, bias=False),
-    BatchNorm2d(256),
+    Conv2d(3, 128, 3, padding=1, bias=False),
+    BatchNorm2d(128),
     ReLU(),
-    Conv2d(256, 512, 3, stride=2, padding=1, bias=False),
-    BatchNorm2d(512),
+    MaxPool2d(2, 2),
+    Conv2d(128, 256, 3, padding=1, bias=False),
+    BatchNorm2d(256),
     ReLU(),
     MaxPool2d(2, 2),
     Flatten(),
-    Linear(8192, 64, bias=False),
+    Linear(128, 64, bias=False),
     BatchNorm1d(64),
     ReLU(),
-    Dropout(0.3),
+    Dropout(0.5),
     Linear(64, 10),
 )
 
 # Hyperparameters
 epochs = 10
-learning_rate = 0.0001
+learning_rate = 1e-3
 weight_decay = 1e-4
 optimizer = Adam(
     model.parameters(),
