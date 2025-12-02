@@ -12,6 +12,7 @@ from novann.core import (
     EXPORTATION_MNIST_TRAIN_DATA_PATH,
     MNIST_TEST_DATA_PATH,
     MNIST_VALIDATION_DATA_PATH,
+    measure_exc_time,
 )
 
 
@@ -303,6 +304,7 @@ def load_mnist_data(
         raise
 
 
+@measure_exc_time
 def train(
     train_loader: DataLoader,
     eval_loader: DataLoader,

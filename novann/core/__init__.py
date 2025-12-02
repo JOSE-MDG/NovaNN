@@ -27,6 +27,7 @@ from .init import (
 )
 
 from .logger import logger
+from .decorators import measure_exc_time
 
 __all__ = [
     "DEFAULT_NORMAL_INIT_MAP",
@@ -50,4 +51,5 @@ __all__ = [
     "xavier_uniform_",
     "calculate_gain",
     "logger",
+    "measure_exc_time",
 ]
