@@ -2,7 +2,6 @@ import numpy as np
 from typing import Optional, Tuple
 
 from novann.layers.activations.softmax import SoftMax
-from novann.layers.activations.sigmoid import Sigmoid
 
 
 class CrossEntropyLoss:
@@ -36,22 +35,23 @@ class CrossEntropyLoss:
         Returns:
             Scalar loss (float).
         """
-        self.N = int(logits.shape[0])
-        C = int(logits.shape[1])
+        self.N = logits.shape[0]
+        C = logits.shape[1]
 
         # support targets already being one-hot or class indices
         if targets.ndim == 1 or targets.shape[1:] == ():
-            y = np.eye(C, dtype=int)[targets]
+            y = np.eye(C, dtype=np.int32)[targets]
         else:
-            y = targets.astype(int)
+            y = targets.astype(np.int32)
 
         self.y_one_hot = y
 
         # numerically stable softmax
         self.y_hat = SoftMax().forward(logits)
 
+        # Cross entropy formula
         loss = -np.sum(self.y_one_hot * np.log(self.y_hat + self.eps)) / self.N
-        return float(loss)
+        return np.float32(loss)
 
     def backward(self) -> np.ndarray:
         """Return gradient of loss w.r.t. logits.
@@ -63,7 +63,7 @@ class CrossEntropyLoss:
             raise RuntimeError("forward must be called before backward")
 
         grad = (self.y_hat - self.y_one_hot) / self.N
-        return grad
+        return grad.astype(np.float32)
 
     def __call__(
         self, logits: np.ndarray, targets: np.ndarray
@@ -85,17 +85,17 @@ class MSE:
         self.targets: Optional[np.ndarray] = None
         self.N: int = 0
 
-    def forward(self, logits: np.ndarray, targets: np.ndarray) -> float:
+    def forward(self, logits: np.ndarray, targets: np.ndarray) -> np.float32:
         self.N = int(logits.shape[0])
         self.logits = logits
         self.targets = targets
-        return float(np.sum((logits - targets) ** 2) / self.N)
+        return np.float32(np.sum((logits - targets) ** 2) / self.N)
 
     def backward(self) -> np.ndarray:
         if self.logits is None or self.targets is None:
             raise RuntimeError("forward must be called before backward")
         grad = (2.0 / self.N) * (self.logits - self.targets)
-        return grad
+        return grad.astype(np.float32)
 
     def __call__(
         self, logits: np.ndarray, targets: np.ndarray
@@ -117,13 +117,13 @@ class MAE:
         self.N = int(logits.shape[0])
         self.logits = logits
         self.targets = targets
-        return float(np.mean(np.abs(logits - targets)))
+        return np.mean(np.abs(logits - targets), dtype=np.float32)
 
     def backward(self) -> np.ndarray:
         if self.logits is None or self.targets is None:
             raise RuntimeError("forward must be called before backward")
         grad = np.sign(self.logits - self.targets) / self.N
-        return grad
+        return grad.astype(np.float32)
 
     def __call__(
         self, logits: np.ndarray, targets: np.ndarray
@@ -150,17 +150,19 @@ class BinaryCrossEntropy:
         self.N = int(probs.shape[0])
         self.y = targets
         self.p = probs
+
+        # Compute loss
         loss = -np.mean(
             self.y * np.log(self.p + self.eps)
             + (1 - self.y) * np.log(1 - self.p + self.eps)
         )
-        return float(loss)
+        return np.float32(loss)
 
     def backward(self) -> np.ndarray:
         if self.p is None or self.y is None:
             raise RuntimeError("forward must be called before backward")
         grad = (self.p - self.y) / self.N
-        return grad
+        return grad.astype(np.float32)
 
     def __call__(
         self, probabilities: np.ndarray, targets: np.ndarray
