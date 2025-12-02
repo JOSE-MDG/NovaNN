@@ -1,4 +1,4 @@
-from typing import Tuple, Any, Callable, List, Optional, Union, TYPE_CHECKING
+from typing import Tuple, Any, Callable, List, Optional, Union, TYPE_CHECKING, Iterator
 import numpy as np
 
 # --- Conditional imports for type hints only ---
@@ -37,6 +37,9 @@ Optimizer = "Adam | SGD | RMSprop"
 
 # Loss function type alias
 LossFunc = "BinaryCrossEntropy | CrossEntropyLoss | MAE | MSE"
+
+# Date loader type
+Loader = Iterator[Tuple[np.ndarray, np.ndarray]]
 
 # Convolution-specific types
 KernelSize = Union[int, Tuple[int, int]]

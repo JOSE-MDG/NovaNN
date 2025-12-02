@@ -69,3 +69,6 @@ class Dropout(Layer):
         res = (grad * self._mask) / keep_prob
         self._mask = None
         return res
+
+    def __repr__(self):
+        return f"Dropout(p={self.p})"

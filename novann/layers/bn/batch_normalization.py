@@ -212,6 +212,9 @@ class BatchNorm1d(Layer):
         """
         return [self.gamma, self.beta]
 
+    def __repr__(self):
+        return f"BatchNorm1d(num_features={self.num_features}, momentum={self.momentum}, eps={self.eps})"
+
 
 class BatchNorm2d(Layer):
     """Batch Normalization layer for 2D convolutional inputs (4D tensors).
@@ -360,3 +363,6 @@ class BatchNorm2d(Layer):
             List containing gamma and beta Parameters objects.
         """
         return [self.gamma, self.beta]
+
+    def __repr__(self):
+        return f"BatchNorm2d(num_features={self.num_features}, momentum={self.momentum}, eps={self.eps})"

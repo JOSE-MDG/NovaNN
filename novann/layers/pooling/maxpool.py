@@ -139,6 +139,9 @@ class MaxPool1d(Layer):
         # Remove padding
         return grad_input_padded[:, :, self.padding : self.padding + L]
 
+    def __repr__(self):
+        return f"MaxPool1d(kernel_size={self.K}, stride={self.stride}, padding={self.padding})"
+
 
 class MaxPool2d(Layer):
     """Applies a 2D max pooling over an input signal.
@@ -271,13 +274,12 @@ class MaxPool2d(Layer):
         grad_input_padded = np.zeros(padded_shape, dtype=np.float32)
 
         # 3. Scatter (Col2Im equivalent): sum gradients back to the input
-        # NOTE: Logical bug fix applied in index calculation below:
         for i in range(out_h):
             for j in range(out_w):
                 h_start = i * self.sh
-                h_end = h_start + self.KH  # Corrected from self.sh
-                w_start = j * self.sw  # Corrected from j + self.sw
-                w_end = w_start + self.KW  # Corrected from self.sw
+                h_end = h_start + self.KH
+                w_start = j * self.sw
+                w_end = w_start + self.KW
 
                 grad_input_padded[:, :, h_start:h_end, w_start:w_end] += grad_windows[
                     :, :, i, j, :, :
@@ -289,3 +291,6 @@ class MaxPool2d(Layer):
             return grad_input_padded
         # Remove padding
         return grad_input_padded[:, :, self.ph : self.ph + H, self.pw : self.pw + W]
+
+    def __repr__(self):
+        return f"MaxPool2d(kernel_size={(self.KH, self.KW)}, stride={(self.sh, self.sw)}, padding={(self.ph,self.pw)})"

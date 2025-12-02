@@ -126,4 +126,4 @@ class Logger:
 
 
 # Create a default logger instance for the project
-logger = Logger("Neural Network")
+logger = Logger("NovaNN")

@@ -42,6 +42,9 @@ class ReLU(Activation):
         """
         return grad * self._mask
 
+    def __repr__(self):
+        return "ReLU()"
+
 
 class LeakyReLU(Activation):
     """Leaky ReLU activation layer.
@@ -84,3 +87,6 @@ class LeakyReLU(Activation):
         """
         x = self._cache_input
         return grad * np.where(x >= 0, 1.0, self.a)
+
+    def __repr__(self):
+        return f"LeakyReLU(negative_slope={self.a})"

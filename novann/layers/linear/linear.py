@@ -34,7 +34,7 @@ class Linear(Layer):
         super().__init__()
         self.in_features: int = in_features
         self.out_features: int = out_features
-        self.b: bool = bias  # Flag to track if bias was requested
+        self.use_bias: bool = bias  # Flag to track if bias was requested
         self.init_fn: Optional[InitFn] = init
 
         self.weight: Optional[Parameters] = None
@@ -58,7 +58,7 @@ class Linear(Layer):
         self.weight = Parameters(np.asarray(w, dtype=np.float32))
         self.weight.name = "linear weight"
 
-        if self.b:
+        if self.use_bias:
             # Bias shape: (1, out_features)
             b = np.zeros((1, self.out_features), dtype=np.float32)
             self.bias = Parameters(np.asarray(b, dtype=np.float32))
@@ -117,3 +117,6 @@ class Linear(Layer):
         if self.bias is not None:
             params.append(self.bias)
         return params
+
+    def __repr__(self):
+        return f"Linear(in_features={self.in_features}, out_features={self.out_features}, bias={self.use_bias})"

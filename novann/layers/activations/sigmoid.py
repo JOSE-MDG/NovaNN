@@ -49,3 +49,6 @@ class Sigmoid(Activation):
 
         res = grad * (self.out * (1.0 - self.out))
         return res
+
+    def __repr__(self):
+        return "Sigmoid()"

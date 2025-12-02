@@ -225,3 +225,25 @@ class Sequential(Layer):
         """Zeros the gradients for all submodules' parameters."""
         for layer in self._layers:
             layer.zero_grad()
+
+    def __repr__(self):
+        lines = []
+        lines.append(f"{self.__class__.__name__}(")
+
+        for i, layer in enumerate(self._layers):
+            layer_repr = repr(layer)
+            layer_repr = self._add_indent(layer_repr, 2)
+            lines.append(f"  ({i}): {layer_repr}")
+
+        lines.append(")")
+        return "\n".join(lines)
+
+    def _add_indent(self, s_, numSpaces):
+        """Auxiliary method to make it look nice if there are nested layers"""
+        s = s_.split("\n")
+        if len(s) == 1:
+            return s_
+        first = s.pop(0)
+        s = [(numSpaces * " ") + line for line in s]
+        s = "\n".join(s)
+        return first + "\n" + s

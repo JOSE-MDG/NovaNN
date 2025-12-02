@@ -1,10 +1,12 @@
 import numpy as np
-from typing import Callable, Iterator, Tuple
+from typing import Callable, Any
+from novann._typing import Loader
+from novann.model import Sequential
 
 
 def accuracy(
-    model: Callable[[np.ndarray], np.ndarray],
-    data_loader: Iterator[Tuple[np.ndarray, np.ndarray]],
+    model: Sequential,
+    data_loader: Loader,
 ) -> float:
     """Compute classification accuracy for a model over a dataloader.
 
@@ -29,8 +31,8 @@ def accuracy(
 
 
 def binary_accuracy(
-    model: Callable[[np.ndarray], np.ndarray],
-    data_loader: Iterator[Tuple[np.ndarray, np.ndarray]],
+    model: Sequential,
+    data_loader: Loader,
 ) -> float:
     """Compute binary classification accuracy for a model over a dataloader.
 
@@ -60,8 +62,8 @@ def binary_accuracy(
 
 
 def r2_score(
-    model: Callable[[np.ndarray], np.ndarray],
-    data_loader: Iterator[Tuple[np.ndarray, np.ndarray]],
+    model: Sequential,
+    data_loader: Loader,
 ) -> float:
     """Calculate the R² score (Coefficient of Determination) for a regression model.
 
@@ -103,3 +105,6 @@ def r2_score(
 
     # R^2 = 1 - (SSE / SST)
     return 1 - (sse / sst)
+
+
+accuracy()

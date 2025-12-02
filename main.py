@@ -1,10 +1,9 @@
 import json
-import novann.losses.functional as F
-
 from novann.core import logger
 from novann.core import DataLoader
 from novann.layers import Linear, ReLU, BatchNorm1d, Dropout
 from novann.model import Sequential
+from novann.losses import CrossEntropyLoss
 from novann.optim import Adam
 from novann.utils import load_fashion_mnist_data
 from novann.metrics import accuracy
@@ -44,6 +43,8 @@ net = Sequential(
     Linear(128, 10, bias=False),
 )
 
+logger.info(f"Logger Strcuture: \n\n {net}")
+
 # prepare for training
 net.train()
 
@@ -60,7 +61,7 @@ optimizer = Adam(
 epochs = 50
 
 # Loss function
-loss_fn = F.CrossEntropyLoss()
+loss_fn = CrossEntropyLoss()
 
 # Training loop
 for epoch in range(epochs):

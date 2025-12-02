@@ -47,3 +47,6 @@ class Flatten(Layer):
         """
         # Restore the original shape, maintaining the gradient flow
         return grad.reshape(*self._origin_shape)
+
+    def __repr__(self):
+        return "Flatten()"

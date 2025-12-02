@@ -46,3 +46,6 @@ class Tanh(Activation):
 
         res = grad * (1.0 - self.out**2)
         return res
+
+    def __repr__(self):
+        return "Tanh()"

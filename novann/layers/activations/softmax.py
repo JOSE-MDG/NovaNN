@@ -58,3 +58,6 @@ class SoftMax(Activation):
         s = np.sum(self.out * grad, axis=self.axis, keepdims=True)
         res = self.out * (grad - s)
         return res
+
+    def __repr__(self):
+        return f"SoftMax(axis={self.axis})"

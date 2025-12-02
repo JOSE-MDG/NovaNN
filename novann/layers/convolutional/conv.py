@@ -19,7 +19,7 @@ class Conv1d(Layer):
         padding (int): Zero-padding added to both sides of the input. Default: 0.
         bias (bool): If True, adds a learnable bias to the output. Default: True.
         padding_mode (str): 'zeros', 'reflect', 'replicate', or 'circular'. Default: 'zeros'.
-        initializer (InitFn, optional): Weight initialization function. Defaults to None.
+        init (InitFn, optional): Weight initialization function. Defaults to None.
     """
 
     def __init__(
@@ -31,17 +31,17 @@ class Conv1d(Layer):
         padding: int = 0,
         bias: bool = True,
         padding_mode: str = "zeros",
-        initializer: InitFn = None,
+        init: InitFn = None,
     ):
         super().__init__()
         self.in_channels: int = in_channels
         self.out_channels: int = out_channels
         self.K: int = kernel_size
-        self.init_fn: InitFn = initializer
         self.stride: int = stride
         self.padding: int = padding
         self.pm: str = padding_mode
 
+        self.init_fn: InitFn = init
         self.use_bias: bool = bias
         self.weight: Optional[Parameters] = None
         self.bias: Optional[Parameters] = None
@@ -216,6 +216,9 @@ class Conv1d(Layer):
             params.append(self.bias)
         return params
 
+    def __repr__(self):
+        return f"Conv1d(in_channels={self.in_channels}, out_channels={self.out_channels}, kernel_size={self.K}, stride={self.stride}, padding={self.padding}, bias={self.bias})"
+
 
 class Conv2d(Layer):
     """Applies a 2D convolution over an input signal composed of several input planes.
@@ -230,7 +233,7 @@ class Conv2d(Layer):
         padding (IntOrPair | str): Zero-padding added to both sides (H, W) or 'valid'. Default: 0.
         bias (bool): If True, adds a learnable bias to the output. Default: True.
         padding_mode (str): 'zeros', 'reflect', 'replicate', or 'circular'. Default: 'zeros'.
-        initializer (InitFn, optional): Weight initialization function. Defaults to None.
+        init (InitFn, optional): Weight initialization function. Defaults to None.
     """
 
     def __init__(
@@ -242,23 +245,20 @@ class Conv2d(Layer):
         padding: IntOrPair | str = 0,
         bias: bool = True,
         padding_mode: str = "zeros",
-        initializer: InitFn = None,
+        init: InitFn = None,
     ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.KH, self.KW = self._pair(kernel_size)
 
-        # Corregir lógica de stride: si es None, debe usar el default (1) o el kernel_size (si fuera pooling),
-        # pero para conv, el default es 1. La línea original estaba asignando al KH/KW en su lugar.
-        # Si stride es 1, self._pair(1) retorna (1, 1). Si es None, lo manejamos como 1 por defecto.
         stride_val = stride if stride is not None else 1
         self.sh, self.sw = self._pair(stride_val)
 
         self.ph, self.pw = self._pair(padding)
         self.pm: str = padding_mode
 
-        self.init_fn = initializer
+        self.init_fn = init
         self.use_bias = bias
         self.weight = None
         self.bias = None
@@ -273,14 +273,13 @@ class Conv2d(Layer):
         elif self.init_fn is not None:
             init = self.init_fn
         else:
-            # Note: Assuming 'relu' is a key in DEFAULT_UNIFORM_INIT_MAP
             init = DEFAULT_UNIFORM_INIT_MAP["relu"]
         # Shape: (out_channels, in_channels, KH, KW)
         w = init((self.out_channels, self.in_channels, self.KH, self.KW))
         self.weight = Parameters(np.asarray(w))
         self.weight.name = "kernel2d"
         if self.use_bias:
-            # Shape: (out_channels, 1) - Note: reshaped during forward/backward
+            # Shape: (out_channels, 1)
             self.bias = Parameters(np.zeros((self.out_channels, 1), dtype=np.float32))
             self.bias.name = "conv2d bias"
         else:
@@ -296,7 +295,6 @@ class Conv2d(Layer):
             if x == "same":
                 raise ValueError(f"The 'same' value is not currently supported")
             else:
-                # Corregir error ortográfico en el mensaje de error: 'Unsopported' -> 'Unsupported'
                 raise ValueError(f"Unsupported value '{x}'")
         # Assuming tuple input (IntOrPair)
         return tuple(x)
@@ -478,3 +476,6 @@ class Conv2d(Layer):
         if self.bias is not None:
             params.append(self.bias)
         return params
+
+    def __repr__(self):
+        return f"Conv2d(in_channels={self.in_channels}, out_channels={self.out_channels}, kernel_size={(self.KH, self.KW)}, stride={(self.sh, self.sw)}, padding={(self.ph, self.pw)}, bias={self.bias})"

@@ -13,6 +13,7 @@ from ._typing import (
     TrainTestEvalSets,
     Optimizer,
     LossFunc,
+    Loader,
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "TrainTestEvalSets",
     "Optimizer",
     "LossFunc",
+    "Loader",
 ]
