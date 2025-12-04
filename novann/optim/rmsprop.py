@@ -40,6 +40,7 @@ class RMSprop:
     def step(self) -> None:
         """Perform a single optimization step."""
         for i, p in enumerate(self.params):
+            # Skip params without gradient or BN params (gamma/beta)
             if p.grad is None:
                 continue
 
