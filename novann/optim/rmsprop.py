@@ -4,12 +4,15 @@ from novann.module.module import Parameters
 
 
 class RMSprop:
-    """RMSProp optimizer (simple reference implementation).
+    """RMSProp optimizer.
 
-    Notes:
-        - Accepts an iterable of Parameters; the iterable is materialized to a
-          list so multiple passes are safe.
-        - Skips parameters with `grad is None` and parameters named 'gamma'/'beta'.
+    Args:
+        parameters: Iterable of Parameters objects.
+        lr: Step size.
+        beta: Decay factor for moving average of squared gradients (default: 0.9)
+        weight_decay: L2/L1 weight decay coefficient.
+        lambda_l1: If True use L1 weight decay, otherwise L2.
+        epsilon: arbitrarily small positive number
     """
 
     def __init__(

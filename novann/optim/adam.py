@@ -6,10 +6,15 @@ from novann.module.module import Parameters
 class Adam:
     """Adam optimizer.
 
-    Notes:
-        - Expects an iterable of Parameters. The iterable is consumed into a
-          list to allow multiple passes (moment/velocity buffers).
-        - Skips parameters whose `.grad` is None.
+    Args:
+        parameters: Iterable of Parameters objects.
+        lr: Step size.
+        betas: Coefficients for computing running averages of gradient and its square.
+               First value (beta1) is for the gradient, second (beta2) for squared gradient.
+               Default: (0.9, 0.999).
+        weight_decay: L2/L1 weight decay coefficient.
+        lambda_l1: If True use L1 weight decay, otherwise L2.
+        epsilon: Small constant for numerical stability.
     """
 
     def __init__(

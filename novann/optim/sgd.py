@@ -9,7 +9,7 @@ class SGD:
 
     Args:
         parameters: Iterable of Parameters objects.
-        learning_rate: Step size.
+        lr: Step size.
         momentum: Momentum coefficient (default 0 = no momentum).
         weight_decay: L2/L1 weight decay coefficient.
         lambda_l1: If True use L1 weight decay, otherwise L2.
