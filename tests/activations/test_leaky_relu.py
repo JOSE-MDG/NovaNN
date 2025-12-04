@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from novann.layers.activations.relu import LeakyReLU
+from novann.layers import LeakyReLU
 from novann.utils import numeric_grad_elementwise
 
 RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests

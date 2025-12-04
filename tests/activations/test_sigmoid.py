@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from novann.layers.activations.sigmoid import Sigmoid
+from novann.layers import Sigmoid
 from novann.utils import numeric_grad_elementwise
 
 RNG = np.random.RandomState(0)

@@ -1,10 +1,6 @@
 import pytest
 import numpy as np
-from novann.core.dataloader import DataLoader
-
-# Small deterministic dataset for the test (shape: 10 x 4)
-x_data = np.random.randn(10, 4)
-y_data = np.random.randint(0, 10, (10,))
+from novann.core import DataLoader
 
 
 def test_last_batch_size():
@@ -13,6 +9,11 @@ def test_last_batch_size():
     With batch_size=4 and 10 samples we expect batches of sizes: 4, 4, 2.
     The test checks the last yielded batch has 2 samples.
     """
+
+    # Small deterministic dataset for the test (shape: 10 x 4)
+    x_data = np.random.randn(10, 4)
+    y_data = np.random.randint(0, 10, (10,))
+
     loader = DataLoader(x_data, y_data, 4)
     batchs = list(loader)
     last_batch = batchs[-1]

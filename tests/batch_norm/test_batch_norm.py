@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from novann.layers.bn.batch_normalization import BatchNormalization
-from novann.utils import numeric_grad_elementwise
+from novann.layers import BatchNorm1d
 
 RNG = np.random.RandomState(0)
 
@@ -12,7 +11,7 @@ def test_batchnorm_forward_basic_stats_and_running_update():
     B = 512
     X = RNG.randn(B, F)
 
-    bn = BatchNormalization(F)
+    bn = BatchNorm1d(F)
     bn.train()
 
     out = bn.forward(X)
@@ -35,7 +34,7 @@ def test_batchnorm_eval_uses_running_stats():
     X_train = RNG.randn(B_train, F)
     X_eval = RNG.randn(B_eval, F)
 
-    bn = BatchNormalization(F)
+    bn = BatchNorm1d(F)
     bn.train()
     # update running statistics using a training batch
     bn.forward(X_train)

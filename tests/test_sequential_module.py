@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
 
-from novann.model.nn import Sequential
-from novann.layers.linear.linear import Linear
-from novann.layers.activations.tanh import Tanh
+from novann.model import Sequential
+from novann.layers import Linear, Tanh
 
 RNG = np.random.RandomState(0)
 

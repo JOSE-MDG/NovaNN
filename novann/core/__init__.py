@@ -24,6 +24,7 @@ from .init import (
     xavier_normal_,
     xavier_uniform_,
     calculate_gain,
+    random_init_,
 )
 
 from .logger import logger
@@ -52,4 +53,5 @@ __all__ = [
     "calculate_gain",
     "logger",
     "measure_exc_time",
+    "random_init_",
 ]
