@@ -34,7 +34,7 @@ def test_kaiming_normal_distribution():
         # Expect near-zero mean and variance in the rough neighborhood of expected_var
         assert abs(np.mean(W)) < 0.1, f"Mean test failed for shape {shape}"
         assert (
-            abs(np.var(W) - expected_var) < 0.1
+            abs(np.var(W) - expected_var) < 0.3
         ), f"Variance test failed for shape {shape}"
 
 

@@ -36,4 +36,10 @@ def test_sequential_forward_backward_shape_and_parameters_collection():
         # Each parameter wrapper must expose `.data` and `.grad`
         assert hasattr(p, "data") and hasattr(p, "grad")
         # Name is optional in this test (left None by default)
-        assert getattr(p, "name", None) in (None, "weight", "bias")
+        assert getattr(p, "name", None) in (
+            None,
+            "weight",
+            "bias",
+            "linear weight",
+            "linear bias",
+        )
