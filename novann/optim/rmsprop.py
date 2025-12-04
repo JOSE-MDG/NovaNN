@@ -49,9 +49,9 @@ class RMSprop:
             # Apply weight decay (L1 or L2) to the gradient
             if self.wd > 0 and not self.is_bn_param:
                 if self.l1:
-                    p.grad = p.grad + self.wd * np.sign(p.data)
+                    p.grad += self.wd * np.sign(p.data)
                 else:
-                    p.grad = p.grad + self.wd * p.data
+                    p.grad += self.wd * p.data
 
             # Update running average of squared gradients
             self.moments[i] = self.beta * self.moments[i] + (1.0 - self.beta) * (
