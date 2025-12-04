@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Iterable, List
-from novann.module.module import Parameters
+from novann._typing import ListOfParameters
+from novann.module import Parameters
 
 
 class RMSprop:
@@ -26,7 +27,7 @@ class RMSprop:
     ) -> None:
 
         # Materialize parameters to a list
-        self.params: List[Parameters] = list(parameters)
+        self.params: ListOfParameters = list(parameters)
         self.lr: float = float(lr)
         self.beta: float = float(beta)
         self.wd: float = float(weight_decay)

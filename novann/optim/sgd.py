@@ -1,7 +1,8 @@
 import numpy as np
 
-from novann.module.module import Parameters
+from novann.module import Parameters
 from typing import Iterable, List, Optional
+from novann._typing import ListOfParameters
 
 
 class SGD:
@@ -27,7 +28,7 @@ class SGD:
         lambda_l1: bool = False,
         max_grad_norm: Optional[float] = None,
     ) -> None:
-        self.params: List[Parameters] = list(parameters)
+        self.params: ListOfParameters = list(parameters)
         self.lr: float = float(lr)
         self.beta: float = float(momentum)
         self.wd: float = float(weight_decay)
@@ -42,25 +43,52 @@ class SGD:
         # Initialize velocities matching parameter shapes
         self.velocities: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
 
-    def _clip_grad_inplace(self, grad: np.ndarray) -> None:
-        """Clip gradient in-place to respect `max_grad_norm`, if enabled."""
+    def _global_clipping(self) -> float:
+        """Global clipping
+
+        Global Clipping is a safety mechanism that ensures the model never takes
+        an optimization step longer than allowed, no matter how much the gradient
+        has "screamed".
+
+        Args:
+            parameter (Parameters): Parameter object
+
+        Returns:
+            float: A global scale factor
+        """
         if self.max_grad_norm is None:
-            return
+            return 1.0
 
-        # Flatten to compute L2 norm, then rescale if needed
-        norm = float(np.linalg.norm(grad))
-        if norm == 0.0 or norm <= self.max_grad_norm:
-            return
+        total_norm_sq = 0.0
+        # Calculate the overall norm of ALL gradients first
+        for p in self.params:
+            if p.grad is None:
+                continue
+            # We add the L2 norm to the square of each parameter
+            total_norm_sq += np.sum(p.grad**2)
 
-        scale = self.max_grad_norm / (norm + 1e-12)
-        grad *= scale
+        total_norm = np.sqrt(total_norm_sq)
+
+        # We calculate the global scale factor
+        clip_coef = self.max_grad_norm / (total_norm + 1e-6)
+
+        # If the coefficient is < 1, it means it exploded and needs to be reduced.
+        # If it's > 1, we do nothing (clamp max=1.0) to avoid enlarging small gradients.
+        clip_coef = min(clip_coef, 1.0)
+
+        return clip_coef
 
     def step(self) -> None:
         """Perform a single optimization step."""
+        # Calculate the scale coefficient
+        clip_coef = self._global_clipping()
         for i, p in enumerate(self.params):
             # Skip params without gradient or BN params (gamma/beta)
             if p.grad is None:
                 continue
+
+            # Apply Global Clipping immediately
+            p.grad *= clip_coef
 
             self.is_bn_param = getattr(p, "name", None) in ("gamma", "beta")
 
@@ -70,9 +98,6 @@ class SGD:
                     p.grad += self.wd * np.sign(p.data)
                 else:
                     p.grad += self.wd * p.data
-
-            # Clip gradients if requested to avoid exploding updates
-            self._clip_grad_inplace(p.grad)
 
             # Momentum update
             if self.beta > 0:
