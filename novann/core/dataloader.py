@@ -27,10 +27,10 @@ class DataLoader:
         """
 
         def __init__(self, parent: "DataLoader"):
-            self.parent = parent
+            self.parent: "DataLoader" = parent
             self.idx: int = 0
             # Create an array of indices. Shuffle it if required.
-            self.order = (
+            self.order: np.ndarray = (
                 np.random.permutation(len(parent.x))
                 if parent.shuffle
                 else np.arange(len(parent.x))
@@ -60,7 +60,7 @@ class DataLoader:
             return xb, yb
 
     def __init__(
-        self, x: np.ndarray, y: np.ndarray, batch_size: int = 128, shuffle: bool = True
+        self, x: np.ndarray, y: np.ndarray, batch_size: int = 64, shuffle: bool = True
     ) -> None:
         """Initialize DataLoader.
 
@@ -72,8 +72,8 @@ class DataLoader:
         """
         self.x: np.ndarray = x
         self.y: np.ndarray = y
-        self.bs: int = int(batch_size)
-        self.shuffle: bool = bool(shuffle)
+        self.bs: int = batch_size
+        self.shuffle: bool = shuffle
 
     def __iter__(self) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
         """Return a new iterator for one epoch."""

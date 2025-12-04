@@ -17,7 +17,7 @@ class ReLU(Activation):
     def __init__(self) -> None:
         super().__init__()
         self._mask: Optional[np.ndarray] = None
-        self.affect_init = True
+        self.affect_init: bool = True
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         """Compute forward pass.
@@ -60,8 +60,8 @@ class LeakyReLU(Activation):
     def __init__(self, negative_slope: float = 0.01) -> None:
         super().__init__()
         self.a: float = negative_slope
-        self.affect_init = True
-        self.activation_param = negative_slope
+        self.affect_init: bool = True
+        self.activation_param: float = negative_slope
         self._cache_input: Optional[np.ndarray] = None
 
     def forward(self, x: np.ndarray) -> np.ndarray:
