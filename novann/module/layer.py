@@ -29,7 +29,7 @@ class Layer(Module, ABC):
         """Enable layer to be called as function: output = layer(input).
 
         Args:
-            x: Input tensor of shape (batch_size, ...).
+            x: Input tensor of shape (N, ...).
 
         Returns:
             Output tensor from forward pass.
@@ -41,10 +41,10 @@ class Layer(Module, ABC):
         """Define the computation performed at every call (forward pass).
 
         Args:
-            x: Input tensor of shape (batch_size, ...).
+            x: Input tensor of shape (N, ...).
 
         Returns:
-            Output tensor of shape (batch_size, ...).
+            Output tensor of shape (N, ...).
 
         Raises:
             NotImplementedError: If subclass does not implement this method.

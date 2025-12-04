@@ -1,13 +1,13 @@
 import numpy as np
 import inspect
 import re
+from novann.layers import Linear, Conv1d, Conv2d
 from novann.layers.activations import Activation
-from novann.layers import Linear, Conv2d, Conv1d
-from novann.core import config
+from novann.core import DEFAULT_NORMAL_INIT_MAP
 from novann.module import Parameters, Layer
-from novann.core.logger import logger
+from novann.core import logger
 
-from novann._typing import InitFn, ActivAndParams
+from novann._typing import InitFn, ActivAndParams, Shape
 from typing import Iterable, Tuple, Any
 
 
@@ -30,7 +30,7 @@ class Sequential(Layer):
         """Initializes the Sequential module and applies automatic weight initialization."""
         super().__init__()
         self._layers = modules
-        self._aply_initializer_for_linear_layers()
+        self._aply_initializer()
 
     def _is_activation(self, layer: Layer) -> bool:
         """Returns True if `layer` is an activation layer."""
@@ -81,7 +81,7 @@ class Sequential(Layer):
         if isinstance(layer, instances):
             return True
 
-    def _aply_initializer_for_linear_layers(self) -> None:
+    def _aply_initializer(self) -> None:
         """Applies default initializers to Linear/Conv layers based on nearby activations.
 
         Searches for the next activation (or the last one for the final layer) to
@@ -94,8 +94,8 @@ class Sequential(Layer):
 
                 init_key, activation_param = self._find_next_activation(idx)
                 if init_key is not None:
-                    init_fn_base = config.DEFAULT_NORMAL_INIT_MAP.get(
-                        init_key, config.DEFAULT_NORMAL_INIT_MAP["default"]
+                    init_fn_base = DEFAULT_NORMAL_INIT_MAP.get(
+                        init_key, DEFAULT_NORMAL_INIT_MAP["default"]
                     )
 
                     if activation_param is not None:
@@ -116,8 +116,8 @@ class Sequential(Layer):
                     init_key, activation_param = self._find_last_activation(idx)
 
                     if init_key is not None:
-                        init_fn_base = config.DEFAULT_NORMAL_INIT_MAP.get(
-                            init_key, config.DEFAULT_NORMAL_INIT_MAP["default"]
+                        init_fn_base = DEFAULT_NORMAL_INIT_MAP.get(
+                            init_key, DEFAULT_NORMAL_INIT_MAP["default"]
                         )
 
                         if activation_param is not None:
@@ -134,7 +134,7 @@ class Sequential(Layer):
                                 f"Prev initialization was '{init_key}', so the initialization is '{self.__get_lambda_name(init_fn)}' <- (without params)"
                             )
                 else:
-                    init_fn = config.DEFAULT_NORMAL_INIT_MAP["default"]
+                    init_fn = DEFAULT_NORMAL_INIT_MAP["default"]
                     logger.debug(
                         f"Initializing by default '{self.__get_lambda_name(init_fn)}' <- (without activations)"
                     )
@@ -161,9 +161,9 @@ class Sequential(Layer):
         nonlinearity: str,
     ) -> InitFn:
         """Wraps a base initializer to inject non-linearity specific parameters (e.g., slope 'a' for LeakyReLU)."""
-        from novann.core.init import kaiming_normal_
+        from novann.core import kaiming_normal_
 
-        def custom_init(shape: Tuple[int, int]) -> Any:
+        def custom_init(shape: Shape) -> Any:
             if nonlinearity == "leakyrelu":
                 return kaiming_normal_(shape, a=a, nonlinearity=nonlinearity)
             else:
@@ -199,11 +199,11 @@ class Sequential(Layer):
         """Performs a backward pass through the layers in reverse order.
 
         Args:
-            grad (np.ndarray): The gradient of the loss with respect to the
+            grad (np.ndarray): The gradient of the loss w.r.t the
                                output of the final layer.
 
         Returns:
-            np.ndarray: The gradient with respect to the input of the first layer.
+            np.ndarray: The gradient w.r.t the input of the first layer.
         """
         grad_input = grad
         for layer in reversed(self._layers):

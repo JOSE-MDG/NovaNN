@@ -21,17 +21,17 @@ class SGD:
     def __init__(
         self,
         parameters: Iterable[Parameters],
-        learning_rate: float,
+        lr: float,
         momentum: float = 0,
         weight_decay: float = 0,
         lambda_l1: bool = False,
         max_grad_norm: Optional[float] = None,
     ) -> None:
         self.params: List[Parameters] = list(parameters)
-        self.lr: float = float(learning_rate)
+        self.lr: float = float(lr)
         self.beta: float = float(momentum)
         self.wd: float = float(weight_decay)
-        self.l1: bool = bool(lambda_l1)
+        self.l1: bool = lambda_l1
         self.is_bn_param: bool = False
         self.max_grad_norm: Optional[float] = (
             float(max_grad_norm)

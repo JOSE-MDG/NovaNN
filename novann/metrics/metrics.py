@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Callable, Any
 from novann._typing import Loader
 from novann.model import Sequential
 
@@ -52,7 +51,7 @@ def binary_accuracy(
         y_pred = model(X_batch)
 
         # Convert probabilities to binary prediction (0 or 1) using a 0.5 threshold.
-        pred_classes = (y_pred >= 0.5).astype(np.int64)
+        pred_classes = (y_pred >= 0.5).astype(np.int32)
 
         # Accumulate correct predictions and total samples across batches
         total_correct += np.sum(pred_classes == y_batch)

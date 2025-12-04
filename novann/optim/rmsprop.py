@@ -15,7 +15,7 @@ class RMSprop:
     def __init__(
         self,
         parameters: Iterable[Parameters],
-        learning_rate: float,
+        lr: float,
         beta: float = 0.9,
         weight_decay: float = 0,
         lambda_l1: bool = False,
@@ -24,7 +24,7 @@ class RMSprop:
 
         # Materialize parameters to a list
         self.params: List[Parameters] = list(parameters)
-        self.lr: float = float(learning_rate)
+        self.lr: float = float(lr)
         self.beta: float = float(beta)
         self.wd: float = float(weight_decay)
         self.l1: bool = bool(lambda_l1)

@@ -23,7 +23,7 @@ class Dropout(Layer):
         super().__init__()
         if not (0.0 <= p < 1.0):
             raise ValueError("Dropout probability must be in the interval [0.0, 1.0).")
-        self.p: float = float(p)
+        self.p: float = p
         self._mask: Optional[np.ndarray] = None
 
     def train(self) -> None:
@@ -66,9 +66,9 @@ class Dropout(Layer):
             return grad
 
         keep_prob = 1.0 - self.p
-        res = (grad * self._mask) / keep_prob
+        grad = (grad * self._mask) / keep_prob
         self._mask = None
-        return res
+        return grad
 
     def __repr__(self):
         return f"Dropout(p={self.p})"
