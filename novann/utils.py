@@ -32,7 +32,7 @@ def numeric_grad_elementwise(
     Returns:
         Array with the same shape as `x` containing the numerical gradient.
     """
-    grad = np.zeros_like(x, dtype=float)
+    grad = np.zeros_like(x, dtype=np.float32)
     it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
         idx = it.multi_index
@@ -66,7 +66,7 @@ def numeric_grad_scalar_from_softmax(
     Returns:
         Numerical gradient dL/dx with same shape as `x`.
     """
-    grad = np.zeros_like(x, dtype=float)
+    grad = np.zeros_like(x, dtype=np.float32)
     it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
         idx = it.multi_index
@@ -100,7 +100,7 @@ def numeric_grad_scalar_wrt_x(
     Returns:
         Numerical gradient array with the same shape as `x`.
     """
-    grad = np.zeros_like(x, dtype=float)
+    grad = np.zeros_like(x, dtype=np.float32)
     it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
         idx = it.multi_index
@@ -132,7 +132,7 @@ def numeric_grad_wrt_param(
         Numerical gradient array with same shape as the parameter `.data`.
     """
     p = getattr(layer, param_attr)
-    grad = np.zeros_like(p.data, dtype=float)
+    grad = np.zeros_like(p.data, dtype=np.float32)
     it = np.nditer(p.data, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
         idx = it.multi_index
