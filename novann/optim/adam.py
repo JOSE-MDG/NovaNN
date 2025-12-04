@@ -24,7 +24,7 @@ class Adam:
         betas: Tuple[float, float] = (0.9, 0.999),
         weight_decay: float = 0,
         lambda_l1: bool = False,
-        epsilon: float = 1e-9,
+        epsilon: float = 1e-8,
     ) -> None:
 
         # Materialize parameters to a list
