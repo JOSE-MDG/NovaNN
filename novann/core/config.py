@@ -3,7 +3,7 @@ from typing import Dict, Optional
 from novann._typing import InitFn
 
 from dotenv import load_dotenv
-from novann.core import (
+from .init import (
     calculate_gain,
     kaiming_normal_,
     kaiming_uniform_,
