@@ -1,8 +1,7 @@
 import logging
-
 from enum import Enum
-from novann.core import LOG_FILE, LOGGER_DEFAULT_FORMAT, LOGGER_DATE_FORMAT
 from typing import Optional
+from novann.core import LOG_FILE, LOGGER_DEFAULT_FORMAT, LOGGER_DATE_FORMAT
 
 
 class LoggerLevel(Enum):
@@ -15,115 +14,97 @@ class LoggerLevel(Enum):
 
 
 class Logger:
-    """A custom logger class.
+    """A custom logger class with proper singleton pattern."""
 
-    This class provides a simple interface for logging messages to the console
-    and/or to a file. It uses the standard `logging` module internally but
-    simplifies the configuration and usage.
+    _instance = None
+    _initialized = False
 
-    It supports different logging levels and custom formatting.
-    """
+    def __new__(cls, *args, **kwargs):
+        """Singleton pattern implementation."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
     def __init__(
         self,
-        name: str,
+        name: str = "NovaNN",
         logs_file: Optional[str] = LOG_FILE,
         level: LoggerLevel = LoggerLevel.DEBUG,
         format_string: Optional[str] = LOGGER_DEFAULT_FORMAT,
-    ):
-        """Initializes the Logger.
+    ) -> None:
+        """Initializes the Logger (only once due to singleton)."""
 
-        Args:
-            name (str): The name of the logger.
-            logs_file (Optional[str]): The path to the log file. If None, only
-                                         console logging is enabled.
-            level (LoggerLevel): The logging level (e.g., DEBUG, INFO, WARNING).
-            format_string (Optional[str]): The format string for log messages.
-                                             If None, a default format is used.
-        """
+        # Skip if already initialized
+        if Logger._initialized:
+            return
+
         self._logger = logging.getLogger(name)
         self._logger.setLevel(level.value)
 
-        if not self._logger.handlers:
-            formatter = logging.Formatter(format_string, datefmt=LOGGER_DATE_FORMAT)
+        # Clear existing handlers to avoid duplicates
+        self._logger.handlers.clear()
 
-            self._create_console_handler(level, formatter)
+        formatter = logging.Formatter(format_string, datefmt=LOGGER_DATE_FORMAT)
 
-            if logs_file:
-                self._create_file_handler(logs_file, level, formatter)
+        self._create_console_handler(level, formatter)
 
-    def _create_file_handler(self, logs_file: str, level, formatter):
-        """Creates and configures a file handler for logging.
+        if logs_file:
+            self._create_file_handler(logs_file, level, formatter)
 
-        Args:
-            logs_file (str): The path to the log file.
-            level: The logging level.
-            formatter: The formatter for log messages.
-        """
-        file_handler = logging.FileHandler(logs_file)
+        Logger._initialized = True
+
+    def _create_file_handler(
+        self, logs_file: str, level: LoggerLevel, formatter: logging.Formatter
+    ) -> None:
+        """Creates and configures a file handler for logging."""
+        file_handler = logging.FileHandler(logs_file, encoding="utf-8")
         file_handler.setLevel(level.value)
         file_handler.setFormatter(formatter)
         self._logger.addHandler(file_handler)
 
-    def _create_console_handler(self, level, formatter):
-        """Creates and configures a console handler for logging.
-
-        Args:
-            level: The logging level.
-            formatter: The formatter for log messages.
-        """
+    def _create_console_handler(
+        self, level: LoggerLevel, formatter: logging.Formatter
+    ) -> None:
+        """Creates and configures a console handler for logging."""
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         console_handler.setLevel(level.value)
         self._logger.addHandler(console_handler)
 
-    def info(self, msg: str, **kwargs):
-        """Logs a message with the INFO level.
+    def set_level(self, level: LoggerLevel) -> None:
+        """Dynamically change logging level for all handlers."""
+        self._logger.setLevel(level.value)
+        for handler in self._logger.handlers:
+            handler.setLevel(level.value)
 
-        Args:
-            msg (str): The message to log.
-            **kwargs: Extra data to include in the log message.
-        """
-        self._logger.info(msg, extra=self._extra_data(**kwargs))
+    def info(self, msg: str, **kwargs) -> None:
+        """Logs a message with the INFO level."""
+        if kwargs:
+            extra_str = " | " + ", ".join(f"{k}: {v}" for k, v in kwargs.items())
+            msg = msg + extra_str
+        self._logger.info(msg)
 
-    def debug(self, msg: str, **kwargs):
-        """Logs a message with the DEBUG level.
+    def debug(self, msg: str, **kwargs) -> None:
+        """Logs a message with the DEBUG level."""
+        if kwargs:
+            extra_str = " | " + ", ".join(f"{k}: {v}" for k, v in kwargs.items())
+            msg = msg + extra_str
+        self._logger.debug(msg)
 
-        Args:
-            msg (str): The message to log.
-            **kwargs: Extra data to include in the log message.
-        """
-        self._logger.debug(msg, extra=self._extra_data(**kwargs))
+    def warning(self, msg: str, **kwargs) -> None:
+        """Logs a message with the WARNING level."""
+        if kwargs:
+            extra_str = " | " + ", ".join(f"{k}: {v}" for k, v in kwargs.items())
+            msg = msg + extra_str
+        self._logger.warning(msg)
 
-    def warning(self, msg: str, **kwargs):
-        """Logs a message with the WARNING level.
-
-        Args:
-            msg (str): The message to log.
-            **kwargs: Extra data to include in the log message.
-        """
-        self._logger.warning(msg, extra=self._extra_data(**kwargs))
-
-    def error(self, msg: str, **kwargs):
-        """Logs a message with the ERROR level.
-
-        Args:
-            msg (str): The message to log.
-            **kwargs: Extra data to include in the log message.
-        """
-        self._logger.error(msg, extra=self._extra_data(**kwargs))
-
-    def _extra_data(self, **kwargs):
-        """Formats extra data to be included in the log message.
-
-        Args:
-            **kwargs: Extra data to format.
-
-        Returns:
-            dict: A dictionary with the formatted extra data.
-        """
-        return {f"Extra_{k}": v for k, v in kwargs.items()}
+    def error(self, msg: str, **kwargs) -> None:
+        """Logs a message with the ERROR level."""
+        if kwargs:
+            extra_str = " | " + ", ".join(f"{k}: {v}" for k, v in kwargs.items())
+            msg = msg + extra_str
+        self._logger.error(msg, exc_info=True)
 
 
-# Create a default logger instance for the project
+# Create a single instance (singleton by module-level variable)
 logger = Logger("NovaNN")
