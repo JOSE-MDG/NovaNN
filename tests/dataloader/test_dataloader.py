@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from novann.core import DataLoader
+from novann.utils.data import DataLoader
 
 
 def test_last_batch_size():

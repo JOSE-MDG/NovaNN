@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from novann.layers import SoftMax
-from novann.utils import numeric_grad_scalar_from_softmax
+from novann.utils.gradient_checking import numeric_grad_scalar_from_softmax
 
 RNG = np.random.RandomState(0)
 
