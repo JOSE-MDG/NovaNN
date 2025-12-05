@@ -1,9 +1,9 @@
 import time
 from functools import wraps
-from novann.core import logger
+from novann.utils.log_config import logger
 
 
-def measure_exc_time(func):
+def chronometer(func):
     """Decorator function to measure the execution time of a function.
     Args:
         func (function): function to measure

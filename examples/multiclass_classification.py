@@ -1,10 +1,11 @@
 import numpy as np
 from novann.losses import CrossEntropyLoss
-from novann.core import logger, DataLoader
+from novann.utils.data import DataLoader
+from novann.utils.datasets import load_mnist_data
 from novann.layers import Linear, ReLU, BatchNorm1d, Dropout
 from novann.model import Sequential
 from novann.optim import Adam
-from novann.utils import load_mnist_data
+from novann.utils.log_config import logger
 from novann.metrics import accuracy
 
 # Load data

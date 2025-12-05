@@ -1,6 +1,7 @@
 import numpy as np
 from novann.losses import BinaryCrossEntropy
-from novann.core import logger, DataLoader
+from novann.utils.data import DataLoader
+from novann.utils.log_config import logger
 from novann.model import Sequential
 from novann.layers import Linear, Sigmoid, Tanh, Dropout
 from novann.metrics import binary_accuracy

@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Optional
 
-from novann.layers.activations.activations import Activation
+from novann.layers.activations import Activation
 
 
 class ReLU(Activation):

@@ -50,9 +50,9 @@ class Logger:
             self._create_console_handler(level, formatter)
 
             if logs_file:
-                self._create_file_hadler(logs_file, level, formatter)
+                self._create_file_handler(logs_file, level, formatter)
 
-    def _create_file_hadler(self, logs_file: str, level, formatter):
+    def _create_file_handler(self, logs_file: str, level, formatter):
         """Creates and configures a file handler for logging.
 
         Args:

@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Optional, Tuple
 
-from novann.layers.activations.softmax import SoftMax
+from novann.layers import SoftMax
 
 
 class CrossEntropyLoss:

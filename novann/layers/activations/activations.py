@@ -1,6 +1,6 @@
 from typing import Optional
 
-from novann.module.layer import Layer
+from novann.module import Layer
 
 
 class Activation(Layer):

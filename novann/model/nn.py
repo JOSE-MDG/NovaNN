@@ -5,10 +5,10 @@ from novann.layers import Linear, Conv1d, Conv2d
 from novann.layers.activations import Activation
 from novann.core import DEFAULT_NORMAL_INIT_MAP
 from novann.module import Parameters, Layer
-from novann.core import logger
+from novann.utils.log_config import logger
 
 from novann._typing import InitFn, ActivAndParams, Shape
-from typing import Iterable, Tuple, Any
+from typing import Iterable, Any
 
 
 class Sequential(Layer):
