@@ -4,10 +4,11 @@ import numpy as np
 from novann.layers import Sigmoid
 from novann.utils.gradient_checking import numeric_grad_elementwise
 
-RNG = np.random.RandomState(0)
+RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
 
 
 def test_sigmoid_forward_backward_and_numeric():
+    """Test Sigmoid layer properties and gradient computation."""
     # random inputs
     X = RNG.randn(5, 5)
     act = Sigmoid()

@@ -6,11 +6,9 @@ from novann.utils.gradient_checking import numeric_grad_elementwise
 
 RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
 
-ATOL = 1e-6
-RTOL = 1e-5
-
 
 def test_leaky_relu_forward_backward_and_numeric():
+    """Test LeakyReLU layer with specified negative slope."""
     # Random input batch
     X = RNG.randn(6, 4)
     slope = 0.1  # negative slope for LeakyReLU
@@ -31,4 +29,4 @@ def test_leaky_relu_forward_backward_and_numeric():
     # Numeric gradient (finite differences) for non-zero inputs
     numg = numeric_grad_elementwise(lambda z: act(z), X.copy(), eps=1e-6)
     mask = X != 0
-    assert np.allclose(numg[mask], back[mask], atol=ATOL, rtol=RTOL)
+    assert np.allclose(numg[mask], back[mask], atol=1e-6, rtol=1e-5)

@@ -4,13 +4,11 @@ import numpy as np
 from novann.layers import ReLU
 from novann.utils.gradient_checking import numeric_grad_elementwise
 
-RNG = np.random.RandomState(0)  # deterministic RNG for reproducible tests
-
-ATOL = 1e-6
-RTOL = 1e-5
+RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
 
 
 def test_relu_forward_backward_and_numeric():
+    """Test forward and backward passes of ReLU layer with numerical validation."""
     # Create random input batch
     X = RNG.randn(6, 4)
     act = ReLU()
@@ -29,4 +27,4 @@ def test_relu_forward_backward_and_numeric():
     # Numeric gradient (finite differences) for non-zero inputs
     numg = numeric_grad_elementwise(lambda z: act(z), X.copy(), eps=1e-6)
     mask = X != 0  # exclude points where derivative is undefined (x == 0)
-    assert np.allclose(numg[mask], back[mask], atol=ATOL, rtol=RTOL)
+    assert np.allclose(numg[mask], back[mask], atol=1e-6, rtol=1e-5)

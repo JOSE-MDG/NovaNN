@@ -1,4 +1,9 @@
-"""Core utilities: config, dataloader, init helpers and logger."""
+"""Core configuration, initialization, and constant definitions for NovaNN.
+
+This module provides essential utilities for weight initialization, configuration
+management, and access to environment variables and dataset paths. It serves as
+the foundation for consistent initialization and logging across the framework.
+"""
 
 # Import constants from constants.py
 from .constants import (

@@ -1,4 +1,10 @@
-"""Neural network layer exports: Linear, CNN, Pooling, BN, Dropout, and Activations."""
+"""Neural network layers for building deep learning models.
+
+This module provides a comprehensive collection of layers commonly used in
+neural networks, including linear, convolutional, pooling, normalization,
+activation, and regularization layers. All layers inherit from `Layer` and
+adhere to the standard forward/backward interface.
+"""
 
 from .activations import ReLU, LeakyReLU, Tanh, Softmax, Sigmoid
 from .linear import Linear

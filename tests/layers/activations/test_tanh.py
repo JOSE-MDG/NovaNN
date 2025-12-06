@@ -4,13 +4,11 @@ import numpy as np
 from novann.layers import Tanh
 from novann.utils.gradient_checking import numeric_grad_elementwise
 
-RNG = np.random.RandomState(0)
-
-ATOL = 1e-6
-RTOL = 1e-5
+RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
 
 
 def test_tanh_forward_backward_and_numeric():
+    """Test Tanh layer properties and gradient correctness."""
     # Random inputs
     X = RNG.randn(5, 5)
     act = Tanh()
@@ -31,5 +29,5 @@ def test_tanh_forward_backward_and_numeric():
     back = act.backward(np.ones_like(X))
 
     expected = 1 - Y**2  # derivative of tanh
-    assert np.allclose(numg, expected, atol=ATOL, rtol=RTOL)
-    assert np.allclose(back, expected, atol=ATOL, rtol=RTOL)
+    assert np.allclose(numg, expected, atol=1e-6, rtol=1e-5)
+    assert np.allclose(back, expected, atol=1e-6, rtol=1e-5)

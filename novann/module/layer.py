@@ -1,11 +1,3 @@
-"""
-Layer base class.
-
-Defines the interface every layer must implement (forward/backward)
-and inherits from Module. Using an abstract base class makes it explicit
-that Layer should not be instantiated directly.
-"""
-
 import numpy as np
 from abc import ABC, abstractmethod
 from novann.module import Module

@@ -2,14 +2,6 @@ import numpy as np
 from typing import Optional
 from novann._typing import ListOfParameters
 
-"""
-Module and parameter container utilities.
-
-Provides:
-- Parameters: Lightweight wrapper for trainable arrays and their gradients
-- Module: Base class for all network modules with parameter discovery
-"""
-
 
 class Parameters:
     """Wrapper for tensors that are considered model parameters.
