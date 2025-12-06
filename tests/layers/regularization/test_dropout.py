@@ -14,18 +14,21 @@ def test_dropout_eval_pass_through_and_train_masks_scaling():
 
     # eval mode: forward returns input unchanged (no dropout applied)
     d.eval()
-    out_eval = d.forward(X)
+    out_eval = d(X)
     assert np.allclose(out_eval, X)
 
     # training mode: mask applied and surviving units scaled by 1/(1-p)
     d.train()
-    np.random.seed(123)  # deterministically sample mask for this test
-    out_train = d.forward(X.copy())
+
+    # deterministically sample mask for this test
+    out_train = d(X.copy())
 
     # recover mask from outputs (non-zero => kept)
     mask = out_train != 0.0
+
     # where kept, outputs equal input scaled by 1/(1-p)
     assert np.allclose(out_train[mask], X[mask] / (1 - p))
+
     # where dropped, outputs are exactly zero
     assert np.all(out_train[~mask] == 0.0)
 
