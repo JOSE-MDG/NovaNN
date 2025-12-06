@@ -4,7 +4,7 @@ from typing import Optional
 from novann.layers.activations import Activation
 
 
-class SoftMax(Activation):
+class Softmax(Activation):
     """SoftMax activation layer.
 
     Computes a numerically stable softmax along a specified axis. The layer

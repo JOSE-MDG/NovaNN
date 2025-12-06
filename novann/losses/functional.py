@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Optional, Tuple
 
-from novann.layers import SoftMax
+from novann.layers import Softmax
 
 
 class CrossEntropyLoss:
@@ -47,7 +47,7 @@ class CrossEntropyLoss:
         self.y_one_hot = y
 
         # numerically stable softmax
-        self.y_hat = SoftMax().forward(logits)
+        self.y_hat = Softmax().forward(logits)
 
         # Cross entropy formula
         loss = -np.sum(self.y_one_hot * np.log(self.y_hat + self.eps)) / self.N
