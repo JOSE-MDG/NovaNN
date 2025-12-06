@@ -5,6 +5,7 @@ Exports:
 - BatchNorm2d: For 2D convolutional inputs (4D tensors)
 """
 
-from .batch_normalization import BatchNorm1d, BatchNorm2d
+from .batchnorm1d import BatchNorm1d
+from .batchnorm2d import BatchNorm2d
 
 __all__ = ["BatchNorm1d", "BatchNorm2d"]
