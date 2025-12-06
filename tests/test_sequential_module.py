@@ -21,8 +21,12 @@ def test_sequential_forward_backward_shape_and_parameters_collection():
     activation, _ = seq._find_next_activation(0)
     assert activation == "tanh"  # expect lowercased class name used as key
 
+    # The internal helper returns the startup key for activation to the last layer
+    last_activation, _ = seq._find_last_activation(len(seq._layers) - 1)
+    assert last_activation == "tanh"  # expect lowercased class name used as key
+
     X = RNG.randn(B, in_f)
-    out = seq.forward(X)
+    out = seq(X)
     assert out.shape == (B, out_f)  # output shape matches batch and out_features
 
     G = RNG.randn(B, out_f)
