@@ -44,7 +44,7 @@ weight_decay = 1e-5
 
 optimizer = Adam(
     model.parameters(),
-    learning_rate=learning_rate,
+    lr=learning_rate,
     betas=(0.9, 0.999),
     weight_decay=weight_decay,
     lambda_l1=True,

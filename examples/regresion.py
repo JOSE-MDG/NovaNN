@@ -53,7 +53,7 @@ weight_decay = 1e-5
 epochs = 50
 optimizer = SGD(
     model.parameters(),
-    learning_rate=learning_rate,
+    lr=learning_rate,
     momentum=0.9,
     weight_decay=weight_decay,
     max_grad_norm=1.0,
