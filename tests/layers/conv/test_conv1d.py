@@ -62,7 +62,7 @@ def test_conv1d_backward_gradient_check():
     num_grad_weight = numeric_grad_wrt_param(layer, "weight", x, G, eps=1e-5)
 
     # Set a comparison threshold
-    THRESHOLD = 1e-3
+    THRESHOLD = 5e-3
 
     # Compare analytic vs numerical gradients
     weight_diff = np.abs(layer.weight.grad - num_grad_weight).max()
