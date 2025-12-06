@@ -1,8 +1,7 @@
 """Core utilities: config, dataloader, init helpers and logger."""
 
-from .config import (
-    DEFAULT_NORMAL_INIT_MAP,
-    DEFAULT_UNIFORM_INIT_MAP,
+# Import constants from constants.py
+from .constants import (
     LOG_FILE,
     LOGGER_DATE_FORMAT,
     LOGGER_DEFAULT_FORMAT,
@@ -17,6 +16,7 @@ from .config import (
     FASHION_VALIDATION_DATA_PATH,
 )
 
+# Import initialization functions from init.py
 from .init import (
     kaiming_normal_,
     kaiming_uniform_,
@@ -24,6 +24,12 @@ from .init import (
     xavier_uniform_,
     calculate_gain,
     random_init_,
+)
+
+# Import the initialization maps from config.py
+from .config import (
+    DEFAULT_NORMAL_INIT_MAP,
+    DEFAULT_UNIFORM_INIT_MAP,
 )
 
 __all__ = [
