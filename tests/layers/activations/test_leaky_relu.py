@@ -8,7 +8,13 @@ RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
 
 
 def test_leaky_relu_forward_backward_and_numeric():
-    """Test LeakyReLU layer with specified negative slope."""
+    """Test LeakyReLU layer with specified negative slope.
+
+    Verifies:
+    1. Forward pass applies correct slope to negative values
+    2. Backward pass computes correct piecewise gradient
+    3. Analytical gradient matches numerical approximation for non-zero inputs
+    """
     # Random input batch
     X = RNG.randn(6, 4)
     slope = 0.1  # negative slope for LeakyReLU
@@ -24,7 +30,7 @@ def test_leaky_relu_forward_backward_and_numeric():
     act(X)
     back = act.backward(np.ones_like(X))
     expected = np.where(X > 0, 1, slope)
-    assert np.allclose(back, expected, atol=ATOL, rtol=RTOL)
+    assert np.allclose(back, expected, atol=1e-6, rtol=1e-5)
 
     # Numeric gradient (finite differences) for non-zero inputs
     numg = numeric_grad_elementwise(lambda z: act(z), X.copy(), eps=1e-6)
