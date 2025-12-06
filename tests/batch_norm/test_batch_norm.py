@@ -14,7 +14,7 @@ def test_batchnorm_forward_basic_stats_and_running_update():
     bn = BatchNorm1d(F)
     bn.train()
 
-    out = bn.forward(X)
+    out = bn(X)
     # shape preserved (batch, features)
     assert out.shape == X.shape
 
