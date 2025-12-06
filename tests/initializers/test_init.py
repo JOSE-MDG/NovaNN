@@ -29,12 +29,12 @@ def test_kaiming_normal_distribution():
         fan_in = shape_validation(shape, mode="fan_in")
 
         gain = calculate_gain(nonlinearity=nonlinearity)
-        expected_var = gain / np.sqrt(fan_in)
+        expected_std = gain / np.sqrt(fan_in)
 
         # Expect near-zero mean and variance in the rough neighborhood of expected_var
         assert abs(np.mean(W)) < 0.1, f"Mean test failed for shape {shape}"
         assert (
-            abs(np.var(W) - expected_var) < 0.3
+            abs(np.std(W) - expected_std) < 0.1
         ), f"Variance test failed for shape {shape}"
 
 
