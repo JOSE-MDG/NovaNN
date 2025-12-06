@@ -23,7 +23,7 @@ def test_leaky_relu_forward_backward_and_numeric():
     assert np.allclose(Y[X < 0], X[X < 0] * slope)
 
     # Backward: analytical gradient check
-    act.forward(X)
+    act(X)
     back = act.backward(np.ones_like(X))
     expected = np.where(X > 0, 1, slope)
     assert np.allclose(back, expected, atol=ATOL, rtol=RTOL)

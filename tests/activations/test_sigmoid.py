@@ -13,7 +13,7 @@ def test_sigmoid_forward_backward_and_numeric():
     act = Sigmoid()
 
     # Forward: shape and range (0,1)
-    Y = act.forward(X)
+    Y = act(X)
     assert Y.shape == X.shape
     assert np.all(Y > 0) and np.all(Y < 1)
 
@@ -21,7 +21,7 @@ def test_sigmoid_forward_backward_and_numeric():
     numg = numeric_grad_elementwise(lambda z: act.forward(z), X.copy(), eps=1e-6)
 
     # Analytical gradient via backward (uses cached forward output)
-    act.forward(X)
+    act(X)
     back = act.backward(np.ones_like(X))  # upstream ones -> d sum(sigmoid) / dx
 
     expected = Y * (1 - Y)

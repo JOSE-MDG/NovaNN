@@ -16,12 +16,12 @@ def test_relu_forward_backward_and_numeric():
     act = ReLU()
 
     # Forward: shape and non-negativity property
-    Y = act.forward(X)
+    Y = act(X)
     assert Y.shape == X.shape
     assert np.all(Y >= 0)
 
     # Backward: analytical gradient equals indicator(X > 0)
-    act.forward(X)
+    act(X)
     back = act.backward(np.ones_like(X))
     expected = (X > 0).astype(float)
     assert np.array_equal(back, expected)

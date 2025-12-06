@@ -16,7 +16,7 @@ def test_tanh_forward_backward_and_numeric():
     act = Tanh()
 
     # Forward: shape and range (-1, 1)
-    Y = act.forward(X)
+    Y = act(X)
     assert Y.shape == X.shape
     assert np.all(Y > -1) and np.all(Y < 1)
 
@@ -27,7 +27,7 @@ def test_tanh_forward_backward_and_numeric():
     numg = numeric_grad_elementwise(lambda z: act.forward(z), X.copy(), eps=1e-6)
 
     # Analytical gradient via backward (uses cached forward output)
-    act.forward(X)
+    act(X)
     back = act.backward(np.ones_like(X))
 
     expected = 1 - Y**2  # derivative of tanh

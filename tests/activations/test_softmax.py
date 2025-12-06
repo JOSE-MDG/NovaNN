@@ -11,7 +11,7 @@ def test_softmax_forward_properties_and_shift_invariance_columnwise():
     X = RNG.randn(10, 6) * 30.0
     act = SoftMax()
 
-    Y = act.forward(X)
+    Y = act(X)
     sums = Y.sum(axis=1)
     # probabilities per row sum to one
     assert np.allclose(sums, np.ones_like(sums), atol=1e-7)
@@ -20,7 +20,7 @@ def test_softmax_forward_properties_and_shift_invariance_columnwise():
 
     # shift invariance: adding a constant to logits should not change softmax
     c = 5.0
-    Y_shift = act.forward(X + c)
+    Y_shift = act(X + c)
     assert np.allclose(Y, Y_shift, atol=1e-7)
 
 
@@ -34,7 +34,7 @@ def test_softmax_backward_numeric_columnwise():
         lambda z: act.forward(z), X.copy(), G, eps=1e-6
     )
 
-    act.forward(X)
+    act(X)
     back = act.backward(G)
 
     # compare analytic Jv product to numerical approximation
