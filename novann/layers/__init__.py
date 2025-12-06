@@ -1,6 +1,6 @@
 """Neural network layer exports: Linear, CNN, Pooling, BN, Dropout, and Activations."""
 
-from .activations import ReLU, LeakyReLU, Tanh, SoftMax, Sigmoid
+from .activations import ReLU, LeakyReLU, Tanh, Softmax, Sigmoid
 from .linear import Linear
 from .bn import BatchNorm1d, BatchNorm2d
 from .regularization import Dropout
@@ -12,7 +12,7 @@ __all__ = [
     "ReLU",
     "LeakyReLU",
     "Tanh",
-    "SoftMax",
+    "Softmax",
     "Sigmoid",
     "Linear",
     "BatchNorm1d",
