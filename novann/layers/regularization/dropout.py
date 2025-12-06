@@ -21,7 +21,7 @@ class Dropout(Layer):
 
     def __init__(self, p: float) -> None:
         super().__init__()
-        if not (0.0 <= p < 1.0):
+        if not (0.0 < p < 1.0):
             raise ValueError("Dropout probability must be in the interval [0.0, 1.0).")
         self.p: float = p
         self._mask: Optional[np.ndarray] = None
