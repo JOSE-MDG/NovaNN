@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 12/6/2025, 2:10:05 PM
+**Generated:** 12/6/2025, 5:24:27 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -120,6 +120,10 @@
 │   │   │       └── 🐍 test_maxpooling2d.py
 │   │   └── 📁 regularization
 │   │       └── 🐍 test_dropout.py
+│   ├── 📁 optimizers
+│   │   ├── 🐍 test_adam.py
+│   │   ├── 🐍 test_rmsprop.py
+│   │   └── 🐍 test_sgd.py
 │   └── 📁 sequential
 │       └── 🐍 test_sequential.py
 ├── ⚙️ .gitignore
