@@ -61,7 +61,7 @@ class Conv1d(Layer):
         # Shape: (out_channels, in_channels, kernel_size)
         w = init((self.out_channels, self.in_channels, self.K))
         self.weight = Parameters(np.asarray(w, dtype=np.float32))
-        self.weight.name = "kernel1d"
+        self.weight.name = "conv1d weight"
         if self.use_bias:
             # Shape: (out_channels, 1)
             self.bias = Parameters(np.zeros((self.out_channels, 1), dtype=np.float32))
