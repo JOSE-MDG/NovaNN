@@ -55,3 +55,6 @@ class GlobalAvgPool2d(Layer):
         # Tile the gradient across the spatial dimensions
         grad_input = np.ones((N, C, H, W), dtype=np.float32) * (grad_output * factor)
         return grad_input
+
+    def __repr__(self):
+        return "GlobalAvgPool2d()"
