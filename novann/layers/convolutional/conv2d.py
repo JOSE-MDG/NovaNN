@@ -263,4 +263,4 @@ class Conv2d(Layer):
         return params
 
     def __repr__(self):
-        return f"Conv2d(in_channels={self.in_channels}, out_channels={self.out_channels}, kernel_size={(self.KH, self.KW)}, stride={(self.sh, self.sw)}, padding={(self.ph, self.pw)}, bias={self.bias})"
+        return f"Conv2d(in_channels={self.in_channels}, out_channels={self.out_channels}, kernel_size={(self.KH, self.KW)}, stride={(self.sh, self.sw)}, padding={(self.ph, self.pw)}, bias={self.use_bias})"
