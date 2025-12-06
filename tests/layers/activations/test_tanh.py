@@ -21,10 +21,10 @@ def test_tanh_forward_backward_and_numeric():
     assert np.all(Y > -1) and np.all(Y < 1)
 
     # Property: odd function -> tanh(-x) == -tanh(x)
-    assert np.allclose(act.forward(-X), -Y, atol=1e-7)
+    assert np.allclose(act(-X), -Y, atol=1e-7)
 
     # Numeric gradient (finite differences)
-    numg = numeric_grad_elementwise(lambda z: act.forward(z), X.copy(), eps=1e-6)
+    numg = numeric_grad_elementwise(lambda z: act(z), X.copy(), eps=1e-6)
 
     # Analytical gradient via backward (uses cached forward output)
     act(X)

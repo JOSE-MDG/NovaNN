@@ -27,6 +27,6 @@ def test_relu_forward_backward_and_numeric():
     assert np.array_equal(back, expected)
 
     # Numeric gradient (finite differences) for non-zero inputs
-    numg = numeric_grad_elementwise(lambda z: act.forward(z), X.copy(), eps=1e-6)
+    numg = numeric_grad_elementwise(lambda z: act(z), X.copy(), eps=1e-6)
     mask = X != 0  # exclude points where derivative is undefined (x == 0)
     assert np.allclose(numg[mask], back[mask], atol=ATOL, rtol=RTOL)

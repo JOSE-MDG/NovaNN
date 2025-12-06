@@ -18,7 +18,7 @@ def test_sigmoid_forward_backward_and_numeric():
     assert np.all(Y > 0) and np.all(Y < 1)
 
     # Numeric gradient (finite differences)
-    numg = numeric_grad_elementwise(lambda z: act.forward(z), X.copy(), eps=1e-6)
+    numg = numeric_grad_elementwise(lambda z: act(z), X.copy(), eps=1e-6)
 
     # Analytical gradient via backward (uses cached forward output)
     act(X)

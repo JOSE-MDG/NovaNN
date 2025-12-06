@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from novann.layers import SoftMax
+from novann.layers import Softmax
 from novann.utils.gradient_checking import numeric_grad_scalar_from_softmax
 
 RNG = np.random.RandomState(0)
@@ -9,7 +9,7 @@ RNG = np.random.RandomState(0)
 
 def test_softmax_forward_properties_and_shift_invariance_columnwise():
     X = RNG.randn(10, 6) * 30.0
-    act = SoftMax()
+    act = Softmax()
 
     Y = act(X)
     sums = Y.sum(axis=1)
@@ -26,13 +26,11 @@ def test_softmax_forward_properties_and_shift_invariance_columnwise():
 
 def test_softmax_backward_numeric_columnwise():
     X = RNG.randn(7, 5)
-    act = SoftMax()
+    act = Softmax()
     G = RNG.randn(*X.shape)
 
     # numerical Jacobian-vector product for verification
-    num_grad = numeric_grad_scalar_from_softmax(
-        lambda z: act.forward(z), X.copy(), G, eps=1e-6
-    )
+    num_grad = numeric_grad_scalar_from_softmax(lambda z: act(z), X.copy(), G, eps=1e-6)
 
     act(X)
     back = act.backward(G)

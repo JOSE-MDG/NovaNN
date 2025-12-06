@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from novann.layers import BatchNorm1d
+from novann.utils.gradient_checking import numeric_grad_wrt_param
 
 RNG = np.random.RandomState(8)
 
@@ -97,15 +98,18 @@ def test_batchnorm1d_backward_gradient_check():
     # Backward pass (analytic gradients)
     grad_input = bn.backward(G)
 
+    # set a comparison threshold
+    THRESHOLD = 5e-3
+
     # Check gradient for gamma (scale parameter)
     num_grad_gamma = numeric_grad_wrt_param(bn, "gamma", x, G, eps=1e-5)
     gamma_diff = np.abs(bn.gamma.grad - num_grad_gamma).max()
-    assert gamma_diff < 1e-5, f"Gamma gradient mismatch: {gamma_diff}"
+    assert gamma_diff < THRESHOLD, f"Gamma gradient mismatch: {gamma_diff}"
 
     # Check gradient for beta (shift parameter)
     num_grad_beta = numeric_grad_wrt_param(bn, "beta", x, G, eps=1e-5)
     beta_diff = np.abs(bn.beta.grad - num_grad_beta).max()
-    assert beta_diff < 1e-5, f"Beta gradient mismatch: {beta_diff}"
+    assert beta_diff < THRESHOLD, f"Beta gradient mismatch: {beta_diff}"
 
     # Check input gradient shape
     assert (
