@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 12/6/2025, 12:21:07 AM
+**Generated:** 12/6/2025, 2:10:05 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -20,6 +20,7 @@
 │   ├── 📁 core
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 config.py
+│   │   ├── 🐍 constants.py
 │   │   └── 🐍 init.py
 │   ├── 📁 layers
 │   │   ├── 📁 activations
@@ -31,10 +32,12 @@
 │   │   │   └── 🐍 tanh.py
 │   │   ├── 📁 bn
 │   │   │   ├── 🐍 __init__.py
-│   │   │   └── 🐍 batch_normalization.py
+│   │   │   ├── 🐍 batchnorm1d.py
+│   │   │   └── 🐍 batchnorm2d.py
 │   │   ├── 📁 convolutional
 │   │   │   ├── 🐍 __init__.py
-│   │   │   └── 🐍 conv.py
+│   │   │   ├── 🐍 conv1d.py
+│   │   │   └── 🐍 conv2d.py
 │   │   ├── 📁 flatten
 │   │   │   ├── 🐍 __init__.py
 │   │   │   └── 🐍 flatten.py
@@ -42,9 +45,15 @@
 │   │   │   ├── 🐍 __init__.py
 │   │   │   └── 🐍 linear.py
 │   │   ├── 📁 pooling
-│   │   │   ├── 🐍 __init__.py
-│   │   │   ├── 🐍 global_avg_pool.py
-│   │   │   └── 🐍 maxpool.py
+│   │   │   ├── 📁 gap
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   ├── 🐍 global_avg_pool1d.py
+│   │   │   │   └── 🐍 global_avg_pool2d.py
+│   │   │   ├── 📁 maxpool
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   ├── 🐍 maxpool1d.py
+│   │   │   │   └── 🐍 maxpool2d.py
+│   │   │   └── 🐍 __init__.py
 │   │   ├── 📁 regularization
 │   │   │   ├── 🐍 __init__.py
 │   │   │   └── 🐍 dropout.py
@@ -85,29 +94,34 @@
 │   │   └── 🐍 __init__.py
 │   └── 🐍 __init__.py
 ├── 📁 tests
-│   ├── 📁 activations
-│   │   ├── 🐍 test_leaky_relu.py
-│   │   ├── 🐍 test_relu.py
-│   │   ├── 🐍 test_sigmoid.py
-│   │   ├── 🐍 test_softmax.py
-│   │   └── 🐍 test_tanh.py
-│   ├── 📁 batch_norm
-│   │   └── 🐍 test_batch_norm.py
-│   ├── 📁 conv
-│   │   ├── 🐍 test_conv1d.py
-│   │   └── 🐍 test_conv2d.py
 │   ├── 📁 initializers
 │   │   └── 🐍 test_init.py
-│   ├── 📁 pooling
-│   │   ├── 📁 gap
-│   │   │   ├── 🐍 test_gap1d.py
-│   │   │   └── 🐍 test_gap2d.py
-│   │   └── 📁 maxpool
-│   │       ├── 🐍 test_maxpooling1d.py
-│   │       └── 🐍 test_maxpooling2d.py
-│   ├── 🐍 test_dropout_regularization.py
-│   ├── 🐍 test_linear_layer.py
-│   └── 🐍 test_sequential_module.py
+│   ├── 📁 layers
+│   │   ├── 📁 activations
+│   │   │   ├── 🐍 test_leaky_relu.py
+│   │   │   ├── 🐍 test_relu.py
+│   │   │   ├── 🐍 test_sigmoid.py
+│   │   │   ├── 🐍 test_softmax.py
+│   │   │   └── 🐍 test_tanh.py
+│   │   ├── 📁 batch_norm
+│   │   │   ├── 🐍 test_batchnorm1d.py
+│   │   │   └── 🐍 test_batchnorm2d.py
+│   │   ├── 📁 conv
+│   │   │   ├── 🐍 test_conv1d.py
+│   │   │   └── 🐍 test_conv2d.py
+│   │   ├── 📁 linear
+│   │   │   └── 🐍 test_linear.py
+│   │   ├── 📁 pooling
+│   │   │   ├── 📁 gap
+│   │   │   │   ├── 🐍 test_gap1d.py
+│   │   │   │   └── 🐍 test_gap2d.py
+│   │   │   └── 📁 maxpool
+│   │   │       ├── 🐍 test_maxpooling1d.py
+│   │   │       └── 🐍 test_maxpooling2d.py
+│   │   └── 📁 regularization
+│   │       └── 🐍 test_dropout.py
+│   └── 📁 sequential
+│       └── 🐍 test_sequential.py
 ├── ⚙️ .gitignore
 ├── 📄 LICENCE
 ├── 📝 NovaNNFiletree.md
