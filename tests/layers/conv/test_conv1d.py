@@ -1,6 +1,6 @@
 import numpy as np
-from novann.layers.convolutional.conv import Conv1d
-from novann.utils.gradient_checking.numerical import (
+from novann.layers import Conv1d
+from novann.utils.gradient_checking import (
     numeric_grad_wrt_param,
     numeric_grad_scalar_wrt_x,
 )

@@ -206,7 +206,6 @@ class Conv1d(Layer):
         grad_col = w_col.T @ grad_reshaped
         grad_input = self._col2im(grad_col)
 
-        self._cache.clear()
         return grad_input
 
     def parameters(self) -> ListOfParameters:
@@ -276,7 +275,7 @@ class Conv2d(Layer):
             init = DEFAULT_UNIFORM_INIT_MAP["relu"]
         # Shape: (out_channels, in_channels, KH, KW)
         w = init((self.out_channels, self.in_channels, self.KH, self.KW))
-        self.weight = Parameters(np.asarray(w))
+        self.weight = Parameters(np.asarray(w, dtype=np.float32))
         self.weight.name = "kernel2d"
         if self.use_bias:
             # Shape: (out_channels, 1)
@@ -448,26 +447,25 @@ class Conv2d(Layer):
         Returns:
             np.ndarray: Gradient w.r.t. the layer input, shape (N, C_in, H_in, W_in).
         """
-        grad = grad.astype(np.float32, copy=False)
+        grad = grad.astype(np.float32, copy=False)  # shape -> (N, C_out, H_out, W_out)
         x_shape = self._cache["x_shape"]
         col = self._cache["col"]
         w_col = self._cache["w_col"]
 
-        # Reshape gradient for matrix multiplication: (out_c, N*L_out)
-        grad_reshaped = grad.reshape(self.out_channels, -1)
+        # Reshape gradient for matrix multiplication: (out_c, N*H_out*W_out)
+        grad_reshaped = grad.transpose(1, 0, 2, 3).reshape(self.out_channels, -1)
 
-        # Gradient w.r.t. Weights (kernel): (out_c, N*L_out) @ (N*L_out, C*K*K) -> (out_c, C*K*K)
+        # Gradient w.r.t. Weights (kernel): (out_c, N*H_out*W_out) @ (N*H_out*W_out, C*KH*KW) -> (out_c, C*KH*KW)
         self.weight.grad = (grad_reshaped @ col.T).reshape(self.weight.data.shape)
 
         # Gradient w.r.t. Bias: sum over batch and spatial dimensions
         if self.bias is not None:
             self.bias.grad = np.sum(grad_reshaped, axis=1).reshape(-1, 1)
 
-        # Gradient w.r.t. Col matrix: (C*K*K, out_c) @ (out_c, N*L_out) -> (C*K*K, N*L_out)
+        # Gradient w.r.t. Col matrix: (C*KH*KW, out_c) @ (out_c, N*H_out*W_out) -> (C*KH*KW, N*H_out*W_out)
         grad_col = w_col.T @ grad_reshaped
         grad_input = self._col2im(grad_col, x_shape=x_shape)
 
-        self._cache.clear()
         return grad_input
 
     def parameters(self) -> ListOfParameters:
