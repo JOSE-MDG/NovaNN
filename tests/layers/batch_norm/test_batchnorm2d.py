@@ -1,4 +1,6 @@
 import numpy as np
+import pytest
+
 from novann.layers import BatchNorm2d
 from novann.utils.gradient_checking import (
     numeric_grad_wrt_param,
