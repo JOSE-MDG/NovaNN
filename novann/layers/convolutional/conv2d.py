@@ -2,7 +2,7 @@ import numpy as np
 from numpy.lib.stride_tricks import as_strided
 from novann.module import Layer, Parameters
 from typing import Optional, Tuple
-from novann._typing import InitFn, Shape, ListOfParameters, IntOrPair
+from novann._typing import InitFn, Shape, ListOfParameters, KernelSize, Padding, Stride
 from novann.core import DEFAULT_UNIFORM_INIT_MAP
 
 
@@ -14,9 +14,9 @@ class Conv2d(Layer):
     Args:
         in_channels (int): Number of channels in the input image.
         out_channels (int): Number of channels produced by the convolution.
-        kernel_size (IntOrPair): Size of the convolving kernel (H, W).
-        stride (IntOrPair): Stride of the convolution (H, W). Default: 1.
-        padding (IntOrPair | str): Zero-padding added to both sides (H, W) or 'valid'. Default: 0.
+        kernel_size (KernelSize): Size of the convolving kernel (H, W).
+        stride (Stride): Stride of the convolution (H, W). Default: 1.
+        padding (Padding): Zero-padding added to both sides (H, W) or 'valid'. Default: 0.
         bias (bool): If True, adds a learnable bias to the output. Default: True.
         padding_mode (str): 'zeros', 'reflect', 'replicate', or 'circular'. Default: 'zeros'.
         init (InitFn, optional): Weight initialization function. Defaults to None.
@@ -26,9 +26,9 @@ class Conv2d(Layer):
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size: IntOrPair,
-        stride: Optional[IntOrPair] = 1,
-        padding: IntOrPair | str = 0,
+        kernel_size: KernelSize,
+        stride: Stride = 1,
+        padding: Padding = 0,
         bias: bool = True,
         padding_mode: str = "zeros",
         init: InitFn = None,
@@ -71,7 +71,7 @@ class Conv2d(Layer):
         else:
             self.bias = None
 
-    def _pair(self, x: IntOrPair | str) -> Tuple[int, int]:
+    def _pair(self, x: Padding) -> Tuple[int, int]:
         """Converts integer, tuple, or valid/same string to a (H, W) pair."""
         if isinstance(x, int):
             return (x, x)
@@ -82,7 +82,6 @@ class Conv2d(Layer):
                 raise ValueError(f"The 'same' value is not currently supported")
             else:
                 raise ValueError(f"Unsupported value '{x}'")
-        # Assuming tuple input (IntOrPair)
         return tuple(x)
 
     def _calc_out_size(self, height: int, width: int) -> Tuple[int, int]:

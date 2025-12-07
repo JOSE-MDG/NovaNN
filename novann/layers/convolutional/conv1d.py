@@ -2,7 +2,7 @@ import numpy as np
 from numpy.lib.stride_tricks import as_strided
 from novann.module import Layer, Parameters
 from typing import Optional, Tuple
-from novann._typing import InitFn, Shape, ListOfParameters, IntOrPair
+from novann._typing import InitFn, Shape, ListOfParameters, KernelSize, Stride, Padding
 from novann.core import DEFAULT_UNIFORM_INIT_MAP
 
 
@@ -26,9 +26,9 @@ class Conv1d(Layer):
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size: int,
-        stride: int = 1,
-        padding: int = 0,
+        kernel_size: KernelSize,
+        stride: Stride = 1,
+        padding: Padding = 0,
         bias: bool = True,
         padding_mode: str = "zeros",
         init: InitFn = None,

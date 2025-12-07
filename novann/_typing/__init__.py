@@ -3,9 +3,7 @@
 from ._typing import (
     Shape,
     InitFn,
-    InitFnArg,
     ListOfParameters,
-    IntOrPair,
     ActivAndParams,
     KernelSize,
     Stride,
@@ -19,9 +17,7 @@ from ._typing import (
 __all__ = [
     "Shape",
     "InitFn",
-    "InitFnArg",
     "ListOfParameters",
-    "IntOrPair",
     "ActivAndParams",
     "KernelSize",
     "Stride",

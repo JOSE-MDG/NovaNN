@@ -16,11 +16,6 @@ InitFn = Callable[[Shape], np.ndarray]
 # List of trainable parameters
 ListOfParameters = List["Parameters"]
 
-# Alternative initialization function signature (for compatibility)
-InitFnArg = Callable[[Shape], Any]
-
-# Flexible dimension specification (single value or tuple)
-IntOrPair = Union[int, Tuple[int, int]]
 
 # Activation function configuration (name, parameter)
 ActivAndParams = Tuple[Optional[str], Optional[float]]
