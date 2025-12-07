@@ -5,7 +5,7 @@
 ██║╚██╗██║██║   ██║██║   ██║██╔══██║██║╚██╗██║██║╚██╗██║
 ██║ ╚████║╚██████╔╝╚██████╔╝██║  ██║██║ ╚████║██║ ╚████║
 ╚═╝  ╚═══╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝
-               NovaNN — Deep Learning Framework
+            NovaNN — Deep Learning Framework
 ```
 
 ![version](https://img.shields.io/badge/version-2.0.0-blue)
