@@ -126,6 +126,7 @@
 │   │   └── 🐍 test_sgd.py
 │   ├── 📁 sequential
 │   │   └── 🐍 test_sequential.py
+│   ├── 📝 README.en.md
 │   └── 📝 README.md
 ├── ⚙️ .gitignore
 ├── 📄 LICENCE
