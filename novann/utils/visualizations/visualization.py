@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load history safely
-with open("training_history.json", "r") as f:
+with open("/home/juancho_col/Documents/NovaNN/training_history.json", "r") as f:
     history = json.load(f)
 
-with open("pytorch_training_history.json", "r") as f:
+with open("/home/juancho_col/Documents/NovaNN/pytorch_training_history.json", "r") as f:
     new_history = json.load(f)
 
 
@@ -25,10 +25,10 @@ x = np.arange(1, n_epochs + 1)
 sns.set_theme(style="darkgrid", palette="muted")
 palette = sns.color_palette("muted")
 
-fig, axes = plt.subplots(2, 2, figsize=(20, 10), constrained_layout=True)
+fig, axes = plt.subplots(2, 2, figsize=(20, 16), constrained_layout=True)
 
-# Accuracy plot (project)
-axes[0, 0].set_title("Project: Training Accuracy")
+# Accuracy plot (NovaNN)
+axes[0, 0].set_title("NovaNN: Training Accuracy")
 sns.lineplot(
     x=x[: len(acc)], y=acc, ax=axes[0, 0], marker="o", color=palette[0], linewidth=2
 )
@@ -48,8 +48,8 @@ axes[0, 0].annotate(
     color=palette[0],
 )
 
-# Loss plot (project)
-axes[0, 1].set_title("Project: Training Loss")
+# Loss plot (NovaNN)
+axes[0, 1].set_title("NovaNN: Training Loss")
 sns.lineplot(
     x=x[: len(loss)], y=loss, ax=axes[0, 1], marker="o", color=palette[1], linewidth=2
 )
