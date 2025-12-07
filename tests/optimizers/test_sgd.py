@@ -98,7 +98,7 @@ def test_sgd_zero_grad():
     # Zero gradients
     optimizer.zero_grad()
 
-    # Verify gradients are zeroed
+    # Verify gradients are zero
     for param in layer.parameters():
         assert param.grad is not None
         assert np.all(param.grad == 0.0)

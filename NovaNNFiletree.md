@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 12/6/2025, 8:20:44 PM
+**Generated:** 12/7/2025, 6:43:20 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -124,14 +124,14 @@
 │   │   ├── 🐍 test_adam.py
 │   │   ├── 🐍 test_rmsprop.py
 │   │   └── 🐍 test_sgd.py
-│   └── 📁 sequential
-│       └── 🐍 test_sequential.py
+│   ├── 📁 sequential
+│   │   └── 🐍 test_sequential.py
+│   └── 📝 README.md
 ├── ⚙️ .gitignore
 ├── 📄 LICENCE
 ├── 📝 NovaNNFiletree.md
 ├── 📝 README.en.md
 ├── 📝 README.md
-├── 📝 README_nova.md
 ├── 🐍 main.py
 ├── 📄 poetry.lock
 └── ⚙️ pyproject.toml
