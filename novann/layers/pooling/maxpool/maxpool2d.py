@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
-from novann._typing import IntOrPair
-from typing import Optional, Tuple
+from novann._typing import Padding, KernelSize, Stride
+from typing import Tuple
 from novann.module import Layer
 
 
@@ -11,17 +11,17 @@ class MaxPool2d(Layer):
     The input must have shape (N, C, H_in, W_in).
 
     Args:
-        kernel_size (IntOrPair): Size of the pooling window (H, W).
-        stride (IntOrPair | None): Stride of the pooling (H, W). If None, defaults to `kernel_size`.
-        padding (IntOrPair): Zero-padding added to both sides (H, W). Default: 0.
+        kernel_size (KernelSize): Size of the pooling window (H, W).
+        stride (Stride): Stride of the pooling (H, W). If None, defaults to `kernel_size`.
+        padding (Padding): Zero-padding added to both sides (H, W). Default: 0.
         padding_mode (str): Padding mode ('zeros', 'reflect', 'replicate', 'circular'). Default: 'zeros'.
     """
 
     def __init__(
         self,
-        kernel_size: IntOrPair,
-        stride: Optional[IntOrPair] = None,
-        padding: IntOrPair = 0,
+        kernel_size: KernelSize,
+        stride: Stride = None,
+        padding: Padding = 0,
         padding_mode: str = "zeros",
     ):
         super().__init__()
@@ -33,10 +33,17 @@ class MaxPool2d(Layer):
         self.pm: str = padding_mode
         self._cache: dict = {}
 
-    def _pair(self, x: IntOrPair) -> Tuple[int, int]:
-        """Converts integer or tuple to a (H, W) pair."""
+    def _pair(self, x: Padding) -> Tuple[int, int]:
+        """Converts integer, tuple, or valid/same string to a (H, W) pair."""
         if isinstance(x, int):
             return (x, x)
+        if isinstance(x, str):
+            if x == "valid":
+                return (0, 0)
+            if x == "same":
+                raise ValueError(f"The 'same' value is not currently supported")
+            else:
+                raise ValueError(f"Unsupported value '{x}'")
         return tuple(x)
 
     def _add_padding(self, x: np.ndarray) -> np.ndarray:

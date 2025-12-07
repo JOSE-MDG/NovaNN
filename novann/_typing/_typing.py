@@ -38,5 +38,5 @@ Loader = Iterator[Tuple[np.ndarray, np.ndarray]]
 
 # Convolution-specific types
 KernelSize = Union[int, Tuple[int, int]]
-Stride = Union[int, Tuple[int, int]]
+Stride = Union[int, Tuple[int, int], None]
 Padding = Union[int, Tuple[int, int], str]

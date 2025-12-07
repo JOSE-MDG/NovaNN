@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
 from novann.module import Layer, Parameters
-from typing import Optional, Tuple
+from typing import Optional
 from novann._typing import InitFn, Shape, ListOfParameters, KernelSize, Stride, Padding
 from novann.core import DEFAULT_UNIFORM_INIT_MAP
 
@@ -14,9 +14,9 @@ class Conv1d(Layer):
     Args:
         in_channels (int): Number of channels in the input image.
         out_channels (int): Number of channels produced by the convolution.
-        kernel_size (int): Size of the convolving kernel.
-        stride (int): Stride of the convolution. Default: 1.
-        padding (int): Zero-padding added to both sides of the input. Default: 0.
+        kernel_size (KernelSize): Size of the convolving kernel.
+        stride (Stride): Stride of the convolution. Default: 1.
+        padding (Padding): Zero-padding added to both sides of the input. Default: 0.
         bias (bool): If True, adds a learnable bias to the output. Default: True.
         padding_mode (str): 'zeros', 'reflect', 'replicate', or 'circular'. Default: 'zeros'.
         init (InitFn, optional): Weight initialization function. Defaults to None.
