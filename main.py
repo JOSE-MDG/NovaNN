@@ -36,22 +36,22 @@ test_loader = DataLoader(x_test, y_test, batch_size=128, shuffle=False)
 # Define model
 model = Sequential(
     # Block 1: 28x28x1 -> 28x28x16
-    Conv2d(1, 16, 3, padding=1, bias=Flatten),
+    Conv2d(1, 16, 3, padding=1, bias=False),
     BatchNorm2d(16),
     ReLU(),
     # Block 2: 28x28x16 -> 14x14x32
-    Conv2d(16, 32, 3, padding=1, stride=2, bias=Flatten),  # Stride for Downsampling
+    Conv2d(16, 32, 3, padding=1, stride=2, bias=False),  # Stride for Downsampling
     BatchNorm2d(32),
     ReLU(),
     MaxPool2d(2, 2),  # 14x14 -> 7x7
     # Block 3: 7x7x32 -> 7x7x64
-    Conv2d(32, 64, 3, padding=1, bias=Flatten),
+    Conv2d(32, 64, 3, padding=1, bias=False),
     BatchNorm2d(64),
     ReLU(),
     # classification layers
     GlobalAvgPool2d(),  # 7x7x64 -> 1x1x64 (Global Average Pooling)
     Flatten(),  # Vector of 64 elements
-    Linear(64, 32, bias=Flatten),
+    Linear(64, 32, bias=False),
     BatchNorm1d(32),
     ReLU(),
     Dropout(0.5),
@@ -123,9 +123,13 @@ logger.info(
 )
 
 # Save training history within a JSON file for later comparison
-history = {"accuracy": accuracy_history, "loss": loss_history}
+history = {
+    "accuracy": [float(acc) for acc in accuracy_history],
+    "loss": [float(l) for l in loss_history],
+}
 with open("training_history.json", "w") as f:
     json.dump(history, f)
+
 logger.info(
     "Training history saved to `training_history.json` ",
     history_file="training_history.json",
