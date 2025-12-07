@@ -10,7 +10,7 @@
 │   ├── 🐍 multiclass_classification.py
 │   └── 🐍 regresion.py
 ├── 📁 images
-│   └── 🖼️ comparison.png
+│   └── 🖼️ metrics.png
 ├── 📁 notebooks
 │   └── 📄 exploration.ipynb
 ├── 📁 novann
@@ -131,6 +131,7 @@
 ├── 📝 NovaNNFiletree.md
 ├── 📝 README.en.md
 ├── 📝 README.md
+├── 📝 README_nova.md
 ├── 🐍 main.py
 ├── 📄 poetry.lock
 └── ⚙️ pyproject.toml
