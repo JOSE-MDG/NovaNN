@@ -84,8 +84,6 @@ Una vez obtenidos los resultados, se hizo un script ([visualization](./novann/ut
 │   └── 🐍 regresion.py
 ├── 📁 images
 │   └── 🖼️ metrics.png
-├── 📁 logs
-│   └── .gitkeep  
 ├── 📁 notebooks
 │   └── 📄 exploration.ipynb
 ├── 📁 novann
@@ -199,8 +197,10 @@ Una vez obtenidos los resultados, se hizo un script ([visualization](./novann/ut
 │   │   ├── 🐍 test_adam.py
 │   │   ├── 🐍 test_rmsprop.py
 │   │   └── 🐍 test_sgd.py
-│   └── 📁 sequential
-│       └── 🐍 test_sequential.py
+│   ├── 📁 sequential
+│   │   └── 🐍 test_sequential.py
+│   ├── 📝 README.en.md
+│   └── 📝 README.md
 ├── ⚙️ .gitignore
 ├── 📄 LICENCE
 ├── 📝 NovaNNFiletree.md
@@ -306,7 +306,7 @@ Contiene subdirectorios organizados por tipo de capa:
 
 Todas las capas heredan de `Layer` y siguen la interfaz forward/backward estándar.
 
-#### `📂 layers/ 📂 activations/`
+#### `📂 layers/📂 activations/`
 
 **Clases base e implementaciones de funciones de activación**
 
@@ -396,7 +396,7 @@ Contiene:
   - `forward`: Calcula `tanh(x)` y guarda en `out`
   - `backward`: Calcula gradiente usando `1 - tanh(x)^2`
 
-#### `📂 layers/ 📂 bn/`
+#### `📂 layers/📂 bn/`
 
 **Implementaciones de Batch Normalization para diferentes dimensiones de entrada**
 
@@ -524,7 +524,7 @@ Contiene:
     
     $$\frac{\partial L}{\partial x_{nchw}} = \frac{\gamma_c}{m \cdot H \cdot W \cdot \sqrt{\sigma_c^2 + \epsilon}} \left( m \cdot H \cdot W \cdot \frac{\partial L}{\partial \hat{x}_{nchw}} - \sum_{n',h',w'} \frac{\partial L}{\partial \hat{x}_{n'ch'w'}} - \hat{x}_{nchw} \sum_{n',h',w'} \frac{\partial L}{\partial \hat{x}_{n'ch'w'}} \hat{x}_{n'ch'w'} \right)$$
 
-#### `📂 layers / 📂 convolutional/`
+#### `📂 layers /📂 convolutional/`
 
 **Implementaciones de capas convolucionales para procesamiento de señales 1D y 2D**
 
@@ -621,7 +621,7 @@ Contiene:
 
   **Eficiencia**: Ambas implementaciones (`Conv1d` y `Conv2d`) utilizan la transformación `im2col` para convertir la operación de convolución en una multiplicación de matrices, lo cual permite un cálculo más eficiente al aprovechar bibliotecas optimizadas de álgebra lineal.
 
-#### `📂 layers/ 📂 flatten/`
+#### `📂 layers/📂 flatten/`
 
 **Capa para aplanar tensores, utilizada para transición entre capas convolucionales/pooling y capas fully connected**
 
@@ -659,7 +659,7 @@ Contiene:
 
   La capa simplemente guarda la forma original durante el forward y la restaura durante el backward, manteniendo el flujo de gradientes.
 
-#### `📂 layers/ 📂 linear/`
+#### `📂 layers/📂 linear/`
 
 **Implementación de capas totalmente conectadas (fully connected) para transformaciones lineales**
 
@@ -717,7 +717,7 @@ Contiene:
 
   **Eficiencia**: Utiliza multiplicación de matrices optimizada (`@` operator) y mantiene la entrada cacheada para evitar recomputación durante el backward pass.
 
-#### `📂 layers/ 📂 pooling/`
+#### `📂 layers/📂 pooling/`
 
 **Implementaciones de capas de pooling (reducción dimensional) para extracción de características**
 
@@ -725,7 +725,7 @@ Contiene dos subdirectorios:
 - `gap/`: Global Average Pooling (1D y 2D)
 - `maxpool/`: Max Pooling (1D y 2D)
 
-##### `📂 layers/ 📂 pooling/ 📂 gap/`
+##### `📂 layers/📂 pooling/📂 gap/`
 
 **Implementaciones de Global Average Pooling para reducción a características globales**
 
@@ -789,7 +789,7 @@ Contiene:
 
   donde $H$ y $W$ son las dimensiones espaciales originales.
 
-##### `📂 layers/ 📂 pooling/ 📂 maxpool/`
+##### `📂 layers/📂 pooling/📂 maxpool/`
 
 **Implementaciones de Max Pooling para reducción espacial conservando características dominantes**
 
@@ -867,7 +867,7 @@ Contiene:
 
   **Eficiencia**: Ambas implementaciones usan `as_strided` para crear ventanas sin copiar datos. El backward requiere bucles para acumular gradientes, lo que puede ser optimizado en futuras versiones.
 
-#### `📂 layers/ 📂 regularization/`
+#### `📂 layers/📂 regularization/`
 
 **Implementaciones de técnicas de regularización para prevenir sobreajuste en redes neuronales**
 
@@ -931,14 +931,14 @@ Contiene:
   - En modo evaluación, no hay overhead computacional
   - La generación aleatoria introduce cierta sobrecarga pero es esencial para el efecto de regularización
 
-#### `📂 losses/`
+### `📂 losses/`
 
 **Implementaciones de funciones de pérdida para diferentes tareas de aprendizaje automático**
 
 Contiene:
 - `functional.py`: Implementaciones de `CrossEntropyLoss`, `MSE`, `MAE`, y `BinaryCrossEntropy`
 
-##### `functional.py`
+#### `functional.py`
 
 - **Propósito**: Contiene implementaciones de funciones de pérdida utilizadas para entrenar modelos de deep learning
 - **Clases principales**:
@@ -1410,7 +1410,7 @@ Contiene:
 - `train/`: Función de entrenamiento de modelos
 - `visualizations/`: Utilidades para visualización de resultados y métricas
 
-#### `📂 utils/ 📂 data/`
+#### `📂 utils/📂 data/`
 
 **Utilidades para manejo de datos y preprocesamiento**
 
@@ -1461,7 +1461,7 @@ Contiene:
   - Normalización de características para estabilizar el entrenamiento
   - Separación de datos en características (X) y etiquetas (y)
 
-#### `📂 utils/ 📂 datasets/`
+#### `📂 utils/📂 datasets/`
 
 **Funciones para cargar datasets comunes de visión por computadora**
 
@@ -1508,7 +1508,7 @@ Contiene:
   - Dataset clásico para pruebas y demostraciones del framework
 
 
-#### `📂 utils/ 📂 decorators/`
+#### `📂 utils/📂 decorators/`
 
 **Decoradores para funcionalidades transversales como timing y profiling**
 
@@ -1552,8 +1552,9 @@ Contiene:
   def funcion_lenta():
       # código que tarda
       pass
+  ```
 
-#### `📂 utils/ 📂 gradient_checking/`
+#### `📂 utils/📂 gradient_checking/`
 
 **Utilidades para verificación numérica de gradientes mediante diferencias finitas**
 
@@ -1594,7 +1595,7 @@ Contiene:
   - Específica para testing de softmax + cross-entropy
 
   **`numeric_grad_scalar_wrt_x`**:
-  - Para $S = \sum(\text{forward_fn}(x) \cdot G)$
+  - Para $S = \sum(\text{forward}(x) \cdot G)$
   - Calcula $\frac{\partial S}{\partial x_i}$
   - Versión genérica para cualquier función forward
 
@@ -1603,7 +1604,7 @@ Contiene:
   - Calcula $\frac{\partial S}{\partial p_i}$ donde $p_i$ son parámetros de una capa
   - Perturba los datos del parámetro (`p.data`) y restaura después
 
-#### `📂 utils/ 📂 log_config/`
+#### `📂 utils/📂 log_config/`
 
 **Configuración del sistema de logging para el framework**
 
@@ -1631,7 +1632,7 @@ Contiene:
   - Seguimiento de inicialización de parámetros en `Sequential`
   - Manejo de errores en carga de datasets
 
-#### `📂 utils/ 📂 train/`
+#### `📂 utils/📂 train/`
 
 **Función de entrenamiento de modelos**
 
@@ -1796,7 +1797,7 @@ NovaNN utiliza **Poetry** para la gestión de dependencias y empaquetado. Sigue 
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/JOSE-MDG/NovaNN.git
+git clone git@github.com:JOSE-MDG/NovaNN.git
 cd NovaNN
 ```
 
