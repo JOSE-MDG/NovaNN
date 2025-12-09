@@ -9,5 +9,6 @@ adaptive learning rates.
 from .adam import Adam
 from .rmsprop import RMSprop
 from .sgd import SGD
+from .adamw import AdamW
 
-__all__ = ["Adam", "RMSprop", "SGD"]
+__all__ = ["Adam", "RMSprop", "SGD", "AdamW"]

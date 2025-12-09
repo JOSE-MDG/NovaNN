@@ -1,5 +1,14 @@
-from typing import Tuple, Any, Callable, List, Optional, Union, TYPE_CHECKING, Iterator
 import numpy as np
+from typing import (
+    Tuple,
+    Callable,
+    List,
+    Optional,
+    Union,
+    TYPE_CHECKING,
+    Iterator,
+    Iterable,
+)
 
 # --- Conditional imports for type hints only ---
 if TYPE_CHECKING:
@@ -16,7 +25,6 @@ InitFn = Callable[[Shape], np.ndarray]
 # List of trainable parameters
 ListOfParameters = List["Parameters"]
 
-
 # Activation function configuration (name, parameter)
 ActivAndParams = Tuple[Optional[str], Optional[float]]
 
@@ -27,8 +35,14 @@ TrainTestEvalSets = Tuple[
     tuple[np.ndarray, np.ndarray],
 ]
 
+# iterable object of parameters
+IterableParameters = Iterable["Parameters"]
+
+# beta coefficients for the optimizers
+BetaCoefficients = Tuple[float, float] | float
+
 # Optimizer type alias
-Optimizer = "Adam | SGD | RMSprop"
+Optimizer = "Adam | SGD | RMSprop | AdamW"
 
 # Loss function type alias
 LossFunc = "BinaryCrossEntropy | CrossEntropyLoss | MAE | MSE"

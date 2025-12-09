@@ -46,9 +46,7 @@ def test_rmsprop_with_weight_decay():
     layer2.bias.data = layer1.bias.data.copy()
 
     # Optimizers
-    opt1 = RMSprop(
-        layer1.parameters(), lr=0.01, weight_decay=0.1, lambda_l1=False
-    )  # L2
+    opt1 = RMSprop(layer1.parameters(), lr=0.01, weight_decay=0.1)  # L2
     opt2 = RMSprop(layer2.parameters(), lr=0.01, weight_decay=0.0)  # no decay
 
     # Same forward pass
@@ -71,9 +69,9 @@ def test_rmsprop_with_weight_decay():
     norm1 = np.linalg.norm(layer1.weight.data)
     norm2 = np.linalg.norm(layer2.weight.data)
 
-    assert np.allclose(
-        norm1, norm2, atol=1e-4
-    ), "Weight decay should have a same parameter magnitude"
+    assert (
+        norm1 < norm2
+    ), "L2 Weight decay (RMSprop) should result in a smaller weight magnitude"
 
 
 def test_rmsprop_zero_grad():

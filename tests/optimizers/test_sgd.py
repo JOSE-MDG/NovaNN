@@ -74,10 +74,31 @@ def test_sgd_with_momentum():
 
     step2_change = layer.weight.data - (initial_weight + step1_change)
 
-    # With momentum, second change should be larger (velocity builds up)
-    # Actually in SGD with momentum: v_t = beta*v_{t-1} - lr*grad
-    # So second step includes previous momentum
-    assert np.linalg.norm(step2_change) > 0, "Momentum should cause non-zero update"
+    assert np.linalg.norm(step2_change) > np.linalg.norm(
+        step1_change
+    ), "Momentum should accelerate optimization (larger step size over time)"
+
+
+def test_sgd_gradient_clipping():
+    """Test that gradients are clipped to max_norm."""
+    layer = Linear(10, 1)
+
+    # Configure very aggressive clipping (very small max_norm)
+    optimizer = SGD(layer.parameters(), lr=0.1, max_grad_norm=1.0)
+
+    # Create a giant gradient
+    layer.weight.grad = np.full_like(layer.weight.data, 100.0)
+
+    # Optimization step
+    optimizer.step()
+
+    # Verify that the effective gradient used was not the giant one
+    grad_norm = np.linalg.norm(layer.weight.grad)
+
+    # It should be very close to 1.0 (the max_grad_norm)
+    assert np.isclose(
+        grad_norm, 1.0, atol=1e-5
+    ), f"Gradient norm {grad_norm} exceeds limit"
 
 
 def test_sgd_zero_grad():

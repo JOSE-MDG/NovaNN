@@ -1,6 +1,6 @@
 ![Banner](./images/NovaNN%20Banners.png)
 
-![version](https://img.shields.io/badge/version-2.0.0-blue)
+![version](https://img.shields.io/badge/version-2.1.0-blue)
 ![python](https://img.shields.io/badge/python-v3.14-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![tests](https://img.shields.io/badge/tests-pytest-orange)
@@ -924,144 +924,216 @@ This hierarchy enables a modular design where each component follows a consisten
 
 ### `📂 optim/`
 
-**Implementations of optimizers for neural network training**
+**Optimizer Implementations for Neural Network Training**
 
 Contains:
-- `adam.py`: Adam optimizer (Adaptive Moment Estimation)
-- `rmsprop.py`: RMSprop optimizer (Root Mean Square Propagation)
-- `sgd.py`: SGD optimizer (Stochastic Gradient Descent) with momentum and gradient clipping
+- `adam.py`: Adam (Adaptive Moment Estimation) optimizer with coupled weight decay
+- `adamw.py`: AdamW optimizer with decoupled weight decay
+- `rmsprop.py`: RMSprop (Root Mean Square Propagation) optimizer with decoupled weight decay
+- `sgd.py`: SGD (Stochastic Gradient Descent) optimizer with momentum and gradient clipping
 
 #### `adam.py`
 
-- **Purpose**: Implements the Adam optimizer (Adaptive Moment Estimation) that combines advantages of AdaGrad and RMSProp with first and second order moments
-- **Main class**: `Adam`
-- **Main features**:
-  - Adaptive estimates of first and second order moments
-  - Bias correction for moments in early iterations
-  - Support for L1 and L2 weight decay with automatic exclusion of BatchNorm parameters
-  - Configurable `betas` coefficients for moment decay rates
-  - Epsilon term for numerical stability in division
+- **Purpose**: Implements the Adam (Adaptive Moment Estimation) optimizer, combining the advantages of AdaGrad and RMSProp with first- and second-order moments
+- **Main Class**: `Adam`
+- **Main Features**:
+
+- Adaptive estimations of first- and second-order moments
+- Bias correction for moments in the first iterations
+- Support for L2 weight decay **coupled to the gradient**
+- Configurable beta coefficients for moment decay rates
+- Automatic exclusion of BatchNorm parameters from weight decay
+- epsilon term for numerical stability in division
+
 - **Integration**:
-  - Operates on lists of `Parameters` from `novann.module`
-  - Uses `ListOfParameters` type from `novann._typing`
-  - Automatically excludes BatchNorm `gamma` and `beta` parameters from weight decay
-  - Compatible with all models implementing the `parameters()` method
-- **Usage in the framework**:
-  - Default optimizer for many modern deep learning problems
-  - Suitable for networks with complex architectures and large number of parameters
-  - Used in classification and regression examples of the framework
+- Operates on lists of `Parameters` from `novann.module`
+- Uses the `ListOfParameters` type from `novann._typing`
+- Automatically excludes `gamma` and `beta` parameters from BatchNorm from weight decay
+- Compatible with all models that implement the `parameters()` method
+
+- **Use in the framework**:
+- Classic optimizer for many deep learning problems
+- Suitable for networks with complex architectures and a large number of parameters
+- Used in classification and regression examples in the framework
 - **Technical details**:
 
-  **Update algorithm**:
+**Algorithm of update**: 
 
-  For each parameter $\theta$ at step $t$:
+For each parameter $\theta$ in step $t$: 
+
+$$m_t = \beta_1 m_{t-1} + (1 - \beta_1) g_t$$ 
+
+$$v_t = \beta_2 v_{t-1} + (1 - \beta_2) g_t^2$$ 
+
+$$\hat{m}_t = \frac{m_t}{1 - \beta_1^t}$$ 
+
+$$\hat{v}_t = \frac{v_t}{1 - \beta_2^t}$$ 
+
+$$\theta _{t+1} = \theta_t - \frac{\eta \cdot \hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}$$ 
+
+where: 
+- $\eta$: Learning rate (`lr`) 
+- $\beta_1, \beta_2$: Decay coefficients (`betas`)
+
+- $g_t$: Gradient at step $t$
+
+- $\epsilon$: Numerical stability term (`eps`)
+
+**Coupled weight decay** (excluding BatchNorm parameters):
+
+$$g_t \leftarrow g_t + \lambda \theta_t$$
+
+The weight decay is applied **directly to the gradient** before the moment update, coupling regularization with adaptive optimization.
+
+#### `adamw.py`
+
+- **Purpose**: Implements the AdamW optimizer, which improves upon Adam using **decoupled** weight decay, separating regularization from adaptive updating.
+- **Main Class**: `AdamW`
+- **Main Features**:
+  - Adaptive moment estimates identical to Adam
+- **Decoupled** weight decay applied directly to the parameters (not the gradient)
+  - Bias correction for moments in the first iterations
+  - Automatic exclusion of BatchNorm parameters from weight decay
+  - Better generalization than Adam in many practical cases
+  - Configurable `beta` coefficients for moment decay rates
+- **Integration**:
+  - Operates on `Parameters` lists from `novann.module`
+  - Uses `ListOfParameters` and `BetaCoefficients` types from `novann._typing`
+  - Automatic recognition of BatchNorm parameters by name (`gamma`, `beta`)
+  - Compatible with the framework's standard optimizer interface
+- **Usage within the framework**:
+
+- **Recommended over Adam** for most modern use cases
+
+  - Provides better regularization without affecting adaptive dynamics
+- **Technical Details**:
+**Update Algorithm**:
+
+  For each parameter $\theta$ in step $t$:
+
+**Update Moments** (identical to Adam):
 
   $$m_t = \beta_1 m_{t-1} + (1 - \beta_1) g_t$$
-  
+
   $$v_t = \beta_2 v_{t-1} + (1 - \beta_2) g_t^2$$
-  
+
   $$\hat{m}_t = \frac{m_t}{1 - \beta_1^t}$$
-  
+
   $$\hat{v}_t = \frac{v_t}{1 - \beta_2^t}$$
-  
+
+**Adaptive Update**:
+
   $$\theta_{t+1} = \theta_t - \frac{\eta \cdot \hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}$$
 
-  where:
-  - $\eta$: Learning rate (`lr`)
-  - $\beta_1, \beta_2$: Decay coefficients (`betas`)
-  - $g_t$: Gradient at step $t$
-  - $\epsilon$: Numerical stability term (`eps`)
+  **Decoupled Weight Decay** (applied **after** the adaptive update):
 
-  **Weight decay** (excluding BatchNorm parameters):
+  $$\theta_{t+1} \leftarrow \theta_{t+1} - \eta \cdot \lambda \cdot \theta_t$$
 
-  L2: $g_t \leftarrow g_t + \lambda \theta_t$
-  
-  L1: $g_t \leftarrow g_t + \lambda \cdot \text{sign}(\theta_t)$
+  where $\lambda$ is the weight decay coefficient.
+
+
+**Key difference from Adam**:
+
+- **Adam**: Weight decay is coupled to the gradient → affects adaptive dynamics
+
+- **AdamW**: Weight decay is applied directly to the parameters → pure regularization without interfering with adaptation
+
+This separation allows weight decay to function as **true regularization** independent of the gradient magnitude, improving generalization.
 
 #### `rmsprop.py`
 
-- **Purpose**: Implements the RMSprop optimizer that maintains a moving average of squared gradients to adapt learning rate per parameter
-- **Main class**: `RMSprop`
-- **Main features**:
-  - Moving average of squared gradients to adapt step size per parameter
-  - Support for L1 and L2 weight decay
-  - Automatic exclusion of BatchNorm parameters from weight decay
-  - Configurable decay coefficient for moving average
-  - Simple and efficient implementation
+- **Purpose**: Implements the RMSprop optimizer, which maintains a moving average of squared gradients to adapt the learning rate per parameter.
+- **Main Class**: `RMSprop`
+- **Main Features**:
+  - Moving average of squared gradients to adapt the step size per parameter.
+  - Support for decoupled L2 weight decay.
+  - Automatic exclusion of BatchNorm parameters from weight decay.
+  - Configurable decay coefficient for the moving average.
+  - Simple and efficient implementation.
 - **Integration**:
-  - Operates on lists of `Parameters` from `novann.module`
-  - Uses `ListOfParameters` type from `novann._typing`
-  - Automatic recognition of BatchNorm parameters by name (`gamma`, `beta`)
-  - Compatible with the framework's standard optimizer interface
-- **Usage in the framework**:
-  - Alternative to Adam for problems where more conservative adaptations are preferred
-  - Usable in recurrent networks and other contexts where RMSprop has shown good performance
-  - Available option in training examples
-- **Technical details**:
+  - Operates on `Parameters` lists from `novann.module`.
+  - Uses the `ListOfParameters` type from `novann._typing`.
+  - Automatic recognition of BatchNorm parameters by name (`gamma`, `beta`).
+  - Compatible with the framework's standard optimizer interface.
+- **Usage within the framework**:
+  - Alternative to Adam/AdamW For problems where more conservative adaptations are preferred
+  - Option available in the training examples
+- **Technical Details**:
 
-  **Update algorithm**:
+**Update Algorithm**:
 
   For each parameter $\theta$:
 
   $$E[g^2]_t = \beta E[g^2]_{t-1} + (1 - \beta) g_t^2$$
-  
+
   $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t + \epsilon}} g_t$$
 
   where:
-  - $\eta$: Learning rate (`lr`)
-  - $\beta$: Decay coefficient for moving average
-  - $g_t$: Gradient at step $t$
-  - $\epsilon$: Numerical stability term
 
-  **Weight decay**: Same as in Adam, applied before parameter update.
+- $\eta$: Learning rate (`lr`)
+
+- $\beta$: Decay coefficient for the moving average
+
+- $g_t$: Gradient at step $t$
+
+- $\epsilon$: Numerical stability term
+
+**Decoupled weight decay** (applied after the update): 
+
+$$\theta _{t+1} \leftarrow \theta _{t+1} - \eta \cdot \lambda \cdot \theta_t$$
 
 #### `sgd.py`
 
-- **Purpose**: Implements the SGD optimizer (Stochastic Gradient Descent) with momentum, weight decay and global gradient clipping
-- **Main class**: `SGD`
-- **Main features**:
+- **Purpose**: Implements the SGD (Stochastic Gradient Descent) optimizer with momentum, weight decay, and global gradient clipping
+- **Main Class**: `SGD`
+- **Main Features**:
   - Classical stochastic gradient descent with optional momentum (Polyak momentum)
-  - Global gradient clipping to prevent gradient explosion
-  - Support for L1 and L2 weight decay
+  - Global gradient clipping to prevent gradient explosions
+  - Support for L2 weight decay **coupled to the gradient**
   - Automatic exclusion of BatchNorm parameters from weight decay
   - Efficient implementation with velocity buffers for momentum
 - **Integration**:
-  - Operates on lists of `Parameters` from `novann.module`
-  - Uses `ListOfParameters` type from `novann._typing`
-  - Gradient clipping system considering total norm of all gradients
+  - Operates on `Parameters` lists from `novann.module`
+  - Uses the `ListOfParameters` type from `novann._typing`
+  - Gradient clipping system that considers the overall norm of all gradients
   - Compatible with the framework's training interface
-- **Usage in the framework**:
-  - Standard optimizer for problems where simplicity and fine control are preferred
-  - Useful for fine-tuning and problems with small data
-- **Technical details**:
+- **Use within the framework**:
+  - Standard optimizer for problems where simplicity and control are preferred Fine-tuning
+  - Useful for fine-tuning and small dataset problems
+  - Gradient clipping is especially useful for recurrent networks
+- **Technical Details**:
 
-  **Update algorithm** (with momentum):
+**Update Algorithm** (with momentum):
 
   For each parameter $\theta$:
 
   $$v_t = \beta v_{t-1} - \eta g_t$$
-  
+
   $$\theta_{t+1} = \theta_t + v_t$$
 
   Without momentum:
 
   $$\theta_{t+1} = \theta_t - \eta g_t$$
 
-  **Global gradient clipping**:
+**Global Gradient Clipping**:
 
   $$\text{total\_norm} = \sqrt{\sum_i \|g_i\|^2}$$
-  
+
   $$\text{clip\_coef} = \min\left(1.0, \frac{\text{max\_grad\_norm}}{\text{total\_norm} + 1e-6}\right)$$
-  
-  $$g_i \leftarrow g_i \cdot \text{clip\_coef}$$
 
-  **Weight decay**: Applied to gradient before update, excluding BatchNorm parameters.
+  $$g_i \leftarrow g_i \cdot \text{clip_coef}$$
 
-  **Common optimizer features**:
-  - All implement `step()` to update parameters and `zero_grad()` to clear gradients
-  - Exclude BatchNorm `gamma` and `beta` parameters from weight decay (detected by name)
-  - Properly handle parameters without gradient (`grad is None`)
-  - Are iterable over materialized parameter lists
+**Coupled weight decay** (applied to the gradient):
+
+$$g_t \leftarrow g_t + \lambda \theta_t$$
+
+**Common features of optimizers**:
+  - They all implement `step()` to update parameters and `zero_grad()` to clean gradients
+  - They exclude `gamma` and `beta` parameters from BatchNorm from the weight decay (detected by name)
+  - They properly handle parameters without a gradient (`grad is None`)
+  - They are iterable over materialized parameter lists
+- **Adam and SGD**: Use coupled weight decay (applied to the gradient)
+- **AdamW and RMSprop**: Use decoupled weight decay (applied directly to the parameters)
 
 ### `📂 utils/`
 

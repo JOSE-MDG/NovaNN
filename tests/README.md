@@ -322,6 +322,21 @@ Contiene tests organizados por módulos que verifican funcionalidad, gradientes 
   - Usa capas reales (`Linear`, `Conv2d`) con forward/backward simulados
 - **Integración**: Depende de `Adam` de `novann/optim/` y de capas del framework
 
+##### `test_adamw.py`
+
+- **Propósito**: Verificar el optimizador `AdamW` (Adam con weight decay desacoplado)
+- **Pruebas principales**:
+  - `test_adamw_updates_parameters()`: Verifica que AdamW actualice parámetros correctamente y que el contador de pasos (`t`) se incremente
+  - `test_adamw_decoupled_weight_decay()`: Verifica que el weight decay se aplique **separadamente** de la actualización del gradiente (característica distintiva de AdamW vs Adam)
+  - `test_adamw_excludes_batchnorm_from_weight_decay()`: Verifica que AdamW **no** aplique weight decay a parámetros `gamma` y `beta` de BatchNorm
+- **Metodología**:
+  - **Actualización básica**: Genera gradientes sintéticos, ejecuta `step()` y verifica cambios en parámetros
+  - **Weight decay desacoplado**: Compara dos modelos idénticos (uno con `weight_decay=0.5`, otro con `weight_decay=0.0`) tras un paso de optimización. Verifica que la magnitud de actualización con decay sea **menor** que sin decay, confirmando el efecto de regularización desacoplada
+  - **Exclusión de BatchNorm**: Crea un modelo con capas `Conv2d` (debe recibir decay) y `BatchNorm2d` (no debe recibir decay). Asigna nombres `"gamma"` y `"beta"` a los parámetros de BatchNorm. Tras `step()`, verifica que:
+    - Los pesos de Conv cambien (gradiente + weight decay)
+    - Los parámetros de BatchNorm cambien solo por el gradiente (sin amplificación de decay)
+- **Integración**: Depende de `AdamW` de `novann/optim/` y de capas `Linear`, `Conv2d`, `BatchNorm2d` del framework
+
 ##### `test_rmsprop.py`
 
 - **Propósito**: Verificar el optimizador `RMSprop` (Root Mean Square Propagation)
@@ -337,16 +352,18 @@ Contiene tests organizados por módulos que verifican funcionalidad, gradientes 
 
 ##### `test_sgd.py`
 
-- **Propósito**: Verificar el optimizador `SGD` (Stochastic Gradient Descent) con momentum
+- **Propósito**: Verificar el optimizador `SGD` (Stochastic Gradient Descent) con momentum y gradient clipping
 - **Pruebas principales**:
   - `test_sgd_basic_update()`: Verifica actualización básica en un modelo `Sequential` con múltiples capas
   - `test_sgd_with_momentum()`: Verifica el efecto de momentum en actualizaciones consecutivas
+  - `test_sgd_gradient_clipping()`: Verifica que los gradientes se recorten correctamente al `max_grad_norm` especificado mediante clipping global
   - `test_sgd_zero_grad()`: Verifica que `zero_grad()` limpie gradientes
 - **Metodología**:
   - Usa un modelo `Sequential` con dos capas `Linear` para prueba integral
-  - Para momentum: ejecuta dos pasos con el mismo gradiente y verifica que el segundo paso sea no nulo (acumulación de velocidad)
+  - Para momentum: ejecuta dos pasos con el mismo gradiente y verifica que el segundo paso tenga mayor magnitud (acumulación de velocidad)
+  - **Para gradient clipping**: Crea un gradiente artificialmente grande (`100.0` en todos los elementos), configura `max_grad_norm=1.0`, ejecuta `step()` y verifica que la norma L2 del gradiente resultante sea aproximadamente `1.0` (dentro de tolerancia `1e-5`), confirmando que el clipping global funcionó correctamente
   - Para `zero_grad()`: verifica que gradientes existan antes y sean cero después
-
+  
 #### `📂 tests/📂 sequential/`
 
 **Tests para el contenedor Sequential (apilado de capas)**

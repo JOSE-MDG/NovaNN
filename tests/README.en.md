@@ -310,42 +310,59 @@ Contains tests organized by modules that verify functionality, gradients, and be
 
 ##### `test_adam.py`
 
-- **Purpose**: Verify the `Adam` optimizer (Adaptive Moment Estimation)
+- **Purpose**: To verify the `Adam` (Adaptive Moment Estimation) optimizer
 - **Main tests**:
   - `test_adam_basic_update()`: Verifies that Adam updates parameters of a `Linear` layer
   - `test_adam_with_conv_layer()`: Verifies that Adam works with convolutional layers
-  - `test_adam_bias_correction()`: Verifies bias correction mechanism in early steps
+  - `test_adam_bias_correction()`: Verifies the bias correction mechanism in early steps
 - **Methodology**:
   - Checks that parameters change after `step()`
-  - Verifies that step counter (`t`) increments
-  - For bias correction: runs multiple steps and verifies all updates are non-null
-  - Uses real layers (`Linear`, `Conv2d`) with simulated forward/backward
+  - Verifies that the step counter (`t`) increments
+  - For bias correction, executes multiple steps and verifies that all updates are non-null
+  - Uses real layers (`Linear`, `Conv2d`) with Simulated Forward/Backward Optimization
 - **Integration**: Depends on `Adam` from `novann/optim/` and framework layers
+
+##### `test_adamw.py`
+
+- **Purpose**: To verify the `AdamW` optimizer (Adam with decoupled weight decay)
+- **Main Tests**:
+  - `test_adamw_updates_parameters()`: Verifies that AdamW updates parameters correctly and that the step counter (`t`) increments
+  - `test_adamw_decoupled_weight_decay()`: Verifies that weight decay is applied **separately** from gradient updates (a distinguishing feature of AdamW vs. Adam)
+  - `test_adamw_excludes_batchnorm_from_weight_decay()`: Verifies that AdamW **does not** apply weight decay to the `gamma` and `beta` parameters of BatchNorm
+- **Methodology**:
+- **Basic Update**: Generates synthetic gradients, executes `step()`, and verifies parameter changes.
+- **Decoupled Weight Decay**: Compares two identical models (one with `weight_decay=0.5`, the other with `weight_decay=0.0`) after an optimization step. Verifies that the update magnitude with decay is **less** than without decay, confirming the effect of decoupled regularization.
+- **BatchNorm Exclusion**: Creates a model with `Conv2d` (which must receive decay) and `BatchNorm2d` (which must not receive decay) layers. Assigns the names `gamma` and `beta` to the BatchNorm parameters. After `step()`, verify that:
+  - Conv weights change (gradient + weight decay)
+  - BatchNorm parameters change only due to the gradient (without decay amplification)
+- **Integration**: Depends on `AdamW` from `novann/optim/` and the `Linear`, `Conv2d`, and `BatchNorm2d` layers of the framework
 
 ##### `test_rmsprop.py`
 
-- **Purpose**: Verify the `RMSprop` optimizer (Root Mean Square Propagation)
+- **Purpose**: To verify the `RMSprop` (Root Mean Square Propagation) optimizer
 - **Main tests**:
-  - `test_rmsprop_basic_update()`: Verifies basic parameter update
-  - `test_rmsprop_with_weight_decay()`: Verifies effect of weight decay (L2) on parameter magnitude
-  - `test_rmsprop_zero_grad()`: Verifies that `zero_grad()` clears gradients
+  - `test_rmsprop_basic_update()`: Verifies basic parameter updates
+  - `test_rmsprop_with_weight_decay()`: Verifies the effect of weight decay (L2) on parameter magnitudes
+  - `test_rmsprop_zero_grad()`: Verifies that `zero_grad()` cleans the gradients
 - **Methodology**:
-  - Compares parameters before and after `step()` to confirm update
-  - For weight decay: compares two identical models (with and without decay) after one optimization step
-  - For `zero_grad()`: verifies all gradients are set to zero
-- **Note**: The weight decay test currently verifies that norms are equal (with tolerance), which could be refined to verify that norm with decay is smaller.
+  - Compare parameters before and after `step()` to confirm the update
+  - For weight decay: compare two identical models (with and without decay) after an optimization step
+  - For `zero_grad()`: verify that all gradients are set to zero
+- **Note**: The weight decay test currently verifies that the norms are equal (with tolerance), which could be refined to verify that the norm with decay is lower.
 
 ##### `test_sgd.py`
 
-- **Purpose**: Verify the `SGD` optimizer (Stochastic Gradient Descent) with momentum
-- **Main tests**:
-  - `test_sgd_basic_update()`: Verifies basic update in a `Sequential` model with multiple layers
-  - `test_sgd_with_momentum()`: Verifies effect of momentum in consecutive updates
-  - `test_sgd_zero_grad()`: Verifies that `zero_grad()` clears gradients
+- **Purpose**: To verify the `SGD` (Stochastic Gradient Descent) optimizer with momentum and gradient clipping
+- **Main Tests**:
+  - `test_sgd_basic_update()`: Verifies basic updates in a `Sequential` model with multiple layers
+  - `test_sgd_with_momentum()`: Verifies the effect of momentum on consecutive updates
+  - `test_sgd_gradient_clipping()`: Verifies that gradients are correctly clipped to the specified `max_grad_norm` using global clipping
+  - `test_sgd_zero_grad()`: Verifies that `zero_grad()` cleans gradients
 - **Methodology**:
-  - Uses a `Sequential` model with two `Linear` layers for integral testing
-  - For momentum: executes two steps with the same gradient and verifies the second step is non-null (velocity accumulation)
-  - For `zero_grad()`: verifies gradients exist before and are zero after
+  - Uses a `Sequential` model with two `Linear` layers for comprehensive testing
+  - For momentum: runs two steps with the same gradient and verifies that the second step has a greater magnitude (velocity buildup)
+  - **For gradient clipping: Creates an artificially large gradient (100.0 on all elements), sets `max_grad_norm=1.0`, executes `step()`, and verifies that the L2 norm of the resulting gradient is approximately 1.0 (within a tolerance of 1e-5), confirming that global clipping worked correctly.
+  For `zero_grad()`: verifies that gradients exist before and are zero after
 
 #### `📂 tests/📂 sequential/`
 

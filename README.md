@@ -1,6 +1,6 @@
 ![Banner](./images/NovaNN%20Banners.png)
 
-![version](https://img.shields.io/badge/version-2.0.0-blue)
+![version](https://img.shields.io/badge/version-2.1.0-blue)
 ![python](https://img.shields.io/badge/python-v3.14-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![tests](https://img.shields.io/badge/tests-pytest-orange)
@@ -76,6 +76,8 @@ Una vez obtenidos los resultados, se hizo un script ([visualization](./novann/ut
 │   └── 🐍 regresion.py
 ├── 📁 images
 │   └── 🖼️ metrics.png
+├── 📁 logs
+│   └── logs.log
 ├── 📁 notebooks
 │   └── 📄 exploration.ipynb
 ├── 📁 novann
@@ -139,6 +141,7 @@ Una vez obtenidos los resultados, se hizo un script ([visualization](./novann/ut
 │   ├── 📁 optim
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 adam.py
+│   │   ├── 🐍 adamw.py
 │   │   ├── 🐍 rmsprop.py
 │   │   └── 🐍 sgd.py
 │   ├── 📁 utils
@@ -187,6 +190,7 @@ Una vez obtenidos los resultados, se hizo un script ([visualization](./novann/ut
 │   │       └── 🐍 test_dropout.py
 │   ├── 📁 optimizers
 │   │   ├── 🐍 test_adam.py
+│   │   ├── 🐍 test_adamw.py
 │   │   ├── 🐍 test_rmsprop.py
 │   │   └── 🐍 test_sgd.py
 │   ├── 📁 sequential
@@ -1253,8 +1257,9 @@ Esta jerarquía permite un diseño modular donde cada componente sigue una inter
 **Implementaciones de optimizadores para el entrenamiento de redes neuronales**
 
 Contiene:
-- `adam.py`: Optimizador Adam (Adaptive Moment Estimation)
-- `rmsprop.py`: Optimizador RMSprop (Root Mean Square Propagation)
+- `adam.py`: Optimizador Adam (Adaptive Moment Estimation) con weight decay acoplado
+- `adamw.py`: Optimizador AdamW con weight decay desacoplado
+- `rmsprop.py`: Optimizador RMSprop (Root Mean Square Propagation) con weight decay desacoplado
 - `sgd.py`: Optimizador SGD (Stochastic Gradient Descent) con momentum y clipping de gradientes
 
 #### `adam.py`
@@ -1264,8 +1269,9 @@ Contiene:
 - **Características principales**:
   - Estimaciones adaptativas de momentos de primer y segundo orden
   - Corrección de bias para momentos en las primeras iteraciones
-  - Soporte para weight decay L1 y L2 con exclusión automática de parámetros de BatchNorm
+  - Soporte para weight decay L2 **acoplado al gradiente** (coupled weight decay)
   - Coeficientes configurables `betas` para las tasas de decaimiento de momentos
+  - Exclusión automática de parámetros de BatchNorm del weight decay
   - Término epsilon para estabilidad numérica en la división
 - **Integración**:
   - Opera sobre listas de `Parameters` de `novann.module`
@@ -1273,7 +1279,7 @@ Contiene:
   - Excluye automáticamente parámetros `gamma` y `beta` de BatchNorm del weight decay
   - Compatible con todos los modelos que implementan el método `parameters()`
 - **Uso en el framework**:
-  - Optimizador por defecto para muchos problemas de deep learning modernos
+  - Optimizador clásico para muchos problemas de deep learning
   - Adecuado para redes con arquitecturas complejas y gran cantidad de parámetros
   - Utilizado en ejemplos de clasificación y regresión del framework
 - **Detalles técnicos**:
@@ -1298,11 +1304,62 @@ Contiene:
   - $g_t$: Gradiente en el paso $t$
   - $\epsilon$: Término de estabilidad numérica (`eps`)
 
-  **Weight decay** (excluyendo parámetros de BatchNorm):
+  **Coupled weight decay** (excluyendo parámetros de BatchNorm):
 
-  L2: $g_t \leftarrow g_t + \lambda \theta_t$
+  $$g_t \leftarrow g_t + \lambda \theta_t$$
+
+  El weight decay se aplica **directamente al gradiente** antes de la actualización de momentos, lo que acopla la regularización con la optimización adaptativa.
+
+#### `adamw.py`
+
+- **Propósito**: Implementa el optimizador AdamW que mejora Adam mediante weight decay **desacoplado**, separando la regularización de la actualización adaptativa
+- **Clase principal**: `AdamW`
+- **Características principales**:
+  - Estimaciones adaptativas de momentos idénticas a Adam
+  - Weight decay **desacoplado** aplicado directamente a los parámetros (no al gradiente)
+  - Corrección de bias para momentos en las primeras iteraciones
+  - Exclusión automática de parámetros de BatchNorm del weight decay
+  - Mejor generalización que Adam en muchos casos prácticos
+  - Coeficientes configurables `betas` para las tasas de decaimiento de momentos
+- **Integración**:
+  - Opera sobre listas de `Parameters` de `novann.module`
+  - Usa tipos `ListOfParameters` y `BetaCoefficients` de `novann._typing`
+  - Reconocimiento automático de parámetros de BatchNorm por nombre (`gamma`, `beta`)
+  - Compatible con la interfaz estándar de optimizadores del framework
+- **Uso en el framework**:
+  - **Recomendado sobre Adam** para la mayoría de casos de uso modernos
+  - Proporciona mejor regularización sin afectar la dinámica adaptativa
+- **Detalles técnicos**:
+
+  **Algoritmo de actualización**:
+
+  Para cada parámetro $\theta$ en el paso $t$:
+
+  **Actualización de momentos** (idéntica a Adam):
+
+  $$m_t = \beta_1 m_{t-1} + (1 - \beta_1) g_t$$
   
-  L1: $g_t \leftarrow g_t + \lambda \cdot \text{sign}(\theta_t)$
+  $$v_t = \beta_2 v_{t-1} + (1 - \beta_2) g_t^2$$
+  
+  $$\hat{m}_t = \frac{m_t}{1 - \beta_1^t}$$
+  
+  $$\hat{v}_t = \frac{v_t}{1 - \beta_2^t}$$
+
+  **Actualización adaptativa**:
+
+  $$\theta_{t+1} = \theta_t - \frac{\eta \cdot \hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}$$
+
+  **Decoupled weight decay** (aplicado **después** de la actualización adaptativa):
+
+  $$\theta_{t+1} \leftarrow \theta_{t+1} - \eta \cdot \lambda \cdot \theta_t$$
+
+  donde $\lambda$ es el coeficiente de weight decay.
+
+  **Diferencia clave con Adam**:
+  - **Adam**: El weight decay se acopla al gradiente → afecta la dinámica adaptativa
+  - **AdamW**: El weight decay se aplica directamente a los parámetros → regularización pura sin interferir con la adaptación
+
+  Esta separación permite que el weight decay funcione como **regularización verdadera** independiente de la magnitud del gradiente, mejorando la generalización.
 
 #### `rmsprop.py`
 
@@ -1310,7 +1367,7 @@ Contiene:
 - **Clase principal**: `RMSprop`
 - **Características principales**:
   - Promedio móvil de gradientes al cuadrado para adaptar el tamaño de paso por parámetro
-  - Soporte para weight decay L1 y L2
+  - Soporte para weight decay L2 **desacoplado**
   - Exclusión automática de parámetros de BatchNorm del weight decay
   - Coeficiente de decaimiento configurable para el promedio móvil
   - Implementación simple y eficiente
@@ -1320,8 +1377,7 @@ Contiene:
   - Reconocimiento automático de parámetros de BatchNorm por nombre (`gamma`, `beta`)
   - Compatible con la interfaz estándar de optimizadores del framework
 - **Uso en el framework**:
-  - Alternativa a Adam para problemas donde se prefieren adaptaciones más conservadoras
-  - Utilizable en redes recurrentes y otros contextos donde RMSprop ha demostrado buen desempeño
+  - Alternativa a Adam/AdamW para problemas donde se prefieren adaptaciones más conservadoras
   - Opción disponible en los ejemplos de entrenamiento
 - **Detalles técnicos**:
 
@@ -1339,7 +1395,9 @@ Contiene:
   - $g_t$: Gradiente en el paso $t$
   - $\epsilon$: Término de estabilidad numérica
 
-  **Weight decay**: Igual que en Adam, aplicado antes de la actualización del parámetro.
+  **Decoupled weight decay** (aplicado después de la actualización):
+
+  $$\theta_{t+1} \leftarrow \theta_{t+1} - \eta \cdot \lambda \cdot \theta_t$$
 
 #### `sgd.py`
 
@@ -1348,7 +1406,7 @@ Contiene:
 - **Características principales**:
   - Descenso de gradiente estocástico clásico con momentum opcional (Polyak momentum)
   - Gradient clipping global para prevenir explosión de gradientes
-  - Soporte para weight decay L1 y L2
+  - Soporte para weight decay L2 **acoplado al gradiente**
   - Exclusión automática de parámetros de BatchNorm del weight decay
   - Implementación eficiente con buffers de velocidad para momentum
 - **Integración**:
@@ -1359,6 +1417,7 @@ Contiene:
 - **Uso en el framework**:
   - Optimizador estándar para problemas donde se prefiere simplicidad y control fino
   - Útil para fine-tuning y problemas con datos pequeños
+  - Gradient clipping especialmente útil para redes recurrentes
 - **Detalles técnicos**:
 
   **Algoritmo de actualización** (con momentum):
@@ -1381,13 +1440,17 @@ Contiene:
   
   $$g_i \leftarrow g_i \cdot \text{clip\_coef}$$
 
-  **Weight decay**: Aplicado al gradiente antes de la actualización, excluyendo parámetros de BatchNorm.
+  **Coupled weight decay** (aplicado al gradiente):
+
+  $$g_t \leftarrow g_t + \lambda \theta_t$$
 
   **Características comunes de los optimizadores**:
   - Todos implementan `step()` para actualizar parámetros y `zero_grad()` para limpiar gradientes
   - Excluyen parámetros `gamma` y `beta` de BatchNorm del weight decay (detectados por nombre)
   - Manejan adecuadamente parámetros sin gradiente (`grad is None`)
   - Son iterables sobre listas de parámetros materializadas
+  - **Adam y SGD**: Usan coupled weight decay (aplicado al gradiente)
+  - **AdamW y RMSprop**: Usan decoupled weight decay (aplicado directamente a los parámetros)
 
 ### `📂 utils/`
 
