@@ -12,8 +12,7 @@ class SGD:
         parameters: Iterable of Parameters objects.
         lr: Step size.
         momentum: Momentum coefficient (default 0 = no momentum).
-        weight_decay: L2/L1 weight decay coefficient.
-        lambda_l1: If True use L1 weight decay, otherwise L2.
+        weight_decay: L2 weight decay coefficient.
         max_grad_norm: If set to a positive value, clip each parameter's
             gradient to have at most this L2 norm. Useful to avoid exploding
             gradients / numerical overflows.
@@ -25,14 +24,12 @@ class SGD:
         lr: float,
         momentum: float = 0,
         weight_decay: float = 0,
-        lambda_l1: bool = False,
         max_grad_norm: Optional[float] = None,
     ) -> None:
         self.params: ListOfParameters = list(parameters)
         self.lr: float = float(lr)
         self.beta: float = float(momentum)
         self.wd: float = float(weight_decay)
-        self.l1: bool = lambda_l1
         self.is_bn_param: bool = False
         self.max_grad_norm: Optional[float] = (
             float(max_grad_norm)
@@ -90,14 +87,12 @@ class SGD:
             # Apply Global Clipping immediately
             p.grad *= clip_coef
 
+            # Verify that they are not batch normalization layer parameters
             self.is_bn_param = getattr(p, "name", None) in ("gamma", "beta")
 
-            # Apply weight decay (L1 or L2) to the gradient
+            # Apply coupled weight decay to de gradient
             if self.wd > 0 and not self.is_bn_param:
-                if self.l1:
-                    p.grad += self.wd * np.sign(p.data)
-                else:
-                    p.grad += self.wd * p.data
+                p.grad += self.wd * p.data  # L2
 
             # Momentum update
             if self.beta > 0:

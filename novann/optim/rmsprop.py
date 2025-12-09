@@ -11,8 +11,7 @@ class RMSprop:
         parameters: Iterable of Parameters objects.
         lr: Step size.
         beta: Decay factor for moving average of squared gradients (default: 0.9)
-        weight_decay: L2/L1 weight decay coefficient.
-        lambda_l1: If True use L1 weight decay, otherwise L2.
+        weight_decay: L2 decoupled weight decay coefficient.
         epsilon: arbitrarily small positive number
     """
 
@@ -22,7 +21,6 @@ class RMSprop:
         lr: float,
         beta: float = 0.9,
         weight_decay: float = 0,
-        lambda_l1: bool = False,
         epsilon: float = 1e-9,
     ) -> None:
 
@@ -31,7 +29,6 @@ class RMSprop:
         self.lr: float = float(lr)
         self.beta: float = float(beta)
         self.wd: float = float(weight_decay)
-        self.l1: bool = bool(lambda_l1)
         self.is_bn_param: bool = False
 
         # Initialize moment buffers to match each parameter's shape.
@@ -45,15 +42,6 @@ class RMSprop:
             if p.grad is None:
                 continue
 
-            self.is_bn_param = getattr(p, "name", None) in ("gamma", "beta")
-
-            # Apply weight decay (L1 or L2) to the gradient
-            if self.wd > 0 and not self.is_bn_param:
-                if self.l1:
-                    p.grad += self.wd * np.sign(p.data)
-                else:
-                    p.grad += self.wd * p.data
-
             # Update running average of squared gradients
             self.moments[i] = self.beta * self.moments[i] + (1.0 - self.beta) * (
                 p.grad**2
@@ -61,6 +49,13 @@ class RMSprop:
 
             # Parameter update
             p.data -= self.lr * (p.grad / (np.sqrt(self.moments[i]) + self.eps))
+
+            # Verify that they are not batch normalization layer parameters
+            self.is_bn_param = getattr(p, "name", None) in ("gamma", "beta")
+
+            # apply decoupled weight decay (L2)
+            if self.wd > 0 and not self.is_bn_param:
+                p.data -= self.lr * self.wd * p.data  # L2
 
     def zero_grad(self, set_to_none: bool = False) -> None:
         """Zero or clear gradients for all managed parameters."""

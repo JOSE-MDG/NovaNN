@@ -13,8 +13,7 @@ class Adam:
         betas: Coefficients for computing running averages of gradient and its square.
                First value (beta1) is for the gradient, second (beta2) for squared gradient.
                Default: (0.9, 0.999).
-        weight_decay: L2/L1 weight decay coefficient.
-        lambda_l1: If True use L1 weight decay, otherwise L2.
+        weight_decay: L2 coupled weight decay coefficient
         epsilon: Small constant for numerical stability.
     """
 
@@ -24,7 +23,6 @@ class Adam:
         lr: float,
         betas: Tuple[float, float] = (0.9, 0.999),
         weight_decay: float = 0,
-        lambda_l1: bool = False,
         epsilon: float = 1e-8,
     ) -> None:
 
@@ -32,7 +30,6 @@ class Adam:
         self.params: ListOfParameters = list(parameters)
         self.lr: float = float(lr)
         self.wd: float = float(weight_decay)
-        self.l1: bool = float(lambda_l1)
 
         # First and second moment buffers
         self.moments: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
@@ -52,14 +49,12 @@ class Adam:
             if p.grad is None:
                 continue
 
+            # Verify that they are not batch normalization layer parameters
             self.is_bn_param = getattr(p, "name", None) in ("gamma", "beta")
 
-            # Apply weight decay (L1 or L2) to the gradient
+            # Apply coupled weight decay
             if self.wd > 0 and not self.is_bn_param:
-                if self.l1:
-                    p.grad += self.wd * np.sign(p.data)
-                else:
-                    p.grad += self.wd * p.data
+                p.grad += self.wd * p.data  # L2
 
             # Update first and second moment estimates
             self.velocities[i] = self.b1 * self.velocities[i] + (1 - self.b1) * p.grad
