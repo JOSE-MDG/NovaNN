@@ -208,7 +208,7 @@ class Conv2d(Layer):
         col, out_height, out_width = self._im2col(x=x, x_shape=x.shape)
         w_col = self.weight.data.reshape(self.out_channels, -1)
 
-        # Convolution as Matrix Multiplication: (out_c, C*K*K) @ (C*K*K, N*L_out) -> (out_c, N*L_out)
+        # Convolution as Matrix Multiplication: (out_c, C*K*K) @ (C*K*K, N*out_h*out_w) -> (out_c, N*out_h*out_w)
         out = w_col @ col
         if self.bias is not None:
             out += self.bias.data
