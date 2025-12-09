@@ -20,10 +20,10 @@
  **NovaNN** cuenta con una estructura completamente **modular diseñada** para que sea lo más parecido a un framework
 
  El directorio `data/` está destinado a datasets como _Fashion-MNIST_ y _MNIST_. Dado que los archivos originales no se incluyen en el repositorio por su tamaño, puedes descargarlos desde **Kaggle** mediante los siguientes enlaces:
-    - [fasion-mnist-train](https://www.kaggle.com/datasets/zalando-research/fashionmnist?select=fashion-mnist_train.csv)
-    - [fasion-mnist-test](https://www.kaggle.com/datasets/zalando-research/fashionmnist?select=fashion-mnist_test.csv)
-    - [mnist-train](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv?select=mnist_train.csv)
-    - [mnist-test](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv?select=mnist_test.csv)
+  - [fasion-mnist-train](https://www.kaggle.com/datasets/zalando-research/fashionmnist?select=fashion-mnist_train.csv)
+  - [fasion-mnist-test](https://www.kaggle.com/datasets/zalando-research/fashionmnist?select=fashion-mnist_test.csv)
+  - [mnist-train](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv?select=mnist_train.csv)
+  - [mnist-test](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv?select=mnist_test.csv)
  
 
  El directorio `examples/` contiene scripts de ejemplos como **clasificación binaria**, **clasificación multiclase**, **regresión** y **capas convolucionales**.

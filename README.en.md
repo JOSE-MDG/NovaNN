@@ -20,10 +20,10 @@
  **NovaNN** features a completely **modular structure designed** to resemble a framework as closely as possible.
 
  The `data/` directory is intended for datasets such as _Fashion-MNIST_ and _MNIST_. Since the original files are not included in the repository due to their size, you can download them from **Kaggle** via the following links:
-    - [fasion-mnist-train](https://www.kaggle.com/datasets/zalando-research/fashionmnist?select=fashion-mnist_train.csv)
-    - [fasion-mnist-test](https://www.kaggle.com/datasets/zalando-research/fashionmnist?select=fashion-mnist_test.csv)
-    - [mnist-train](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv?select=mnist_train.csv)
-    - [mnist-test](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv?select=mnist_test.csv)
+  - [fasion-mnist-train](https://www.kaggle.com/datasets/zalando-research/fashionmnist?select=fashion-mnist_train.csv)
+  - [fasion-mnist-test](https://www.kaggle.com/datasets/zalando-research/fashionmnist?select=fashion-mnist_test.csv)
+  - [mnist-train](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv?select=mnist_train.csv)
+  - [mnist-test](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv?select=mnist_test.csv)
 
  The `examples/` directory contains example scripts such as **binary classification**, **multiclass classification**, **regression**, and **convolutional layers**.
 
@@ -1381,7 +1381,7 @@ Sequential(
 )
 """
 
-# 4. Set optimizer and hyperparameters
+# 4. Set optimizer and hyperparameterss
 lr = 1e-3
 batch_size = 128
 epochs = 10
