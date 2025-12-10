@@ -8,7 +8,7 @@ adhere to the standard forward/backward interface.
 
 from .activations import ReLU, LeakyReLU, Tanh, Softmax, Sigmoid
 from .linear import Linear
-from .bn import BatchNorm1d, BatchNorm2d
+from .batchnorm import BatchNorm1d, BatchNorm2d
 from .regularization import Dropout
 from .convolutional import Conv1d, Conv2d
 from .flatten import Flatten
