@@ -225,7 +225,6 @@ Contiene:
   - `Shape`: Forma de tensores (tupla de enteros)
   - `InitFn`: Firma de función de inicialización de pesos
   - `ListOfParameters`: Lista de parámetros entrenables
-  - `IntOrPair`: Entero o tupla para dimensiones flexibles
   - `KernelSize`, `Stride`, `Padding`: Tipos para capas convolucionales
   - `Optimizer`: Alias para optimizadores (Adam, SGD, RMSprop)
   - `LossFunc`: Alias para funciones de pérdida
