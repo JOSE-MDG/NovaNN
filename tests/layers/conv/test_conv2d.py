@@ -2,10 +2,7 @@ import numpy as np
 import pytest
 
 from novann.layers import Conv2d
-from novann.utils.gradient_checking import (
-    numeric_grad_wrt_param,
-    numeric_grad_scalar_wrt_x,
-)
+from novann.utils.gradient_checking import numeric_grad_wrt_param
 
 RNG = np.random.RandomState(0)
 
