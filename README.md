@@ -399,7 +399,7 @@ Contiene:
   - `forward`: Calcula `tanh(x)` y guarda en `out`
   - `backward`: Calcula gradiente usando `1 - tanh(x)^2`
 
-#### `📂 layers/📂 bn/`
+#### `📂 layers/📂 batchnorm/`
 
 **Implementaciones de Batch Normalization para diferentes dimensiones de entrada**
 
