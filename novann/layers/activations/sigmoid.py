@@ -1,6 +1,7 @@
 import numpy as np
-from typing import Optional
+import novann.functional as F
 
+from typing import Optional
 from novann.layers.activations import Activation
 
 
@@ -31,7 +32,7 @@ class Sigmoid(Activation):
         Returns:
             np.ndarray: Sigmoid applied element-wise.
         """
-        self.out = 1.0 / (1.0 + np.exp(-x))
+        self.out = F.sigmoid(x)
         return self.out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:

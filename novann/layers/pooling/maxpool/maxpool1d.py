@@ -1,6 +1,5 @@
 import numpy as np
-from numpy.lib.stride_tricks import as_strided
-from typing import Tuple
+import novann.functional as F
 from novann.module import Layer
 
 
@@ -31,46 +30,6 @@ class MaxPool1d(Layer):
         self.pm: str = padding_mode
         self._cache: dict = {}
 
-    def _add_padding(self, x: np.ndarray) -> np.ndarray:
-        """Applies padding to the input tensor."""
-        pad_width = ((0, 0), (0, 0), (self.padding, self.padding))
-        padding_modes = ("zeros", "reflect", "replicate", "circular")
-        if self.pm in padding_modes:
-            if self.pm == "zeros":
-                mode = "constant"
-            elif self.pm == "reflect":
-                mode = "reflect"
-            elif self.pm == "replicate":
-                mode = "edge"
-            else:
-                mode = "wrap"
-        else:
-            raise ValueError(
-                f"padding_mode Only accept {padding_modes} not '{self.pm}'"
-            )
-
-        return np.pad(array=x, pad_width=pad_width, mode=mode)
-
-    def _calc_out_length(self, L: int) -> int:
-        """Calculates the output length L_out."""
-        L_out = (L + 2 * self.padding - self.K) // self.stride + 1
-        return L_out
-
-    def _get_windows(self, x: np.ndarray) -> Tuple[np.ndarray, int, tuple]:
-        """Creates sliding windows using as_strided."""
-        N, C, L = x.shape
-        x_p = self._add_padding(x)
-        L_out = self._calc_out_length(L)
-
-        # Shape of the windows: (N, C, L_out, K)
-        shape = (N, C, L_out, self.K)
-        sN, sC, sL = x_p.strides
-        strides = (sN, sC, sL * self.stride, sL)
-
-        windows = as_strided(x_p, shape=shape, strides=strides)
-
-        return windows, L_out, x_p.shape
-
     def forward(self, x: np.ndarray) -> np.ndarray:
         """Forward pass for 1D Max Pooling.
 
@@ -81,11 +40,10 @@ class MaxPool1d(Layer):
             np.ndarray: Output array with shape (N, C, L_out).
         """
         x = x.astype(np.float32, copy=False)
-        windows, L_out, padded_shape = self._get_windows(x)
 
-        # Max operation over the kernel length (axis=3)
-        out = windows.max(axis=3)  # Shape (N, C, L_out)
-
+        out, windows, L_out, padded_shape = F.max_pool1d(
+            x, self.K, self.stride, self.padding, extras=True
+        )
         self._cache["x_shape"] = x.shape
         self._cache["windows"] = windows
         self._cache["L_out"] = L_out
@@ -110,7 +68,6 @@ class MaxPool1d(Layer):
         padded_shape = self._cache["padded_shape"]
         N, C, L = x_shape
 
-        # 1. Create a mask: find the max values within each window
         # max_vals shape: (N, C, L_out, 1)
         max_vals = windows.max(axis=3, keepdims=True)
         mask = (windows == max_vals).astype(np.float32)
@@ -120,10 +77,10 @@ class MaxPool1d(Layer):
         counts[counts == 0] = 1.0  # Avoid division by zero
         grad_output_expand = grad_output[:, :, :, np.newaxis]  # (N, C, L_out, 1)
 
-        # 2. Distribute gradient to max locations within the windows
+        # Distribute gradient to max locations within the windows
         grad_windows = mask * (grad_output_expand / counts)
 
-        # 3. Scatter (Col2Im equivalent): sum gradients back to the input
+        # scatter: sum gradients back to the input
         grad_input_padded = np.zeros(padded_shape, dtype=np.float32)
 
         # NOTE: Potential performance bottleneck (Python loop)

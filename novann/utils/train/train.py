@@ -78,6 +78,7 @@ def train(
         if metric is not None:
             net.eval()
             result = metric(net, eval_loader)
+            net.train()
 
         if verbose:
             if show_logs_every > 0:

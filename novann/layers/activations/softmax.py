@@ -1,6 +1,7 @@
 import numpy as np
-from typing import Optional
+import novann.functional as F
 
+from typing import Optional
 from novann.layers.activations import Activation
 
 
@@ -15,7 +16,7 @@ class Softmax(Activation):
         out (Optional[np.ndarray]): Cached output from the forward pass.
     """
 
-    def __init__(self, axis: int = 1) -> None:
+    def __init__(self, dim: int = 1) -> None:
         """Initialize SoftMax.
 
         Args:
@@ -24,7 +25,7 @@ class Softmax(Activation):
         super().__init__()
         self.affect_init = False
         self.out: Optional[np.ndarray] = None
-        self.axis: int = int(axis)
+        self.dim: int = int(dim)
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         """Forward pass: compute numerically stable softmax.
@@ -35,11 +36,7 @@ class Softmax(Activation):
         Returns:
             Softmax probabilities with same shape as `x`.
         """
-        logits_max = np.max(x, axis=self.axis, keepdims=True)
-        stable_logits = x - logits_max
-        logits_exp = np.exp(stable_logits)
-        logits_sum = np.sum(logits_exp, axis=self.axis, keepdims=True)
-        self.out = logits_exp / logits_sum
+        self.out = F.softmax(x, dim=self.dim)
         return self.out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
@@ -55,9 +52,9 @@ class Softmax(Activation):
             Gradient w.r.t. the input of this layer.
         """
 
-        s = np.sum(self.out * grad, axis=self.axis, keepdims=True)
+        s = np.sum(self.out * grad, axis=self.dim, keepdims=True)
         res = self.out * (grad - s)
         return res
 
     def __repr__(self):
-        return f"SoftMax(axis={self.axis})"
+        return f"SoftMax(dim={self.dim})"

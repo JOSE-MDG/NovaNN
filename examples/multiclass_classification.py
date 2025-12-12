@@ -1,42 +1,44 @@
 import numpy as np
-from novann.losses import CrossEntropyLoss
+import novann as nn
+import novann.optim as optim
+
 from novann.utils.data import DataLoader
+from novann.utils.train import train
 from novann.utils.datasets import load_mnist_data
-from novann.layers import Linear, ReLU, BatchNorm1d, Dropout
-from novann.model import Sequential
-from novann.optim import Adam
 from novann.utils.log_config import logger
 from novann.metrics import accuracy
+
+np.random.seed(8)  # Established for reproducibility
 
 # Load data
 (x_train, y_train), (x_test, y_test), (x_val, y_val) = load_mnist_data()
 
 # Data loaders
 train_loader = DataLoader(x_train, y_train, batch_size=64, shuffle=True)
-val_loader = DataLoader(x_val, y_val, batch_size=64, shuffle=False)
+val_loader = DataLoader(x_val, y_val, batch_size=64, shuffle=True)
 test_loader = DataLoader(x_test, y_test, batch_size=64, shuffle=False)
 
 # Define Model
-model = Sequential(
-    Linear(784, 256),
-    BatchNorm1d(256),
-    ReLU(),
-    Dropout(0.3),
-    Linear(256, 128),
-    BatchNorm1d(128),
-    ReLU(),
-    Dropout(0.3),
-    Linear(128, 64),
-    BatchNorm1d(64),
-    ReLU(),
-    Dropout(0.2),
-    Linear(64, 10),
+model = nn.Sequential(
+    nn.Linear(784, 256),
+    nn.BatchNorm1d(256),
+    nn.ReLU(),
+    nn.Dropout(0.3),
+    nn.Linear(256, 128),
+    nn.BatchNorm1d(128),
+    nn.ReLU(),
+    nn.Dropout(0.3),
+    nn.Linear(128, 64),
+    nn.BatchNorm1d(64),
+    nn.ReLU(),
+    nn.Dropout(0.2),
+    nn.Linear(64, 10),
 )
 
 # Hyperparameters
 learning_rate = 1e-3
-weight_decay = 1e-4
-optimizer = Adam(
+weight_decay = 1e-2
+optimizer = optim.AdamW(
     model.parameters(),
     lr=learning_rate,
     betas=(0.9, 0.999),
@@ -46,42 +48,18 @@ optimizer = Adam(
 epochs = 50
 
 # Loss function
-loss_fn = CrossEntropyLoss()
-
-model.train()
+loss_fn = nn.CrossEntropyLoss()
 
 # Training loop
-for epoch in range(epochs):
-    losses = []
-    for input, label in train_loader:
-        # Set gradients to None
-        optimizer.zero_grad()
-
-        # Foward pass
-        logits = model(input)
-
-        # Compute loss and gradients
-        loss, grad = loss_fn(logits, label)
-        losses.append(loss)
-
-        # Backward pass
-        model.backward(grad)
-
-        # Update parameters
-        optimizer.step()
-
-    # Average losses per epoch
-    avg_losses = np.mean(losses)
-
-    # Validation accuracy after each epoch
-    model.eval()
-    acc = accuracy(model, val_loader)
-
-    model.train()
-    if (epoch + 1) % 5 == 0:
-        logger.info(
-            f"Epoch {epoch + 1}/{epochs}, Loss: {avg_losses:.4f}, Validation Accuracy: {acc:.4f}"
-        )
+model = train(
+    train_loader=train_loader,
+    eval_loader=val_loader,
+    net=model,
+    optimizer=optimizer,
+    loss_fn=loss_fn,
+    epochs=epochs,
+    metric=accuracy,
+)
 
 # Final accuracy
 model.eval()

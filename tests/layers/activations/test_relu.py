@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
+import novann as nn
 
-from novann.layers import ReLU
+
 from novann.utils.gradient_checking import numeric_grad_elementwise
 
 RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
@@ -11,7 +12,7 @@ def test_relu_forward_backward_and_numeric():
     """Test forward and backward passes of ReLU layer with numerical validation."""
     # Create random input batch
     X = RNG.randn(6, 4)
-    act = ReLU()
+    act = nn.ReLU()
 
     # Forward: shape and non-negativity property
     Y = act(X)

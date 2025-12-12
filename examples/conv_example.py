@@ -1,22 +1,12 @@
 import numpy as np
-from novann.model import Sequential
-from novann.losses import CrossEntropyLoss
+import novann as nn
+import novann.optim as optim
+
 from novann.metrics import accuracy
-from novann.optim import Adam
 from novann.utils.train import train
 from novann.utils.data import DataLoader
 from novann.utils.log_config import logger
 from novann.utils.datasets import load_mnist_data
-from novann.layers import (
-    Linear,
-    ReLU,
-    Conv2d,
-    BatchNorm2d,
-    Flatten,
-    MaxPool2d,
-    BatchNorm1d,
-    Dropout,
-)
 
 np.random.seed(8)  # Established for reproducibility
 
@@ -36,28 +26,28 @@ val_loader = DataLoader(x_val, y_val, batch_size=256, shuffle=True)
 test_loader = DataLoader(x_test, y_test, batch_size=256, shuffle=False)
 
 # Create Model
-model = Sequential(
-    Conv2d(1, 16, 3, padding=1, bias=False),
-    BatchNorm2d(16),
-    ReLU(),
-    MaxPool2d(2, 2),
-    Conv2d(16, 32, 3, padding=1, bias=False),
-    BatchNorm2d(32),
-    ReLU(),
-    MaxPool2d(2, 2),
-    Flatten(),
-    Linear(32 * 7 * 7, 64, bias=False),
-    BatchNorm1d(64),
-    ReLU(),
-    Dropout(0.35),
-    Linear(64, 10),
+model = nn.Sequential(
+    nn.Conv2d(1, 16, 3, padding=1, bias=False),
+    nn.BatchNorm2d(16),
+    nn.ReLU(),
+    nn.MaxPool2d(2, 2),
+    nn.Conv2d(16, 32, 3, padding=1, bias=False),
+    nn.BatchNorm2d(32),
+    nn.ReLU(),
+    nn.MaxPool2d(2, 2),
+    nn.Flatten(),
+    nn.Linear(32 * 7 * 7, 64, bias=False),
+    nn.BatchNorm1d(64),
+    nn.ReLU(),
+    nn.Dropout(0.35),
+    nn.Linear(64, 10),
 )
 
 # Hyperparameters
 epochs = 10
 learning_rate = 1e-3
-weight_decay = 1e-4
-optimizer = Adam(
+weight_decay = 1e-2
+optimizer = optim.AdamW(
     model.parameters(),
     lr=learning_rate,
     betas=(0.9, 0.999),
@@ -66,7 +56,7 @@ optimizer = Adam(
 )
 
 # Loss function
-loss_fn = CrossEntropyLoss()
+loss_fn = nn.CrossEntropyLoss()
 
 trained_model = train(
     train_loader=train_loader,

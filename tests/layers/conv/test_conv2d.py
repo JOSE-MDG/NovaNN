@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
+import novann as nn
 
-from novann.layers import Conv2d
 from novann.utils.gradient_checking import numeric_grad_wrt_param
 
 RNG = np.random.RandomState(0)
@@ -9,7 +9,7 @@ RNG = np.random.RandomState(0)
 
 def test_conv2d_forward_shape():
     """Test forward pass output shape."""
-    layer = Conv2d(
+    layer = nn.Conv2d(
         in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1, bias=True
     )
 
@@ -30,7 +30,7 @@ def test_conv2d_forward_shape():
 
 def test_conv2d_forward_no_bias():
     """Test forward pass without bias."""
-    layer = Conv2d(
+    layer = nn.Conv2d(
         in_channels=2, out_channels=4, kernel_size=5, stride=2, padding=0, bias=False
     )
 
@@ -46,7 +46,7 @@ def test_conv2d_forward_no_bias():
 def test_conv2d_backward_gradient_check_small():
     """Gradient checking for Conv2d layer with small input."""
 
-    layer = Conv2d(
+    layer = nn.Conv2d(
         in_channels=2, out_channels=3, kernel_size=3, stride=1, padding=1, bias=True
     )
 
@@ -93,7 +93,7 @@ def test_conv2d_different_kernel_stride_padding():
     ]
 
     for config in test_cases:
-        layer = Conv2d(
+        layer = nn.Conv2d(
             in_channels=2,
             out_channels=4,
             kernel_size=config["kernel"],
@@ -115,7 +115,7 @@ def test_conv2d_padding_modes():
     """Test different padding modes."""
     # Test basic padding modes
     for padding_mode in ("zeros", "reflect", "replicate", "circular"):
-        layer = Conv2d(
+        layer = nn.Conv2d(
             in_channels=1,
             out_channels=2,
             kernel_size=3,
@@ -135,14 +135,14 @@ def test_conv2d_padding_modes():
 def test_conv2d_parameters():
     """Test parameters() method returns correct list."""
     # With bias
-    layer_with_bias = Conv2d(in_channels=3, out_channels=5, kernel_size=3, bias=True)
+    layer_with_bias = nn.Conv2d(in_channels=3, out_channels=5, kernel_size=3, bias=True)
     params = layer_with_bias.parameters()
     assert len(params) == 2, f"Expected 2 parameters, got {len(params)}"
     assert params[0] is layer_with_bias.weight
     assert params[1] is layer_with_bias.bias
 
     # Without bias
-    layer_no_bias = Conv2d(in_channels=3, out_channels=5, kernel_size=3, bias=False)
+    layer_no_bias = nn.Conv2d(in_channels=3, out_channels=5, kernel_size=3, bias=False)
     params = layer_no_bias.parameters()
     assert len(params) == 1, f"Expected 1 parameter, got {len(params)}"
     assert params[0] is layer_no_bias.weight

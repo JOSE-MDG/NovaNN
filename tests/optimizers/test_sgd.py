@@ -1,9 +1,7 @@
 import numpy as np
+import novann as nn
+import novann.optim as optim
 import pytest
-
-from novann.optim import SGD
-from novann.layers import Linear
-from novann.model import Sequential
 
 RNG = np.random.RandomState(8)
 
@@ -12,13 +10,13 @@ def test_sgd_basic_update():
     """Test that SGD updates parameters correctly."""
 
     # Create a simple model
-    model = Sequential(
-        Linear(in_features=10, out_features=5, bias=True),
-        Linear(in_features=5, out_features=2, bias=True),
+    model = nn.Sequential(
+        nn.Linear(in_features=10, out_features=5, bias=True),
+        nn.Linear(in_features=5, out_features=2, bias=True),
     )
 
     # Create optimizer
-    optimizer = SGD(model.parameters(), lr=0.01)
+    optimizer = optim.SGD(model.parameters(), lr=0.01)
 
     # Store initial weights
     initial_params = [p.data.copy() for p in model.parameters()]
@@ -49,10 +47,10 @@ def test_sgd_with_momentum():
     """Test SGD with momentum."""
 
     # Simple linear layer
-    layer = Linear(in_features=5, out_features=3, bias=True)
+    layer = nn.Linear(in_features=5, out_features=3, bias=True)
 
     # SGD with momentum
-    optimizer = SGD(layer.parameters(), lr=0.01, momentum=0.9)
+    optimizer = optim.SGD(layer.parameters(), lr=0.01, momentum=0.9)
 
     # Multiple steps to see momentum effect
     initial_weight = layer.weight.data.copy()
@@ -81,10 +79,10 @@ def test_sgd_with_momentum():
 
 def test_sgd_gradient_clipping():
     """Test that gradients are clipped to max_norm."""
-    layer = Linear(10, 1)
+    layer = nn.Linear(10, 1)
 
     # Configure very aggressive clipping (very small max_norm)
-    optimizer = SGD(layer.parameters(), lr=0.1, max_grad_norm=1.0)
+    optimizer = optim.SGD(layer.parameters(), lr=0.1, max_grad_norm=1.0)
 
     # Create a giant gradient
     layer.weight.grad = np.full_like(layer.weight.data, 100.0)
@@ -103,8 +101,8 @@ def test_sgd_gradient_clipping():
 
 def test_sgd_zero_grad():
     """Test zero_grad method."""
-    layer = Linear(in_features=4, out_features=2)
-    optimizer = SGD(layer.parameters(), lr=0.01)
+    layer = nn.Linear(in_features=4, out_features=2)
+    optimizer = optim.SGD(layer.parameters(), lr=0.01)
 
     # Create some gradients
     x = RNG.randn(1, 4).astype(np.float32)

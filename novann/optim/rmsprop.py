@@ -18,7 +18,7 @@ class RMSprop:
         self,
         parameters: IterableParameters,
         lr: float,
-        beta: BetaCoefficients = 0.9,  # Corregí el tipo: BetaCoefficients -> float
+        beta: BetaCoefficients = 0.9,
         weight_decay: float = 0,
         epsilon: float = 1e-9,
     ) -> None:
@@ -30,7 +30,7 @@ class RMSprop:
         self.eps: float = float(epsilon)
 
         # Initialize squared gradient buffers
-        self.moments: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
+        self.s_t: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
 
     def step(self) -> None:
         """Performs a single optimization step."""
@@ -39,12 +39,10 @@ class RMSprop:
                 continue
 
             # Update running average of squared gradients
-            self.moments[i] = self.beta * self.moments[i] + (1.0 - self.beta) * (
-                p.grad**2
-            )
+            self.s_t[i] = self.beta * self.s_t[i] + (1.0 - self.beta) * (p.grad**2)
 
             # RMSprop update
-            p.data -= self.lr * (p.grad / (np.sqrt(self.moments[i]) + self.eps))
+            p.data = p.data - (self.lr / np.sqrt(self.s_t[i] + self.eps)) * p.grad
 
             # Apply decoupled weight decay (skip BatchNorm parameters)
             is_bn_param = getattr(p, "name", None) in ("gamma", "beta")

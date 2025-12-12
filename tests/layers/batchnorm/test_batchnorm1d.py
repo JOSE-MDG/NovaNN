@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
+import novann as nn
 
-from novann.layers import BatchNorm1d
 from novann.utils.gradient_checking import numeric_grad_wrt_param
 
 RNG = np.random.RandomState(8)
@@ -13,7 +13,7 @@ def test_batchnorm1d_forward_train_mode():
     batch_size = 512
 
     # Initialize layer
-    bn = BatchNorm1d(num_features)
+    bn = nn.BatchNorm1d(num_features)
     bn.train()  # Set to training mode
 
     # Random input
@@ -51,7 +51,7 @@ def test_batchnorm1d_forward_eval_mode():
     num_features = 6
 
     # Initialize layer
-    bn = BatchNorm1d(num_features)
+    bn = nn.BatchNorm1d(num_features)
 
     # First update running stats in train mode
     bn.train()
@@ -83,7 +83,7 @@ def test_batchnorm1d_backward_gradient_check():
     batch_size = 8
 
     # Initialize layer in training mode
-    bn = BatchNorm1d(num_features)
+    bn = nn.BatchNorm1d(num_features)
     bn.train()
 
     # Small input for faster computation
@@ -122,7 +122,7 @@ def test_batchnorm1d_momentum_and_eps():
     num_features = 3
 
     # Test with custom momentum and epsilon
-    bn = BatchNorm1d(num_features, momentum=0.9, eps=1e-3)
+    bn = nn.BatchNorm1d(num_features, momentum=0.9, eps=1e-3)
     assert bn.momentum == 0.9, f"Momentum should be 0.9, got {bn.momentum}"
     assert bn.eps == 1e-3, f"Epsilon should be 1e-3, got {bn.eps}"
 
@@ -136,7 +136,7 @@ def test_batchnorm1d_momentum_and_eps():
 def test_batchnorm1d_parameters():
     """Test parameters() method returns correct list."""
     # With affine parameters
-    bn = BatchNorm1d(num_features=4)
+    bn = nn.BatchNorm1d(num_features=4)
     params = bn.parameters()
 
     if bn.gamma is not None and bn.beta is not None:

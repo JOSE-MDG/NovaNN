@@ -25,7 +25,7 @@ class AdamW:
         # Materialize parameters to a list
         self.params: ListOfParameters = list(parameters)
         self.lr: float = float(lr)
-        self.wd: float = float(weight_decay)  # Renombré wb -> wd para consistencia
+        self.wd: float = float(weight_decay)
 
         # Beta coefficients
         self.b1: float = float(betas[0])
@@ -33,8 +33,8 @@ class AdamW:
         self.eps: float = float(epsilon)
 
         # First and second moment buffers
-        self.moments: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
-        self.velocities: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
+        self.m_t: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
+        self.v_t: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
 
         self.t: int = 0  # Time step counter
 
@@ -46,21 +46,23 @@ class AdamW:
             if p.grad is None:
                 continue
 
+            # Skip BatchNorm parameters for weight decay
+            is_bn_param = getattr(p, "name", None) in ("gamma", "beta")
+
             # Update moment estimates
-            self.velocities[i] = self.b1 * self.velocities[i] + (1 - self.b1) * p.grad
-            self.moments[i] = self.b2 * self.moments[i] + (1 - self.b2) * (p.grad**2)
+            self.m_t[i] = self.b1 * self.m_t[i] + (1 - self.b1) * p.grad
+            self.v_t[i] = self.b2 * self.v_t[i] + (1 - self.b2) * (p.grad**2)
 
             # Bias correction
-            m_hat = self.velocities[i] / (1 - self.b1**self.t)
-            v_hat = self.moments[i] / (1 - self.b2**self.t)
+            m_hat = self.m_t[i] / (1 - self.b1**self.t)
+            v_hat = self.v_t[i] / (1 - self.b2**self.t)
 
-            # Adam update
-            p.data -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)  # ¡Corregí esto!
+            # Parameter update
+            p.data -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
 
             # Apply decoupled weight decay (skip BatchNorm parameters)
-            is_bn_param = getattr(p, "name", None) in ("gamma", "beta")
             if self.wd > 0 and not is_bn_param:
-                p.data -= self.lr * self.wd * p.data  # Decoupled L2
+                p.data -= self.lr * self.wd * p.data
 
     def zero_grad(self, set_to_none: bool = False):
         """Clears gradients of all optimized parameters."""

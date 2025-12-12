@@ -1,9 +1,9 @@
 import numpy as np
-from numpy.lib.stride_tricks import as_strided
+import novann.functional as F
 from novann.module import Layer, Parameters
-from typing import Optional
-from novann._typing import InitFn, Shape, ListOfParameters, KernelSize, Stride, Padding
+from novann._typing import InitFn, ListOfParameters, KernelSize, Stride, Padding
 from novann.core import DEFAULT_UNIFORM_INIT_MAP
+from typing import Optional
 
 
 class Conv1d(Layer):
@@ -69,57 +69,6 @@ class Conv1d(Layer):
         else:
             self.bias = None
 
-    def _calc_out_size(self, L: int) -> int:
-        """Calculates the output length L_out."""
-        L_out = (L + 2 * self.padding - self.K) // self.stride + 1
-        return L_out
-
-    def _add_padding(self, x: np.ndarray) -> np.ndarray:
-        """Applies padding to the input tensor."""
-        pad_width = ((0, 0), (0, 0), (self.padding, self.padding))
-        padding_modes = ("zeros", "reflect", "replicate", "circular")
-        if self.pm in padding_modes:
-            if self.pm == "zeros":
-                mode = "constant"
-            elif self.pm == "reflect":
-                mode = "reflect"
-            elif self.pm == "replicate":
-                mode = "edge"
-            else:
-                mode = "wrap"
-        else:
-            raise ValueError(
-                f"padding_mode Only accept {padding_modes} not '{self.pm}'"
-            )
-
-        return np.pad(array=x, pad_width=pad_width, mode=mode)
-
-    def _im2col(self, x: np.ndarray, x_shape: Shape) -> tuple[np.ndarray, int]:
-        """Performs im2col transformation for 1D convolution.
-
-        Args:
-            x: Input tensor (N, C, L).
-            x_shape: Original shape of x.
-
-        Returns:
-            Tuple: (col matrix, output length L_out).
-        """
-        N, C, L = x_shape
-        x_p = self._add_padding(x)
-        L_out = self._calc_out_size(L)
-
-        self._cache["x_p_shape"] = x_p.shape
-
-        # Use as_strided to create sliding windows
-        shape = (N, C, L_out, self.K)
-        sN, sC, sL = x_p.strides
-        strides = (sN, sC, sL * self.stride, sL)
-        windows = as_strided(x_p, shape=shape, strides=strides)
-
-        # Reshape to column matrix (C*K, N*L_out)
-        col = windows.transpose(1, 3, 0, 2).reshape(C * self.K, -1)
-        return col, L_out
-
     def _col2im(self, col: np.ndarray) -> np.ndarray:
         """Transforms column matrix back to padded image shape for gradient computation.
 
@@ -160,22 +109,24 @@ class Conv1d(Layer):
             np.ndarray: Output array with shape (N, C_out, L_out).
         """
         x = x.astype(np.float32, copy=False)
-        N, _, _ = x.shape
-        col, L_out = self._im2col(x, x.shape)
-        w_col = self.weight.data.reshape(self.out_channels, -1)
-
-        # Convolution as Matrix Multiplication: (out_c, C*K) @ (C*K, N*L_out) -> (out_c, N*L_out)
-        out = w_col @ col
-        if self.bias is not None:
-            out += self.bias.data
 
         # Reshape back to (N, C_out, L_out)
-        out = out.reshape(self.out_channels, N, L_out).transpose(1, 0, 2)
+        out, col, w_col, L_out, x_p_shape = F.conv1d(
+            x,
+            self.weight,
+            self.K,
+            self.stride,
+            self.padding,
+            padding_mode=self.pm,
+            bias=self.bias,
+            extras=True,
+        )
 
         self._cache["col"] = col
         self._cache["w_col"] = w_col
         self._cache["x_shape"] = x.shape
         self._cache["L_out"] = L_out
+        self._cache["x_p_shape"] = x_p_shape
 
         return out
 

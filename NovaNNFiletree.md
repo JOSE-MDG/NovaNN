@@ -4,13 +4,22 @@
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
+📁 NovaNN
+├── 📁 data
+│   ├── 📁 FashionMnist
+│   │   └── .gitkeep
+│   └── 📁 Mnist
+│       └── .gitkeep
 ├── 📁 examples
 │   ├── 🐍 binary_classification.py
 │   ├── 🐍 conv_example.py
 │   ├── 🐍 multiclass_classification.py
 │   └── 🐍 regresion.py
 ├── 📁 images
+│   ├── 🖼️ NovaNN Banners.png
 │   └── 🖼️ metrics.png
+├── 📁 logs
+│   └── logs.log
 ├── 📁 notebooks
 │   └── 📄 exploration.ipynb
 ├── 📁 novann
@@ -30,7 +39,7 @@
 │   │   │   ├── 🐍 sigmoid.py
 │   │   │   ├── 🐍 softmax.py
 │   │   │   └── 🐍 tanh.py
-│   │   ├── 📁 bn
+│   │   ├── 📁 batchnorm
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 batchnorm1d.py
 │   │   │   └── 🐍 batchnorm2d.py
@@ -60,7 +69,7 @@
 │   │   └── 🐍 __init__.py
 │   ├── 📁 losses
 │   │   ├── 🐍 __init__.py
-│   │   └── 🐍 functional.py
+│   │   └── 🐍 loss_functions.py
 │   ├── 📁 metrics
 │   │   ├── 🐍 __init__.py
 │   │   └── 🐍 metrics.py
@@ -93,7 +102,8 @@
 │   │   ├── 📁 visualizations
 │   │   │   └── 🐍 visualization.py
 │   │   └── 🐍 __init__.py
-│   └── 🐍 __init__.py
+│   ├── 🐍 __init__.py
+│   └── 🐍 functional.py
 ├── 📁 tests
 │   ├── 📁 initializers
 │   │   └── 🐍 test_init.py
@@ -104,7 +114,7 @@
 │   │   │   ├── 🐍 test_sigmoid.py
 │   │   │   ├── 🐍 test_softmax.py
 │   │   │   └── 🐍 test_tanh.py
-│   │   ├── 📁 batch_norm
+│   │   ├── 📁 batchnorm
 │   │   │   ├── 🐍 test_batchnorm1d.py
 │   │   │   └── 🐍 test_batchnorm2d.py
 │   │   ├── 📁 conv

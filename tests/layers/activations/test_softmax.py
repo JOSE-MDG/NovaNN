@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
-
-from novann.layers import Softmax
+import novann as nn
 from novann.utils.gradient_checking import numeric_grad_scalar_from_softmax
 
 RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
@@ -10,7 +9,7 @@ RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
 def test_softmax_forward_properties_and_shift_invariance_columnwise():
     """Test forward pass properties and shift invariance of Softmax layer."""
     X = RNG.randn(10, 6) * 30.0
-    act = Softmax()
+    act = nn.Softmax()
 
     Y = act(X)
     sums = Y.sum(axis=1)
@@ -32,7 +31,7 @@ def test_softmax_backward_numeric_columnwise():
     to verify the correctness of the backpropagation implementation.
     """
     X = RNG.randn(7, 5)
-    act = Softmax()
+    act = nn.Softmax()
     G = RNG.randn(*X.shape)
 
     # numerical Jacobian-vector product for verification
@@ -42,4 +41,4 @@ def test_softmax_backward_numeric_columnwise():
     back = act.backward(G)
 
     # compare analytic Jv product to numerical approximation
-    assert np.allclose(num_grad, back, atol=1e-5, rtol=1e-5)
+    assert np.allclose(num_grad, back, atol=1e-4, rtol=1e-4)

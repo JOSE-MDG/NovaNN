@@ -1,7 +1,8 @@
 import numpy as np
-from typing import Optional, Tuple
+import novann as nn
+import novann.functional as F
 
-from novann.layers import Softmax
+from typing import Optional, Tuple
 
 
 class CrossEntropyLoss:
@@ -47,10 +48,10 @@ class CrossEntropyLoss:
         self.y_one_hot = y
 
         # numerically stable softmax
-        self.y_hat = Softmax().forward(logits)
+        self.y_hat = F.softmax(logits, dim=1)
 
         # Cross entropy formula
-        loss = -np.sum(self.y_one_hot * np.log(self.y_hat + self.eps)) / self.N
+        loss = F.cross_entropy(self.y_hat, self.y_one_hot)
         return np.float32(loss)
 
     def backward(self) -> np.ndarray:
@@ -83,13 +84,12 @@ class MSE:
     def __init__(self) -> None:
         self.logits: Optional[np.ndarray] = None
         self.targets: Optional[np.ndarray] = None
-        self.N: int = 0
 
     def forward(self, logits: np.ndarray, targets: np.ndarray) -> np.float32:
-        self.N = int(logits.shape[0])
         self.logits = logits
         self.targets = targets
-        return np.float32(np.sum((logits - targets) ** 2) / self.N)
+        self.N: int = logits.shape[0]
+        return F.mse_loss(logits, targets)
 
     def backward(self) -> np.ndarray:
         if self.logits is None or self.targets is None:
@@ -111,13 +111,12 @@ class MAE:
     def __init__(self) -> None:
         self.logits: Optional[np.ndarray] = None
         self.targets: Optional[np.ndarray] = None
-        self.N: int = 0
 
     def forward(self, logits: np.ndarray, targets: np.ndarray) -> float:
-        self.N = int(logits.shape[0])
         self.logits = logits
         self.targets = targets
-        return np.mean(np.abs(logits - targets), dtype=np.float32)
+        self.N: int = logits.shape[0]
+        return F.l1_loss(logits, targets)
 
     def backward(self) -> np.ndarray:
         if self.logits is None or self.targets is None:
@@ -151,12 +150,8 @@ class BinaryCrossEntropy:
         self.y = targets
         self.p = probs
 
-        # Compute loss
-        loss = -np.mean(
-            self.y * np.log(self.p + self.eps)
-            + (1 - self.y) * np.log(1 - self.p + self.eps)
-        )
-        return np.float32(loss)
+        # return loss
+        return F.binary_cross_entropy(probs, targets)
 
     def backward(self) -> np.ndarray:
         if self.p is None or self.y is None:

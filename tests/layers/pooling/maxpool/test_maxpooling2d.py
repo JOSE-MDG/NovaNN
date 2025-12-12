@@ -1,7 +1,6 @@
 import numpy as np
+import novann as nn
 import pytest
-
-from novann.layers import MaxPool2d
 from novann.utils.gradient_checking import numeric_grad_scalar_wrt_x
 
 
@@ -10,7 +9,7 @@ RNG = np.random.RandomState(8)
 
 def test_maxpool2d_forward_shape():
     """Test forward pass output shape."""
-    layer = MaxPool2d(kernel_size=2, stride=2, padding=0)
+    layer = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
     x = RNG.randn(4, 3, 10, 10).astype(np.float32)
     output = layer(x)
 
@@ -20,7 +19,7 @@ def test_maxpool2d_forward_shape():
 
 def test_maxpool2d_forward_padding():
     """Test forward pass with padding."""
-    layer = MaxPool2d(kernel_size=3, stride=1, padding=1)
+    layer = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
     x = RNG.randn(2, 4, 5, 5).astype(np.float32)
     output = layer(x)
 
@@ -30,7 +29,7 @@ def test_maxpool2d_forward_padding():
 
 def test_maxpool2d_backward_gradient():
     """Gradient checking for MaxPool2d input gradient."""
-    layer = MaxPool2d(kernel_size=2, stride=2, padding=0)
+    layer = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
 
     x = RNG.randn(2, 3, 6, 6).astype(np.float32) * 0.1
     output = layer(x)
@@ -39,7 +38,7 @@ def test_maxpool2d_backward_gradient():
     analytic_grad = layer.backward(G)
 
     # Numerical gradient
-    layer_copy = MaxPool2d(kernel_size=2, stride=2, padding=0)
+    layer_copy = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
     numeric_grad = numeric_grad_scalar_wrt_x(
         lambda x_input: layer_copy(x_input), x, G, eps=1e-5
     )

@@ -1,23 +1,10 @@
 import json
-from novann.model import Sequential
-from novann.losses import CrossEntropyLoss
-from novann.optim import Adam
+import novann as nn
+import novann.optim as optim
 from novann.utils.data import DataLoader
 from novann.utils.datasets import load_mnist_data
 from novann.utils.log_config import logger
 from novann.metrics import accuracy
-from novann.layers import (
-    Linear,
-    ReLU,
-    BatchNorm2d,
-    BatchNorm1d,
-    MaxPool2d,
-    Dropout,
-    Conv2d,
-    MaxPool2d,
-    GlobalAvgPool2d,
-    Flatten,
-)
 
 # History records
 accuracy_history = []
@@ -34,28 +21,28 @@ val_loader = DataLoader(x_val, y_val, batch_size=128, shuffle=True)
 test_loader = DataLoader(x_test, y_test, batch_size=128, shuffle=False)
 
 # Define model
-model = Sequential(
+model = nn.Sequential(
     # Block 1: 28x28x1 -> 28x28x16
-    Conv2d(1, 16, 3, padding=1, bias=False),
-    BatchNorm2d(16),
-    ReLU(),
+    nn.Conv2d(1, 16, 3, padding=1, bias=False),
+    nn.BatchNorm2d(16),
+    nn.ReLU(),
     # Block 2: 28x28x16 -> 14x14x32
-    Conv2d(16, 32, 3, padding=1, stride=2, bias=False),  # Stride for Downsampling
-    BatchNorm2d(32),
-    ReLU(),
-    MaxPool2d(2, 2),  # 14x14 -> 7x7
+    nn.Conv2d(16, 32, 3, padding=1, stride=2, bias=False),  # Stride for Downsampling
+    nn.BatchNorm2d(32),
+    nn.ReLU(),
+    nn.MaxPool2d(2, 2),  # 14x14 -> 7x7
     # Block 3: 7x7x32 -> 7x7x64
-    Conv2d(32, 64, 3, padding=1, bias=False),
-    BatchNorm2d(64),
-    ReLU(),
+    nn.Conv2d(32, 64, 3, padding=1, bias=False),
+    nn.BatchNorm2d(64),
+    nn.ReLU(),
     # classification layers
-    GlobalAvgPool2d(),  # 7x7x64 -> 1x1x64 (Global Average Pooling)
-    Flatten(),  # Vector of 64 elements
-    Linear(64, 32, bias=False),
-    BatchNorm1d(32),
-    ReLU(),
-    Dropout(0.5),
-    Linear(32, 10),  # 10 classes
+    nn.GlobalAvgPool2d(),  # 7x7x64 -> 1x1x64 (Global Average Pooling)
+    nn.Flatten(),  # Vector of 64 elements
+    nn.Linear(64, 32, bias=False),
+    nn.BatchNorm1d(32),
+    nn.ReLU(),
+    nn.Dropout(0.5),
+    nn.Linear(32, 10),  # 10 classes
 )
 
 count = 0
@@ -69,9 +56,9 @@ logger.info(f"The model have {count} parametrs")
 model.train()
 
 # Hyperparameters
-lr = 1e-4
-weight_decay = 1e-5
-optimizer = Adam(
+lr = 1e-3
+weight_decay = 1e-2
+optimizer = optim.AdamW(
     model.parameters(),
     lr=lr,
     betas=(0.9, 0.999),
@@ -81,7 +68,7 @@ optimizer = Adam(
 epochs = 50
 
 # Loss function
-loss_fn = CrossEntropyLoss()
+loss_fn = nn.CrossEntropyLoss()
 
 # Training loop
 for epoch in range(epochs):
@@ -123,12 +110,11 @@ logger.info(
 )
 
 # Save training history within a JSON file for later comparison
-history = {
-    "accuracy": [float(acc) for acc in accuracy_history],
-    "loss": [float(l) for l in loss_history],
-}
-with open("training_history.json", "w") as f:
+history = {"accuracy": accuracy_history, "loss": loss_history}
+
+with open("./training_history.json", "w") as f:
     json.dump(history, f)
+print("Training history saved as `pytorch_training_history.json` ")
 
 logger.info(
     "Training history saved to `training_history.json` ",

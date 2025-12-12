@@ -1,7 +1,7 @@
 import numpy as np
+import novann as nn
 import pytest
 
-from novann.layers.pooling import GlobalAvgPool2d
 from novann.utils.gradient_checking import numeric_grad_scalar_wrt_x
 
 RNG = np.random.RandomState(8)
@@ -9,7 +9,7 @@ RNG = np.random.RandomState(8)
 
 def test_global_avg_pool2d_forward_shape():
     """Test forward pass output shape."""
-    layer = GlobalAvgPool2d()
+    layer = nn.GlobalAvgPool2d()
     x = RNG.randn(4, 3, 10, 12).astype(np.float32)
     output = layer(x)
 
@@ -18,7 +18,7 @@ def test_global_avg_pool2d_forward_shape():
 
 def test_global_avg_pool2d_forward_values():
     """Test forward pass numerical values."""
-    layer = GlobalAvgPool2d()
+    layer = nn.GlobalAvgPool2d()
 
     # Test with constant values
     x = np.ones((2, 3, 4, 5), dtype=np.float32) * 3.0
@@ -29,7 +29,7 @@ def test_global_avg_pool2d_forward_values():
 
 def test_global_avg_pool2d_backward_gradient():
     """Gradient checking for GlobalAvgPool2d."""
-    layer = GlobalAvgPool2d()
+    layer = nn.GlobalAvgPool2d()
 
     x = RNG.randn(2, 3, 6, 6).astype(np.float32) * 0.1
     output = layer(x)
@@ -38,7 +38,7 @@ def test_global_avg_pool2d_backward_gradient():
     analytic_grad = layer.backward(G)
 
     # Numerical gradient
-    layer_copy = GlobalAvgPool2d()
+    layer_copy = nn.GlobalAvgPool2d()
 
     numeric_grad = numeric_grad_scalar_wrt_x(
         lambda x_input: layer_copy(x_input), x, G, eps=1e-5
@@ -53,7 +53,7 @@ def test_global_avg_pool2d_backward_gradient():
 
 def test_global_avg_pool2d_uniform_gradient():
     """Test that gradient is uniformly distributed."""
-    layer = GlobalAvgPool2d()
+    layer = nn.GlobalAvgPool2d()
 
     x = RNG.randn(1, 2, 4, 5).astype(np.float32)
     layer(x)

@@ -1,4 +1,6 @@
 import numpy as np
+import novann.functional as F
+
 from novann.module import Layer
 from typing import Optional
 
@@ -29,10 +31,8 @@ class Flatten(Layer):
         """
         # Cache the input shape (N, D1, D2, ...)
         self._origin_shape = x.shape
-        N = x.shape[0]
 
-        # Reshape to (N, -1), where -1 is the product of all remaining dimensions
-        return x.reshape(N, -1)
+        return F.flatten(x)
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
         """Backward pass: unflatten the gradient to the original input shape.

@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
-
-from novann.layers import BatchNorm2d
+import novann as nn
 from novann.utils.gradient_checking import numeric_grad_wrt_param
 
 RNG = np.random.RandomState(8)
@@ -15,7 +14,7 @@ def test_batchnorm2d_forward_train_mode():
     H, W = 32, 32
 
     # Initialize layer
-    bn = BatchNorm2d(num_channels)
+    bn = nn.BatchNorm2d(num_channels)
     bn.train()  # Set to training mode
 
     # Random input (N, C, H, W)
@@ -55,7 +54,7 @@ def test_batchnorm2d_forward_eval_mode():
     num_channels = 6
 
     # Initialize layer
-    bn = BatchNorm2d(num_channels)
+    bn = nn.BatchNorm2d(num_channels)
 
     # First update running stats in train mode
     bn.train()
@@ -88,7 +87,7 @@ def test_batchnorm2d_backward_gradient_check():
     H, W = 8, 8
 
     # Initialize layer in training mode
-    bn = BatchNorm2d(num_channels)
+    bn = nn.BatchNorm2d(num_channels)
     bn.train()
 
     # Small input for faster computation
@@ -128,7 +127,7 @@ def test_batchnorm2d_momentum_and_eps():
     num_channels = 3
 
     # Test with custom momentum and epsilon
-    bn = BatchNorm2d(num_channels, momentum=0.9, eps=1e-3)
+    bn = nn.BatchNorm2d(num_channels, momentum=0.9, eps=1e-3)
     assert bn.momentum == 0.9, f"Momentum should be 0.9, got {bn.momentum}"
     assert bn.eps == 1e-3, f"Epsilon should be 1e-3, got {bn.eps}"
 
@@ -142,7 +141,7 @@ def test_batchnorm2d_momentum_and_eps():
 def test_batchnorm2d_different_spatial_sizes():
     """Test BatchNorm2d with different spatial dimensions."""
     num_channels = 4
-    bn = BatchNorm2d(num_channels)
+    bn = nn.BatchNorm2d(num_channels)
     bn.train()
 
     # Test with different spatial sizes
@@ -166,7 +165,7 @@ def test_batchnorm2d_different_spatial_sizes():
 def test_batchnorm2d_parameters():
     """Test parameters() method for BatchNorm2d."""
     # With affine parameters
-    bn = BatchNorm2d(num_features=4)
+    bn = nn.BatchNorm2d(num_features=4)
     params = bn.parameters()
 
     if bn.gamma is not None and bn.beta is not None:

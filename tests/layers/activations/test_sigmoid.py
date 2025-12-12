@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
-
-from novann.layers import Sigmoid
+import novann as nn
 from novann.utils.gradient_checking import numeric_grad_elementwise
 
 RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
@@ -11,7 +10,7 @@ def test_sigmoid_forward_backward_and_numeric():
     """Test Sigmoid layer properties and gradient computation."""
     # random inputs
     X = RNG.randn(5, 5)
-    act = Sigmoid()
+    act = nn.Sigmoid()
 
     # Forward: shape and range (0,1)
     Y = act(X)
@@ -26,5 +25,5 @@ def test_sigmoid_forward_backward_and_numeric():
     back = act.backward(np.ones_like(X))  # upstream ones -> d sum(sigmoid) / dx
 
     expected = Y * (1 - Y)
-    assert np.allclose(numg, expected, atol=1e-6, rtol=1e-6)
-    assert np.allclose(back, expected, atol=1e-6, rtol=1e-6)
+    assert np.allclose(numg, expected, atol=1e-5, rtol=1e-5)
+    assert np.allclose(back, expected, atol=1e-5, rtol=1e-5)

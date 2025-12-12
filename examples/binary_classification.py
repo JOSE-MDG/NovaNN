@@ -1,13 +1,16 @@
 import numpy as np
-from novann.losses import BinaryCrossEntropy
+import novann as nn
+import novann.optim as optim
+
 from novann.utils.data import DataLoader
+from novann.utils.train import train
 from novann.utils.log_config import logger
-from novann.model import Sequential
-from novann.layers import Linear, Sigmoid, Tanh, Dropout
 from novann.metrics import binary_accuracy
-from novann.optim import Adam
+
 from sklearn.datasets import make_moons
 from sklearn.model_selection import train_test_split
+
+np.random.seed(8)  # Established for reproducibility
 
 # Create data
 x_binary, y_binary = make_moons(n_samples=40000, noise=0.1, random_state=8)
@@ -23,26 +26,26 @@ x_test, x_val, y_test, y_val = train_test_split(
 )
 
 # Define model
-model = Sequential(
-    Linear(2, 32),
-    Tanh(),
-    Dropout(0.2),
-    Linear(32, 16),
-    Tanh(),
-    Dropout(0.2),
-    Linear(16, 4),
-    Tanh(),
-    Dropout(0.2),
-    Linear(4, 1),
-    Sigmoid(),
+model = nn.Sequential(
+    nn.Linear(2, 32),
+    nn.Tanh(),
+    nn.Dropout(0.25),
+    nn.Linear(32, 16),
+    nn.Tanh(),
+    nn.Dropout(0.33),
+    nn.Linear(16, 4),
+    nn.Tanh(),
+    nn.Dropout(0.2),
+    nn.Linear(4, 1),
+    nn.Sigmoid(),
 )
 
 # Hyperparameters
 epochs = 30
-learning_rate = 1e-2
-weight_decay = 1e-5
+learning_rate = 1e-3
+weight_decay = 1e-2
 
-optimizer = Adam(
+optimizer = optim.AdamW(
     model.parameters(),
     lr=learning_rate,
     betas=(0.9, 0.999),
@@ -51,46 +54,23 @@ optimizer = Adam(
 )
 
 # Loss function
-loss_fn = BinaryCrossEntropy()
+loss_fn = nn.BinaryCrossEntropy()
 
 # DataLoaders
-training_dataloader = DataLoader(x=x_train, y=y_train)
-validation_dataloader = DataLoader(x=x_val, y=y_val)
+train_loader = DataLoader(x=x_train, y=y_train)
+val_loader = DataLoader(x=x_val, y=y_val)
 test_dataloader = DataLoader(x=x_test, y=y_test)
 
 # Training
-model.train()
-for epoch in range(epochs):
-    losses = []
-    for input, target in training_dataloader:
-        # Set gradients to None
-        optimizer.zero_grad()
-
-        # Forward pass
-        outputs = model(input)
-
-        # Compute loss
-        loss, grad = loss_fn(outputs, target)
-        losses.append(loss)
-
-        # Backward pass
-        model.backward(grad)
-
-        # Update paramters
-        optimizer.step()
-
-    # Average losses per epoch
-    avg_losses = np.mean(losses)
-
-    # Compute validation accuracy
-    model.eval()
-    acc = binary_accuracy(model, validation_dataloader)
-
-    model.train()
-    if (epoch + 1) % 5 == 0:
-        logger.info(
-            f"Epoch {epoch + 1}/{epochs}, Loss: {avg_losses:.4f}, Validation Accuracy: {acc:.4f}"
-        )
+model = train(
+    train_loader=train_loader,
+    eval_loader=val_loader,
+    net=model,
+    optimizer=optimizer,
+    loss_fn=loss_fn,
+    epochs=epochs,
+    metric=binary_accuracy,
+)
 
 # Final accuracy
 accuracy = binary_accuracy(model, test_dataloader)

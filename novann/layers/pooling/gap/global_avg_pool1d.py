@@ -1,4 +1,6 @@
 import numpy as np
+import novann.functional as F
+
 from novann.module import Layer
 
 
@@ -26,11 +28,9 @@ class GlobalAvgPool1d(Layer):
             np.ndarray: Output array with shape (N, C, 1).
         """
         x = x.astype(np.float32, copy=False)  # (N,C,L)
-
-        # Calculates the mean over the length dimension (axis=2)
-        output = x.mean(axis=2, keepdims=True)
         self._cache["x_shape"] = x.shape
-        return output
+
+        return F.avg_pool1d(x)
 
     def backward(self, grad_output: np.ndarray) -> np.ndarray:
         """Backward pass for 1D Global Average Pooling.

@@ -1,8 +1,7 @@
 import numpy as np
+import novann as nn
+import novann.optim as optim
 import pytest
-
-from novann.optim import AdamW
-from novann.layers import Linear, Conv2d, BatchNorm2d
 
 RNG = np.random.RandomState(8)
 
@@ -10,8 +9,8 @@ RNG = np.random.RandomState(8)
 def test_adamw_updates_parameters():
     """AdamW should update parameters when gradient exists."""
 
-    layer = Linear(in_features=10, out_features=5, bias=True)
-    optimizer = AdamW(layer.parameters(), lr=0.01, weight_decay=0.01)
+    layer = nn.Linear(in_features=10, out_features=5, bias=True)
+    optimizer = optim.AdamW(layer.parameters(), lr=0.01, weight_decay=0.01)
 
     initial_weight = layer.weight.data.copy()
 
@@ -37,13 +36,13 @@ def test_adamw_decoupled_weight_decay():
     """Weight decay should be applied SEPARATELY from gradient update."""
 
     # Two identical models
-    model1 = Linear(8, 4, bias=False)
-    model2 = Linear(8, 4, bias=False)
+    model1 = nn.Linear(8, 4, bias=False)
+    model2 = nn.Linear(8, 4, bias=False)
     model2.weight.data = model1.weight.data.copy()  # Same weights
 
     # AdamW WITH weight decay vs AdamW WITHOUT weight decay
-    optim1 = AdamW(model1.parameters(), lr=0.1, weight_decay=0.5)  # With decay
-    optim2 = AdamW(model2.parameters(), lr=0.1, weight_decay=0.0)  # No decay
+    optim1 = optim.AdamW(model1.parameters(), lr=0.1, weight_decay=0.5)  # With decay
+    optim2 = optim.AdamW(model2.parameters(), lr=0.1, weight_decay=0.0)  # No decay
 
     # Same input and gradient
     x = RNG.randn(2, 8).astype(np.float32)
@@ -80,15 +79,15 @@ def test_adamw_excludes_batchnorm_from_weight_decay():
     """AdamW should NOT apply weight decay to BatchNorm gamma/beta."""
 
     # Model with Conv (should get decay) and BatchNorm (should NOT get decay)
-    conv = Conv2d(3, 8, kernel_size=3, bias=False)
-    bn = BatchNorm2d(8)
+    conv = nn.Conv2d(3, 8, kernel_size=3, bias=False)
+    bn = nn.BatchNorm2d(8)
 
     # Name BatchNorm parameters as expected by optimizer
     bn.gamma.name = "gamma"
     bn.beta.name = "beta"
 
     # Optimizer with strong weight decay
-    optimizer = AdamW(
+    optimizer = optim.AdamW(
         list(conv.parameters()) + list(bn.parameters()), lr=0.1, weight_decay=1.0
     )
 

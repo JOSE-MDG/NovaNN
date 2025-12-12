@@ -1,23 +1,6 @@
 import numpy as np
+import novann as nn
 import pytest
-
-from novann.model import Sequential
-from novann.layers import (
-    Linear,
-    ReLU,
-    Sigmoid,
-    Tanh,
-    LeakyReLU,
-    Softmax,
-    Conv1d,
-    Conv2d,
-    MaxPool1d,
-    MaxPool2d,
-    GlobalAvgPool1d,
-    GlobalAvgPool2d,
-    Dropout,
-    Flatten,
-)
 
 RNG = np.random.RandomState(8)
 
@@ -26,11 +9,11 @@ def test_sequential_linear_activation():
     """Test Sequential with Linear and different activation functions."""
 
     # Test with ReLU
-    seq_relu = Sequential(
-        Linear(in_features=10, out_features=5, bias=True),
-        ReLU(),
-        Linear(in_features=5, out_features=2, bias=True),
-        Sigmoid(),
+    seq_relu = nn.Sequential(
+        nn.Linear(in_features=10, out_features=5, bias=True),
+        nn.ReLU(),
+        nn.Linear(in_features=5, out_features=2, bias=True),
+        nn.Sigmoid(),
     )
     seq_relu.train()
 
@@ -42,11 +25,11 @@ def test_sequential_linear_activation():
     ), "Sigmoid output should be in [0, 1]"
 
     # Test with LeakyReLU
-    seq_lrelu = Sequential(
-        Linear(in_features=8, out_features=4),
-        LeakyReLU(negative_slope=0.1),
-        Linear(in_features=4, out_features=1),
-        Tanh(),
+    seq_lrelu = nn.Sequential(
+        nn.Linear(in_features=8, out_features=4),
+        nn.LeakyReLU(negative_slope=0.1),
+        nn.Linear(in_features=4, out_features=1),
+        nn.Tanh(),
     )
     seq_lrelu.train()
 
@@ -62,11 +45,11 @@ def test_sequential_conv_pooling():
     """Test Sequential with convolutional and pooling layers."""
 
     # 1D case
-    seq_1d = Sequential(
-        Conv1d(in_channels=3, out_channels=8, kernel_size=3, padding=1),
-        ReLU(),
-        MaxPool1d(kernel_size=2, stride=2),
-        GlobalAvgPool1d(),
+    seq_1d = nn.Sequential(
+        nn.Conv1d(in_channels=3, out_channels=8, kernel_size=3, padding=1),
+        nn.ReLU(),
+        nn.MaxPool1d(kernel_size=2, stride=2),
+        nn.GlobalAvgPool1d(),
     )
     seq_1d.train()
 
@@ -75,13 +58,13 @@ def test_sequential_conv_pooling():
     assert output_1d.shape == (2, 8, 1), f"Expected (2, 8, 1), got {output_1d.shape}"
 
     # 2D case
-    seq_2d = Sequential(
-        Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1),
-        LeakyReLU(negative_slope=0.2),
-        MaxPool2d(kernel_size=2, stride=2),
-        Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1),
-        ReLU(),
-        GlobalAvgPool2d(),
+    seq_2d = nn.Sequential(
+        nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1),
+        nn.LeakyReLU(negative_slope=0.2),
+        nn.MaxPool2d(kernel_size=2, stride=2),
+        nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1),
+        nn.ReLU(),
+        nn.GlobalAvgPool2d(),
     )
     seq_2d.train()
 
@@ -98,17 +81,17 @@ def test_sequential_conv_pooling():
 def test_sequential_mixed_layers():
     """Test Sequential with mixed layer types including dropout and flatten."""
 
-    seq = Sequential(
-        Conv2d(in_channels=1, out_channels=8, kernel_size=3),
-        ReLU(),
-        MaxPool2d(kernel_size=2, stride=2),
-        Dropout(p=0.3),
-        Flatten(),
-        Linear(in_features=8 * 13 * 13, out_features=128),  # input was 28x28
-        ReLU(),
-        Dropout(p=0.5),
-        Linear(in_features=128, out_features=10),
-        Softmax(),
+    seq = nn.Sequential(
+        nn.Conv2d(in_channels=1, out_channels=8, kernel_size=3),
+        nn.ReLU(),
+        nn.MaxPool2d(kernel_size=2, stride=2),
+        nn.Dropout(p=0.3),
+        nn.Flatten(),
+        nn.Linear(in_features=8 * 13 * 13, out_features=128),  # input was 28x28
+        nn.ReLU(),
+        nn.Dropout(p=0.5),
+        nn.Linear(in_features=128, out_features=10),
+        nn.Softmax(),
     )
 
     # Test in training mode
@@ -129,11 +112,11 @@ def test_sequential_mixed_layers():
 def test_sequential_backward():
     """Test backward pass through Sequential with different layers."""
 
-    seq = Sequential(
-        Linear(in_features=20, out_features=10),
-        Tanh(),
-        Linear(in_features=10, out_features=5),
-        Sigmoid(),
+    seq = nn.Sequential(
+        nn.Linear(in_features=20, out_features=10),
+        nn.Tanh(),
+        nn.Linear(in_features=10, out_features=5),
+        nn.Sigmoid(),
     )
     seq.train()
 
@@ -166,12 +149,12 @@ def test_sequential_initialization_helpers():
     """Test internal helper methods for initialization."""
 
     # Create a Sequential with known activation pattern
-    seq = Sequential(
-        Linear(in_features=10, out_features=5),
-        ReLU(),
-        Linear(in_features=5, out_features=3),
-        Tanh(),
-        Linear(in_features=3, out_features=1),
+    seq = nn.Sequential(
+        nn.Linear(in_features=10, out_features=5),
+        nn.ReLU(),
+        nn.Linear(in_features=5, out_features=3),
+        nn.Tanh(),
+        nn.Linear(in_features=3, out_features=1),
     )
 
     # Test _find_next_activation
@@ -188,8 +171,8 @@ def test_sequential_initialization_helpers():
     assert activation_key == "tanh", f"Expected 'tanh', got {activation_key}"
 
     # Test for LeakyReLU with parameter
-    seq_lrelu = Sequential(
-        Linear(in_features=8, out_features=4), LeakyReLU(negative_slope=0.1)
+    seq_lrelu = nn.Sequential(
+        nn.Linear(in_features=8, out_features=4), nn.LeakyReLU(negative_slope=0.1)
     )
 
     activation_key, param = seq_lrelu._find_next_activation(0)
@@ -200,11 +183,11 @@ def test_sequential_initialization_helpers():
 def test_sequential_parameters_and_zero_grad():
     """Test parameters() method and zero_grad()."""
 
-    seq = Sequential(
-        Linear(in_features=10, out_features=5, bias=True),
-        ReLU(),
-        Linear(in_features=5, out_features=2, bias=False),
-        Sigmoid(),
+    seq = nn.Sequential(
+        nn.Linear(in_features=10, out_features=5, bias=True),
+        nn.ReLU(),
+        nn.Linear(in_features=5, out_features=2, bias=False),
+        nn.Sigmoid(),
     )
 
     params = seq.parameters()

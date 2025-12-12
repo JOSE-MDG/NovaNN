@@ -1,7 +1,8 @@
 import numpy as np
+import novann.functional as F
+
 from typing import Optional
 from novann._typing import ListOfParameters, InitFn
-
 from novann.module import Parameters, Layer
 from novann.core import DEFAULT_NORMAL_INIT_MAP
 
@@ -79,12 +80,7 @@ class Linear(Layer):
         """
         x = x.astype(np.float32, copy=False)
         self._cache_input = x
-
-        # Matrix multiplication: (N, D_in) @ (D_in, D_out) -> (N, D_out)
-        out = x @ self.weight.data.T
-        if self.bias is not None:
-            out = out + self.bias.data
-        return out
+        return F.linear(x, self.weight, self.bias)
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
         """Backward pass: computes gradients for parameters and returns grad w.r.t input.

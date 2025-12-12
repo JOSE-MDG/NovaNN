@@ -1,6 +1,7 @@
 import numpy as np
-from typing import Optional
+import novann.functional as F
 
+from typing import Optional
 from novann.layers.activations import Activation
 
 
@@ -28,7 +29,7 @@ class Tanh(Activation):
         Returns:
             The tanh applied element-wise.
         """
-        self.out = np.tanh(x)
+        self.out = F.tanh(x)
         return self.out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:

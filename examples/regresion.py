@@ -1,17 +1,19 @@
 import numpy as np
+import novann as nn
+import novann.optim as optim
 
-from novann.losses import MSE
 from novann.utils.data import DataLoader
 from novann.utils.log_config import logger
-from novann.model import Sequential
-from novann.optim import SGD
-from novann.layers import Linear, Dropout, LeakyReLU, BatchNorm1d
+from novann.utils.train import train
 from novann.metrics import r2_score
+
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 
+np.random.seed(8)  # Established for reproducibility
+
 x_data, y_data = make_regression(
-    n_samples=40000, n_features=45, n_targets=1, noise=10.0, random_state=8
+    n_samples=40000, n_features=76, n_targets=1, noise=10.0, random_state=8
 )
 
 # Split data in train/val/test
@@ -26,71 +28,50 @@ y_val = y_val.reshape(-1, 1)
 y_test = y_test.reshape(-1, 1)
 
 # Define the regresor
-model = Sequential(
-    Linear(45, 368),
-    BatchNorm1d(368),
-    LeakyReLU(),
-    Dropout(0.2),
-    Linear(368, 368),
-    BatchNorm1d(368),
-    LeakyReLU(),
-    Dropout(0.3),
-    Linear(368, 176),
-    BatchNorm1d(176),
-    LeakyReLU(),
-    Dropout(0.4),
-    Linear(176, 1),
+model = nn.Sequential(
+    nn.Linear(76, 64),
+    nn.BatchNorm1d(64),
+    nn.ReLU(),
+    nn.Dropout(0.5),
+    nn.Linear(64, 64),
+    nn.BatchNorm1d(64),
+    nn.ReLU(),
+    nn.Dropout(0.5),
+    nn.Linear(64, 16),
+    nn.BatchNorm1d(16),
+    nn.ReLU(),
+    nn.Dropout(0.5),
+    nn.Linear(16, 1),
 )
 
 # dataloaders
-training_loader = DataLoader(x_train, y_train, batch_size=256, shuffle=True)
-validation_loader = DataLoader(x_val, y_val, batch_size=256, shuffle=False)
-test_loader = DataLoader(x_test, y_test, batch_size=256, shuffle=False)
+train_loader = DataLoader(x_train, y_train, batch_size=64, shuffle=True)
+val_loader = DataLoader(x_val, y_val, batch_size=64, shuffle=True)
+test_loader = DataLoader(x_test, y_test, batch_size=64, shuffle=False)
 
 # Hyperparameters
-learning_rate = 1e-2
-weight_decay = 1e-5
+learning_rate = 4e-4
+weight_decay = 1e-2
 epochs = 50
-optimizer = SGD(
+optimizer = optim.AdamW(
     model.parameters(),
     lr=learning_rate,
-    momentum=0.9,
+    betas=(0.9, 0.999),
     weight_decay=weight_decay,
-    max_grad_norm=1.0,
+    epsilon=1e-8,
 )
-loss_fn = MSE()
 
 # Training
-model.train()
-for epoch in range(epochs):
-    losses = []
-    for input, target in training_loader:
-        # Set gradients to None
-        optimizer.zero_grad()
-
-        # Forward pass
-        outputs = model(input)
-
-        # Compute loss
-        loss, grad = loss_fn(outputs, target)
-        losses.append(loss)
-
-        # Backward pass
-        model.backward(grad)
-
-        # Update paramters
-        optimizer.step()
-
-    # Average losses per epoch
-    avg_losses = np.mean(losses)
-
-    # Compute validation
-    model.eval()
-    r2 = r2_score(model, validation_loader)
-
-    model.train()
-    if (epoch + 1) % 5 == 0:
-        logger.info(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_losses:.4f}, R²: {r2:.4f}")
+model = train(
+    train_loader=train_loader,
+    eval_loader=val_loader,
+    net=model,
+    optimizer=optimizer,
+    loss_fn=nn.MSE(),
+    epochs=epochs,
+    show_logs_every=5,
+    metric=r2_score,
+)
 
 # Final score
 score = r2_score(model, test_loader)

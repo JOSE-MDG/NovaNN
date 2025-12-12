@@ -5,10 +5,11 @@ from novann.layers import Linear, Conv1d, Conv2d
 from novann.layers.activations import Activation
 from novann.core import DEFAULT_NORMAL_INIT_MAP
 from novann.module import Parameters, Layer
+from novann._typing import Modules
 from novann.utils.log_config import logger
 
-from novann._typing import InitFn, ActivAndParams, Shape
-from typing import Iterable, Any
+from novann._typing import InitFn, ActivAndParams, Shape, IterableParameters
+from typing import Any
 
 
 class Sequential(Layer):
@@ -26,7 +27,7 @@ class Sequential(Layer):
                           sequentially.
     """
 
-    def __init__(self, *modules: Layer) -> None:
+    def __init__(self, *modules: Modules) -> None:
         """Initializes the Sequential module and applies automatic weight initialization."""
         super().__init__()
         self._layers = modules
@@ -210,7 +211,7 @@ class Sequential(Layer):
             grad_input = layer.backward(grad_input)
         return grad_input
 
-    def parameters(self) -> Iterable[Parameters]:
+    def parameters(self) -> IterableParameters:
         """Gathers and returns all parameters from the layers in the container.
 
         Returns:

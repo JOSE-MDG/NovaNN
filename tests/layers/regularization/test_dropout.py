@@ -1,7 +1,6 @@
-import numpy as np
 import pytest
-
-from novann.layers import Dropout
+import numpy as np
+import novann as nn
 
 RNG = np.random.RandomState(0)
 
@@ -9,7 +8,7 @@ RNG = np.random.RandomState(0)
 def test_dropout_eval_mode():
     """Test dropout in evaluation mode (no dropout applied)."""
 
-    dropout = Dropout(p=0.5)
+    dropout = nn.Dropout(p=0.5)
     dropout.eval()
 
     x = np.ones((2, 3), dtype=np.float32) * 2.0
@@ -28,7 +27,7 @@ def test_dropout_train_mode():
     """Test dropout in training mode (applies mask and scaling)."""
 
     p = 0.5
-    dropout = Dropout(p=p)
+    dropout = nn.Dropout(p=p)
     dropout.train()
 
     x = np.ones((100, 100), dtype=np.float32) * 2.0
@@ -67,4 +66,4 @@ def test_dropout_zero_probability():
     """Invalid probability values should raise ValueError"""
 
     with pytest.raises(ValueError):
-        dropout = Dropout(p=0.0)
+        dropout = nn.Dropout(p=0.0)

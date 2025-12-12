@@ -13,8 +13,9 @@ from typing import (
 # --- Conditional imports for type hints only ---
 if TYPE_CHECKING:
     from novann.optim import Adam, SGD, RMSprop
-    from novann.losses import CrossEntropyLoss, BinaryCrossEntropy, MAE, MSE
-    from novann.module import Parameters
+    from novann import CrossEntropyLoss, BinaryCrossEntropy, MAE, MSE
+    from novann.module import Parameters, Layer
+    from novann.layers.activations import Activation
 
 # Tensor shape definition (batch_size, channels, height, width, ...)
 Shape = Tuple[int, ...]
@@ -34,6 +35,12 @@ TrainTestEvalSets = Tuple[
     tuple[np.ndarray, np.ndarray],
     tuple[np.ndarray, np.ndarray],
 ]
+
+# Array or extras
+ArrayAndExtras = np.ndarray | Tuple[np.ndarray, ...]
+
+# Modules aliases
+Modules = "Layer | Activation"
 
 # iterable object of parameters
 IterableParameters = Iterable["Parameters"]

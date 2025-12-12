@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
+import novann as nn
 
-from novann.layers import Tanh
 from novann.utils.gradient_checking import numeric_grad_elementwise
 
 RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
@@ -11,7 +11,7 @@ def test_tanh_forward_backward_and_numeric():
     """Test Tanh layer properties and gradient correctness."""
     # Random inputs
     X = RNG.randn(5, 5)
-    act = Tanh()
+    act = nn.Tanh()
 
     # Forward: shape and range (-1, 1)
     Y = act(X)

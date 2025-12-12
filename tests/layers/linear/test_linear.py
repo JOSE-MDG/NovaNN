@@ -1,8 +1,7 @@
 # tests/test_layers_minimal.py
 import numpy as np
 import pytest
-
-from novann.layers import Linear
+import novann as nn
 from novann.utils.gradient_checking import numeric_grad_wrt_param
 
 
@@ -11,7 +10,7 @@ RNG = np.random.RandomState(8)
 
 def test_linear_forward_shape():
     """Test forward pass output shape."""
-    layer = Linear(in_features=10, out_features=5, bias=True)
+    layer = nn.Linear(in_features=10, out_features=5, bias=True)
     x = RNG.randn(32, 10).astype(np.float32)  # batch_size=32
     output = layer(x)
 
@@ -21,7 +20,7 @@ def test_linear_forward_shape():
 
 def test_linear_forward_no_bias():
     """Test forward pass without bias."""
-    layer = Linear(in_features=10, out_features=5, bias=False)
+    layer = nn.Linear(in_features=10, out_features=5, bias=False)
     x = RNG.randn(32, 10).astype(np.float32)
     output = layer(x)
 
@@ -31,7 +30,7 @@ def test_linear_forward_no_bias():
 
 def test_linear_backward_gradient_check():
     """Gradient checking for Linear layer parameters."""
-    layer = Linear(in_features=4, out_features=3, bias=True)
+    layer = nn.Linear(in_features=4, out_features=3, bias=True)
 
     # Random input and gradient
     x = RNG.randn(2, 4).astype(np.float32) * 0.1

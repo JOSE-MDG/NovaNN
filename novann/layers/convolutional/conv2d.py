@@ -1,9 +1,9 @@
 import numpy as np
-from numpy.lib.stride_tricks import as_strided
+import novann.functional as F
 from novann.module import Layer, Parameters
-from typing import Optional, Tuple
 from novann._typing import InitFn, Shape, ListOfParameters, KernelSize, Padding, Stride
 from novann.core import DEFAULT_UNIFORM_INIT_MAP
+from typing import Optional, Tuple
 
 
 class Conv2d(Layer):
@@ -38,7 +38,7 @@ class Conv2d(Layer):
         self.out_channels = out_channels
         self.KH, self.KW = self._pair(kernel_size)
 
-        stride_val = stride if stride is not None else 1
+        stride_val = stride if stride is not None else kernel_size
         self.sh, self.sw = self._pair(stride_val)
 
         self.ph, self.pw = self._pair(padding)
@@ -71,7 +71,7 @@ class Conv2d(Layer):
         else:
             self.bias = None
 
-    def _pair(self, x: Padding) -> Tuple[int, int]:
+    def _pair(self, x: Padding | KernelSize | Stride) -> Tuple[int, int]:
         """Converts integer, tuple, or valid/same string to a (H, W) pair."""
         if isinstance(x, int):
             return (x, x)
@@ -113,52 +113,6 @@ class Conv2d(Layer):
         k = np.repeat(np.arange(C), self.KH * self.KW).reshape(-1, 1)
 
         return k, i, j
-
-    def _add_padding(self, x: np.ndarray) -> np.ndarray:
-        """Applies padding to the input tensor."""
-        pad_width = ((0, 0), (0, 0), (self.ph, self.ph), (self.pw, self.pw))
-        # zeros, reflect, replicate, circular -> constant, reflect, edge, wrap in numpy
-        padding_modes = ("zeros", "reflect", "replicate", "circular")
-        if self.pm in padding_modes:
-            if self.pm == "zeros":
-                mode = "constant"
-            elif self.pm == "reflect":
-                mode = "reflect"
-            elif self.pm == "replicate":
-                mode = "edge"
-            else:
-                mode = "wrap"
-        else:
-            raise ValueError(
-                f"padding_mode Only accept {padding_modes} not '{self.pm}'"
-            )
-
-        return np.pad(array=x, pad_width=pad_width, mode=mode)
-
-    def _im2col(self, x: np.ndarray, x_shape: Shape) -> Tuple[np.ndarray, int, int]:
-        """Performs im2col transformation for 2D convolution.
-
-        Args:
-            x: Input tensor (N, C, H, W).
-            x_shape: Original shape of x.
-
-        Returns:
-            Tuple: (col matrix, output height, output width).
-        """
-        N, C, H, W = x_shape
-        x_padded = self._add_padding(x)
-
-        out_height, out_width = self._calc_out_size(H, W)
-
-        # Use as_strided to create sliding windows
-        shape = (N, C, out_height, out_width, self.KH, self.KW)
-        sN, sC, sH, sW = x_padded.strides
-        strides = (sN, sC, sH * self.sh, sW * self.sw, sH, sW)
-        windows = as_strided(x=x_padded, shape=shape, strides=strides)
-
-        # Reshape to column matrix (C*KH*KW, N*out_h*out_w)
-        col = windows.transpose(1, 4, 5, 0, 2, 3).reshape(C * self.KH * self.KW, -1)
-        return col, out_height, out_width
 
     def _col2im(self, col: np.ndarray, x_shape: Shape) -> np.ndarray:
         """Transforms column matrix back to padded image shape for gradient computation.
@@ -203,19 +157,17 @@ class Conv2d(Layer):
             np.ndarray: Output array with shape (N, C_out, H_out, W_out).
         """
         x = x.astype(np.float32, copy=False)
-        N, _, _, _ = x.shape
-
-        col, out_height, out_width = self._im2col(x=x, x_shape=x.shape)
-        w_col = self.weight.data.reshape(self.out_channels, -1)
-
-        # Convolution as Matrix Multiplication: (out_c, C*K*K) @ (C*K*K, N*out_h*out_w) -> (out_c, N*out_h*out_w)
-        out = w_col @ col
-        if self.bias is not None:
-            out += self.bias.data
 
         # Reshape back to (N, C_out, H_out, W_out)
-        out = out.reshape(self.out_channels, N, out_height, out_width).transpose(
-            1, 0, 2, 3
+        out, col, w_col = F.conv2d(
+            x,
+            self.weight,
+            (self.KH, self.KW),
+            (self.sh, self.sw),
+            (self.ph, self.pw),
+            bias=self.bias,
+            padding_mode=self.pm,
+            extras=True,
         )
 
         self._cache["x_shape"] = x.shape

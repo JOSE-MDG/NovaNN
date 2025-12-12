@@ -1,6 +1,7 @@
 import numpy as np
-from typing import Optional
+import novann.functional as F
 
+from typing import Optional
 from novann.layers.activations import Activation
 
 
@@ -28,8 +29,9 @@ class ReLU(Activation):
         Returns:
             Array with ReLU applied element-wise.
         """
-        self._mask = x > 0
-        return x * self._mask
+
+        out, self._mask = F.relu(x, extras=True)
+        return out
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
         """Compute backward pass.
@@ -74,7 +76,7 @@ class LeakyReLU(Activation):
             Array with LeakyReLU applied element-wise.
         """
         self._cache_input = x
-        return np.where(x >= 0, x, self.a * x)
+        return F.leaky_relu(x, negative_slope=self.a)
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
         """Compute backward pass.

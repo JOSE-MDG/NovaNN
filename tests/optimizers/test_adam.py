@@ -1,8 +1,7 @@
 import numpy as np
+import novann as nn
+import novann.optim as optim
 import pytest
-
-from novann.optim import Adam
-from novann.layers import Linear, Conv2d
 
 RNG = np.random.RandomState(8)
 
@@ -11,8 +10,8 @@ def test_adam_basic_update():
     """Test that Adam updates parameters."""
 
     # Test with Linear layer
-    linear = Linear(in_features=8, out_features=4, bias=True)
-    optimizer = Adam(linear.parameters(), lr=0.01)
+    linear = nn.Linear(in_features=8, out_features=4, bias=True)
+    optimizer = optim.Adam(linear.parameters(), lr=0.01)
 
     initial_weight = linear.weight.data.copy()
 
@@ -37,8 +36,8 @@ def test_adam_basic_update():
 def test_adam_with_conv_layer():
     """Test Adam with convolutional layers."""
 
-    conv = Conv2d(in_channels=3, out_channels=8, kernel_size=3, bias=True)
-    optimizer = Adam(conv.parameters(), lr=0.001, betas=(0.9, 0.999))
+    conv = nn.Conv2d(in_channels=3, out_channels=8, kernel_size=3, bias=True)
+    optimizer = optim.Adam(conv.parameters(), lr=0.001, betas=(0.9, 0.999))
 
     initial_weight = conv.weight.data.copy()
 
@@ -64,8 +63,8 @@ def test_adam_with_conv_layer():
 def test_adam_bias_correction():
     """Test Adam's bias correction mechanism."""
 
-    layer = Linear(in_features=5, out_features=2)
-    optimizer = Adam(layer.parameters(), lr=0.01, betas=(0.9, 0.999))
+    layer = nn.Linear(in_features=5, out_features=2)
+    optimizer = optim.Adam(layer.parameters(), lr=0.01, betas=(0.9, 0.999))
 
     # Take multiple steps to see bias correction effect
     changes = []

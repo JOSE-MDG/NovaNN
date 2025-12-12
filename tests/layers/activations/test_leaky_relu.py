@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
+import novann as nn
 
-from novann.layers import LeakyReLU
 from novann.utils.gradient_checking import numeric_grad_elementwise
 
 RNG = np.random.RandomState(0)  # Deterministic RNG for reproducible tests
@@ -18,7 +18,7 @@ def test_leaky_relu_forward_backward_and_numeric():
     # Random input batch
     X = RNG.randn(6, 4)
     slope = 0.1  # negative slope for LeakyReLU
-    act = LeakyReLU(negative_slope=slope)
+    act = nn.LeakyReLU(negative_slope=slope)
 
     # Forward: shape and element-wise behaviour
     Y = act(X)

@@ -1,6 +1,6 @@
 ![Banner](./images/NovaNN%20Banners.png)
 
-![version](https://img.shields.io/badge/version-2.1.0-blue)
+![version](https://img.shields.io/badge/version-3.0.0-blue)
 ![python](https://img.shields.io/badge/python-v3.14-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![tests](https://img.shields.io/badge/tests-pytest-orange)

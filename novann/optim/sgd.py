@@ -32,7 +32,7 @@ class SGD:
         )
 
         # Velocity buffers for momentum
-        self.velocities: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
+        self.v_t: List[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
 
     def _global_clipping(self) -> float:
         """Computes global gradient clipping coefficient.
@@ -75,8 +75,8 @@ class SGD:
 
             # Momentum update
             if self.beta > 0:
-                self.velocities[i] = self.beta * self.velocities[i] - self.lr * p.grad
-                p.data += self.velocities[i]
+                self.v_t[i] = self.beta * self.v_t[i] - self.lr * p.grad
+                p.data += self.v_t[i]
             else:
                 # Vanilla SGD update
                 p.data -= self.lr * p.grad
