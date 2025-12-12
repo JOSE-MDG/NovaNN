@@ -75,6 +75,7 @@ Una vez obtenidos los resultados, se hizo un script ([visualization](./novann/ut
 │   ├── 🐍 multiclass_classification.py
 │   └── 🐍 regresion.py
 ├── 📁 images
+│   ├── 🖼️ NovaNN Banners.png
 │   └── 🖼️ metrics.png
 ├── 📁 logs
 │   └── logs.log
@@ -97,7 +98,7 @@ Una vez obtenidos los resultados, se hizo un script ([visualization](./novann/ut
 │   │   │   ├── 🐍 sigmoid.py
 │   │   │   ├── 🐍 softmax.py
 │   │   │   └── 🐍 tanh.py
-│   │   ├── 📁 bn
+│   │   ├── 📁 batchnorm
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 batchnorm1d.py
 │   │   │   └── 🐍 batchnorm2d.py
@@ -127,7 +128,7 @@ Una vez obtenidos los resultados, se hizo un script ([visualization](./novann/ut
 │   │   └── 🐍 __init__.py
 │   ├── 📁 losses
 │   │   ├── 🐍 __init__.py
-│   │   └── 🐍 functional.py
+│   │   └── 🐍 loss_functions.py
 │   ├── 📁 metrics
 │   │   ├── 🐍 __init__.py
 │   │   └── 🐍 metrics.py
@@ -160,7 +161,8 @@ Una vez obtenidos los resultados, se hizo un script ([visualization](./novann/ut
 │   │   ├── 📁 visualizations
 │   │   │   └── 🐍 visualization.py
 │   │   └── 🐍 __init__.py
-│   └── 🐍 __init__.py
+│   ├── 🐍 __init__.py
+│   └── 🐍 functional.py
 ├── 📁 tests
 │   ├── 📁 initializers
 │   │   └── 🐍 test_init.py
@@ -171,7 +173,7 @@ Una vez obtenidos los resultados, se hizo un script ([visualization](./novann/ut
 │   │   │   ├── 🐍 test_sigmoid.py
 │   │   │   ├── 🐍 test_softmax.py
 │   │   │   └── 🐍 test_tanh.py
-│   │   ├── 📁 batch_norm
+│   │   ├── 📁 batchnorm
 │   │   │   ├── 🐍 test_batchnorm1d.py
 │   │   │   └── 🐍 test_batchnorm2d.py
 │   │   ├── 📁 conv
@@ -226,9 +228,13 @@ Contiene:
   - `InitFn`: Firma de función de inicialización de pesos
   - `ListOfParameters`: Lista de parámetros entrenables
   - `KernelSize`, `Stride`, `Padding`: Tipos para capas convolucionales
-  - `Optimizer`: Alias para optimizadores (Adam, SGD, RMSprop)
+  - `Optimizer`: Alias para optimizadores (Adam, SGD, RMSprop, AdamW)
   - `LossFunc`: Alias para funciones de pérdida
   - `Loader`: Tipo para dataloaders iterables
+  - `ArrayAndExtras`: Union type que puede ser un `np.ndarray` simple o una tupla de arrays `Tuple[np.ndarray, ...]`. Usado en funciones que pueden retornar tensores intermedios adicionales cuando `extras=True`
+  - `ActivAndParams`: Tupla que almacena nombre de activación y parámetro opcional (usado para LeakyReLU)
+  - `TrainTestEvalSets`: Tipo para datasets divididos en train/test/validation
+  - `BetaCoefficients`: Coeficientes beta para optimizadores (tupla o float)
 - **Uso en el framework**: Estos tipos son importados por todos los módulos para anotaciones de tipo consistentes
 - **Conexiones**:
   - `InitFn` es utilizado por `config.py` para los mapas de inicialización
@@ -249,13 +255,15 @@ Contiene:
 
 - **Propósito**: Configuración centralizada de inicialización de pesos para el framework
 - **Diccionarios de inicialización**:
-  - `DEFAULT_NORMAL_INIT_MAP`: Mapeo de funciones de inicialización con distribución normal para diferentes funciones de activación
-  - `DEFAULT_UNIFORM_INIT_MAP`: Mapeo de funciones de inicialización con distribución uniforme para diferentes funciones de activación
+  - `DEFAULT_NORMAL_INIT_MAP`: Mapeo de funciones de inicialización con distribución **normal** para diferentes funciones de activación
+  - `DEFAULT_UNIFORM_INIT_MAP`: Mapeo de funciones de inicialización con distribución **uniforme** para diferentes funciones de activación
 - **Claves soportadas**: `relu`, `leakyrelu`, `tanh`, `sigmoid`, `default` (para inicialización por defecto)
 - **Integración con `core/init.py`**: Utiliza las funciones de inicialización (`kaiming_normal_`, `kaiming_uniform_`, `xavier_normal_`, `xavier_uniform_`, `random_init_`) y `calculate_gain` para calcular ganancias apropiadas
-- **Uso en capas lineales**: Los mapas son utilizados por `Linear.reset_parameters()` para inicializar pesos y sesgos basándose en la activación adyacente
-- **Uso en capas convolucionales**: También empleados por `Conv1d` y `Conv2d` para inicializar kernels convolucionales siguiendo el mismo principio
-- **Uso en Sequential**: El contenedor `Sequential` utiliza estos mapas para inicialización automática de capas lineales y convolucionales en función de las activaciones circundantes
+- **Uso diferenciado por tipo de capa**:
+  - **Capas `Linear`**: Por defecto usan `DEFAULT_NORMAL_INIT_MAP` (distribución normal) ya que históricamente funcionan mejor con inicialización normal
+  - **Capas convolucionales (`Conv1d`, `Conv2d`)**: Por defecto usan `DEFAULT_UNIFORM_INIT_MAP` (distribución uniforme) siguiendo las prácticas estándar en CNNs
+  - **`Sequential`**: Puede sobrescribir la inicialización de cualquier capa basándose en activaciones adyacentes, usando el mapa normal por defecto
+- **Uso en Sequential**: El contenedor `Sequential` utiliza `DEFAULT_NORMAL_INIT_MAP` para inicialización automática de capas lineales y convolucionales en función de las activaciones circundantes
 - **Detalles por activación**:
   - **ReLU**: Inicialización Kaiming normal/uniforme con `a=0.0`
   - **LeakyReLU**: Inicialización Kaiming normal/uniforme con `a=0.01` (pendiente negativa)
@@ -336,7 +344,7 @@ Contiene:
 - **Atributos**:
   - `ReLU._mask`: Máscara booleana guardada durante el forward (x > 0)
   - `LeakyReLU.a`: Pendiente negativa para valores negativos
-  - `LeakyReLU.activation_param`: Almacena el mismo valor que `a` (para consistencia)
+  - `LeakyReLU.activation_param`: **Alias de `a` que permite a `Sequential` extraer automáticamente el parámetro de activación** para inyectarlo en la función de inicialización de capas adyacentes (ejemplo: pasar el valor de pendiente negativa a `kaiming_normal_` como parámetro `a`)
   - `LeakyReLU._cache_input`: Entrada guardada para backward
 - **Conexiones**:
   - Ambas clases heredan de `Activation`
@@ -537,7 +545,10 @@ Contiene:
   - Stride y padding configurable a lo largo de la dimensión temporal
   - Múltiples modos de padding igual que `Conv2d`
   - Implementación eficiente vía `im2col` similar a `Conv2d`
-  - Inicialización con `DEFAULT_UNIFORM_INIT_MAP["relu"]` por defecto
+  - **Inicialización configurable**:
+    - Por defecto usa `DEFAULT_UNIFORM_INIT_MAP["relu"]` (Kaiming uniforme para ReLU)
+    - Puede recibir un inicializador personalizado mediante el parámetro `init`
+    - `Sequential` puede sobrescribir la inicialización basándose en activaciones adyacentes llamando a `reset_parameters(initializer)`
 - **Integración**:
   - Hereda de `Layer` de `novann.module`
   - Usa `Parameters` para pesos y biases entrenables
@@ -578,7 +589,10 @@ Contiene:
   - Kernel convolucional 2D con tamaño configurable `(KH, KW)`
   - Stride y padding configurable en ambas dimensiones
   - Múltiples modos de padding: `zeros`, `reflect`, `replicate`, `circular`
-  - Inicialización de pesos usando `DEFAULT_UNIFORM_INIT_MAP` de `config.py`
+  - **Inicialización configurable**:
+    - Por defecto usa `DEFAULT_UNIFORM_INIT_MAP["relu"]` (Kaiming uniforme para ReLU)
+    - Puede recibir un inicializador personalizado mediante el parámetro `init`
+    - `Sequential` puede sobrescribir la inicialización automáticamente basándose en activaciones adyacentes
   - Implementación eficiente usando transformación `im2col` y multiplicación de matrices
 - **Integración**:
   - Hereda de `Layer` de `novann.module`
@@ -931,9 +945,9 @@ Contiene:
 **Implementaciones de funciones de pérdida para diferentes tareas de aprendizaje automático**
 
 Contiene:
-- `functional.py`: Implementaciones de `CrossEntropyLoss`, `MSE`, `MAE`, y `BinaryCrossEntropy`
+- `loss_functions.py`: Implementaciones de `CrossEntropyLoss`, `MSE`, `MAE`, y `BinaryCrossEntropy`
 
-#### `functional.py`
+#### `loss_functions.py`
 
 - **Propósito**: Contiene implementaciones de funciones de pérdida utilizadas para entrenar modelos de deep learning
 - **Clases principales**:
@@ -1094,11 +1108,19 @@ Contiene:
 - **Clase principal**: `Sequential`
 - **Características principales**:
   - Contenedor secuencial que encadena múltiples capas en orden
-  - Inicialización automática de pesos para capas lineales y convolucionales basada en activaciones adyacentes
   - Gestión unificada de modos (train/eval) para todas las capas contenidas
   - Recopilación automática de todos los parámetros entrenables
   - Forward/backward propagación secuencial a través de las capas
   - Sistema de logging integrado para seguimiento de inicialización
+  - **Inicialización automática de pesos**:
+  
+  El algoritmo busca activaciones adyacentes para determinar la inicialización óptima:
+  
+  1. Para cada capa inicializable (`Linear`, `Conv1d`, `Conv2d`):
+     - Busca la siguiente activación en la secuencia
+     - Si no hay siguiente activación, busca la última activación anterior
+     - Usa la clave de inicialización (`init_key`) de la activación para seleccionar del `DEFAULT_NORMAL_INIT_MAP`
+     - **Para `LeakyReLU`**: extrae el parámetro de pendiente negativa desde `activation.activation_param` y lo inyecta como argumento `a` en la función de inicialización Kaiming, permitiendo ajustar la inicialización según la pendiente específica usada
 - **Integración**:
   - Hereda de `Layer` de `novann.module` (es una capa que contiene otras capas)
   - Interactúa con `DEFAULT_NORMAL_INIT_MAP` de `core/config.py` para obtener funciones de inicialización
@@ -1185,15 +1207,20 @@ Contiene:
 ##### `Parameters`
 
 - **Propósito**: Contenedor para tensores entrenables que almacena tanto los valores del parámetro como sus gradientes
-- **Características principales**:
+- **CaracterÃ­sticas principales**:
   - Almacena `data`: valores actuales del parámetro (numpy array)
   - Almacena `grad`: gradientes acumulados (misma forma que `data`)
-  - Soporta `name`: opcional para que los optimizadores puedan ignorar los parametros de `BatchNorm` para no aplicarles  weight decay
+  - **Atributo `name`**: Identificador opcional de tipo string que permite a los optimizadores reconocer y tratar de forma especial ciertos parámetros. **Los optimizadores usan este atributo para excluir automáticamente los parámetros `gamma` y `beta` de BatchNorm del weight decay**, ya que aplicar regularización L2 a estos parámetros puede degradar el rendimiento
   - Método `zero_grad()` para reiniciar gradientes
 - **Implementación**:
   - Inicializa `grad` como array de ceros con misma forma que `data`
   - `zero_grad(set_to_none=True)`: Puede establecer gradientes a `None` o a array de ceros
   - Compatible con optimizadores que esperan acceso a `data` y `grad`
+- **Asignación de nombres**: Las capas asignan nombres descriptivos a sus parámetros durante la inicialización:
+  - Linear: `"linear weight"`, `"linear bias"`
+  - Conv1d: `"conv1d weight"`, `"conv1d bias"`
+  - Conv2d: `"conv2d weight"`, `"conv2d bias"`
+  - BatchNorm1d/2d: `"gamma"`, `"beta"` (estos son los que los optimizadores excluyen del weight decay)
 
 ##### `Module`
 
@@ -1261,6 +1288,14 @@ Contiene:
 - `rmsprop.py`: Optimizador RMSprop (Root Mean Square Propagation) con weight decay desacoplado
 - `sgd.py`: Optimizador SGD (Stochastic Gradient Descent) con momentum y clipping de gradientes
 
+**Características comunes de los optimizadores**:
+- Todos implementan `step()` para actualizar parámetros y `zero_grad()` para limpiar gradientes
+- Excluyen parámetros `gamma` y `beta` de BatchNorm del weight decay (detectados por nombre)
+- Manejan adecuadamente parámetros sin gradiente (`grad is None`)
+- Son iterables sobre listas de parámetros materializadas
+- **Adam y SGD**: Usan coupled weight decay (aplicado al gradiente)
+- **AdamW y RMSprop**: Usan decoupled weight decay (aplicado directamente a los parámetros)
+
 #### `adam.py`
 
 - **Propósito**: Implementa el optimizador Adam (Adaptive Moment Estimation) que combina las ventajas de AdaGrad y RMSProp con momentos de primer y segundo orden
@@ -1270,8 +1305,8 @@ Contiene:
   - Corrección de bias para momentos en las primeras iteraciones
   - Soporte para weight decay L2 **acoplado al gradiente** (coupled weight decay)
   - Coeficientes configurables `betas` para las tasas de decaimiento de momentos
-  - Exclusión automática de parámetros de BatchNorm del weight decay
   - Término epsilon para estabilidad numérica en la división
+  - **Exclusión automática de parámetros de BatchNorm del weight decay**: Los optimizadores detectan parámetros de BatchNorm verificando si `param.name` es `"gamma"` o `"beta"`. Estos parámetros no deben ser regularizados ya que BatchNorm ya normaliza las activaciones.
 - **Integración**:
   - Opera sobre listas de `Parameters` de `novann.module`
   - Usa el tipo `ListOfParameters` de `novann._typing`
@@ -1281,6 +1316,7 @@ Contiene:
   - Optimizador clásico para muchos problemas de deep learning
   - Adecuado para redes con arquitecturas complejas y gran cantidad de parámetros
   - Utilizado en ejemplos de clasificación y regresión del framework
+
 - **Detalles técnicos**:
 
   **Algoritmo de actualización**:
@@ -1307,7 +1343,7 @@ Contiene:
 
   $$g_t \leftarrow g_t + \lambda \theta_t$$
 
-  El weight decay se aplica **directamente al gradiente** antes de la actualización de momentos, lo que acopla la regularización con la optimización adaptativa.
+
 
 #### `adamw.py`
 
@@ -1317,9 +1353,9 @@ Contiene:
   - Estimaciones adaptativas de momentos idénticas a Adam
   - Weight decay **desacoplado** aplicado directamente a los parámetros (no al gradiente)
   - Corrección de bias para momentos en las primeras iteraciones
-  - Exclusión automática de parámetros de BatchNorm del weight decay
   - Mejor generalización que Adam en muchos casos prácticos
   - Coeficientes configurables `betas` para las tasas de decaimiento de momentos
+  - **Exclusión automática de parámetros de BatchNorm del weight decay**: Los optimizadores detectan parámetros de BatchNorm verificando si `param.name` es `"gamma"` o `"beta"`. Estos parámetros no deben ser regularizados ya que BatchNorm ya normaliza las activaciones.
 - **Integración**:
   - Opera sobre listas de `Parameters` de `novann.module`
   - Usa tipos `ListOfParameters` y `BetaCoefficients` de `novann._typing`
@@ -1367,9 +1403,9 @@ Contiene:
 - **Características principales**:
   - Promedio móvil de gradientes al cuadrado para adaptar el tamaño de paso por parámetro
   - Soporte para weight decay L2 **desacoplado**
-  - Exclusión automática de parámetros de BatchNorm del weight decay
   - Coeficiente de decaimiento configurable para el promedio móvil
   - Implementación simple y eficiente
+  - **Exclusión automática de parámetros de BatchNorm del weight decay**: Los optimizadores detectan parámetros de BatchNorm verificando si `param.name` es `"gamma"` o `"beta"`. Estos parámetros no deben ser regularizados ya que BatchNorm ya normaliza las activaciones.
 - **Integración**:
   - Opera sobre listas de `Parameters` de `novann.module`
   - Usa el tipo `ListOfParameters` de `novann._typing`
@@ -1406,8 +1442,8 @@ Contiene:
   - Descenso de gradiente estocástico clásico con momentum opcional (Polyak momentum)
   - Gradient clipping global para prevenir explosión de gradientes
   - Soporte para weight decay L2 **acoplado al gradiente**
-  - Exclusión automática de parámetros de BatchNorm del weight decay
   - Implementación eficiente con buffers de velocidad para momentum
+  - **Exclusión automática de parámetros de BatchNorm del weight decay**: Los optimizadores detectan parámetros de BatchNorm verificando si `param.name` es `"gamma"` o `"beta"`. Estos parámetros no deben ser regularizados ya que BatchNorm ya normaliza las activaciones.
 - **Integración**:
   - Opera sobre listas de `Parameters` de `novann.module`
   - Usa el tipo `ListOfParameters` de `novann._typing`
@@ -1442,14 +1478,6 @@ Contiene:
   **Coupled weight decay** (aplicado al gradiente):
 
   $$g_t \leftarrow g_t + \lambda \theta_t$$
-
-  **Características comunes de los optimizadores**:
-  - Todos implementan `step()` para actualizar parámetros y `zero_grad()` para limpiar gradientes
-  - Excluyen parámetros `gamma` y `beta` de BatchNorm del weight decay (detectados por nombre)
-  - Manejan adecuadamente parámetros sin gradiente (`grad is None`)
-  - Son iterables sobre listas de parámetros materializadas
-  - **Adam y SGD**: Usan coupled weight decay (aplicado al gradiente)
-  - **AdamW y RMSprop**: Usan decoupled weight decay (aplicado directamente a los parámetros)
 
 ### `📂 utils/`
 
@@ -1715,26 +1743,249 @@ Contiene:
   - Simplifica el código de entrenamiento eliminando la necesidad de escribir loops manuales
   - Proporciona un punto de entrada estándar para el entrenamiento
 
+### `functional.py`
+
+**Interfaz funcional para operaciones de red neuronal sin estado**
+
+Este módulo proporciona versiones funcionales de todas las operaciones principales del framework, permitiendo un estilo de programación más imperativo y flexible sin necesidad de instanciar capas.
+
+**Propósito**: Ofrecer una API funcional estilo PyTorch (`torch.nn.functional`) donde cada operación se ejecuta de manera directa sin mantener estado interno.
+
+**Características principales**:
+- Todas las operaciones son funciones puras sin estado (stateless)
+- Parámetro `extras=True` en operaciones complejas para retornar datos a cachear importantes para el backward
+- Implementaciones optimizadas usando `as_strided` para convoluciones y pooling
+- Soporte para múltiples modos de padding: `zeros`, `reflect`, `replicate`, `circular`
+- Compatibles con las implementaciones de capas del módulo `layers/`
+
+**Integración**:
+- Utiliza `Parameters` de `novann.module` para manejar pesos y sesgos
+- Usa tipos de `novann._typing` (`Shape`, `KernelSize`, `Padding`, `Stride`, `ArrayAndExtras`)
+- Las capas del framework internamente usan estas funciones en muchos casos
+- Permite construcción de modelos sin necesidad de definir clases
+
+**Uso en el framework**:
+- Backend de implementación para capas como `Linear`, `Conv1d`, `Conv2d`, `MaxPool1d`, `MaxPool2d`
+- Útil para prototipado rápido y experimentación
+- Permite construcción de arquitecturas personalizadas sin clases
+- Debugging mediante el parámetro `extras` que retorna tensores intermedios
+
+#### Funciones de Activación
+
+##### `relu(input, extras=False)`
+
+- **Propósito**: Aplica la función de activación ReLU elemento a elemento
+- **Implementación**:
+  
+  $$\text{ReLU}(x) = \max(0, x)$$
+
+- **Características**:
+  - Si `extras=True`, retorna `(output, mask)` donde `mask` es útil para el backward pass
+  - La máscara es un array booleano que indica dónde `input > 0`
+
+##### `leaky_relu(input, negative_slope=0.01)`
+
+- **Propósito**: Aplica Leaky ReLU con pendiente configurable para valores negativos
+- **Implementación**:
+  
+  $$\text{LeakyReLU}(x) = \begin{cases} x & \text{si } x \geq 0 \\ \alpha \cdot x & \text{si } x < 0 \end{cases}$$
+  
+  donde $\alpha$ es `negative_slope`
+
+##### `sigmoid(input)`
+
+- **Propósito**: Aplica la función sigmoide elemento a elemento
+- **Implementación**:
+  
+  $$\sigma(x) = \frac{1}{1 + e^{-x}}$$
+
+##### `softmax(input, dim=1)`
+
+- **Propósito**: Calcula softmax numéricamente estable a lo largo de una dimensión
+- **Implementación**:
+  
+  $$\text{softmax}(x_i) = \frac{e^{x_i - \max(x)}}{\sum_j e^{x_j - \max(x)}}$$
+  
+- **Características**: Resta el máximo antes de exponenciar para estabilidad numérica
+
+##### `tanh(input)`
+
+- **Propósito**: Aplica la tangente hiperbólica elemento a elemento
+- **Implementación**: Usa `np.tanh()` de NumPy directamente
+
+#### Funciones de Pérdida
+
+##### `mse_loss(input, target)`
+
+- **Propósito**: Calcula el error cuadrático medio (Mean Squared Error)
+- **Implementación**:
+  
+  $$\text{MSE} = \frac{1}{N} \sum_{i=1}^{N} (y_i - \hat{y}_i)^2$$
+
+##### `l1_loss(input, target)`
+
+- **Propósito**: Calcula el error absoluto medio (Mean Absolute Error / L1 loss)
+- **Implementación**:
+  
+  $$\text{MAE} = \frac{1}{N} \sum_{i=1}^{N} |y_i - \hat{y}_i|$$
+
+##### `cross_entropy(input, target, dim=0, eps=1e-8)`
+
+- **Propósito**: Calcula la pérdida de entropía cruzada para clasificación multiclase
+- **Implementación**:
+  
+  $$\text{CE} = -\frac{1}{N} \sum_{i=1}^{N} \sum_{j=1}^{C} y_{ij} \log(\hat{y}_{ij} + \epsilon)$$
+
+- **Características**:
+  - Aplica softmax internamente a los logits
+  - Soporta targets como índices o one-hot encoding
+  - Término `eps` para evitar `log(0)`
+
+##### `binary_cross_entropy(probs, target, eps)`
+
+- **Propósito**: Calcula la entropía cruzada binaria
+- **Implementación**:
+  
+  $$\text{BCE} = -\frac{1}{N} \sum_{i=1}^{N} [y_i \log(p_i + \epsilon) + (1-y_i) \log(1-p_i + \epsilon)]$$
+
+#### Operaciones de Transformación
+
+##### `linear(input, weight, bias=None)`
+
+- **Propósito**: Aplica transformación lineal: $y = xW^T + b$
+- **Características**:
+  - `input`: tensor de forma `(N, D_in)`
+  - `weight`: matriz de pesos `(D_out, D_in)`
+  - `bias`: término opcional de sesgo
+  - Retorna tensor de forma `(N, D_out)`
+
+##### `flatten(input)`
+
+- **Propósito**: Aplana todas las dimensiones excepto el batch
+- **Implementación**: `input.reshape(N, -1)`
+- **Uso**: Transición entre capas convolucionales y fully connected
+
+#### Operaciones Convolucionales
+
+##### `conv1d(input, weight, kernel_size, stride=1, padding=0, bias=None, padding_mode='zeros', extras=False)`
+
+- **Propósito**: Realiza convolución 1D usando transformación im2col
+- **Características principales**:
+  - Entrada: `(N, C_in, L)`
+  - Pesos: `(C_out, C_in, K)`
+  - Salida: `(N, C_out, L_out)`
+  - Usa `as_strided` para ventanas deslizantes eficientes
+  - Soporta múltiples modos de padding
+  - Si `extras=True`, retorna `(out, col, w_col, Lout, x_p_shape)` para debugging
+
+- **Cálculo de longitud de salida**:
+  
+  $$L_{out} = \left\lfloor\frac{L + 2 \times \text{padding} - K}{\text{stride}}\right\rfloor + 1$$
+
+##### `conv2d(input, weight, kernel_size, stride=1, padding=0, bias=None, padding_mode='zeros', extras=False)`
+
+- **Propósito**: Realiza convolución 2D usando transformación im2col
+- **Características principales**:
+  - Entrada: `(N, C_in, H, W)`
+  - Pesos: `(C_out, C_in, KH, KW)`
+  - Salida: `(N, C_out, H_out, W_out)`
+  - Implementación mediante multiplicación de matrices eficiente
+  - Función auxiliar `_pair()` convierte enteros/tuplas a pares `(H, W)`
+  - Si `extras=True`, retorna `(out, col, w_col)` para debugging
+
+- **Cálculo de dimensiones de salida**:
+  
+  $$H_{out} = \left\lfloor\frac{H + 2 \times p_h - KH}{s_h}\right\rfloor + 1$$
+  
+  $$W_{out} = \left\lfloor\frac{W + 2 \times p_w - KW}{s_w}\right\rfloor + 1$$
+
+- **Detalles técnicos**:
+  - Transformación im2col: convierte ventanas en columnas para multiplicación matricial
+  - `as_strided` crea ventanas sin copiar datos (eficiente en memoria)
+  - Soporta `padding_mode`: `'zeros'`, `'reflect'`, `'replicate'`, `'circular'`
+
+#### Operaciones de Pooling
+
+##### `max_pool1d(input, kernel_size, stride, padding=0, padding_mode='zeros', extras=False)`
+
+- **Propósito**: Aplica max pooling 1D sobre secuencias
+- **Características**:
+  - Entrada: `(N, C, L)`
+  - Salida: `(N, C, L_out)`
+  - Usa `as_strided` para crear ventanas deslizantes
+  - Toma el máximo sobre cada ventana con `windows.max(axis=3)`
+  - Si `extras=True`, retorna `(out, windows, Lout, x_p_shape)`
+
+##### `max_pool2d(input, kernel_size, stride, padding=0, padding_mode='zeros', extras=False)`
+
+- **Propósito**: Aplica max pooling 2D sobre dimensiones espaciales
+- **Características**:
+  - Entrada: `(N, C, H, W)`
+  - Salida: `(N, C, H_out, W_out)`
+  - Ventanas 2D creadas con `as_strided`
+  - Toma el máximo sobre cada ventana con `windows.max(axis=(4, 5))`
+  - Función `_pair()` para manejar kernel_size/stride/padding como int o tupla
+  - Si `extras=True`, retorna `(out, windows, Hout, Wout, x_p_shape)`
+
+##### `avg_pool1d(input)`
+
+- **Propósito**: Aplica average pooling global 1D
+- **Implementación**:
+  
+  $$\text{output}_{n,c} = \frac{1}{L} \sum_{l=1}^{L} x_{n,c,l}$$
+
+- **Características**: Promedia sobre la dimensión de longitud, retorna `(N, C, 1)`
+
+##### `avg_pool2d(input)`
+
+- **Propósito**: Aplica average pooling global 2D
+- **Implementación**:
+  
+  $$\text{output}_{n,c} = \frac{1}{H \times W} \sum_{h=1}^{H} \sum_{w=1}^{W} x_{n,c,h,w}$$
+
+- **Características**: Promedia sobre dimensiones espaciales, retorna `(N, C, 1, 1)`
+
+#### Ventajas de la API Funcional
+
+**Flexibilidad**: Permite construir forward passes personalizados sin definir clases
+
+**Debugging**: El parámetro `extras` en operaciones complejas retorna tensores intermedios útiles para verificación
+
+**Eficiencia**: Implementaciones optimizadas que sirven como backend para las capas del framework
+
+**Ejemplo de uso**:
+```python
+import novann.functional as F
+import numpy as np
+
+# Forward pass manual sin instanciar capas
+x = np.random.randn(32, 3, 28, 28)
+w = np.random.randn(64, 3, 3, 3)
+
+# Convolución -> ReLU -> MaxPool -> Flatten
+out = F.conv2d(x, w, kernel_size=3, padding=1)
+out = F.relu(out)
+out = F.max_pool2d(out, kernel_size=2, stride=2)
+out = F.flatten(out)
+```
+
+**Notas técnicas**:
+- Todas las operaciones convolucionales y de pooling usan `as_strided` de NumPy para eficiencia
+- Los modos de padding se mapean a los modos de `np.pad`: `'zeros'` → `'constant'`, `'reflect'` → `'reflect'`, `'replicate'` → `'edge'`, `'circular'` → `'wrap'`
+- Las funciones auxiliares internas (prefijo `_`) no están destinadas para uso público
+
 ## Patrones de Uso común
 
 Digamos que queremos hacer un clasificador de imagenes para el dataset _fashion-mnist_ el flujo normal de trajo sería:
 
 ```python
 # 1. importar las herramientas necesarias
-from novann.model import Sequential
-from novann.optim import Adam
+import novann as nn
+import novann.optim as optim
+
 from novann.utils.data import DataLoader
-from novann.losses import CrossEntropyLoss
-from novann.metrics import accuracy
 from novann.utils.datasets import load_fashion_mnist_data
-from novann.layers import (
-    Conv2d,
-    Linear, 
-    ReLU,
-    Flatten
-    BatchNorm2d, 
-    MaxPool2d
-)
+from novann.metrics import accuracy
 
 # 2. cargar los datos a utilizar
 (x_train, y_train), (x_test, y_test), (x_val, y_val) = load_fashion_mnist_data(
@@ -1742,16 +1993,16 @@ from novann.layers import (
 )
 
 # 3. definir el modelo
-model = Sequential(
-    Conv2d(1, 32, 3, padding=1, bias=False),
-    BatchNorm2d(32),
-    ReLU(),
-    MaxPool2d(2, 2),
-    Conv2d(32, 64, 3, padding=1, bias=False),
-    BatchNorm2d(64),
-    ReLU(),
-    MaxPool2d(2, 2),
-    Linear(64 * 8 * 8, 10) # -> 10 clases (del 0 al 9)
+model = nn.Sequential(
+    nn.Conv2d(1, 32, 3, padding=1, bias=False),
+    nn.BatchNorm2d(32),
+    nn.ReLU(),
+    nn.MaxPool2d(2, 2),
+    nn.Conv2d(32, 64, 3, padding=1, bias=False),
+    nn.BatchNorm2d(64),
+    nn.ReLU(),
+    nn.MaxPool2d(2, 2),
+    nn.Linear(64 * 8 * 8, 10) # -> 10 clases (del 0 al 9)
 )
 
 # si imprime el modelo vera algo como
@@ -1774,15 +2025,15 @@ Sequential(
 lr = 1e-3
 batch_size = 128
 epochs = 10
-optimizer = Adam(
+optimizer = optim.AdamW(
     model.parameters() # Se le pasan los parametros del modelo
     lr=lr, 
-    weight_decay=1e-5
+    weight_decay=1e-2
     betas=(0.9,0.999)
 )
 
 # 5. definimos la funcion de perdida
-loss_fn = CrossEntropyLoss()
+loss_fn = nn.CrossEntropyLoss()
 
 # 6. Crear los data loaders
 train_loader = DataLoader(x_train, y_train, batch_size=batch_size, shuffle=True)
@@ -1872,21 +2123,83 @@ curl -sSL https://install.python-poetry.org | python3 -
 pipx install poetry
 ```
 
-- Añadir Poetry al PATH (si es necesario):
+#### Añadir Poetry al PATH:
+
+-  En Linux/macOS:
 
 ```bash
-# En Linux/macOS, añadir al ~/.bashrc o ~/.zshrc:
+# Bash/Zsh (temporal)
 export PATH="$HOME/.local/bin:$PATH"
+
+# Bash (permanente - añadir al ~/.bashrc)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Zsh (permanente - añadir al ~/.zshrc)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
 ```
 
-### 3. Instalar dependencias del proyecto
+- En Windows
+
+```powershell
+# PowerShell (temporal para la sesión actual)
+$env:Path += ";$env:APPDATA\Python\Scripts"
+
+# PowerShell (permanente - usuario actual)
+[System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:APPDATA\Python\Scripts", "User")
+
+# PowerShell (permanente - sistema)
+[System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:APPDATA\Python\Scripts", "Machine")
+```
+
+```cmd
+# Command Prompt (temporal)
+set PATH=%PATH%;%APPDATA%\Python\Scripts
+
+# Command Prompt (permanente)
+setx PATH "%PATH%;%APPDATA%\Python\Scripts"
+```
+
+### 3. Añadir el proyecto al python path
+
+- En Linux/macOS
+
+```bash
+# Temporal
+export PYTHONPATH="/ruta/a/tu/proyecto:$PYTHONPATH"
+
+# Permanente (añadir al ~/.bashrc o ~/.zshrc)
+echo 'export PYTHONPATH="/ruta/a/tu/proyecto:$PYTHONPATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+- En Windows:
+
+```powershell
+# PowerShell (temporal)
+$env:PYTHONPATH = "C:\ruta\a\tu\proyecto"
+
+# PowerShell (permanente)
+[System.Environment]::SetEnvironmentVariable("PYTHONPATH", "C:\ruta\a\tu\proyecto", "User")
+```
+
+```cmd
+# Command Prompt (temporal)
+set PYTHONPATH=C:\ruta\a\tu\proyecto
+
+# Command Prompt (permanente)
+setx PYTHONPATH "C:\ruta\a\tu\proyecto"
+```
+
+### 4. Instalar dependencias del proyecto
 
 ```bash
 # Instalar todas las dependencias (incluyendo las de desarrollo)
 poetry install
 ```
 
-### 4. Activar el entorno virtual
+### 5. Activar el entorno virtual
 
 ```bash
 # instalaer el plugin de shell
@@ -1899,7 +2212,7 @@ poetry shell
 poetry run python examples/binary_classification.py
 ```
 
-### 5. Configurar variables de entorno
+### 6. Configurar variables de entorno
 
 Crea un archivo .env en la raíz del proyecto con las siguientes variables (ajusta las rutas según tu configuración):
 
@@ -1922,7 +2235,7 @@ LOGGER_DEFAULT_FORMAT=%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s - %(
 LOGGER_DATE_FORMAT=%Y-%m-%d %H:%M:%S
 ```
 
-### 6. Ejecutar ejemplos
+### 7. Ejecutar ejemplos
 
 ```bash
 # Clasificación binaria
@@ -1938,7 +2251,7 @@ poetry run python examples/conv_example.py
 poetry run python examples/regresion.py
 ```
 
-### 7. Ejecutar todos los tests
+### 8. Ejecutar todos los tests
 
 ```bash
 # Todos los tests
@@ -1955,52 +2268,7 @@ poetry run pytest tests/ -v
 El framework incluye una suite completa de tests unitarios en el directorio [`tests/`](./tests/) que verifican la correcta implementación de todos los componentes. Para más información vaya a [Tests unitarios](./tests/README.md)
 
 ## 🤝 Contribución
-
-Las contribuciones son bienvenidas y apreciadas. NovaNN es un proyecto educativo de código abierto que se beneficia de la comunidad.
-
-### **¿Cómo Contribuir?**
-
-1. **Fork del repositorio** en GitHub
-2. **Crea una rama para tu feature** (`git checkout -b feature/nueva-funcionalidad`)
-3. **Commit de tus cambios** (`git commit -m 'Añade nueva funcionalidad X'`)
-4. **Push a la rama** (`git push origin feature/nueva-funcionalidad`)
-5. **Abre un Pull Request** en GitHub con una descripción clara de los cambios
-
-### **Áreas de Contribución Prioritarias**
-
-- 🐛 **Reporte y corrección de bugs**: Probar el framework en diferentes escenarios
-- 💡 **Nuevas capas y funcionalidades**: Implementaciones de papers recientes
-- 📚 **Mejora de documentación**: Ejemplos adicionales, tutoriales, documentación de código
-- 🧪 **Tests unitarios**: Aumentar cobertura y casos edge
-- ⚡ **Optimizaciones de rendimiento**: Mejoras en implementaciones NumPy
-- 🔧 **Herramientas de desarrollo**: Scripts de utilidad, visualizaciones
-
-### **Guías de Estilo y Calidad**
-
-- **Código**: Sigue las convenciones existentes y usa Black para formateo
-- **Tests**: Incluye tests unitarios para nuevas funcionalidades
-- **Documentación**: Actualiza docstrings y README si es necesario
-- **Tipado**: Usa type hints consistentemente
-- **Commits**: Mensajes descriptivos en inglés o español
-
-### **Proceso de Revisión**
-
-- Los PRs serán revisados por el mantenedor principal
-- Se esperan tests que pasen y cobertura mantenida
--  
-- Se puede solicitar cambios antes de mergear
-
-### **Reporte de Issues**
-
-Al reportar un bug o solicitar una feature:
-
-- **Título claro y descriptivo**
-- **Descripción detallada** del problema o solicitud
-- **Pasos para reproducir** (para bugs)
-- **Comportamiento esperado vs actual**
-- **Entorno**: Versión de Python, sistema operativo, versión de NovaNN
-- **Código de ejemplo** mínimo para reproducir
-- **Logs relevantes** (usar el logger del framework)
+Para saber como contribuir a **NovaNN** puede a [contribuciones](./CONTRIBUTING.md)
 
 ## 📄 Licencia
 
