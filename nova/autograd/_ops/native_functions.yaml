@@ -1,0 +1,29 @@
+### ops structure
+
+ops:
+  - name: add
+    op: Add
+    tensor:
+      dunder: "__add__"
+      reverse: "__radd__"
+
+  - name: mul
+    op: Mul
+    tensor:
+      dunder: "__mul__"
+      reverse: "__rmul__"
+
+  - name: matmul
+    op: MatMul
+    tensor:
+      dunder: "__matmul__"
+
+  - name: sum
+    op: Sum
+    tensor:
+      method: "sum"
+
+  - name: reshape
+    op: Reshape
+    tensor:
+      method: "reshape"
