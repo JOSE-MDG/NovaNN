@@ -1,0 +1,12 @@
+### ops structure
+
+ops:
+  - name: add
+    tensor:
+      dunder: "__add__"
+      reverse: "__radd__"
+
+  - name: sub
+    tensor:
+      dunder: "__sub__"
+      reverse: "__rsub__"

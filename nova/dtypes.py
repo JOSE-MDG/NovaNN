@@ -7,11 +7,11 @@ from numpy import (
     float16,
     float32,
     float64,
-    float96,
     float128,
+    bool,
 )
 
-uint = uint8
+uint8 = uint8
 int8 = int8
 short = int16
 int = int32
@@ -19,13 +19,12 @@ long = int64
 half = float16
 float32 = float32
 double = float64
-float96 = float96
 float128 = float128
 bool = bool
 
 
 __all__ = [
-    "uint",
+    "uint8",
     "int8",
     "short",
     "int",
@@ -33,7 +32,6 @@ __all__ = [
     "half",
     "float32",
     "double",
-    "float96",
     "float128",
     "bool",
 ]

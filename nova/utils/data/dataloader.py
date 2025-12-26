@@ -1,5 +1,10 @@
-import numpy as np
-from typing import Iterator, Tuple
+from __future__ import annotations
+import nova
+from typing import Iterator, Tuple, TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from nova import Tensor
 
 
 class DataLoader:
@@ -10,9 +15,9 @@ class DataLoader:
     each epoch.
 
     Attributes:
-        x (np.ndarray): Input feature array of shape (N, ...).
-        y (np.ndarray): Label array of shape (N, ...).
-        bs (int): Batch size (i.e., number of samples per batch).
+        x (Tensor): Input feature array of shape (N, ...).
+        y (Tensor): Label array of shape (N, ...).
+        batch_size (int): Batch size (i.e., number of samples per batch).
         shuffle (bool): Whether to shuffle samples each epoch.
     """
 
@@ -26,21 +31,21 @@ class DataLoader:
             parent (DataLoader): Parent DataLoader instance.
         """
 
-        def __init__(self, parent: "DataLoader"):
-            self.parent: "DataLoader" = parent
+        def __init__(self, parent: DataLoader):
+            self.parent: DataLoader = parent
             self.idx: int = 0
             # Create an array of indices. Shuffle it if required.
-            self.order: np.ndarray = (
-                np.random.permutation(len(parent.x))
+            self.order: Tensor = (
+                nova.permutation(len(parent.x))
                 if parent.shuffle
-                else np.arange(len(parent.x))
+                else nova.arange(len(parent.x))
             )
 
-        def __iter__(self) -> "DataLoader._Iter":
+        def __iter__(self) -> DataLoader._Iter:
             """Return the iterator itself."""
             return self
 
-        def __next__(self) -> Tuple[np.ndarray, np.ndarray]:
+        def __next__(self) -> Tuple[Tensor, Tensor]:
             """Return the next batch (xb, yb).
 
             Raises:
@@ -60,22 +65,22 @@ class DataLoader:
             return xb, yb
 
     def __init__(
-        self, x: np.ndarray, y: np.ndarray, batch_size: int = 64, shuffle: bool = True
+        self, x: Tensor, y: Tensor, batch_size: int = 64, shuffle: bool = True
     ) -> None:
         """Initialize DataLoader.
 
         Args:
-            x (np.ndarray): Feature array.
-            y (np.ndarray): Label array.
+            x (Tensor): Feature tensor.
+            y (Tensor): Label tensor.
             batch_size (int): Samples per batch. Defaults to 128.
             shuffle (bool): Shuffle each epoch. Defaults to True.
         """
-        self.x: np.ndarray = x
-        self.y: np.ndarray = y
+        self.x: Tensor = x
+        self.y: Tensor = y
         self.bs: int = batch_size
         self.shuffle: bool = shuffle
 
-    def __iter__(self) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
+    def __iter__(self) -> Iterator[Tuple[Tensor, Tensor]]:
         """Return a new iterator for one epoch."""
         return DataLoader._Iter(self)
 

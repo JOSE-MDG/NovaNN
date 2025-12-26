@@ -1,3 +1,3 @@
-from ._typing import Shape
+from ._typing import Shape, Dtype, Inputs, TensorOrArray
 
-__all__ = ["Shape"]
+__all__ = ["Shape", "Dtype", "Inputs", "TensorOrArray"]
