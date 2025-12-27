@@ -78,6 +78,14 @@ ops:
     tensor:
       method: as_strided
 
+  - name: view
+    tensor:
+      method: view
+
+  - name: extend
+    tensor:
+      method: extend
+
   # Linear algebra
 
   - name: matmul
