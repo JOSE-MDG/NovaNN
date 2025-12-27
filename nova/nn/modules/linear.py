@@ -1,6 +1,11 @@
+from __future__ import annotations
 import nova
+from typing import TYPE_CHECKING
 from nova.nn.modules import Module
 from nova.nn.parameter import Parameter
+
+if TYPE_CHECKING:
+    from nova import Tensor
 
 
 class Linear(Module):
@@ -14,9 +19,9 @@ class Linear(Module):
         if bias:
             self.bias: Parameter = Parameter(nova.zeros((1, out_features)))
         else:
-            self.register_parameters("bias", None)
+            self.register_parameter("bias", None)
 
-    def forward(self, x: nova.Tensor):
+    def forward(self, x: Tensor):
         out = x @ self.weight.T
         if self.use_bias:
             out = out + self.bias

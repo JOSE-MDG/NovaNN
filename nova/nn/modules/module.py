@@ -51,7 +51,7 @@ class Module:
 
         setattr(self, name, buffer)
 
-    def register_parameters(self, name: str, param: Optional[Parameter]) -> None:
+    def register_parameter(self, name: str, param: Optional[Parameter]) -> None:
 
         if param is None:
             self._parameters[name] = None
@@ -62,7 +62,7 @@ class Module:
 
         setattr(self, name, param)
 
-    def register_modules(self, name: str, module: Optional[Module]) -> None:
+    def register_module(self, name: str, module: Optional[Module]) -> None:
 
         if module is None:
             self._modules[name] = None
