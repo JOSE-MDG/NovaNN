@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Iterable, Optional
 from nova.utils import registry_class
 from nova.autograd.utils.hooks import HooksHandle
-from collections import OrderedDict
 
 if TYPE_CHECKING:
     from nova.nn import Parameter
