@@ -40,7 +40,7 @@ class Sum(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        (shape_a,) = ctx.saved_shapes
+        shape_a = ctx.saved_shapes
 
         if not ctx.keepdims and ctx.dim is not None:
             grad_output = np.expand_dims(grad_output, ctx.dim)
@@ -74,7 +74,7 @@ class Mean(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        (shape_a,) = ctx.saved_shapes
+        shape_a = ctx.saved_shapes
 
         if not ctx.keepdims and ctx.dim is not None:
             grad_output = np.expand_dims(grad_output, ctx.dim)
@@ -105,7 +105,7 @@ class Max(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        (shape_a,) = ctx.saved_shapes
+        shape_a = ctx.saved_shapes
 
         if not ctx.keepdims and ctx.dim is not None:
             grad_output = np.expand_dims(grad_output, ctx.dim)
@@ -140,7 +140,7 @@ class Min(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        (shape_a,) = ctx.saved_shapes
+        shape_a = ctx.saved_shapes
 
         if not ctx.keepdims and ctx.dim is not None:
             grad_output = np.expand_dims(grad_output, ctx.dim)
