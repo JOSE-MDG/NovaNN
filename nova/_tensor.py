@@ -186,6 +186,55 @@ class Tensor(TensorBase):
 
         return std(self, dim=dim, keepdims=keepdims)
 
+    # inplace-methods
+
+    def normal_(self, mean: float = 0, std: float = 1):
+        if self.requires_grad:
+            raise RuntimeError(
+                f"Cannot perform inplace operation on a tensor that requires gradients"
+            )
+
+        self.data = np.random.normal(loc=mean, std=std, size=self.data.shape)
+
+    def uniform_(self, low: float = -1, high: float = 1):
+        if self.requires_grad:
+            raise RuntimeError(
+                f"Cannot perform inplace operation on a tensor that requires gradients"
+            )
+
+        self.data = np.random.uniform(low=low, high=high, size=self.data.shape)
+
+    def zero_(self):
+        if self.requires_grad:
+            raise RuntimeError(
+                f"Cannot perform inplace operation on a tensor that requires gradients"
+            )
+
+        self.data.fill(0.0)
+
+    def fill_(self, value: Any):
+        if self.requires_grad:
+            raise RuntimeError(
+                f"Cannot perform inplace operation on a tensor that requires gradients"
+            )
+
+        self.data.fill(value)
+
+    def copy_(self, src: Tensor):
+        src = ensure_tensor(src)
+
+        src_data = src.data
+
+        if src.data.shape != self.data.shape:
+            raise ValueError(f"Shape mismatch: {self.data.shape} vs {src_data.shape}")
+
+        self.data[:] = src_data
+
+        return self
+
+    def requires_grad_(self, mode):
+        self.requires_grad = mode
+
     def retain_grad(self):
 
         if not self.requires_grad:
