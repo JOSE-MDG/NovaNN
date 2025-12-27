@@ -112,22 +112,32 @@ ops:
   - name: floor
     tensor:
       method: floor
+      inplace:
+        method: floor_
 
   - name: log
     tensor:
       method: log
+      inplace:
+        method: log_
 
   - name: exp
     tensor:
       method: exp
+      inplace:
+        method: exp_
 
   - name: sqrt
     tensor:
       method: sqrt
+      inplace:
+        method: sqrt_
 
   - name: sign
     tensor:
       method: sign
+      inplace:
+        method: sign_
 
   - name: abs
     tensor:
@@ -176,6 +186,8 @@ ops:
   - name: clamp
     tensor:
       method: clamp
+      inplace:
+        method: clamp_
 
   - name: tile
     tensor:

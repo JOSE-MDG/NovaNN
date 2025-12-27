@@ -8,17 +8,17 @@ if TYPE_CHECKING:
     from nova._typing import Dim, Dtype
 
 
-def sqrt(input) -> nova.Tensor:
+def sqrt(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.sqrt()
 
 
-def mean(input, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
+def mean(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.mean(dim, keepdims)
 
 
-def var(input, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
+def var(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
     diff = input - input.mean(dim, keepdims)
     diff_sq = diff**2
@@ -26,7 +26,7 @@ def var(input, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     return var
 
 
-def std(input, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
+def std(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
 
     return sqrt(var(input, dim, keepdims))
@@ -39,175 +39,177 @@ def empty(
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
-def min(input, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
+def min(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
 
     return input.min(dim=dim, keepdims=keepdims)
 
 
-def max(input, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
+def max(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
 
     return input.max(dim=dim, keepdims=keepdims)
 
 
-def sum(input, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
+def sum(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
 
     return input.sum(dim=dim, keepdims=keepdims)
 
 
-def pow(input, exponent) -> nova.Tensor:
+def pow(input: nova.Tensor, exponent: nova.Tensor | int | float) -> nova.Tensor:
     input = ensure_tensor(input)
     exponent = ensure_tensor(exponent)
 
     return input**exponent
 
 
-def maximum(input, other) -> nova.Tensor:
+def maximum(input: nova.Tensor, other: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     other = ensure_tensor(other)
 
     return input.maximum(other)
 
 
-def minimum(input, other) -> nova.Tensor:
+def minimum(input: nova.Tensor, other: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     other = ensure_tensor(other)
 
     return input.minimum(other)
 
 
-def clamp(input, min_val, max_val) -> nova.Tensor:
+def clamp(input: nova.Tensor, min_val: float, max_val: float) -> nova.Tensor:
     input = ensure_tensor(input)
 
     return input.clamp(min_val, max_val)
 
 
-def split(input, sections: int, dim: Dim) -> nova.Tensor:
+def split(input: nova.Tensor, sections: int, dim: Dim = None) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.split(sections=sections, dim=dim)
 
 
-def tile(input, repeats: int | nova.Tensor) -> nova.Tensor:
+def tile(input: nova.Tensor, repeats: int) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.tile(repeats)
 
 
-def repeat_interleave(input, repeats: int | nova.Tensor, dim):
+def repeat_interleave(input: nova.Tensor, repeats: int, dim):
     input = ensure_tensor(input)
     return input.repeat(repeats=repeats, dim=dim)
 
 
 def pad(
-    input, pad_width: tuple[tuple[int, ...], ...] | tuple[int, ...], mode: str = "zeros"
+    input: nova.Tensor,
+    pad_width: tuple[tuple[int, ...], ...] | tuple[int, ...],
+    mode: str = "zeros",
 ):
     input = ensure_tensor(input)
     return input.pad(pad_width, mode)
 
 
-def floor(input):
+def floor(input: nova.Tensor):
     input = ensure_tensor(input)
     return input.floor()
 
 
-def exp(input) -> nova.Tensor:
+def exp(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.exp()
 
 
-def sin(input) -> nova.Tensor:
+def sin(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.sin()
 
 
-def cos(input) -> nova.Tensor:
+def cos(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.cos()
 
 
-def tan(input) -> nova.Tensor:
+def tan(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.tan()
 
 
-def tanh(input) -> nova.Tensor:
+def tanh(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.tanh()
 
 
-def sec(input) -> nova.Tensor:
+def sec(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.sec()
 
 
-def cot(input) -> nova.Tensor:
+def cot(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.cot()
 
 
-def log(input) -> nova.Tensor:
+def log(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.log()
 
 
-def reshape(tensor: nova.Tensor, dims: Dim) -> nova.Tensor:
-    tensor = ensure_tensor(tensor)
+def reshape(input: nova.Tensor, dims: Dim) -> nova.Tensor:
+    input = ensure_tensor(input)
 
-    return tensor.reshape(*dims)
-
-
-def dot(tensor1: nova.Tensor, tensor2: nova.Tensor) -> nova.Tensor:
-    tensor1 = ensure_tensor(tensor1)
-    tensor2 = ensure_tensor(tensor2)
-
-    return tensor1.dot(tensor2)
+    return input.reshape(dims)
 
 
-def det(tensor: nova.Tensor) -> nova.Tensor:
-    tensor = ensure_tensor(tensor)
-    return tensor.det()
+def dot(input: nova.Tensor, other: nova.Tensor) -> nova.Tensor:
+    input = ensure_tensor(input)
+    other = ensure_tensor(other)
+
+    return input.dot(other)
 
 
-def inv(tensor: nova.Tensor) -> nova.Tensor:
-    tensor = ensure_tensor(tensor)
-
-    return tensor.inv()
-
-
-def trace(tensor: nova.Tensor) -> nova.Tensor:
-    tensor = ensure_tensor(tensor)
-
-    return tensor.trace()
+def det(input: nova.Tensor) -> nova.Tensor:
+    input = ensure_tensor(input)
+    return input.det()
 
 
-def abs(input) -> nova.Tensor:
+def inv(input: nova.Tensor) -> nova.Tensor:
+    input = ensure_tensor(input)
+
+    return input.inv()
+
+
+def trace(input: nova.Tensor) -> nova.Tensor:
+    input = ensure_tensor(input)
+
+    return input.trace()
+
+
+def abs(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.abs()
 
 
-def sign(input) -> nova.Tensor:
+def sign(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
 
     return input.sign()
 
 
-def arcsin(input) -> nova.Tensor:
+def arcsin(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.arcsin()
 
 
-def arccos(input) -> nova.Tensor:
+def arccos(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.arccos()
 
 
-def arctan(input) -> nova.Tensor:
+def arctan(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.arctan()
 
 
-def where(condition, x, y):
+def where(condition: nova.Tensor, x: nova.Tensor, y: nova.Tensor):
     from nova.autograd._ops import Where
 
     x = ensure_tensor(x)
@@ -215,9 +217,9 @@ def where(condition, x, y):
     return Where.apply(condition, x, y)
 
 
-def permute(input, *dims: Dim) -> nova.Tensor:
+def permute(input: nova.Tensor, *dims: Dim) -> nova.Tensor:
     input = ensure_tensor(input)
-    return input.permute(*dims)
+    return input.permute(dims)
 
 
 def permutation(input: int):
@@ -225,15 +227,15 @@ def permutation(input: int):
     return nova.Tensor(permutation, dtype=permutation.dtype, requires_grad=False)
 
 
-def unsqueeze(input, dim: Dim) -> nova.Tensor:
+def unsqueeze(input: nova.Tensor, dim: Dim) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.unsqueeze(dim)
 
 
-def cat(tensors: list[nova.Tensor], dim: Dim = None):
+def cat(inputs: list[nova.Tensor], dim: Dim = None):
     from nova.autograd._ops import Concat
 
-    return Concat.apply(tensors, dim)
+    return Concat.apply(inputs, dim)
 
 
 def eye(
@@ -242,12 +244,15 @@ def eye(
     if M is None:
         M = N
 
-    return nova.Tensor(np.eye(N, M), requires_grad=requires_grad)
+    data = np.eye(N, M, k=K)
+    return nova.Tensor(data, dtype=data.dtype, requires_grad=requires_grad)
 
 
-def one_hot(labels, num_classes: int, requires_grad: bool = False) -> nova.Tensor:
+def one_hot(
+    labels: nova.Tensor, num_classes: int, requires_grad: bool = False
+) -> nova.Tensor:
     labels = ensure_tensor(labels)
-    data = np.eye(num_classes)[labels.data.astype(np.int64)]
+    data = np.eye(num_classes)[labels.data.astype(nova.long)]
     return nova.Tensor(data, dtype=nova.long, requires_grad=requires_grad)
 
 
@@ -299,34 +304,34 @@ def unique(
     return nova.Tensor(unique)
 
 
-def argmin(input, dim: Dim = None, keepdims: bool = False):
+def argmin(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
     input = ensure_tensor(input)
 
     return input.argmin(dim=dim, keepdims=keepdims)
 
 
-def argmax(input, dim: Dim, keepdims: bool = False):
+def argmax(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
     input = ensure_tensor(input)
 
     return input.argmax(dim=dim, keepdims=keepdims)
 
 
-def argsort(input, dim: Dim = -1, kind=None, order=None):
+def argsort(input: nova.Tensor, dim: Dim = -1, kind=None, order=None):
     input = ensure_tensor(input)
 
     return input.argsort(dim=dim, kind=kind, order=order)
 
 
-def argwhere(input):
+def argwhere(input: nova.Tensor):
     input = ensure_tensor(input)
 
     return input.argwhere()
 
 
-def stack(tensors: list[nova.Tensor], dim: Dim = 0):
+def stack(inputs: list[nova.Tensor], dim: Dim = 0):
     from nova.autograd._ops import Stack
 
-    return Stack.apply(tensors, dim)
+    return Stack.apply(inputs, dim)
 
 
 def zeros(
@@ -337,14 +342,14 @@ def zeros(
 
 
 def zeros_like(
-    tensor: nova.Tensor, dtype: Dtype | None = None, requires_grad: bool = False
+    input: nova.Tensor, dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
-    tensor = ensure_tensor(tensor)
-    data = np.zeros_like(tensor.data, dtype=tensor.dtype if dtype is None else dtype)
+    input = ensure_tensor(input)
+    data = np.zeros_like(input.data, dtype=input.dtype if dtype is None else dtype)
     return nova.Tensor(
         data,
         requires_grad=requires_grad,
-        dtype=tensor.dtype if dtype is None else dtype,
+        dtype=input.dtype if dtype is None else dtype,
     )
 
 
@@ -356,14 +361,14 @@ def ones(
 
 
 def ones_like(
-    tensor: nova.Tensor, dtype: Dtype | None = None, requires_grad: bool = False
+    input: nova.Tensor, dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
-    tensor = ensure_tensor(tensor)
-    data = np.ones_like(tensor.data, dtype=tensor.dtype if dtype is None else dtype)
+    input = ensure_tensor(input)
+    data = np.ones_like(input.data, dtype=input.dtype if dtype is None else dtype)
     return nova.Tensor(
         data,
         requires_grad=requires_grad,
-        dtype=tensor.dtype if dtype is None else dtype,
+        dtype=input.dtype if dtype is None else dtype,
     )
 
 
