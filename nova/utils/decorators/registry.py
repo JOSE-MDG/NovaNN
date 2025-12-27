@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Type, TYPE_CHECKING
+from typing import Any, Callable, Type, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from nova.autograd.function import Function
@@ -8,14 +8,14 @@ _MODULES: dict[str, Type[Any]] = {}
 _OPS_REGISTERED: dict[str, Type[Function]] = {}
 
 
-def registry_class(cls):
+def registry_class(cls: Type[Any]):
     key = (cls.__module__, cls.__name__)
     if key not in _MODULES:
         _MODULES.setdefault(key, cls)
     return cls
 
 
-def registry_op(op_name: str):
+def registry_op(op_name: str) -> Callable[[Type[Function]], Type[Function]]:
     from nova.autograd.function import Function
 
     def register(cls: Type[Function]):
@@ -31,5 +31,5 @@ def registry_op(op_name: str):
     return register
 
 
-def get_registered_classes(module, name):
-    return _MODULES.get((module, name))
+def get_registered_classes(module, name) -> str:
+    return _MODULES.get((module, name), None)

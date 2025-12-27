@@ -15,6 +15,7 @@ ALLOWED_MODULES = {
 class SafeUnpickler(pickle.Unpickler):
     def find_class(self, module_name, global_name):
 
+        # Allow numpy modules
         if module_name in ALLOWED_MODULES:
             return super().find_class(module_name, global_name)
 
@@ -39,12 +40,9 @@ class SafeUnpickler(pickle.Unpickler):
         cls = get_registered_classes(module=module_name, name=global_name)
 
         if cls is None:
-            for (m, n), registered_cls in _MODULES.items():
+            for (_, n), registered_cls in _MODULES.items():
                 if n == global_name:
                     return registered_cls
-
-        if cls is not None:
-            return cls
 
         if cls is not None:
             return cls
