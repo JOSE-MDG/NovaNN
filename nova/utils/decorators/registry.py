@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Any, Type, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -30,3 +29,7 @@ def registry_op(op_name: str):
         return cls
 
     return register
+
+
+def get_registered_classes(module, name):
+    return _MODULES.get((module, name))

@@ -6,7 +6,7 @@ gradient checking, and training workflows.
 """
 
 from . import *
-from .registry import registry_class, registry_op
+from .decorators import registry_class, registry_op, get_registered_classes
 from .to_tensor import ensure_tensor
 
 __all__ = [
@@ -19,4 +19,5 @@ __all__ = [
     "registry_class",
     "ensure_tensor",
     "registry_op",
+    "get_registered_classes",
 ]
