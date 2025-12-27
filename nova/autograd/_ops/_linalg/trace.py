@@ -10,19 +10,18 @@ if TYPE_CHECKING:
     from nova.autograd.engine import Context
 
 
-@registry_op("det")
-class Det(Function):
+@registry_op("trace")
+class Trace(Function):
     @staticmethod
     def forward(ctx: Context, a: ndarray) -> ndarray:
-        result = np.linalg.det(a)
-        ctx.save_for_backward(a, result)
-        return result
+        ctx.save_for_backward(a)
+        return np.linalg.trace(a)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        (a, det) = ctx.saved_tensors
-        inv_T = np.linalg.inv(a).T
+        (a,) = ctx.saved_tensors
 
-        grad_a = det @ grad_output @ inv_T
+        N = a.shape[0]
+        grad_a = np.eye(N=N) * grad_output
 
         return (grad_a,)

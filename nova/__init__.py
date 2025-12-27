@@ -6,6 +6,7 @@ from .utils import registry_class, ensure_tensor, registry_op
 from ._internal._binding import bootstrap_to
 from ._tensor import Tensor
 from .autograd.grad_mode import is_grad_enabled
+from .autograd._ops._creation import *
 
 if TYPE_CHECKING:
     from nova._typing import Dtype
@@ -35,6 +36,8 @@ __all__ = [
     # bootstrap
     "bootstrap_to",
 ]
+
+__all__.extend(__all__)
 
 __version__ = "3.0.0"
 

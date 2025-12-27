@@ -1,12 +1,238 @@
-### ops structure
+##### Ops structure
 
 ops:
+  # Arithmetics methods
+
   - name: add
     tensor:
       dunder: "__add__"
       reverse: "__radd__"
+      inplace:
+        method: "add_"
+        dunder: "__iadd__"
 
   - name: sub
     tensor:
       dunder: "__sub__"
       reverse: "__rsub__"
+      inplace:
+        method: "sub_"
+        dunder: "__isub__"
+
+  - name: mul
+    tensor:
+      dunder: "__mul__"
+      reverse: "__rmul__"
+      inplace:
+        method: "mul_"
+        dunder: "__imul__"
+
+  - name: div
+    tensor:
+      dunder: "__truediv__"
+      reverse: "__rtruediv__"
+      inplace:
+        method: "div_"
+        dunder: "__itruediv__"
+
+  - name: divint
+    tensor:
+      dunder: "__floordiv__"
+      reverse: "__rfloordiv__"
+      inplace:
+        method: "floor_divide_"
+        dunder: "__ifloordiv__"
+
+  - name: mod
+    tensor:
+      dunder: "__mod__"
+      reverse: "__rmod__"
+      inplace:
+        method: "mod_"
+        dunder: "__imod__"
+
+  - name: pow
+    tensor:
+      dunder: "__pow__"
+      reverse: "__rpow__"
+      inplace:
+        method: "pow_"
+        dunder: "__ipow__"
+
+  - name: abs
+    tensor:
+      dunder: "__abs__"
+      inplace:
+        method: "abs_"
+
+  # Indexing
+
+  - name: getitem
+    raw_args: true
+    tensor:
+      dunder: "__getitem__"
+
+  # Strides and views
+
+  - name: stride_tricks
+    tensor:
+      method: as_strided
+
+  # Linear algebra
+
+  - name: matmul
+    tensor:
+      dunder: "__matmul__"
+      reverse: "__rmatmul__"
+      inplace:
+        dunder: "__imatmul__"
+
+  - name: det
+    tensor:
+      method: det
+
+  - name: dot
+    tensor:
+      method: dot
+
+  - name: inv
+    tensor:
+      method: inv
+
+  - name: norm
+    tensor:
+      method: norm
+
+  - name: trace
+    tensor:
+      method: trace
+
+  # methods
+
+  - name: floor
+    tensor:
+      method: floor
+
+  - name: log
+    tensor:
+      method: log
+
+  - name: exp
+    tensor:
+      method: exp
+
+  - name: sqrt
+    tensor:
+      method: sqrt
+
+  - name: sign
+    tensor:
+      method: sign
+
+  - name: abs
+    tensor:
+      method: abs
+
+  # reduction
+
+  - name: max
+    tensor:
+      method: max
+
+  - name: min
+    tensor:
+      method: min
+
+  - name: mean
+    tensor:
+      method: mean
+
+  - name: sum
+    tensor:
+      method: sum
+
+  # manipulation
+
+  - name: permute
+    tensor:
+      method: permute
+
+  - name: reshape
+    tensor:
+      method: reshape
+
+  - name: squeeze
+    tensor:
+      method: squeeze
+
+  - name: unsqueeze
+    tensor:
+      method: unsqueeze
+
+  - name: split
+    tensor:
+      method: split
+
+  - name: clamp
+    tensor:
+      method: clamp
+
+  - name: tile
+    tensor:
+      method: tile
+
+  - name: repeat
+    tensor:
+      method: repeat
+
+  - name: pad
+    tensor:
+      method: pad
+
+  # trigonometrics
+
+  - name: sin
+    tensor:
+      method: sin
+
+  - name: cos
+    tensor:
+      method: cos
+
+  - name: tan
+    tensor:
+      method: tan
+
+  - name: tanh
+    tensor:
+      method: tanh
+
+  - name: cot
+    tensor:
+      method: cot
+
+  - name: sec
+    tensor:
+      method: sec
+
+  - name: arcsin
+    tensor:
+      method: arcsin
+
+  - name: arccos
+    tensor:
+      method: arccos
+
+  - name: arctan
+    tensor:
+      method: arctan
+
+  # comparison
+
+  - name: maximum
+    tensor:
+      method: maximum
+
+  - name: minimum
+    tensor:
+      method: minimum

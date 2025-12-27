@@ -2,12 +2,12 @@ from __future__ import annotations
 import nova
 from .engine import Context
 from typing import Any, TYPE_CHECKING, Type
-from nova._typing import Inputs
 from numpy import ndarray
 from abc import ABC, ABCMeta
 
 if TYPE_CHECKING:
     from nova import Tensor
+    from nova._typing import Gradients
 
 
 class FunctionMeta(ABCMeta):
@@ -17,38 +17,40 @@ class FunctionMeta(ABCMeta):
 
 class Function(ABC, metaclass=FunctionMeta):
     @staticmethod
-    def forward(ctx: Context, *args: Any) -> ndarray:
+    def forward(ctx: Context, *args: Any, **kwargs) -> ndarray:
         raise NotImplementedError
 
     @staticmethod
-    def backward(ctx: Context, grad_output: ndarray) -> tuple[ndarray | None, ...]:
+    def backward(ctx: Context, grad_output: ndarray) -> Gradients:
         raise NotImplementedError
 
     @classmethod
-    def apply(cls: Type[Function], *args: Inputs, **kwargs) -> Tensor:
+    def apply(cls: Type[Function], *args: Any, **kwargs: Any) -> Tensor:
         from nova import Tensor
 
         ctx: Context = Context()
-        raw_inputs: list[ndarray | Any] = []
-        tensors: list[Tensor] = []
+        tensors_in_graph: list[Tensor] = []
 
-        for arg in args:
+        def process_arg(arg: Any) -> Any:
             if isinstance(arg, Tensor):
-                raw_inputs.append(arg.data)
-                tensors.append(arg)
-            elif (
-                isinstance(arg, (list, tuple))
-                and len(arg) > 0
-                and isinstance(arg[0], Tensor)
-            ):
-                raw_inputs.append([t.data for t in arg])
-                tensors.extend(arg)
-            else:
-                raw_inputs.append(arg)
+                tensors_in_graph.append(arg)
+                return arg.data
+            elif isinstance(arg, list):
+                return [process_arg(a) for a in arg]
+            elif isinstance(arg, tuple):
+                return tuple(process_arg(a) for a in arg)
+            elif isinstance(arg, dict):
+                return {k: process_arg(v) for k, v in arg.items()}
+            return arg
 
-        output = cls.forward(ctx, *raw_inputs, **kwargs)
+        raw_args = tuple(process_arg(a) for a in args)
+        raw_kwargs = {k: process_arg(v) for k, v in kwargs.items()}
 
-        requires_grad = any(t.requires_grad for t in tensors) and nova.is_grad_enabled()
+        output = cls.forward(ctx, *raw_args, **raw_kwargs)
+
+        requires_grad = (
+            any(t.requires_grad for t in tensors_in_graph) and nova.is_grad_enabled()
+        )
 
         result = Tensor(
             output,
@@ -59,7 +61,9 @@ class Function(ABC, metaclass=FunctionMeta):
         )
 
         if requires_grad:
-            result._inputs = tensors
+            result._inputs = tensors_in_graph
             result._ctx = ctx
+            if tensors_in_graph:
+                result.rank = max(t.rank for t in tensors_in_graph) + 1
 
         return result

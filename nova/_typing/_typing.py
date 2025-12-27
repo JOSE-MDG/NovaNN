@@ -1,12 +1,12 @@
 from __future__ import annotations
 from nova import dtypes
 from numpy import ndarray
-from typing import TYPE_CHECKING, Any, TypeAlias, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypeAlias, Union
 
 if TYPE_CHECKING:
     from nova._tensor import Tensor
 
-Shape = tuple[int, ...]
+Size = tuple[int, ...]
 
 Dtype = (
     dtypes.uint8
@@ -23,3 +23,6 @@ Dtype = (
 
 TensorOrArray: TypeAlias = Union[Tensor, ndarray, list[Tensor], tuple[Tensor, ...]]
 Inputs: TypeAlias = TensorOrArray | int | float | Any
+Hook: TypeAlias = Callable[[ndarray], Optional[ndarray]]
+Gradients: TypeAlias = tuple[ndarray | None, ...]
+Dim: TypeAlias = tuple[int, ...] | int

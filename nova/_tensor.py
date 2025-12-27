@@ -1,15 +1,19 @@
 from __future__ import annotations
 import nova
 import numpy as np
+import traceback
 from numpy import ndarray
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Optional
 from nova._interfaces._base_tensor import TensorBase
-from nova.utils import registry_class
+from nova.utils import registry_class, ensure_tensor
+from nova.utils.log_config import logger
+from nova.autograd.engine import _backward
 
 if TYPE_CHECKING:
     from nova.autograd.function import Function
-    from nova._typing import Dtype
+    from nova._typing import Dtype, Hook, Dim
     from nova.autograd.engine import Context
+    from nova.autograd.utils.hooks import HooksHandle
 
 
 @registry_class
@@ -26,19 +30,21 @@ class Tensor(TensorBase):
         "_retain_grad",
         "_inputs",
         "_ctx",
+        "rank",
     ]
 
     _data_internal: ndarray
     _dtype_internal: Dtype
     requires_grad: bool
-    grad_fn: Optional["Function"]
+    grad_fn: Optional[Function]
     grad: Optional[ndarray]
     copy: bool
     _is_leaf: bool
-    _backward_hooks: list[Callable[[ndarray], Optional[ndarray]]]
+    _backward_hooks: list[Hook]
     _retain_grad: bool
     _inputs: list[Tensor | Any]
-    _ctx: "Context"
+    rank: int
+    _ctx: Context
 
     def __init__(
         self,
@@ -74,13 +80,180 @@ class Tensor(TensorBase):
 
         self.data: ndarray = data
         self.requires_grad: bool = requires_grad
-        self.grad_fn: Optional[Function] = (
-            grad_fn if requires_grad and nova.is_grad_enabled() else None
-        )
+        self.grad_fn: Optional[Function] = grad_fn
+        self.rank: int = 0
+        self._inputs: list[Tensor] = []
+        self._ctx: Optional[Context] = None
         self.grad: Optional[ndarray] = None
         self._is_leaf: bool = True if grad_fn is None else False
         self._retain_grad: bool = False
-        self._backward_hooks: list[Callable[[ndarray], Optional[ndarray]]] = []
+        self._backward_hooks: list[Hook] = []
+
+    def __eq__(self, other):
+        other_tensor = ensure_tensor(other)
+        return Tensor(
+            self.data == other_tensor.data, dtype=nova.bool, requires_grad=False
+        )
+
+    def __req__(self, other):
+        return self.__eq__(other)
+
+    def __ne__(self, other):
+        other_tensor = ensure_tensor(other)
+        return Tensor(
+            self.data != other_tensor.data, dtype=nova.bool, requires_grad=False
+        )
+
+    def __rne__(self, other):
+        return self.__ne__(other)
+
+    def __lt__(self, other):
+        other_tensor = ensure_tensor(other)
+        return Tensor(
+            self.data < other_tensor.data, dtype=nova.bool, requires_grad=False
+        )
+
+    def __rlt__(self, other):
+        return self.__gt__(other)
+
+    def __le__(self, other):
+        other_tensor = ensure_tensor(other)
+        return Tensor(
+            self.data <= other_tensor.data, dtype=nova.bool, requires_grad=False
+        )
+
+    def __rle__(self, other):
+        return self.__ge__(other)
+
+    def __gt__(self, other):
+        other_tensor = ensure_tensor(other)
+        return Tensor(
+            self.data > other_tensor.data, dtype=nova.bool, requires_grad=False
+        )
+
+    def __rgt__(self, other):
+        return self.__lt__(other)
+
+    def __ge__(self, other):
+        other_tensor = ensure_tensor(other)
+        return Tensor(
+            self.data >= other_tensor.data, dtype=nova.bool, requires_grad=False
+        )
+
+    def __rge__(self, other):
+        return self.__le__(other)
+
+    def __invert__(self):
+        return Tensor(~self.data, dtype=nova.bool, requires_grad=False)
+
+    def __hash__(self):
+        return id(self)
+
+    def __len__(self):
+        return len(self.data)
+
+    def argmax(self, dim: Optional[Dim] = None, keepdims: bool = False):
+        return Tensor(
+            self.data.argmax(axis=dim, keepdims=keepdims),
+            dtype=self.dtype,
+            requires_grad=False,
+        )
+
+    def argmin(self, dim: Optional[Dim] = None, keepdims: bool = False):
+        return Tensor(
+            self.data.argmin(axis=dim, keepdims=keepdims),
+            dtype=self.dtype,
+            requires_grad=False,
+        )
+
+    def argsort(self, dim: Optional[Dim] = None, kind=None, order=None):
+        return Tensor(
+            self.data.argsort(axis=dim, kind=kind, order=order),
+            dtype=self.dtype,
+            requires_grad=False,
+        )
+
+    def argwhere(self):
+        return Tensor(np.argwhere(self.data), dtype=self.dtype, requires_grad=False)
+
+    def var(self, dim: Optional[Dim] = None, keepdims: bool = False):
+        from nova.autograd._ops import var
+
+        return var(self, dim=dim, keepdims=keepdims)
+
+    def std(self, dim: Optional[Dim] = None, keepdims: bool = False):
+        from nova.autograd._ops import std
+
+        return std(self, dim=dim, keepdims=keepdims)
+
+    def retain_grad(self):
+
+        if not self.requires_grad:
+            raise RuntimeError("Only tensors with requires_grad can retain gradients")
+
+        self._retain_grad = True
+
+        return self
+
+    def register_hook(self) -> HooksHandle:
+
+        if not self.requires_grad:
+            raise RuntimeError(
+                "Cannot register a hook on a tensor that doesn't require gradients"
+            )
+
+    def _apply_hooks(self, grad: ndarray) -> ndarray:
+
+        try:
+            current_grad = grad
+
+            for hook in self._backward_hooks:
+
+                result = hook(current_grad)
+
+                if result is not None:
+
+                    if result.shape != grad:
+                        raise ValueError(
+                            f"Hook returned gradient with shape {result.shape}, "
+                            f"expected {current_grad.shape}"
+                        )
+
+                    current_grad = result
+
+            return current_grad
+        except Exception as e:
+            lines = [line for line in traceback.format_exception(e)]
+            logger.error("Error executing backward hook\n\n")
+            print(*lines)
+
+    def backward(
+        self, gradient: Optional[ndarray | Tensor] = None, retain_graph: bool = False
+    ) -> None:
+
+        if not self.requires_grad:
+            raise RuntimeError(
+                "An attempt was made to calculate gradients for a tensor that does not require gradients."
+            )
+
+        if gradient is None:
+            if self.numel() > 1:
+                raise RuntimeError(
+                    "grad can be implicitly created only for scalar outputs"
+                )
+            gradient = np.ones_like(self.data, dtype=self.dtype)
+        else:
+            gradient = (
+                gradient.data.astype(self.dtype)
+                if isinstance(gradient, Tensor)
+                else np.asarray(gradient, dtype=self.dtype)
+            )
+        try:
+            _backward(self, gradient=gradient, retain_graph=retain_graph)
+        except Exception as e:
+            lines = [line for line in traceback.format_exception(e)]
+            logger.error("Error during the graph creation\n\n")
+            print(*lines)
 
     def __repr__(self) -> str:
         prefix = "tensor("

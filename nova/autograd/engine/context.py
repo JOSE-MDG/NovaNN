@@ -1,14 +1,11 @@
 from __future__ import annotations
+from typing import Any
 from numpy import ndarray
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from nova import Tensor
 
 
 class Context:
     def __init__(self):
-        self.saved_tensors: tuple[Tensor, ...] = ()
+        self.saved_tensors: tuple[ndarray, ...] | Any = ()
         self.saved_shapes: tuple[tuple[int, ...], ...] = ()
 
     def save_for_backward(self, *args: ndarray):

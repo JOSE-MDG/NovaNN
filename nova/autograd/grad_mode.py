@@ -2,7 +2,7 @@ from typing import Any, Callable
 from functools import wraps
 
 
-_grad_mode = False
+_grad_mode = True
 
 
 def _set_grad_mode(mode: bool) -> None:
