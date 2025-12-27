@@ -2,7 +2,7 @@ from typing import Any, TYPE_CHECKING
 from numpy import ndarray
 
 if TYPE_CHECKING:
-    from nova._typing import Dtype, Shape
+    from nova._typing import Dtype, Size
 
 
 class TensorBase:
@@ -22,11 +22,11 @@ class TensorBase:
         return self.permute()
 
     @property
-    def size(self) -> "Shape":
+    def size(self) -> Size:
         return self._data_internal.shape
 
     @property
-    def dtype(self) -> "Dtype":
+    def dtype(self) -> Dtype:
         return self._dtype_internal
 
     @property

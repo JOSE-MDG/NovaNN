@@ -3,7 +3,6 @@ import numpy as np
 from numpy import ndarray
 from nova.autograd.function import Function
 from nova.utils import registry_op
-from nova.autograd._ops.utils import unbroadcasting
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:

@@ -237,7 +237,9 @@ class Tensor(TensorBase):
                 f"Cannot perform inplace operation on a tensor that requires gradients"
             )
 
-        self.data = np.random.normal(loc=mean, std=std, size=self.data.shape)
+        self.data = np.random.normal(loc=mean, scale=std, size=self.data.shape).astype(
+            self.dtype
+        )
 
     def uniform_(self, low: float = -1, high: float = 1) -> None:
         if self.requires_grad:
@@ -245,7 +247,17 @@ class Tensor(TensorBase):
                 f"Cannot perform inplace operation on a tensor that requires gradients"
             )
 
-        self.data = np.random.uniform(low=low, high=high, size=self.data.shape)
+        self.data = np.random.uniform(low=low, high=high, size=self.data.shape).astype(
+            self.dtype
+        )
+
+    def random_(self) -> None:
+        if self.requires_grad:
+            raise RuntimeError(
+                f"Cannot perform inplace operation on a tensor that requires gradients"
+            )
+
+        self.data = np.random.rand(self.data.shape).astype(self.dtype)
 
     def zero_(self) -> None:
         if self.requires_grad:

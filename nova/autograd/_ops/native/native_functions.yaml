@@ -65,6 +65,11 @@ ops:
       inplace:
         method: "abs_"
 
+  - name: neg
+    is_unary: true
+    tensor:
+      dunder: "__neg__"
+
   # Indexing
 
   - name: getitem

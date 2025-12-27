@@ -18,7 +18,7 @@ class Module:
     def forward(self, *args, **kwargs):
         raise NotImplementedError("forward method must be implemented")
 
-    def paramters(self, recurse: bool = True) -> Iterable[Parameter]:
+    def parameters(self, recurse: bool = True) -> Iterable[Parameter]:
 
         for param in self._parameters.values():
             if param is not None:
@@ -27,7 +27,7 @@ class Module:
         if recurse:
             for module in self._modules.values():
                 if module is not None:
-                    yield from module.paramters(recurse=True)
+                    yield from module.parameters(recurse=True)
 
     def buffers(self, recurse: bool = True) -> Iterable[Buffer]:
 

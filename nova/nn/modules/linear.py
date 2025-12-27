@@ -1,5 +1,6 @@
 from __future__ import annotations
 import nova
+import nova.nn.init as init
 from typing import TYPE_CHECKING
 from nova.nn.modules import Module
 from nova.nn.parameter import Parameter
@@ -15,13 +16,18 @@ class Linear(Module):
         self.out_features = out_features
         self.use_bias = bias
 
-        self.weight: Parameter = Parameter(nova.randn(out_features, in_features))
+        self.weight: Parameter = Parameter(nova.rand(out_features, in_features))
         if bias:
             self.bias: Parameter = Parameter(nova.zeros((1, out_features)))
         else:
             self.register_parameter("bias", None)
 
-    def forward(self, x: Tensor):
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        init.kaiming_normal_(self.weight)
+
+    def forward(self, x: Tensor) -> Tensor:
         out = x @ self.weight.T
         if self.use_bias:
             out = out + self.bias

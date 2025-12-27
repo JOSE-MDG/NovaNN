@@ -41,15 +41,28 @@ def bootstrap_to(tensor_cls: Type[Tensor] | Any, yaml_path: str = YAML_FILE_PATH
             tensor_cfg = ops["tensor"]
             inplace_cfg = tensor_cfg.get("inplace", None)
             raw_args = ops.get("raw_args", False)
+            is_unary = ops.get("is_unary", False)
 
             if "dunder" in tensor_cfg:
 
-                def make_forward_function(cls: Type[Function], raw: bool):
-                    def method(self, other, _cls=cls, _raw: bool = raw):
-                        if not _raw:
-                            if not isinstance(other, Tensor):
-                                other = ensure_tensor(other)
-                        return _cls.apply(self, other)
+                def make_forward_function(
+                    cls: Type[Function], raw: bool, is_unary: bool
+                ):
+                    def method(self, *args, **kwargs):
+                        if is_unary:
+                            return cls.apply(self)
+
+                        if not args and not kwargs:
+                            raise TypeError(
+                                f"Operation {cls.__name__} requires an 'other' argument."
+                            )
+
+                        other = args[0] if args else kwargs.get("other")
+
+                        if not raw and not isinstance(other, Tensor):
+                            other = ensure_tensor(other)
+
+                        return cls.apply(self, other)
 
                     return method
 
@@ -57,7 +70,7 @@ def bootstrap_to(tensor_cls: Type[Tensor] | Any, yaml_path: str = YAML_FILE_PATH
                     setattr(
                         tensor_cls,
                         tensor_cfg["dunder"],
-                        make_forward_function(op, raw_args),
+                        make_forward_function(op, raw_args, is_unary),
                     )
 
             if "reverse" in tensor_cfg:

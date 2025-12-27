@@ -1,7 +1,16 @@
 from __future__ import annotations
 from nova import dtypes
 from numpy import ndarray
-from typing import TYPE_CHECKING, Any, Callable, Optional, Type, TypeAlias, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Literal,
+    Optional,
+    Type,
+    TypeAlias,
+    Union,
+)
 
 if TYPE_CHECKING:
     from nova._tensor import Tensor
@@ -30,3 +39,10 @@ Hook: TypeAlias = (
 Gradients: TypeAlias = tuple[ndarray | None, ...]
 Dim: TypeAlias = tuple[int, ...] | int
 Closure: TypeAlias = Optional[Callable[[], Optional[float]]]
+
+# conv
+KernelSize: TypeAlias = int | tuple[int, int] | tuple[int, int, int]
+Stride: TypeAlias = int | tuple[int, int] | tuple[int, int, int]
+Padding: TypeAlias = (
+    int | tuple[int, int] | tuple[int, int, int] | Literal["valid", "same"]
+)
