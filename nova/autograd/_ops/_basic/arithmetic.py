@@ -72,7 +72,7 @@ class Div(Function):
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
 
         a, b = ctx.saved_tensors
-        shape_a, shape_b = ctx.saved_tensors
+        shape_a, shape_b = ctx.saved_shapes
 
         grad_a = unbroadcasting((1 / b) * grad_output, shape_a)
         grad_b = unbroadcasting((-a / b**2) * grad_output, shape_b)
@@ -95,12 +95,12 @@ class DivInt(Function):
 class Mod(Function):
     @staticmethod
     def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
-        ctx.saved_shapes = (a.shape,)
+        ctx.saved_shapes = a.shape
         return a % b
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        (shape_a,) = ctx.saved_shapes
+        shape_a = ctx.saved_shapes
         grad_a = unbroadcasting(grad_output, shape_a)
 
         return (grad_a, None)
