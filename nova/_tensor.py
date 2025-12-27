@@ -186,6 +186,49 @@ class Tensor(TensorBase):
 
         return std(self, dim=dim, keepdims=keepdims)
 
+    def detach(self):
+        return Tensor(self.data, dtype=self.dtype, requires_grad=False)
+
+    def all(self, dim: Optional[Dim] = None, keepdims: bool = False):
+        return Tensor(
+            self.data.all(dim, keepdims=keepdims), dtype=nova.bool, requires_grad=False
+        )
+
+    def any(self, dim: Optional[Dim] = None, keepdims: bool = False):
+        return Tensor(
+            self.data.any(dim, keepdims=keepdims), dtype=nova.bool, requires_grad=False
+        )
+
+    def to(self, dtype: Dtype):
+        self.data.astype(dtype=dtype)
+
+    def float(self):
+        self.data.astype(dtype=nova.float32)
+
+    def double(self):
+        self.data.astype(dtype=nova.double)
+
+    def int(self):
+        self.data.astype(dtype=nova.int)
+
+    def long(self):
+        self.data.astype(dtype=nova.long)
+
+    def bool(self):
+        self.data.astype(dtype=nova.bool)
+
+    def numpy(self):
+        return self.data.copy()
+
+    def allclose(self, other, rtol=1e-5, atol=1e-8, equal_nan: bool = False) -> bool:
+        return np.allclose(
+            self.data,
+            ensure_tensor(other).data,
+            rtol=rtol,
+            atol=atol,
+            equal_nan=equal_nan,
+        )
+
     # inplace-methods
 
     def normal_(self, mean: float = 0, std: float = 1):

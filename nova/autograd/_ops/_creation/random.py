@@ -4,7 +4,7 @@ import nova
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from nova._typing import Dim, Dtype
+    from nova._typing import Dtype
 
 
 def manual_seed(seed: Optional[int] = None) -> None:

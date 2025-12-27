@@ -5,7 +5,7 @@ import numpy as np
 from nova.core import YAML_FILE_PATH
 from nova.utils.log_config import logger
 from typing import Any, TYPE_CHECKING, Type
-from nova.utils.registry import _OPS_REGISTERED
+from nova.utils.decorators.registry import _OPS_REGISTERED
 from nova.utils import ensure_tensor
 
 

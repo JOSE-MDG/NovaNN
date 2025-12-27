@@ -285,7 +285,7 @@ def arange(
 
 
 def unique(
-    input,
+    input: nova.Tensor,
     sorted: bool = True,
     return_inverse: bool = False,
     return_counts: bool = False,
@@ -301,7 +301,7 @@ def unique(
         axis=dim,
     )
 
-    return nova.Tensor(unique)
+    return nova.Tensor(unique, dtype=unique.dtype, requires_grad=False)
 
 
 def argmin(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
