@@ -3,7 +3,7 @@ import nova
 import numpy as np
 import traceback
 from numpy import ndarray
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Self
 from nova._interfaces._base_tensor import TensorBase
 from nova.utils import registry_class, ensure_tensor
 from nova.utils.log_config import logger
@@ -89,135 +89,135 @@ class Tensor(TensorBase):
         self._retain_grad: bool = False
         self._backward_hooks: list[Hook] = []
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> Tensor:
         other_tensor = ensure_tensor(other)
         return Tensor(
             self.data == other_tensor.data, dtype=nova.bool, requires_grad=False
         )
 
-    def __req__(self, other):
+    def __req__(self, other) -> Tensor:
         return self.__eq__(other)
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> Tensor:
         other_tensor = ensure_tensor(other)
         return Tensor(
             self.data != other_tensor.data, dtype=nova.bool, requires_grad=False
         )
 
-    def __rne__(self, other):
+    def __rne__(self, other) -> Tensor:
         return self.__ne__(other)
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> Tensor:
         other_tensor = ensure_tensor(other)
         return Tensor(
             self.data < other_tensor.data, dtype=nova.bool, requires_grad=False
         )
 
-    def __rlt__(self, other):
+    def __rlt__(self, other) -> Tensor:
         return self.__gt__(other)
 
-    def __le__(self, other):
+    def __le__(self, other) -> Tensor:
         other_tensor = ensure_tensor(other)
         return Tensor(
             self.data <= other_tensor.data, dtype=nova.bool, requires_grad=False
         )
 
-    def __rle__(self, other):
+    def __rle__(self, other) -> Tensor:
         return self.__ge__(other)
 
-    def __gt__(self, other):
+    def __gt__(self, other) -> Tensor:
         other_tensor = ensure_tensor(other)
         return Tensor(
             self.data > other_tensor.data, dtype=nova.bool, requires_grad=False
         )
 
-    def __rgt__(self, other):
+    def __rgt__(self, other) -> Tensor:
         return self.__lt__(other)
 
-    def __ge__(self, other):
+    def __ge__(self, other) -> Tensor:
         other_tensor = ensure_tensor(other)
         return Tensor(
             self.data >= other_tensor.data, dtype=nova.bool, requires_grad=False
         )
 
-    def __rge__(self, other):
+    def __rge__(self, other) -> Tensor:
         return self.__le__(other)
 
-    def __invert__(self):
+    def __invert__(self) -> Tensor:
         return Tensor(~self.data, dtype=nova.bool, requires_grad=False)
 
     def __hash__(self):
         return id(self)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
-    def argmax(self, dim: Optional[Dim] = None, keepdims: bool = False):
+    def argmax(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         return Tensor(
             self.data.argmax(axis=dim, keepdims=keepdims),
             dtype=self.dtype,
             requires_grad=False,
         )
 
-    def argmin(self, dim: Optional[Dim] = None, keepdims: bool = False):
+    def argmin(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         return Tensor(
             self.data.argmin(axis=dim, keepdims=keepdims),
             dtype=self.dtype,
             requires_grad=False,
         )
 
-    def argsort(self, dim: Optional[Dim] = None, kind=None, order=None):
+    def argsort(self, dim: Optional[Dim] = None, kind=None, order=None) -> Tensor:
         return Tensor(
             self.data.argsort(axis=dim, kind=kind, order=order),
             dtype=self.dtype,
             requires_grad=False,
         )
 
-    def argwhere(self):
+    def argwhere(self) -> Tensor:
         return Tensor(np.argwhere(self.data), dtype=self.dtype, requires_grad=False)
 
-    def var(self, dim: Optional[Dim] = None, keepdims: bool = False):
+    def var(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         from nova.autograd._ops import var
 
         return var(self, dim=dim, keepdims=keepdims)
 
-    def std(self, dim: Optional[Dim] = None, keepdims: bool = False):
+    def std(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         from nova.autograd._ops import std
 
         return std(self, dim=dim, keepdims=keepdims)
 
-    def detach(self):
+    def detach(self) -> Tensor:
         return Tensor(self.data, dtype=self.dtype, requires_grad=False)
 
-    def all(self, dim: Optional[Dim] = None, keepdims: bool = False):
+    def all(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         return Tensor(
             self.data.all(dim, keepdims=keepdims), dtype=nova.bool, requires_grad=False
         )
 
-    def any(self, dim: Optional[Dim] = None, keepdims: bool = False):
+    def any(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         return Tensor(
             self.data.any(dim, keepdims=keepdims), dtype=nova.bool, requires_grad=False
         )
 
-    def to(self, dtype: Dtype):
+    def to(self, dtype: Dtype) -> None:
         self.data.astype(dtype=dtype)
 
-    def float(self):
+    def float(self) -> None:
         self.data.astype(dtype=nova.float32)
 
-    def double(self):
+    def double(self) -> None:
         self.data.astype(dtype=nova.double)
 
-    def int(self):
+    def int(self) -> None:
         self.data.astype(dtype=nova.int)
 
-    def long(self):
+    def long(self) -> None:
         self.data.astype(dtype=nova.long)
 
-    def bool(self):
+    def bool(self) -> None:
         self.data.astype(dtype=nova.bool)
 
-    def numpy(self):
+    def numpy(self) -> ndarray:
         return self.data.copy()
 
     def allclose(self, other, rtol=1e-5, atol=1e-8, equal_nan: bool = False) -> bool:
@@ -231,7 +231,7 @@ class Tensor(TensorBase):
 
     # inplace-methods
 
-    def normal_(self, mean: float = 0, std: float = 1):
+    def normal_(self, mean: float = 0, std: float = 1) -> None:
         if self.requires_grad:
             raise RuntimeError(
                 f"Cannot perform inplace operation on a tensor that requires gradients"
@@ -239,7 +239,7 @@ class Tensor(TensorBase):
 
         self.data = np.random.normal(loc=mean, std=std, size=self.data.shape)
 
-    def uniform_(self, low: float = -1, high: float = 1):
+    def uniform_(self, low: float = -1, high: float = 1) -> None:
         if self.requires_grad:
             raise RuntimeError(
                 f"Cannot perform inplace operation on a tensor that requires gradients"
@@ -247,7 +247,7 @@ class Tensor(TensorBase):
 
         self.data = np.random.uniform(low=low, high=high, size=self.data.shape)
 
-    def zero_(self):
+    def zero_(self) -> None:
         if self.requires_grad:
             raise RuntimeError(
                 f"Cannot perform inplace operation on a tensor that requires gradients"
@@ -255,7 +255,7 @@ class Tensor(TensorBase):
 
         self.data.fill(0.0)
 
-    def fill_(self, value: Any):
+    def fill_(self, value: Any) -> None:
         if self.requires_grad:
             raise RuntimeError(
                 f"Cannot perform inplace operation on a tensor that requires gradients"
@@ -263,7 +263,7 @@ class Tensor(TensorBase):
 
         self.data.fill(value)
 
-    def copy_(self, src: Tensor):
+    def copy_(self, src: Tensor) -> Self[Tensor]:
         src = ensure_tensor(src)
 
         src_data = src.data
@@ -275,10 +275,10 @@ class Tensor(TensorBase):
 
         return self
 
-    def requires_grad_(self, mode):
+    def requires_grad_(self, mode: bool) -> None:
         self.requires_grad = mode
 
-    def retain_grad(self):
+    def retain_grad(self) -> Self[Tensor]:
 
         if not self.requires_grad:
             raise RuntimeError("Only tensors with requires_grad can retain gradients")
@@ -293,6 +293,15 @@ class Tensor(TensorBase):
             raise RuntimeError(
                 "Cannot register a hook on a tensor that doesn't require gradients"
             )
+
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        if set_to_none:
+            self.grad = None
+        else:
+            if self.grad is None:
+                self.grad = np.zeros_like(self.data, dtype=self.data.dtype)
+            else:
+                self.grad.fill(0.0)
 
     def _apply_hooks(self, grad: ndarray) -> ndarray:
 
