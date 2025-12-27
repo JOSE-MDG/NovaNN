@@ -2,8 +2,10 @@ from __future__ import annotations
 import nova
 from typing import Any
 from nova import Tensor
+from nova.utils import registry_class
 
 
+@registry_class
 class Parameter(Tensor):
 
     __slots__ = ["is_bn_param"]
@@ -14,6 +16,7 @@ class Parameter(Tensor):
         self.is_bn_param: bool = False
 
 
+@registry_class
 class Buffer(Tensor):
 
     __slots__ = ["persistent"]
