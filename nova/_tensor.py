@@ -189,6 +189,14 @@ class Tensor(TensorBase):
     def detach(self) -> Tensor:
         return Tensor(self.data, dtype=self.dtype, requires_grad=False)
 
+    def item(self) -> float | int:
+        if self.numel() > 1:
+            raise ValueError(
+                "only one element tensors can be converted to Python scalars."
+            )
+
+        return self.data.item()
+
     def all(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         return Tensor(
             self.data.all(dim, keepdims=keepdims), dtype=nova.bool, requires_grad=False
