@@ -156,7 +156,7 @@ def log(input: nova.Tensor) -> nova.Tensor:
 def reshape(input: nova.Tensor, dims: Dim) -> nova.Tensor:
     input = ensure_tensor(input)
 
-    return input.reshape(dims)
+    return input.reshape(*dims)
 
 
 def dot(input: nova.Tensor, other: nova.Tensor) -> nova.Tensor:
@@ -181,6 +181,14 @@ def trace(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
 
     return input.trace()
+
+
+def norm(
+    input: nova.Tensor, ord: int = 2, dim: Optional[Dim] = None, keepdims: bool = False
+) -> nova.Tensor:
+    input = ensure_tensor(input)
+
+    return input.norm(ord, dim=dim, keepdims=keepdims)
 
 
 def abs(input: nova.Tensor) -> nova.Tensor:
