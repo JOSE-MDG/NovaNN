@@ -106,16 +106,23 @@ def bootstrap_to(
 
                 def make_inplace_function(cls: Type[Function], op_name: str):
                     def inplace_method(
-                        self: Type[Tensor],
-                        other: Type[Tensor] | Any,
-                        _cls=cls,
-                        _op_name=op_name,
+                        self: Type[Tensor], *args, _cls=cls, _op_name=op_name, **kwargs
                     ):
                         if self.requires_grad:
                             raise RuntimeError(
                                 f"Cannot perform inplace operation '{_op_name}_' on a tensor "
                                 f"that requires gradients. Use the out-of-place version instead."
                             )
+
+                        if is_unary:
+                            return cls.apply(self)
+
+                        if not args and not kwargs:
+                            raise TypeError(
+                                f"Operation {cls.__name__} requires an 'other' argument."
+                            )
+
+                        other = args[0] if args else kwargs.get("other")
 
                         if not isinstance(other, Tensor):
                             other = ensure_tensor(other)
