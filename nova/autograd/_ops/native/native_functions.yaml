@@ -217,54 +217,63 @@ ops:
   # trigonometrics
 
   - name: sin
+    is_unary: true
     tensor:
       method: sin
       inplace:
         method: sin_
 
   - name: cos
+    is_unary: true
     tensor:
       method: cos
       inplace:
         method: cos_
 
   - name: tan
+    is_unary: true
     tensor:
       method: tan
       inplace:
         method: tan_
 
   - name: tanh
+    is_unary: true
     tensor:
       method: tanh
       inplace:
         method: tanh_
 
   - name: cot
+    is_unary: true
     tensor:
       method: cot
       inplace:
         method: cot_
 
   - name: sec
+    is_unary: true
     tensor:
       method: sec
       inplace:
         method: sec_
 
   - name: arcsin
+    is_unary: true
     tensor:
       method: arcsin
       inplace:
         method: arcsin_
 
   - name: arccos
+    is_unary: true
     tensor:
-      method:
+      method: arccos
       inplace:
         method: arccos_
 
   - name: arctan
+    is_unary: true
     tensor:
       method: arctan
       inplace:
