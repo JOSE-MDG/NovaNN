@@ -13,7 +13,15 @@ if TYPE_CHECKING:
 @registry_op("getitem")
 class GetItem(Function):
     @staticmethod
-    def forward(ctx: Context, a: ndarray, idx: tuple[int, ...] | int) -> ndarray:
+    def forward(
+        ctx: Context, a: ndarray, idx: tuple[int, ...] | int | ndarray
+    ) -> ndarray:
+        # ensure that the was a intege
+
+        if isinstance(idx, ndarray):
+            if idx.dtype != int:
+                idx = idx.astype(int)
+
         ctx.save_for_backward(a)
         ctx.idx = idx
         return a[idx]
