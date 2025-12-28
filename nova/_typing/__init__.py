@@ -11,6 +11,7 @@ from ._typing import (
     Stride,
     Padding,
     Modules,
+    StepHook,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "Stride",
     "Padding",
     "Modules",
+    "StepHook",
 ]

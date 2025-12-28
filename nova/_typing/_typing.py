@@ -35,7 +35,8 @@ type Dtype = Union[
 
 type TensorOrArray = Union[Tensor, ndarray, list[Tensor], tuple[Tensor, ...]]
 type Inputs = Union[TensorOrArray, int, float, Any]
-type Hook = (Callable[[ndarray], Optional[ndarray]] | Callable[[Type[Optimizer]], None])
+type Hook = Callable[[ndarray], Optional[ndarray]]
+type StepHook = Callable[[Type[Optimizer]], None]
 type Gradients = tuple[ndarray | None, ...]
 type Dim = tuple[int, ...] | int
 type Closure = Optional[Callable[[], Optional[float]]]
