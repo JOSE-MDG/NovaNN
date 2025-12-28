@@ -1,4 +1,5 @@
 from __future__ import annotations
+from ast import Module
 from nova import dtypes
 from numpy import ndarray
 from typing import (
@@ -14,6 +15,9 @@ from typing import (
 if TYPE_CHECKING:
     from nova._tensor import Tensor
     from nova._interfaces._optimizer import Optimizer
+    from nova._interfaces._base_tensor import TensorBase
+    from nova._interfaces._lr_scheduler import _LRScheduler
+    from nova.nn import Parameter, Buffer, Module
 
 type Size = tuple[int, ...]
 
@@ -36,6 +40,9 @@ type Hook = (Callable[[ndarray], Optional[ndarray]] | Callable[[Type[Optimizer]]
 type Gradients = tuple[ndarray | None, ...]
 type Dim = tuple[int, ...] | int
 type Closure = Optional[Callable[[], Optional[float]]]
+type Modules = Union[
+    Tensor, Optimizer, TensorBase, _LRScheduler, Parameter, Buffer, Module
+]
 
 # Conv aliases
 type KernelSize = int | tuple[int, int] | tuple[int, int, int]

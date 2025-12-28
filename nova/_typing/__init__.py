@@ -10,6 +10,7 @@ from ._typing import (
     KernelSize,
     Stride,
     Padding,
+    Modules,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "KernelSize",
     "Stride",
     "Padding",
+    "Modules",
 ]
