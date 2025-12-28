@@ -29,6 +29,8 @@ type TensorOrArray = Union[Tensor, ndarray, list[Tensor], tuple[Tensor, ...]]
 type Inputs = Union[TensorOrArray, int, float, Any]
 type Hook = Callable[[ndarray], Optional[ndarray]]
 type StepHook = Callable[[Optimizer], None]
+type Hooks = Hook | StepHook
+type HooksList = list[Hook] | list[StepHook] | list[Hooks]
 
 type Gradients = tuple[ndarray | None, ...]
 type Dim = tuple[int, ...] | int
@@ -54,3 +56,4 @@ type OptimizerStateDict = dict[
 ]
 
 type SchedulerStateDict = dict[Literal["base_lrs", "last_epoch"], list[float] | int]
+type YAMLFile = list[dict[str, dict[str, Any]]]

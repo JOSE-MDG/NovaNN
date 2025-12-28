@@ -3,10 +3,9 @@ from numpy import ndarray
 
 if TYPE_CHECKING:
     from nova._typing import Dtype, Size
-    from nova import Tensor
 
 
-class TensorBase(Tensor):
+class TensorBase:
 
     __slots__ = []
 

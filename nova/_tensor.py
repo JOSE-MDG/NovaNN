@@ -307,12 +307,15 @@ class Tensor(TensorBase):
 
         return self
 
-    def register_hook(self) -> HooksHandle:
+    def register_hook(self, hook: Hook) -> HooksHandle:
 
         if not self.requires_grad:
             raise RuntimeError(
                 "Cannot register a hook on a tensor that doesn't require gradients"
             )
+
+        self._backward_hooks.append(hook)
+        return HooksHandle(self._backward_hooks, hook)
 
     def zero_grad(self, set_to_none: bool = True) -> None:
         if set_to_none:

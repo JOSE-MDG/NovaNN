@@ -12,9 +12,10 @@ from nova.utils import ensure_tensor
 if TYPE_CHECKING:
     from nova import Tensor
     from nova.autograd.function import Function
+    from nova._typing import YAMLFile
 
 
-def native_yaml(path: str = YAML_FILE_PATH) -> dict[str, list[dict[str, dict | Any]]]:
+def native_yaml(path: str = YAML_FILE_PATH) -> YAMLFile:
     try:
         with open(path, "r") as file:
             yml = yaml.safe_load(file)
@@ -29,7 +30,9 @@ def native_yaml(path: str = YAML_FILE_PATH) -> dict[str, list[dict[str, dict | A
         raise
 
 
-def bootstrap_to(tensor_cls: Type[Tensor] | Any, yaml_path: str = YAML_FILE_PATH):
+def bootstrap_to(
+    tensor_cls: Type[Tensor] | Any, yaml_path: str = YAML_FILE_PATH
+) -> None:
     from nova import Tensor
 
     try:

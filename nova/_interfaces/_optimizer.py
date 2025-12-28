@@ -113,4 +113,4 @@ class Optimizer:
         self.state = state_dict["state"]
 
         for i, group in enumerate(state_dict["param_groups"]):
-            self.param_groups[i].update(group["state"])
+            self.param_groups[i].update(group)

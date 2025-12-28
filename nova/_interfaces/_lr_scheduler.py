@@ -1,5 +1,4 @@
 from __future__ import annotations
-from re import A
 from typing import TYPE_CHECKING
 from nova.utils import registry_class
 
@@ -10,7 +9,7 @@ if TYPE_CHECKING:
 
 @registry_class
 class _LRScheduler:
-    def __init__(self, optimizer: Optimizer, last_epoch: int = -1):
+    def __init__(self, optimizer: Optimizer, last_epoch: int = -1) -> None:
         self.optimizer: Optimizer = optimizer
         self.last_epoch: int = last_epoch
         self.base_lrs: list[float] = [group["lr"] for group in optimizer.param_groups]
