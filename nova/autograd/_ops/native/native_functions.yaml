@@ -62,6 +62,7 @@ ops:
   - name: abs
     tensor:
       dunder: "__abs__"
+      method: abs
       inplace:
         method: "abs_"
 
@@ -151,10 +152,6 @@ ops:
       method: sign
       inplace:
         method: sign_
-
-  - name: abs
-    tensor:
-      method: abs
 
   # reduction
 
