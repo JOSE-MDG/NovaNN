@@ -205,7 +205,7 @@ def nll_loss(
     target = ensure_tensor(target)
     N = log_probs.size[0]
 
-    loss = -log_probs[nova.arange(N), target]
+    loss = -log_probs[nova.arange(N, dtype=nova.long), target.to(nova.long)]
 
     if weight is not None:
         if weight.size != target.size:
