@@ -1,7 +1,7 @@
 from __future__ import annotations
 import nova
 import numpy as np
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING, Literal
 from nova.utils import ensure_tensor
 
 if TYPE_CHECKING:
@@ -102,7 +102,7 @@ def repeat_interleave(input: nova.Tensor, repeats: int, dim):
 def pad(
     input: nova.Tensor,
     pad_width: tuple[tuple[int, ...], ...] | tuple[int, ...],
-    mode: str = "zeros",
+    mode: Literal["constant", "reflect", "wrap", "edge"] = "constant",
 ):
     input = ensure_tensor(input)
     return input.pad(pad_width, mode)
