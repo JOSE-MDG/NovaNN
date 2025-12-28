@@ -48,3 +48,17 @@ type Modules = Union[
 type KernelSize = int | tuple[int, int] | tuple[int, int, int]
 type Stride = int | tuple[int, int] | tuple[int, int, int]
 type Padding = (int | tuple[int, int] | tuple[int, int, int] | Literal["valid", "same"])
+"""
+{ param_group
+    'params':list[Paramater],
+    'lr':float,
+    'momentum':float
+}
+{ state
+    Parameter:dict[str, float | ndarray | int]
+}
+"""
+type Defaults = dict[str, float | bool | tuple[float, float] | int]
+type ParamGroups = list[dict[str, list[Parameter] | Defaults]]
+type State = dict[Parameter, dict[str, float | ndarray | int]]
+type OptimizerStateDict = dict[str, ParamGroups | State]

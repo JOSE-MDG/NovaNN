@@ -12,6 +12,10 @@ from ._typing import (
     Padding,
     Modules,
     StepHook,
+    Defaults,
+    ParamGroups,
+    State,
+    OptimizerStateDict,
 )
 
 __all__ = [
@@ -28,4 +32,8 @@ __all__ = [
     "Padding",
     "Modules",
     "StepHook",
+    "Defaults",
+    "ParamGroups",
+    "State",
+    "OptimizerStateDict",
 ]
