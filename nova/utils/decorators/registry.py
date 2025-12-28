@@ -1,15 +1,17 @@
 from __future__ import annotations
-from typing import Callable, Type, TYPE_CHECKING
+from typing import Callable, Type, TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     from nova.autograd.function import Function
-    from nova._typing import Modules
+    from nova._typing import ModuleTypes
 
-_MODULES: dict[tuple[str, str], Modules] = {}
+_MODULES: dict[tuple[str, str], ModuleTypes] = {}
 _OPS_REGISTERED: dict[str, Type[Function]] = {}
 
+T = TypeVar("T", bound=type)
 
-def registry_class(cls: Type[Modules]):
+
+def registry_class(cls: T):  # type: ignore
     key = (cls.__module__, cls.__name__)
     if key not in _MODULES:
         _MODULES[key] = cls
@@ -32,7 +34,7 @@ def registry_op(op_name: str) -> Callable[[Type[Function]], Type[Function]]:
     return register
 
 
-def get_registered_classes(module, name) -> Modules:
+def get_registered_classes(module, name) -> ModuleTypes:
     if (module, name) in _MODULES:
         return _MODULES[(module, name)]
     else:

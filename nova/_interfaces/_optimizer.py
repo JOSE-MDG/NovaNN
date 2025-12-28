@@ -5,17 +5,25 @@ from nova.autograd.utils.hooks import HooksHandle
 
 if TYPE_CHECKING:
     from nova.nn import Parameter
-    from nova._typing import Hook, Closure
+    from nova._typing import (
+        StepHook,
+        Closure,
+        ParamGroups,
+        State,
+        Defaults,
+        OptimizerStateDict,
+        Group,
+    )
 
 
 @registry_class
 class Optimizer:
-    def __init__(self, params: Iterable[Parameter], defaults: dict[str, Any]) -> None:
-        self.param_groups: list[dict[str, list[Parameter] | Any]] = []
-        self.state: dict[str, Any] = {}
-        self.defaults: dict[str, Any] = defaults
-        self._step_pre_hook: list[Hook] = []
-        self._step_post_hook: list[Hook] = []
+    def __init__(self, params: Iterable[Parameter], defaults: Defaults) -> None:
+        self.param_groups: ParamGroups = []
+        self.state: State = {}
+        self.defaults: Defaults = defaults
+        self._step_pre_hook: list[StepHook] = []
+        self._step_post_hook: list[StepHook] = []
 
         params = list(params)
 
@@ -28,9 +36,9 @@ class Optimizer:
             param_group = [{"params": params}]
 
         for group in param_group:
-            self.add_param_group(group)
+            self.add_param_group(group=group)
 
-    def add_param_group(self, group: dict[str, Any]) -> None:
+    def add_param_group(self, group: Group) -> None:
 
         if "params" not in group:
             raise KeyError("param_group must have a 'params' key")
@@ -47,12 +55,12 @@ class Optimizer:
 
         self.param_groups.append(group)
 
-    def register_step_prev_hook(self, hook: Hook) -> HooksHandle:
+    def register_step_prev_hook(self, hook: StepHook) -> HooksHandle:
         self._step_pre_hook.append(hook)
         handle = HooksHandle(self._step_pre_hook, hook)
         return handle
 
-    def register_step_post_hook(self, hook: Hook) -> HooksHandle:
+    def register_step_post_hook(self, hook: StepHook) -> HooksHandle:
         self._step_post_hook.append(hook)
         handle = HooksHandle(self._step_post_hook, hook)
         return handle
@@ -90,7 +98,7 @@ class Optimizer:
         format_string += "\n)"
         return format_string
 
-    def state_dict(self) -> dict:
+    def state_dict(self) -> OptimizerStateDict:
 
         return {
             "state": self.state,
@@ -100,9 +108,9 @@ class Optimizer:
             ],
         }
 
-    def load_state_dict(self, state_dict: dict) -> None:
+    def load_state_dict(self, state_dict: OptimizerStateDict) -> None:
 
-        self.state.update(state_dict["state"])
+        self.state = state_dict["state"]
 
-        for i, group in enumerate(state_dict["param_group"]):
-            self.param_groups[i].update(group)
+        for i, group in enumerate(state_dict["param_groups"]):
+            self.param_groups[i].update(group["state"])

@@ -77,7 +77,7 @@ class Tensor(TensorBase):
                     data = data
         else:
             data = np.array(data, dtype=self._dtype_internal)
-
+        super().__init__()
         self.data: ndarray = data
         self.requires_grad: bool = requires_grad
         self.grad_fn: Optional[Function] = grad_fn

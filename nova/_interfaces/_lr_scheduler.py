@@ -1,9 +1,11 @@
 from __future__ import annotations
+from re import A
 from typing import TYPE_CHECKING
 from nova.utils import registry_class
 
 if TYPE_CHECKING:
     from ._optimizer import Optimizer
+    from nova._typing import SchedulerStateDict
 
 
 @registry_class
@@ -23,20 +25,20 @@ class _LRScheduler:
 
         new_lrs = self.get_lr()
 
-        for group, lr in zip(self.optimizer.param_group, new_lrs):
+        for group, lr in zip(self.optimizer.param_groups, new_lrs):
 
             group["lr"] = lr
 
-    def get_last_lr(self):
+    def get_last_lr(self) -> list[float]:
 
         return [group["lr"] for group in self.optimizer.param_groups]
 
-    def state_dict(self) -> dict[str, list[float] | int]:
+    def state_dict(self) -> SchedulerStateDict:
         return {
             "base_lrs": self.base_lrs,
             "last_epoch": self.last_epoch,
         }
 
-    def load_state_dict(self, state_dict: dict[str, list[float] | int]) -> None:
+    def load_state_dict(self, state_dict: SchedulerStateDict) -> None:
         self.base_lrs = state_dict["base_lrs"]
         self.last_epoch = state_dict["last_epoch"]
