@@ -219,38 +219,56 @@ ops:
   - name: sin
     tensor:
       method: sin
+      inplace:
+        method: sin_
 
   - name: cos
     tensor:
       method: cos
+      inplace:
+        method: cos_
 
   - name: tan
     tensor:
       method: tan
+      inplace:
+        method: tan_
 
   - name: tanh
     tensor:
       method: tanh
+      inplace:
+        method: tanh_
 
   - name: cot
     tensor:
       method: cot
+      inplace:
+        method: cot_
 
   - name: sec
     tensor:
       method: sec
+      inplace:
+        method: sec_
 
   - name: arcsin
     tensor:
       method: arcsin
+      inplace:
+        method: arcsin_
 
   - name: arccos
     tensor:
-      method: arccos
+      method:
+      inplace:
+        method: arccos_
 
   - name: arctan
     tensor:
       method: arctan
+      inplace:
+        method: arctan_
 
   # comparison
 
