@@ -30,9 +30,9 @@ class Permute(Function):
 @registry_op("reshape")
 class Reshape(Function):
     @staticmethod
-    def forward(ctx: Context, a: ndarray, size: Dim) -> ndarray:
+    def forward(ctx: Context, a: ndarray, *size: Dim) -> ndarray:
         ctx.saved_shapes = a.shape
-        return np.reshape(a, size)
+        return np.reshape(a, shape=size)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
