@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 12/26/2025, 2:54:17 AM
+**Generated:** 12/28/2025, 3:52:05 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -16,7 +16,6 @@
 │   └── 📄 exploration.ipynb
 ├── 📁 nova
 │   ├── 📁 _interfaces
-│   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 _base_tensor.py
 │   │   ├── 🐍 _lr_scheduler.py
 │   │   └── 🐍 _optimizer.py
@@ -27,11 +26,12 @@
 │   │   └── 🐍 _typing.py
 │   ├── 📁 autograd
 │   │   ├── 📁 _ops
-│   │   │   ├── 📁 _activation
-│   │   │   │   └── 🐍 __init__.py
 │   │   │   ├── 📁 _basic
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   └── 🐍 arithmetic.py
+│   │   │   ├── 📁 _comparison
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   └── 🐍 comparison.py
 │   │   │   ├── 📁 _creation
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   ├── 🐍 factory.py
@@ -51,14 +51,16 @@
 │   │   │   │   ├── 🐍 inv.py
 │   │   │   │   ├── 🐍 matmul.py
 │   │   │   │   ├── 🐍 norm.py
-│   │   │   │   └── 🐍 solve.py
+│   │   │   │   └── 🐍 trace.py
 │   │   │   ├── 📁 _manipulation
-│   │   │   │   └── 🐍 __init__.py
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   └── 🐍 manipulation.py
 │   │   │   ├── 📁 _reduction
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   └── 🐍 reduce.py
 │   │   │   ├── 📁 _trigonometric
-│   │   │   │   └── 🐍 __init__.py
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   └── 🐍 trigonometric.py
 │   │   │   ├── 📁 native
 │   │   │   │   └── ⚙️ native_functions.yaml
 │   │   │   ├── 📁 utils
@@ -80,6 +82,10 @@
 │   │   │   │   ├── 📁 checking
 │   │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   │   └── 🐍 grad_checking.py
+│   │   │   │   ├── 📁 clipping
+│   │   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   │   ├── 🐍 clip_grad_norm.py
+│   │   │   │   │   └── 🐍 clip_value.py
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   └── 🐍 grad.py
 │   │   │   ├── 📁 hooks
@@ -102,12 +108,12 @@
 │   │   │   ├── 📁 container
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   └── 🐍 container.py
-│   │   │   ├── 📁 tests
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 activations.py
 │   │   │   ├── 🐍 batchnorm.py
 │   │   │   ├── 🐍 conv.py
 │   │   │   ├── 🐍 flatten.py
+│   │   │   ├── 🐍 layernorm.py
 │   │   │   ├── 🐍 linear.py
 │   │   │   ├── 🐍 loss.py
 │   │   │   ├── 🐍 module.py
@@ -118,11 +124,14 @@
 │   │   ├── 🐍 functional.py
 │   │   ├── 🐍 init.py
 │   │   └── 🐍 parameter.py
+│   ├── 📁 optim
+│   │   ├── 🐍 __init__.py
+│   │   ├── 🐍 adam.py
+│   │   ├── 🐍 adamw.py
+│   │   ├── 🐍 lr_scheduler.py
+│   │   ├── 🐍 rmsprop.py
+│   │   └── 🐍 sgd.py
 │   ├── 📁 serialization
-│   │   ├── 📁 registry
-│   │   │   ├── 🐍 __init__.py
-│   │   │   ├── 🐍 registry.py
-│   │   │   └── 🐍 registry_numpy.py
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 _safe_load.py
 │   │   ├── 🐍 load.py
@@ -130,6 +139,7 @@
 │   ├── 📁 utils
 │   │   ├── 📁 decorators
 │   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 🐍 registry.py
 │   │   │   └── 🐍 timing.py
 │   │   ├── 📁 log_config
 │   │   │   ├── 🐍 __init__.py
@@ -140,7 +150,6 @@
 │   │   ├── 📁 visualizations
 │   │   │   └── 🐍 visualization.py
 │   │   ├── 🐍 __init__.py
-│   │   ├── 🐍 registry.py
 │   │   └── 🐍 to_tensor.py
 │   ├── 🐍 __init__.py
 │   ├── 🐍 _tensor.py
@@ -155,6 +164,7 @@
 ├── 📝 README.en.md
 ├── 📝 README.md
 ├── 📝 Tree.md
+├── 📄 check.ipynb
 ├── 🐍 main.py
 ├── 📄 poetry.lock
 └── ⚙️ pyproject.toml
