@@ -8,7 +8,6 @@ from typing import (
     Literal,
     Optional,
     Type,
-    TypeAlias,
     Union,
 )
 
@@ -16,9 +15,9 @@ if TYPE_CHECKING:
     from nova._tensor import Tensor
     from nova._interfaces._optimizer import Optimizer
 
-Size = tuple[int, ...]
+type Size = tuple[int, ...]
 
-Dtype = (
+type Dtype = (
     dtypes.uint8
     | dtypes.int8
     | dtypes.short
@@ -31,18 +30,14 @@ Dtype = (
     | dtypes.bool
 )
 
-TensorOrArray: TypeAlias = Union[Tensor, ndarray, list[Tensor], tuple[Tensor, ...]]
-Inputs: TypeAlias = TensorOrArray | int | float | Any
-Hook: TypeAlias = (
-    Callable[[ndarray], Optional[ndarray]] | Callable[[Type[Optimizer]], Any]
-)
-Gradients: TypeAlias = tuple[ndarray | None, ...]
-Dim: TypeAlias = tuple[int, ...] | int
-Closure: TypeAlias = Optional[Callable[[], Optional[float]]]
+type TensorOrArray = Tensor | ndarray | list[Tensor] | tuple[Tensor, ...]
+type Inputs = TensorOrArray | int | float | Any
+type Hook = (Callable[[ndarray], Optional[ndarray]] | Callable[[Type[Optimizer]], Any])
+type Gradients = tuple[ndarray | None, ...]
+type Dim = tuple[int, ...] | int
+type Closure = Optional[Callable[[], Optional[float]]]
 
-# conv
-KernelSize: TypeAlias = int | tuple[int, int] | tuple[int, int, int]
-Stride: TypeAlias = int | tuple[int, int] | tuple[int, int, int]
-Padding: TypeAlias = (
-    int | tuple[int, int] | tuple[int, int, int] | Literal["valid", "same"]
-)
+# Conv aliases
+type KernelSize = int | tuple[int, int] | tuple[int, int, int]
+type Stride = int | tuple[int, int] | tuple[int, int, int]
+type Padding = (int | tuple[int, int] | tuple[int, int, int] | Literal["valid", "same"])
