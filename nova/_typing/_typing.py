@@ -1,5 +1,4 @@
 from __future__ import annotations
-from ast import Module
 from nova import dtypes
 from numpy import ndarray
 from typing import (
@@ -36,13 +35,13 @@ type Dtype = Union[
 
 type TensorOrArray = Union[Tensor, ndarray, list[Tensor], tuple[Tensor, ...]]
 type Inputs = Union[TensorOrArray, int, float, Any]
-type Hook = (Callable[[ndarray], Optional[ndarray]] | Callable[[Type[Optimizer]], Any])
+type Hook = (Callable[[ndarray], Optional[ndarray]] | Callable[[Type[Optimizer]], None])
 type Gradients = tuple[ndarray | None, ...]
 type Dim = tuple[int, ...] | int
 type Closure = Optional[Callable[[], Optional[float]]]
 type Modules = Union[
     Tensor, Optimizer, TensorBase, _LRScheduler, Parameter, Buffer, Module
-]
+]  # type: ignore
 
 # Conv aliases
 type KernelSize = int | tuple[int, int] | tuple[int, int, int]
