@@ -1,4 +1,4 @@
-from .grad_checking import gradient_wrt_x
+from .grad_checking import grad_check_wrt_inputs
 
 
-__all__ = ["gradient_wrt_x"]
+__all__ = ["grad_check_wrt_inputs"]

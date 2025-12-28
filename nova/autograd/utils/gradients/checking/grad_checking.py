@@ -8,30 +8,63 @@ if TYPE_CHECKING:
     from nova import Tensor
 
 
-def gradient_wrt_x(
-    f: Callable[[Tensor], Tensor], x: Tensor, eps: float = 1e-8
-) -> ndarray:
+def grad_check_wrt_inputs(
+    fn: Callable[[Tensor], Tensor],
+    *args: Tensor,
+    eps=1e-4,
+    zero_grads: bool = True,
+    **kwargs,
+) -> tuple[ndarray, ndarray]:
+    """
+    Numerical gradient checking for your autograd engine.
+    """
 
-    gradient = np.zeros_like(x.data)
+    for x in args:
+        if isinstance(x, (nova.Tensor)):
+            if x.requires_grad:
+                x.zero_grad()
 
-    iter = np.nditer(f(x).data, flags=["multi_index"], op_flags=["readwrite"])
+    y = fn(*args, **kwargs)
 
-    while not iter.finished:
+    grad_output = np.ones_like(y.data, dtype=y.dtype)
+    y.backward(gradient=grad_output)
 
-        index = iter.multi_index
-        orig = x.data[index]
+    analytic_grads = []
+    for x in args:
+        if x.requires_grad:
+            analytic_grads.append(x.grad.copy())
+        else:
+            analytic_grads.append(None)
 
-        with nova.no_grad():
-            x.data[index] = orig + eps
-            pos = f(x).data.copy()
+    # --------- Numerical gradients ----------
+    numerical_grads = []
 
-            x.data[index] = orig - eps
-            neg = f(x).data.copy()
+    for x in args:
+        if not x.requires_grad:
+            numerical_grads.append(None)
+            continue
 
-            x.data[index] = orig
+        grad_num = np.zeros_like(x.data, dtype=x.dtype)
+        it = np.nditer(x.data, flags=["multi_index"], op_flags=["readwrite"])
 
-        gradient[index] = (pos - neg) / 2 * eps
+        while not it.finished:
+            index = it.multi_index
+            orig = x.data[index]
+            with nova.no_grad():
+                x.data[index] = orig + eps
+                y_pos = fn(*args, **kwargs).data.copy()
 
-        iter.iternext()
+                x.data[index] = orig - eps
+                y_neg = fn(*args, **kwargs).data.copy()
 
-    return gradient
+                x.data[index] = orig
+
+            grad_num[index] = np.sum((y_pos - y_neg) * grad_output) / (2 * eps)
+            it.iternext()
+
+    if zero_grads:
+        for input in args:
+            input.zero_grad()
+
+        numerical_grads.append(grad_num)
+    return analytic_grads, numerical_grads
