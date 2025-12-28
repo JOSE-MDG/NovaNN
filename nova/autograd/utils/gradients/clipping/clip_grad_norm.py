@@ -15,7 +15,7 @@ def clip_grad_norm_(
 
     parameters = list(parameters)
 
-    params = [param for param in parameters if param.gras is not None]
+    params = [param for param in parameters if param.grad is not None]
 
     total_norm = 0
 
