@@ -17,21 +17,21 @@ if TYPE_CHECKING:
 
 type Size = tuple[int, ...]
 
-type Dtype = (
-    dtypes.uint8
-    | dtypes.int8
-    | dtypes.short
-    | dtypes.int
-    | dtypes.long
-    | dtypes.half
-    | dtypes.float32
-    | dtypes.double
-    | dtypes.float128
-    | dtypes.bool
-)
+type Dtype = Union[
+    dtypes.uint8,
+    dtypes.int8,
+    dtypes.short,
+    dtypes.int,
+    dtypes.long,
+    dtypes.float32,
+    dtypes.double,
+    dtypes.float128,
+    dtypes.half,
+    dtypes.bool,  # type: ignore
+]
 
-type TensorOrArray = Tensor | ndarray | list[Tensor] | tuple[Tensor, ...]
-type Inputs = TensorOrArray | int | float | Any
+type TensorOrArray = Union[Tensor, ndarray, list[Tensor], tuple[Tensor, ...]]
+type Inputs = Union[TensorOrArray, int, float, Any]
 type Hook = (Callable[[ndarray], Optional[ndarray]] | Callable[[Type[Optimizer]], Any])
 type Gradients = tuple[ndarray | None, ...]
 type Dim = tuple[int, ...] | int
