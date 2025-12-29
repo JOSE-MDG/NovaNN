@@ -135,7 +135,7 @@ class Min(Function):
         else:
             ctx.min_vals = a == a.min(axis=dim, keepdims=True)
 
-        return np.max(a, axis=dim, keepdims=keepdims)
+        return np.min(a, axis=dim, keepdims=keepdims)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
