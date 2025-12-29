@@ -1,5 +1,6 @@
 from __future__ import annotations
 import traceback
+import nova
 from typing import Any, Optional
 from nova.utils.log_config import logger
 from numpy import ndarray
@@ -61,11 +62,15 @@ def ensure_tensor(
             # For scalars and lists, use float32 as the default if not specified
             # This is consistent with PyTorch and avoids precision issues
 
+            if isinstance(obj, (int, nova.long)):
+                return Tensor(obj, dtype=int)
+            elif isinstance(obj, (float, nova.double)):
+                return Tensor(obj, dtype=float)
+
             inferred_dtype = dtype if dtype is not None else None
             inferred_requires_grad = (
                 requires_grad if requires_grad is not None else False
             )
-
             return Tensor(
                 obj, dtype=inferred_dtype, requires_grad=inferred_requires_grad
             )

@@ -125,9 +125,14 @@ def bootstrap_to(
                         other = args[0] if args else kwargs.get("other")
 
                         if not isinstance(other, Tensor):
-                            other = ensure_tensor(other)
+                            other = ensure_tensor(other)  # if its a number -> float32
 
                         result = _cls.apply(self, other).data
+
+                        if result.dtype != self.data.dtype:
+                            raise TypeError(
+                                f"Cannot cast tensor data from dtype('{type(result.dtype).name}') to dtype('{type(self.data.dtype).name}') according to the rule 'same_kind'"
+                            )
 
                         np.copyto(dst=self.data, src=result)
 

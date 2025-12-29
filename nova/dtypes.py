@@ -6,7 +6,7 @@ from numpy import (
     int64,
     float16,
     float32,
-    float64,
+    double,
     float128,
     bool,
 )
@@ -18,7 +18,7 @@ int = int32
 long = int64
 half = float16
 float32 = float32
-double = float64
+double = double
 float128 = float128
 bool = bool
 
