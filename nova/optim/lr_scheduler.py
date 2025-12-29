@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
 from nova._interfaces._lr_scheduler import _LRScheduler
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
 
