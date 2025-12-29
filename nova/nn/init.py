@@ -15,7 +15,12 @@ initializer used as default. All functions use Google-style docstrings.
 """
 
 
-def calculate_gain(nonlinearity: str, param: Optional[float] = None) -> float:
+def calculate_gain(
+    nonlinearity: Literal[
+        "linear", "sigmoid", "tanh", "relu", "leaky_relu", "prelu", "gelu"
+    ],
+    param: Optional[float] = None,
+) -> float:
     """Return the recommended gain value for the given nonlinearity.
 
     Args:
@@ -34,9 +39,9 @@ def calculate_gain(nonlinearity: str, param: Optional[float] = None) -> float:
         return 1.0
     elif nonlinearity == "tanh":
         return 5.0 / 3.0
-    elif nonlinearity == "relu":
+    elif nonlinearity == "relu" or nonlinearity == "gelu":
         return float(np.sqrt(2.0))
-    elif nonlinearity == "leakyrelu":
+    elif nonlinearity == "leaky_relu" or nonlinearity == "prelu":
         negative_slope = 0.01 if param is None else float(param)
         return float(np.sqrt(2.0 / (1 + negative_slope**2)))
     else:
