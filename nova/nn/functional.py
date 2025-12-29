@@ -32,11 +32,11 @@ def gelu(input: Tensor) -> Tensor:
     return 0.5 * input * (1.0 + nova.tanh(inner))
 
 
-def prelu(input: Tensor, alpha: float = 0.25) -> Tensor:
+def prelu(input: Tensor, weight: float = 0.25) -> Tensor:
     input = ensure_tensor(input)
-    alpha = ensure_tensor(alpha)
+    weight = ensure_tensor(weight)
 
-    return nova.maximum(0, input) + alpha * nova.minimum(0, input)
+    return nova.maximum(0, input) + weight * nova.minimum(0, input)
 
 
 def sigmoid(input: Tensor) -> Tensor:
