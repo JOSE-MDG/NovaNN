@@ -100,7 +100,7 @@ def _calculate_fans(shape: Size) -> tuple[int, int]:
     return fan_in, fan_out
 
 
-def shape_validation(
+def get_fans(
     shape: Size, mode: Literal["both", "fan_in", "fan_out"] = "fan_in"
 ) -> Union[int, tuple[int, int]]:
     """Calculate fan values for weight initialization.
@@ -128,7 +128,7 @@ def shape_validation(
 
 def xavier_normal_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
-    fan_in, fan_out = shape_validation(shape=tensor.size, mode="both")
+    fan_in, fan_out = get_fans(shape=tensor.size, mode="both")
 
     std = gain * np.sqrt(2.0 / (fan_in + fan_out))
 
@@ -141,7 +141,7 @@ def xavier_normal_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
 def xavier_uniform_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
-    fan_in, fan_out = shape_validation(shape=tensor.size, mode="both")
+    fan_in, fan_out = get_fans(shape=tensor.size, mode="both")
 
     limit = gain * np.sqrt(6.0 / (fan_in + fan_out))
 
@@ -159,7 +159,7 @@ def kaiming_normal_(
     mode: str = "fan_in",
 ) -> None:
 
-    fan = shape_validation(shape=tensor.size, mode=mode)
+    fan = get_fans(shape=tensor.size, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
     std = gain / np.sqrt(fan)
@@ -178,7 +178,7 @@ def kaiming_uniform_(
     mode: str = "fan_in",
 ) -> None:
 
-    fan = shape_validation(shape=tensor.size, mode=mode)
+    fan = get_fans(shape=tensor.size, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
     limit = gain * np.sqrt(3.0 / fan)
