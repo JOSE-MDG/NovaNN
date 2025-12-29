@@ -6,7 +6,6 @@ from .factory import (
     empty,
     min,
     max,
-    permutation,
     sum,
     pow,
     maximum,
@@ -60,7 +59,16 @@ from .factory import (
     allclose,
 )
 
-from .random import rand, randint, randn, randperm, manual_seed, normal, uniform
+from .random import (
+    rand,
+    randint,
+    randn,
+    randperm,
+    manual_seed,
+    normal,
+    uniform,
+    Generator,
+)
 
 __all__ = [
     "sqrt",
@@ -104,10 +112,10 @@ __all__ = [
     "unsqueeze",
     "cat",
     "eye",
-    "permutation",
     "one_hot",
     "full",
     "arange",
+    "Generator",
     "rand",
     "randn",
     "randint",

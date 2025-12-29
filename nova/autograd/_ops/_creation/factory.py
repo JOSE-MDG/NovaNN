@@ -230,11 +230,6 @@ def permute(input: nova.Tensor, *dims: Dim) -> nova.Tensor:
     return input.permute(dims)
 
 
-def permutation(input: int):
-    permutation = np.random.permutation(input)
-    return nova.Tensor(permutation, dtype=permutation.dtype, requires_grad=False)
-
-
 def unsqueeze(input: nova.Tensor, dim: Dim) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.unsqueeze(dim)
