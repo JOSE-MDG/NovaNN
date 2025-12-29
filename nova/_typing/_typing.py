@@ -44,7 +44,7 @@ type ModuleTypes = Type[
 ]
 
 type KernelSize = int | tuple[int, int] | tuple[int, int, int]
-type Stride = int | tuple[int, int] | tuple[int, int, int]
+type Stride = Optional[int | tuple[int, int] | tuple[int, int, int]]
 type Padding = (int | tuple[int, int] | tuple[int, int, int] | Literal["valid", "same"])
 type PaddingMode = Literal["zeros", "reflect", "replicate", "circular"]
 type Defaults = dict[str, Any]
