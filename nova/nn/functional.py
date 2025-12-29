@@ -6,7 +6,7 @@ from nova.utils import ensure_tensor
 
 if TYPE_CHECKING:
     from nova import Tensor
-    from nova._typing import Dim, KernelSize, Stride, Padding, PaddingMode
+    from nova._typing import Dim, KernelSize, Stride, Padding, PaddingMode, Dilation
     from nova.nn import Parameter, Buffer
 
 
@@ -288,10 +288,26 @@ def linear(
     return output
 
 
-def flatten(input: Tensor) -> Tensor:
-    N = input.size[0]
+def flatten(input: Tensor, start_dim: int = 1, end_dim: int = -1) -> Tensor:
+    input = ensure_tensor(input)
+    dims = input.dim()
 
-    return input.reshape(N, -1)
+    actual_start = start_dim if start_dim >= 0 else dims + start_dim
+    actual_end = end_dim if end_dim >= 0 else dims + end_dim
+
+    shape = input.size
+
+    new_shape = list(shape[:actual_start])
+
+    flattened_size = 1
+    for i in range(actual_start, actual_end + 1):
+        flattened_size *= shape[i]
+    new_shape.append(flattened_size)
+
+    if actual_end + 1 < dims:
+        new_shape.extend(shape[actual_end + 1 :])
+
+    return input.reshape(*new_shape)
 
 
 def _pair(input: int | tuple[int, int]):
@@ -316,6 +332,7 @@ def conv1d(
     kernel_size: KernelSize,
     stride: Stride = 1,
     padding: Padding = 0,
+    dilation: Dilation = 1,
     *,
     bias: Optional[Parameter] = None,
     padding_mode: PaddingMode = "zeros",
@@ -328,9 +345,11 @@ def conv1d(
     K = kernel_size
     S = stride
     P = padding
+    D = dilation
 
     def _calculate_out_size(L: int) -> int:
-        L_out = (L + 2 * P - K) // S + 1
+        K_eff = (K - 1) * D + 1
+        L_out = (L + 2 * P - K_eff) // S + 1
         return L_out
 
     def _add_padding(input: Tensor) -> Tensor:
@@ -363,7 +382,7 @@ def conv1d(
 
         size = (N, C, L_out, K)
         sN, sC, sL = input_padded.strides
-        strides = (sN, sC, sL * S, sL)
+        strides = (sN, sC, sL * S, sL * D)
 
         window = nova.as_strided(
             input_padded, size=size, strides=strides
@@ -385,12 +404,12 @@ def conv1d(
 
     out = w_col @ col  # -> (C_out, N*L_out)
 
-    if bias is not None:
-
-        out = out + bias.reshape(out_channels, -1)
-
     out = out.reshape(out_channels, N, L_out)
     out = out.permute(1, 0, 2)
+
+    if bias is not None:
+        bias_view = bias.view((1, out_channels, 1))
+        out = out + bias_view
 
     return out
 
@@ -401,6 +420,7 @@ def conv2d(
     kernel_size: KernelSize,
     stride: Stride = 1,
     padding: Padding = 0,
+    dilation: Dilation = 1,
     *,
     bias: Optional[Parameter] = None,
     padding_mode: PaddingMode = "zeros",
@@ -414,10 +434,13 @@ def conv2d(
     KH, KW = _pair(kernel_size)
     PH, PW = _pair(padding)
     SH, SW = _pair(stride)
+    DH, DW = _pair(dilation)
 
     def _calculate_out_size(H: int, W: int) -> tuple[int, int]:
-        H_out = (H + 2 * PH - KH) // SH + 1
-        W_out = (W + 2 * PW - KW) // SW + 1
+        KH_eff = (KH - 1) * DH + 1
+        KW_eff = (KW - 1) * DW + 1
+        H_out = (H + 2 * PH - KH_eff) // SH + 1
+        W_out = (W + 2 * PW - KW_eff) // SW + 1
         return H_out, W_out
 
     def _add_padding(input: Tensor) -> Tensor:
@@ -452,7 +475,7 @@ def conv2d(
         size = (N, C, H_out, W_out, KH, KW)
 
         sN, sC, sH, sW = input_padded.strides
-        strides = (sN, sC, sH * SH, sW * SW, sH, sW)
+        strides = (sN, sC, sH * SH, sW * SW, sH * DH, sW * DW)
 
         window = nova.as_strided(input_padded, size=size, strides=strides)
 
@@ -471,11 +494,12 @@ def conv2d(
 
     out = w_col @ col  # -> c_out, N, H_out, W_out
 
-    if bias is not None:
-        out = out + bias.reshape(out_channels, -1)
-
     out = out.reshape(out_channels, N, H_out, W_out)
     out = out.permute(1, 0, 2, 3)  # output size -> (N, C_out, H_out, W_out)
+
+    if bias is not None:
+        bias_view = bias.view((1, out_channels, 1, 1))
+        out = out + bias_view
 
     return out
 
@@ -501,6 +525,7 @@ def conv3d(
     kernel_size: KernelSize,
     stride: Stride = 1,
     padding: Padding = 0,
+    dilation: Dilation = 1,
     *,
     bias: Optional[Parameter] = None,
     padding_mode: PaddingMode = "zeros",
@@ -513,11 +538,15 @@ def conv3d(
     KD, KH, KW = _triple(kernel_size)
     SD, SH, SW = _triple(stride)
     PD, PH, PW = _triple(padding)
+    DD, DH, DW = _triple(dilation)
 
     def _calculate_out_size(D: int, H: int, W: int) -> tuple[int, int, int]:
-        D_out = (D + 2 * PD - KD) // SD + 1
-        H_out = (H + 2 * PH - KH) // SH + 1
-        W_out = (W + 2 * PW - KW) // SW + 1
+        KD_eff = (KD - 1) * DD + 1
+        KH_eff = (KH - 1) * DH + 1
+        KW_eff = (KW - 1) * DW + 1
+        D_out = (D + 2 * PD - KD_eff) // SD + 1
+        H_out = (H + 2 * PH - KH_eff) // SH + 1
+        W_out = (W + 2 * PW - KW_eff) // SW + 1
         return D_out, H_out, W_out
 
     def _add_padding(input: Tensor) -> Tensor:
@@ -550,7 +579,7 @@ def conv3d(
 
         sN, sC, sD, sH, sW = input_padded.strides
 
-        strides = (sN, sC, sD * SD, sH * SH, sW * SW, sD, sH, sW)
+        strides = (sN, sC, sD * SD, sH * SH, sW * SW, sD * DD, sH * DH, sW * DW)
 
         window = nova.as_strided(input_padded, size=size, strides=strides)
 
@@ -569,11 +598,12 @@ def conv3d(
 
     out = w_col @ col
 
-    if bias is not None:
-        out = out + bias.reshape(out_channels, -1)
-
     out = out.reshape(out_channels, N, D_out, H_out, W_out)
     out = out.permute(1, 0, 2, 3, 4)
+
+    if bias is not None:
+        bias_view = bias.view((1, out_channels, 1, 1, 1))
+        out = out + bias_view
 
     return out
 
@@ -699,15 +729,16 @@ def avg_pool3d(
     return nova.as_strided(input_padded, size=size, strides=strides).mean(dim=(5, 6, 7))
 
 
-def adaptive_avg_pool1d(input: Tensor, output_size: int) -> Tensor:
+def adaptive_avg_pool1d(input: Tensor, output_size: Optional[int]) -> Tensor:
 
     input = ensure_tensor(input)
 
     if input.dim() != 3:
         raise ValueError(f"AdaptativeAvgPool1d expect 1D tensors, got {input.dim()}")
 
-    target_L = output_size
     L = input.size[2]
+
+    target_L = L if L is None else output_size
 
     if L == 1:
         return input.mean(dim=2)
@@ -718,7 +749,9 @@ def adaptive_avg_pool1d(input: Tensor, output_size: int) -> Tensor:
     return avg_pool1d(input, kernel_L, stride_L)
 
 
-def adaptive_avg_pool2d(input: Tensor, output_size: tuple[int, int]) -> Tensor:
+def adaptive_avg_pool2d(
+    input: Tensor, output_size: Optional[tuple[int, int]]
+) -> Tensor:
 
     input = ensure_tensor(input)
 
@@ -727,6 +760,9 @@ def adaptive_avg_pool2d(input: Tensor, output_size: tuple[int, int]) -> Tensor:
 
     H, W = input.size[2], input.size[3]
     target_H, target_W = _pair(output_size)
+
+    target_H = H if target_H is None else target_H
+    target_W = W if target_W is None else target_W
 
     if target_H == 1 and target_W == 1:
         return input.mean(dim=(2, 3))
@@ -750,6 +786,10 @@ def adaptive_avg_pool3d(input: Tensor, output_size: tuple[int, int, int]) -> Ten
 
     D, H, W = input.size[2], input.size[3], input.size[4]
     target_D, target_H, target_W = _triple(output_size)
+
+    target_D = D if target_D is None else target_D
+    target_H = H if target_H is None else target_H
+    target_W = D if target_W is None else target_W
 
     if target_D == 1 and target_H == 1 and target_W == 1:
         return input.mean(dim=(2, 3, 4))

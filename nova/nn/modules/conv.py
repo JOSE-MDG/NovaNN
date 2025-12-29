@@ -9,7 +9,38 @@ from nova.nn.parameter import Parameter
 
 if TYPE_CHECKING:
     from nova import Tensor
-    from nova._typing import KernelSize, Stride, Padding, PaddingMode, Dtype
+    from nova._typing import KernelSize, Stride, Padding, PaddingMode, Dtype, Dilation
+
+
+def _pair(input: int | tuple[int, int]) -> tuple[int, int]:
+
+    if isinstance(input, int):
+        return (input, input)
+
+    elif isinstance(input, str):
+        if input == "valid":
+            return (0, 0)
+        elif input == "same":
+            raise ValueError(f"The 'same' value is not currently supported")
+        else:
+            raise ValueError(f"Unsupported value '{input}'")
+
+    return tuple(input)
+
+
+def _triple(input: int | tuple[int, int, int] | str) -> tuple[int, int, int]:
+
+    if isinstance(input, int):
+        return (input, input, input)
+
+    elif isinstance(input, str):
+        if input == "valid":
+            return (0, 0, 0)
+        elif input == "same":
+            raise ValueError(f"The 'same' value is not currently supported")
+        else:
+            raise ValueError(f"Unsupported value '{input}'")
+    return tuple(input)
 
 
 class Conv1d(Module):
@@ -20,6 +51,7 @@ class Conv1d(Module):
         kernel_size: KernelSize,
         stride: Stride = 1,
         padding: Padding = 0,
+        dilation: Dilation = 1,
         bias: bool = True,
         padding_mode: PaddingMode = "zeros",
         dtype: Optional[Dtype] = None,
@@ -29,6 +61,7 @@ class Conv1d(Module):
         self.K = kernel_size
         self.S = stride
         self.P = padding
+        self.D = dilation
         self.use_bias = bias
         self.padding_mode = padding_mode
 
@@ -59,6 +92,7 @@ class Conv1d(Module):
             self.K,
             self.S,
             self.P,
+            self.D,
             bias=self.bias,
             padding_mode=self.padding_mode,
         )
@@ -77,17 +111,18 @@ class Conv2d(Module):
         kernel_size: KernelSize,
         stride: Stride = 1,
         padding: Padding = 0,
+        dilation: Dilation = 1,
         bias: bool = True,
         padding_mode: PaddingMode = "zeros",
         dtype: Optional[Dtype] = None,
     ) -> None:
         super().__init__()
-
         self.in_channels: int = in_channels
         self.out_channels: int = out_channels
-        self.KH, self.KW = self._pair(kernel_size)
-        self.SH, self.SW = self._pair(stride)
-        self.PH, self.PW = self._pair(padding)
+        self.KH, self.KW = _pair(kernel_size)
+        self.SH, self.SW = _pair(stride)
+        self.PH, self.PW = _pair(padding)
+        self.DH, self.DW = _pair(dilation)
         self.use_bias: bool = bias
         self.padding_mode: PaddingMode = padding_mode
 
@@ -110,21 +145,6 @@ class Conv2d(Module):
             bound = 1 / math.sqrt(fan_in)
             init.uniform_(self.bias, -bound, bound)
 
-    def _pair(self, input: int | tuple[int, int]) -> tuple[int, int]:
-
-        if isinstance(input, int):
-            return (input, input)
-
-        elif isinstance(input, str):
-            if input == "valid":
-                return (0, 0)
-            elif input == "same":
-                raise ValueError(f"The 'same' value is not currently supported")
-            else:
-                raise ValueError(f"Unsupported value '{input}'")
-
-        return tuple(input)
-
     def forward(self, input: Tensor) -> Tensor:
 
         return F.conv2d(
@@ -133,6 +153,7 @@ class Conv2d(Module):
             (self.KH, self.KW),
             (self.SH, self.SW),
             (self.PH, self.PW),
+            (self.DH, self.DW),
             bias=self.bias,
             padding_mode=self.padding_mode,
         )
@@ -151,15 +172,18 @@ class Conv3d(Module):
         kernel_size: KernelSize,
         stride: Stride = 1,
         padding: Padding = 0,
+        dilation: Dilation = 1,
         bias: bool = True,
         padding_mode: PaddingMode = "zeros",
         dtype: Optional[Dtype] = None,
     ) -> None:
+        super.__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.KD, self.KH, self.KW = self._triple(kernel_size)
-        self.SD, self.SH, self.SW = self._triple(stride)
-        self.PD, self.PH, self.PW = self._triple(padding)
+        self.KD, self.KH, self.KW = _triple(kernel_size)
+        self.SD, self.SH, self.SW = _triple(stride)
+        self.PD, self.PH, self.PW = _triple(padding)
+        self.DD, self.DH, self.DW = _triple(dilation)
         self.use_bias: bool = bias
         self.padding_mode = padding_mode
 
@@ -185,20 +209,6 @@ class Conv3d(Module):
             bound = 1 / math.sqrt(fan_in)
             init.uniform_(self.bias, -bound, bound)
 
-    def _triple(self, input: int | tuple[int, int, int] | str) -> tuple[int, int, int]:
-
-        if isinstance(input, int):
-            return (input, input, input)
-
-        elif isinstance(input, str):
-            if input == "valid":
-                return (0, 0, 0)
-            elif input == "same":
-                raise ValueError(f"The 'same' value is not currently supported")
-            else:
-                raise ValueError(f"Unsupported value '{input}'")
-        return tuple(input)
-
     def forward(self, input: Tensor) -> Tensor:
 
         return F.conv3d(
@@ -207,6 +217,7 @@ class Conv3d(Module):
             (self.KD, self.KH, self.KW),
             (self.SD, self.SH, self.SW),
             (self.PD, self.PH, self.PW),
+            (self.DD, self.DH, self.DW),
             bias=self.bias,
             padding_mode=self.padding_mode,
         )
