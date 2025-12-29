@@ -275,6 +275,14 @@ class Tensor(TensorBase):
 
         self.data.fill(0.0)
 
+    def ones_(self) -> None:
+        if self.requires_grad:
+            raise RuntimeError(
+                f"Cannot perform inplace operation on a tensor that requires gradients"
+            )
+
+        self.data.fill(1.0)
+
     def fill_(self, value: Any) -> None:
         if self.requires_grad:
             raise RuntimeError(
