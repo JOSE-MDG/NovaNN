@@ -1,6 +1,8 @@
 from __future__ import annotations
 import nova
 import nova.nn.init as init
+import nova.nn.functional as F
+import math
 from typing import TYPE_CHECKING
 from nova.nn.modules import Module
 from nova.nn.parameter import Parameter
@@ -25,7 +27,13 @@ class Linear(Module):
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
-        init.kaiming_normal_(self.weight)
+
+        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+
+        if self.use_bias:
+            fan_in = init.shape_validation(self.weight, mode="fan_in")
+            bound = 1 / math.sqrt(fan_in)
+            init.uniform_(self.bias, -bound, bound)
 
     def forward(self, x: Tensor) -> Tensor:
         out = x @ self.weight.T

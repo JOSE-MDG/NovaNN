@@ -1,10 +1,10 @@
 from __future__ import annotations
 import numpy as np
-from typing import Literal, Optional, Union, TYPE_CHECKING
+from typing import Any, Literal, Optional, Union, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from nova.nn import Parameter
+    from nova.nn import Parameter, Buffer
     from nova._typing import Size
 
 """
@@ -25,7 +25,7 @@ def calculate_gain(
 
     Args:
         nonlinearity: Name of the activation function. Supported values:
-            "linear", "sigmoid", "tanh", "relu", "leakyrelu".
+            "linear", "sigmoid", "tanh", "relu", "leaky_relu", "prelu", "gelu".
         param: Optional parameter for some nonlinearities (e.g., negative
             slope for leaky ReLU). Uses sensible defaults if None.
 
@@ -126,71 +126,116 @@ def shape_validation(
         return fan_out
 
 
-def xavier_normal_(weight: Parameter, gain: float = 1.0) -> None:
+def xavier_normal_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
-    fan_in, fan_out = shape_validation(shape=weight.size, mode="both")
+    fan_in, fan_out = shape_validation(shape=tensor.size, mode="both")
 
     std = gain * np.sqrt(2.0 / (fan_in + fan_out))
 
-    prev_state = weight.requires_grad
+    prev_state = tensor.requires_grad
 
-    weight.requires_grad_(False)
-    weight.normal_(0.0, std)
-    weight.requires_grad_(prev_state)
+    tensor.requires_grad_(False)
+    tensor.normal_(0.0, std)
+    tensor.requires_grad_(prev_state)
 
 
-def xavier_uniform_(weight: Parameter, gain: float = 1.0) -> None:
+def xavier_uniform_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
-    fan_in, fan_out = shape_validation(shape=weight.size, mode="both")
+    fan_in, fan_out = shape_validation(shape=tensor.size, mode="both")
 
     limit = gain * np.sqrt(6.0 / (fan_in + fan_out))
 
-    prev_state = weight.requires_grad
+    prev_state = tensor.requires_grad
 
-    weight.requires_grad_(False)
-    weight.uniform_(-limit, limit)
-    weight.requires_grad_(prev_state)
+    tensor.requires_grad_(False)
+    tensor.uniform_(-limit, limit)
+    tensor.requires_grad_(prev_state)
 
 
 def kaiming_normal_(
-    weight: Parameter,
+    tensor: Parameter | Buffer,
     a: Optional[float] = None,
-    nonlinearity: str = "relu",
+    nonlinearity: str = "leaky_relu",
     mode: str = "fan_in",
 ) -> None:
 
-    fan = shape_validation(shape=weight.size, mode=mode)
+    fan = shape_validation(shape=tensor.size, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
     std = gain / np.sqrt(fan)
 
-    prev_state = weight.requires_grad
+    prev_state = tensor.requires_grad
 
-    weight.requires_grad_(False)
-    weight.normal_(0.0, std)
-    weight.requires_grad_(prev_state)
+    tensor.requires_grad_(False)
+    tensor.normal_(0.0, std)
+    tensor.requires_grad_(prev_state)
 
 
 def kaiming_uniform_(
-    weight: Parameter,
+    tensor: Parameter | Buffer,
     a: Optional[float] = None,
     nonlinearity: str = "relu",
     mode: str = "fan_in",
 ) -> None:
 
-    fan = shape_validation(shape=weight.size, mode=mode)
+    fan = shape_validation(shape=tensor.size, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
     limit = gain * np.sqrt(3.0 / fan)
 
+    prev_state = tensor.requires_grad
+
+    tensor.requires_grad_(False)
+    tensor.uniform_(-limit, limit)
+    tensor.requires_grad_(prev_state)
+
+
+def uniform_(tensor: Parameter | Buffer, low: float = 0, high: float = 1) -> None:
+
+    prev_state = tensor.requires_grad
+
+    tensor.requires_grad_(False)
+    tensor.uniform_(low, high)
+    tensor.requires_grad_(prev_state)
+
+
+def normal_(weight: Parameter | Buffer, mean: float = 0, std: float = 1) -> None:
+
     prev_state = weight.requires_grad
 
     weight.requires_grad_(False)
-    weight.uniform_(-limit, limit)
+    weight.normal_(mean, std)
     weight.requires_grad_(prev_state)
 
 
-def random_(weight: Parameter) -> None:
+def constant_(weight: Parameter | Buffer, val: Any) -> None:
+
+    prev_state = weight.requires_grad
+
+    weight.requires_grad_(False)
+    weight.fill_(val)
+    weight.requires_grad_(prev_state)
+
+
+def zeros_(weight: Parameter | Buffer) -> None:
+
+    prev_state = weight.requires_grad
+
+    weight.requires_grad_(False)
+    weight.zero_()
+    weight.requires_grad_(prev_state)
+
+
+def ones_(weight: Parameter | Buffer) -> None:
+
+    prev_state = weight.requires_grad
+
+    weight.requires_grad_(False)
+    weight.ones_()
+    weight.requires_grad_(prev_state)
+
+
+def random_(weight: Parameter | Buffer) -> None:
 
     prev_state = weight.requires_grad
 
