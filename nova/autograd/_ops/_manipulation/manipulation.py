@@ -13,7 +13,9 @@ if TYPE_CHECKING:
 @registry_op("permute")
 class Permute(Function):
     @staticmethod
-    def forward(ctx: Context, a: ndarray, dims: Optional[Dim] = None) -> ndarray:
+    def forward(ctx: Context, a: ndarray, *dims: Optional[Dim]) -> ndarray:
+        if not dims:
+            dims = None
         ctx.dims = dims
         return np.transpose(a, axes=dims)
 
