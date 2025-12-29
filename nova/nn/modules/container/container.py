@@ -8,12 +8,12 @@ if TYPE_CHECKING:
 
 
 class Sequential(Module):
-    def __init__(self, *modules: Type[Module]):
+    def __init__(self, *modules: Module):
         super().__init__()
         for module in modules:
             if not isinstance(module, Module):
                 raise ValueError(
-                    f"Only Module types can be registered in the sequential container, got {type[module]}"
+                    f"Only Module types can be registered in the sequential container, got {type(module)}"
                 )
 
             self.register_module(module.__class__.__name__, module)
