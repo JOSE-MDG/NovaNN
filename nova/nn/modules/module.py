@@ -155,22 +155,44 @@ class Module:
         for name, module in self._modules.items():
             module.load_state_dict(state_dict=state_dict, prefix=prefix + name + ".")
 
-    def __repr__(self):
-        lines = [self.__class__.__name__ + "("]
-
-        for i, module in enumerate(self._modules.values()):
+    def __repr__(self) -> str:
+        # We treat the extra repr like the sub-module, one item per line
+        extra_lines = []
+        extra_repr = self.extra_repr()
+        if extra_repr:
+            extra_lines = extra_repr.split("\n")
+        child_lines = []
+        for key, module in self._modules.items():
             mod_str = repr(module)
             mod_str = self._addindent(mod_str, 2)
-            lines.append(f"  ({i}): {mod_str}")
+            child_lines.append("(" + key + "): " + mod_str)
+        lines = extra_lines + child_lines
 
-        lines.append(")")
-        return "\n".join(lines)
+        main_str = self._get_name() + "("
+        if lines:
+            # simple one-liner info, which most builtin Modules will use
+            if len(extra_lines) == 1 and not child_lines:
+                main_str += extra_lines[0]
+            else:
+                main_str += "\n  " + "\n  ".join(lines) + "\n"
+
+        main_str += ")"
+        return main_str
+
+    def _get_name(self) -> str:
+        return self.__class__.__name__
+
+    def extra_repr(self) -> str:
+        return ""
 
     @staticmethod
-    def _addindent(s: str, numSpaces: int):
-        lines = s.split("\n")
-        if len(lines) == 1:
-            return s
-        first = lines[0]
-        rest = "\n".join(" " * numSpaces + line for line in lines[1:])
-        return first + "\n" + rest
+    def _addindent(s_: str, numSpaces: int):
+        s = s_.split("\n")
+        # don't do anything for single-line stuff
+        if len(s) == 1:
+            return s_
+        first = s.pop(0)
+        s = [(numSpaces * " ") + line for line in s]
+        s = "\n".join(s)
+        s = first + "\n" + s
+        return s

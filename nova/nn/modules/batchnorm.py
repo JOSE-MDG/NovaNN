@@ -103,6 +103,11 @@ class _BatchNorm(Module):
             eps=self.eps,
         )
 
+    def extra_repr(self) -> str:
+        return "{num_features}, momentum={momentum}, eps={eps}, affine={affine}, track_running_stats={track_running_stats}".format(
+            **self.__dict__
+        )
+
 
 class BatchNorm1d(_BatchNorm):
     """Applies Batch Normalization over a 2D or 3D input"""
