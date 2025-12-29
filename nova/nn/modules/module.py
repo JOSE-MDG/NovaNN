@@ -80,7 +80,7 @@ class Module:
         elif isinstance(value, Module):
             self._modules[name] = value
         elif isinstance(value, Buffer):
-            self.buffer[name] = value
+            self._buffer[name] = value
 
         object.__setattr__(self, name, value)
 
