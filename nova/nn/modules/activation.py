@@ -26,6 +26,9 @@ class LeakyReLU(Module):
     def forward(self, input: Tensor) -> Tensor:
         return F.leaky_relu(input, self.negative_slope)
 
+    def extra_repr(self):
+        return f"negative_lope={self.negative_slope}"
+
 
 class GeLU(Module):
     def __init__(self) -> None:
@@ -44,6 +47,7 @@ class PReLU(Module):
         dtype: Optional[Dtype] = None,
     ) -> None:
         super().__init__()
+        self.num_parameters = num_parameters
 
         self.weight: Parameter = Parameter(
             nova.tensor(num_parameters, dtype=dtype).fill_(init)
@@ -51,6 +55,9 @@ class PReLU(Module):
 
     def forward(self, input: Tensor) -> Tensor:
         return F.prelu(input, self.weight)
+
+    def extra_repr(self):
+        return f"num_parameters={self.num_parameters}"
 
 
 class Tanh(Module):
@@ -76,6 +83,9 @@ class Softmax(Module):
     def forward(self, input: Tensor) -> Tensor:
         return F.softmax(input, dim=self.dim)
 
+    def extra_repr(self):
+        return f"dim={self.dim}"
+
 
 class LogSoftmax(Module):
     def __init__(self, dim: Dim = 1) -> None:
@@ -84,3 +94,6 @@ class LogSoftmax(Module):
 
     def forward(self, input: Tensor) -> Tensor:
         return F.log_softmax(input, dim=self.dim)
+
+    def extra_repr(self):
+        return f"dim={self.dim}"
