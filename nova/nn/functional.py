@@ -6,7 +6,7 @@ from nova.utils import ensure_tensor
 
 if TYPE_CHECKING:
     from nova import Tensor
-    from nova._typing import Dim, KernelSize, Stride, Padding
+    from nova._typing import Dim, KernelSize, Stride, Padding, PaddingMode
     from nova.nn import Parameter, Buffer
 
 
@@ -318,7 +318,7 @@ def conv1d(
     padding: Padding = 0,
     *,
     bias: Optional[Parameter] = None,
-    padding_mode: Literal["zeros", "reflect", "replicate", "circular"] = "zeros",
+    padding_mode: PaddingMode = "zeros",
 ):
     input = ensure_tensor(input)
 
@@ -403,7 +403,7 @@ def conv2d(
     padding: Padding = 0,
     *,
     bias: Optional[Parameter] = None,
-    padding_mode: Literal["zeros", "reflect", "replicate", "circular"] = "zeros",
+    padding_mode: PaddingMode = "zeros",
 ):
 
     input = ensure_tensor(input)
@@ -503,7 +503,7 @@ def conv3d(
     padding: Padding = 0,
     *,
     bias: Optional[Parameter] = None,
-    padding_mode: Literal["zeros", "reflect", "replicate", "circular"] = "zeros",
+    padding_mode: PaddingMode = "zeros",
 ) -> Tensor:
     input = ensure_tensor(input)
 
