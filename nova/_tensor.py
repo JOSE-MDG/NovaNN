@@ -207,23 +207,22 @@ class Tensor(TensorBase):
             self.data.any(dim, keepdims=keepdims), dtype=nova.bool, requires_grad=False
         )
 
-    def to(self, dtype: Dtype) -> None:
-        self.data.astype(dtype=dtype)
+    # --- Operaciones de Casting (Out-of-place) ---
 
-    def float(self) -> None:
-        self.data.astype(dtype=nova.float32)
+    def to(self, dtype: Dtype) -> Tensor:
+        return Tensor(self.data.astype(dtype), requires_grad=self.requires_grad)
 
-    def double(self) -> None:
-        self.data.astype(dtype=nova.double)
+    def float(self) -> Tensor:
+        return self.to(nova.float32)
 
-    def int(self) -> None:
-        self.data.astype(dtype=nova.int)
+    def double(self) -> Tensor:
+        return self.to(nova.double)
 
-    def long(self) -> None:
-        self.data.astype(dtype=nova.long)
+    def int(self) -> Tensor:
+        return self.to(nova.int)
 
-    def bool(self) -> None:
-        self.data.astype(dtype=nova.bool)
+    def long(self) -> Tensor:
+        return self.to(nova.long)
 
     def numpy(self) -> ndarray:
         return self.data.copy()
