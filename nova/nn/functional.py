@@ -910,23 +910,25 @@ def batch_norm(
 
         mu = nova.mean(input, dim=dims_to_reduce, keepdims=True)
         var_biased = nova.var(input, dim=dims_to_reduce, keepdims=True)
-        var_unbiased = (
-            var_biased * (batch_size / (batch_size - 1))
-            if batch_size > 1
-            else var_biased
-        )
 
-        normalized = (input - mu) / nova.sqrt(var_unbiased + eps)
+        normalized = (input - mu) / nova.sqrt(var_biased + eps)
 
         if running_mean is not None and running_var is not None:
+            var_unbiased = (
+                var_biased * (batch_size / (batch_size - 1))
+                if batch_size > 1
+                else var_biased
+            )
 
-            current_mu = mu.reshape(num_features)
-            current_var = var_unbiased.reshape(num_features)
+            current_mu = mu.reshape(-1)
+            current_var = var_unbiased.reshape(-1)
 
             with nova.no_grad():
-                running_mean = (1 - momentum) * running_mean + momentum * current_mu
+                running_mean.copy_(
+                    (1 - momentum) * running_mean + momentum * current_mu
+                )
 
-                running_var = (1 - momentum) * running_var + momentum * current_var
+                running_var.copy_((1 - momentum) * running_var + momentum * current_var)
     else:
 
         if running_mean is None or running_var is None:
