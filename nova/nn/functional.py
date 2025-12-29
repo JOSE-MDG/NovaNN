@@ -32,7 +32,7 @@ def gelu(input: Tensor) -> Tensor:
     return 0.5 * input * (1.0 + nova.tanh(inner))
 
 
-def prelu(input: Tensor, alpha: float = 0.1) -> Tensor:
+def prelu(input: Tensor, alpha: float = 0.25) -> Tensor:
     input = ensure_tensor(input)
     alpha = ensure_tensor(alpha)
 
