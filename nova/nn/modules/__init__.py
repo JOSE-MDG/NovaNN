@@ -12,6 +12,7 @@ from .activations import (
     LogSoftmax,
 )
 from .batchnorm import BatchNorm1d, BatchNorm2d, BatchNorm3d
+from .conv import Conv1d, Conv2d, Conv3d
 
 __all__ = [
     "Module",
@@ -20,6 +21,9 @@ __all__ = [
     "BatchNorm1d",
     "BatchNorm2d",
     "BatchNorm3d",
+    "Conv1d",
+    "Conv2d",
+    "Conv3d",
     "ReLU",
     "LeakyReLU",
     "PReLU",
