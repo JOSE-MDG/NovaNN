@@ -22,5 +22,5 @@ class Buffer(Tensor):
     __slots__ = ["persistent"]
 
     def __init__(self, data: Any, *, persistent: bool = True):
-        super().__init__(data=data)
+        super().__init__(data=data, requires_grad=False)
         self.persistent = persistent
