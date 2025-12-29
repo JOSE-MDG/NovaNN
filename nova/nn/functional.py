@@ -154,6 +154,10 @@ def binary_cross_entropy(
     input = ensure_tensor(input)
     target = ensure_tensor(target)
 
+    eps = 1e-12
+
+    input = nova.clamp(input, eps, 1 - eps)
+
     loss = -(target * nova.log(input) + (1 - target) * nova.log(1 - input))
 
     if weight is not None:
@@ -279,7 +283,7 @@ def linear(
     input = ensure_tensor(input)
     output = input @ weight.T
     if bias is not None:
-        output = output + bias
+        output = output + bias.to(output.dtype)
 
     return output
 
