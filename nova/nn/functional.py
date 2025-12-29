@@ -898,6 +898,7 @@ def batch_norm(
 ) -> Tensor:
 
     input = ensure_tensor(input)
+    dtype = input.dtype
 
     if len(input.size) < 2:
         raise ValueError(f"expected at last 2D input, go {len(input.size)}")
@@ -908,6 +909,7 @@ def batch_norm(
         batch_size = input.size[0]
         dims_to_reduce = [0] + list(range(2, input.dim()))
 
+        eps = nova.tensor(eps, dtype=dtype)
         mu = nova.mean(input, dim=dims_to_reduce, keepdims=True)
         var_biased = nova.var(input, dim=dims_to_reduce, keepdims=True)
 
@@ -935,10 +937,10 @@ def batch_norm(
             raise ValueError(
                 "In evaluation mode, running_mean and running_var must be provided"
             )
-
         mean_shape = [1, num_features] + [1] * (input.dim() - 2)
         var_shape = mean_shape
 
+        eps = nova.tensor(eps, dtype=dtype)
         mean_broadcast = running_mean.reshape(*mean_shape)
         var_broadcast = running_var.reshape(*var_shape)
 
