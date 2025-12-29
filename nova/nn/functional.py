@@ -901,7 +901,7 @@ def batch_norm(
     dtype = input.dtype
 
     if len(input.size) < 2:
-        raise ValueError(f"expected at last 2D input, go {len(input.size)}")
+        raise ValueError(f"expected at last 2D input, go {input.dim()}")
 
     num_features = input.size[1]
 
@@ -911,10 +911,8 @@ def batch_norm(
 
         eps = nova.tensor(eps, dtype=dtype)
         mu = nova.mean(input, dim=dims_to_reduce, keepdims=True)
-        var_biased = nova.var(input, dim=dims_to_reduce, keepdims=True)
-
+        var_biased = nova.var(input, dim=dims_to_reduce, keepdims=True).to(dtype)
         normalized = (input - mu) / nova.sqrt(var_biased + eps)
-
         if running_mean is not None and running_var is not None:
             var_unbiased = (
                 var_biased * (batch_size / (batch_size - 1))
@@ -959,6 +957,8 @@ def batch_norm(
         bias_shape = [1, num_features] + [1] * (input.dim() - 2)
         bias_broadcast = bias.reshape(*bias_shape)
         normalized = normalized + bias_broadcast
+
+    print("normalized dtype", normalized.dtype)
 
     return normalized
 
