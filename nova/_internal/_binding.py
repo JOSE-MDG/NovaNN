@@ -130,9 +130,7 @@ def bootstrap_to(
                         result = _cls.apply(self, other).data
 
                         if result.dtype != self.data.dtype:
-                            raise TypeError(
-                                f"Cannot cast tensor data from dtype('{type(result.dtype).name}') to dtype('{type(self.data.dtype).name}') according to the rule 'same_kind'"
-                            )
+                            result = result.astype(self.data.dtype)
 
                         np.copyto(dst=self.data, src=result)
 
