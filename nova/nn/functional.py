@@ -738,83 +738,16 @@ def avg_pool3d(
     return nova.as_strided(input_padded, size=size, strides=strides).mean(dim=(5, 6, 7))
 
 
-def adaptive_avg_pool1d(input: Tensor, output_size: Optional[int]) -> Tensor:
-
-    input = ensure_tensor(input)
-
-    if input.dim() != 3:
-        raise ValueError(f"AdaptativeAvgPool1d expect 1D tensors, got {input.dim()}")
-
-    L = input.size[2]
-
-    target_L = L if L is None else output_size
-
-    if L == 1:
-        return input.mean(dim=2)
-
-    stride_L = L // target_L
-    kernel_L = L - (target_L - 1) * stride_L
-
-    return avg_pool1d(input, kernel_L, stride_L)
+def global_avg_pool1d(input: Tensor) -> Tensor:
+    return input.mean(dim=2, keepdim=True)
 
 
-def adaptive_avg_pool2d(
-    input: Tensor, output_size: Optional[tuple[int, int]]
-) -> Tensor:
-
-    input = ensure_tensor(input)
-
-    if input.dim() != 4:
-        raise ValueError(f"AdaptativeAvgPool2d expect 4D tensors, got {input.dim()}")
-
-    H, W = input.size[2], input.size[3]
-    target_H, target_W = _pair(output_size)
-
-    target_H = H if target_H is None else target_H
-    target_W = W if target_W is None else target_W
-
-    if target_H == 1 and target_W == 1:
-        return input.mean(dim=(2, 3))
-
-    stride_H = H // target_H
-    stride_W = W // target_W
-    kernel_H = H - (target_H - 1) * stride_H
-    kernel_W = W - (target_W - 1) * stride_W
-
-    return avg_pool2d(
-        input, kernel_size=(kernel_H, kernel_W), stride=(stride_H, stride_W)
-    )
+def global_avg_pool2d(input: Tensor) -> Tensor:
+    return input.mean(dim=(2, 3), keepdim=True)
 
 
-def adaptive_avg_pool3d(input: Tensor, output_size: tuple[int, int, int]) -> Tensor:
-
-    input = ensure_tensor(input)
-
-    if input.dim() != 5:
-        raise ValueError(f"AdaptativeAvgPool3d expect 5D tensors, got {input.dim()}")
-
-    D, H, W = input.size[2], input.size[3], input.size[4]
-    target_D, target_H, target_W = _triple(output_size)
-
-    target_D = D if target_D is None else target_D
-    target_H = H if target_H is None else target_H
-    target_W = W if target_W is None else target_W
-
-    if target_D == 1 and target_H == 1 and target_W == 1:
-        return input.mean(dim=(2, 3, 4))
-
-    stride_D = D // target_D
-    stride_H = H // target_H
-    stride_W = W // target_W
-    kernel_D = D - (target_D - 1) * stride_D
-    kernel_H = H - (target_H - 1) * stride_H
-    kernel_W = W - (target_W - 1) * stride_W
-
-    return avg_pool3d(
-        input,
-        kernel_size=(kernel_D, kernel_H, kernel_W),
-        stride=(stride_D, stride_H, stride_W),
-    )
+def global_avg_pool3d(input: Tensor) -> Tensor:
+    return input.mean(dim=(2, 3, 4), keepdim=True)
 
 
 def max_pool1d(
