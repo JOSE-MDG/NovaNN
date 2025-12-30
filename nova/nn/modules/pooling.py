@@ -45,42 +45,28 @@ def _triple(input: int | tuple[int, int, int] | str) -> tuple[int, int, int]:
     return tuple(input)
 
 
-class AdaptiveAvgPool1d(Module):
-    def __init__(self, output_size: Optional[int]) -> None:
+class GlobalAvgPool1d(Module):
+    def __init__(self) -> None:
         super().__init__()
-        self.output_size = output_size
 
     def forward(self, input: Tensor) -> Tensor:
-        return F.adaptive_avg_pool1d(input, self.output_size)
-
-    def extra_repr(self):
-        return f"output_size={self.output_size}"
+        return F.global_avg_pool1d(input)
 
 
-class AdaptiveAvgPool2d(Module):
-    def __init__(self, output_size: tuple[Optional[int], Optional[int]]) -> None:
+class GlobalAvgPool2d(Module):
+    def __init__(self) -> None:
         super().__init__()
-        self.output_size = output_size
 
     def forward(self, input: Tensor) -> Tensor:
-        return F.adaptive_avg_pool2d(input, self.output_size)
-
-    def extra_repr(self):
-        return f"output_size={self.output_size}"
+        return F.global_avg_pool2d(input)
 
 
-class AdaptiveAvgPool3d(Module):
-    def __init__(
-        self, output_size: tuple[Optional[int], Optional[int], Optional[int]]
-    ) -> None:
+class GlobalAvgPool3d(Module):
+    def __init__(self) -> None:
         super().__init__()
-        self.output_size = output_size
 
     def forward(self, input: Tensor) -> Tensor:
-        return F.adaptive_avg_pool3d(input, self.output_size)
-
-    def extra_repr(self):
-        return f"output_size={self.output_size}"
+        return F.global_avg_pool3d(input)
 
 
 class AvgPool1d(Module):
