@@ -64,6 +64,8 @@ class _BatchNorm(Module):
         if self.affine:
             self.weight: Parameter = Parameter(nova.empty((num_features,), dtype=dtype))
             self.bias: Parameter = Parameter(nova.empty((num_features,), dtype=dtype))
+            self.weight.is_bn_param = True
+            self.bias.is_bn_param = True
         else:
             self.register_parameter("weight", None)
             self.register_parameter("bias", None)
