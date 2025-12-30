@@ -11,6 +11,7 @@ from .activation import (
     Softmax,
     LogSoftmax,
 )
+from .flatten import Flatten
 from .batchnorm import BatchNorm1d, BatchNorm2d, BatchNorm3d
 from .conv import Conv1d, Conv2d, Conv3d
 from .pooling import (
@@ -42,6 +43,7 @@ __all__ = [
     "Sigmoid",
     "Tanh",
     "Softmax",
+    "Flatten",
     "LogSoftmax",
     "AvgPool1d",
     "AvgPool2d",
