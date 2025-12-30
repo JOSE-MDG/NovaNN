@@ -24,6 +24,7 @@ from ._typing import (
     YAMLFile,
     OptimizerStateDict,
     SchedulerStateDict,
+    LossReducton,
 )
 
 __all__ = [
@@ -38,6 +39,7 @@ __all__ = [
     "Dim",
     "Closure",
     "KernelSize",
+    "LossReducton",
     "Stride",
     "Padding",
     "Dilation",
