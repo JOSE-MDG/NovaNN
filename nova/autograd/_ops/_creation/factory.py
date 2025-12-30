@@ -29,7 +29,7 @@ def var(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Ten
 def std(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
 
-    return sqrt(var(input, dim, keepdims))
+    return sqrt(var(input, dim, keepdims)).to(input.dtype)
 
 
 def empty(
