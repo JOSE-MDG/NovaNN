@@ -48,7 +48,7 @@ class Module:
 
         if buffer is None:
             self._buffers[name] = None
-        if not isinstance(buffer, Buffer):
+        elif not isinstance(buffer, Buffer):
             raise ValueError("Only Buffer types can be registered.")
         else:
             self._buffers[name] = buffer
@@ -59,7 +59,7 @@ class Module:
 
         if param is None:
             self._parameters[name] = None
-        if not isinstance(param, Parameter):
+        elif not isinstance(param, Parameter):
             raise ValueError("Only Parameter types can be registered.")
         else:
             self._parameters[name] = param
@@ -70,7 +70,7 @@ class Module:
 
         if module is None:
             self._modules[name] = None
-        if not isinstance(module, Module):
+        elif not isinstance(module, Module):
             raise ValueError("Only Module types can be registered.")
         else:
             self._modules[name] = module

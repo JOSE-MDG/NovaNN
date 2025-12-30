@@ -773,15 +773,15 @@ def avg_pool3d(
 
 
 def global_avg_pool1d(input: Tensor) -> Tensor:
-    return input.mean(dim=2, keepdim=True)
+    return input.mean(dim=2, keepdims=True)
 
 
 def global_avg_pool2d(input: Tensor) -> Tensor:
-    return input.mean(dim=(2, 3), keepdim=True)
+    return input.mean(dim=(2, 3), keepdims=True)
 
 
 def global_avg_pool3d(input: Tensor) -> Tensor:
-    return input.mean(dim=(2, 3, 4), keepdim=True)
+    return input.mean(dim=(2, 3, 4), keepdims=True)
 
 
 def max_pool1d(
