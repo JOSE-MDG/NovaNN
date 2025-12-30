@@ -226,3 +226,14 @@ class Abs(Function):
         (a,) = ctx.saved_tensors
         grad_a = np.sign(a) * grad_output
         return (grad_a,)
+
+
+@registry_op("ceil")
+class Ceil(Function):
+    @staticmethod
+    def forward(ctx: Context, a: ndarray) -> ndarray:
+        return np.ceil(a)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        return (None,)

@@ -13,6 +13,7 @@ from .arithmetic import (
     Neg,
     Sign,
     Abs,
+    Ceil,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "Neg",
     "Sign",
     "Abs",
+    "Ceil",
 ]
