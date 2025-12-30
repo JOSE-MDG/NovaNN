@@ -6,8 +6,10 @@ from nova.utils import ensure_tensor
 
 if TYPE_CHECKING:
     from nova import Tensor
+    from nova.nn import Parameter, Buffer
     from nova._typing import (
         Dim,
+        LossReducton,
         KernelSize,
         Stride,
         Padding,
@@ -15,7 +17,6 @@ if TYPE_CHECKING:
         Dilation,
         Size,
     )
-    from nova.nn import Parameter, Buffer
 
 
 # Activations
@@ -79,7 +80,38 @@ def log_softmax(input: Tensor, dim: Dim = 1) -> Tensor:
 
 
 # criterion
-def mse_loss(input: Tensor, target: Tensor, weight: Optional[Tensor] = None) -> Tensor:
+
+
+def _reduce(
+    loss: Tensor,
+    reduction_mode: LossReducton = "mean",
+    batch_size: Optional[int] = None,
+):
+
+    if reduction_mode == "none":
+        return loss
+    elif reduction_mode == "sum":
+        return nova.sum(loss)
+    elif reduction_mode == "mean":
+        return nova.mean(loss)
+    elif reduction_mode == "batchmean":
+        if batch_size is None:
+            raise ValueError(
+                "The batch size must be specified when the reduction is 'batchmean'"
+            )
+        return nova.sum(loss) / batch_size
+    else:
+        raise ValueError(
+            f"reduction expect ('sum','mean','none', 'batchmean'), got '{reduction_mode}'"
+        )
+
+
+def mse_loss(
+    input: Tensor,
+    target: Tensor,
+    weight: Optional[Tensor] = None,
+    reduction: LossReducton = "mean",
+) -> Tensor:
 
     input = ensure_tensor(input)
     target = ensure_tensor(target)
@@ -97,10 +129,15 @@ def mse_loss(input: Tensor, target: Tensor, weight: Optional[Tensor] = None) -> 
 
         loss = loss * weight
 
-    return nova.mean(loss)
+    return _reduce(loss, reduction)
 
 
-def l1_loss(input: Tensor, target: Tensor, weight: Optional[Tensor] = None) -> Tensor:
+def l1_loss(
+    input: Tensor,
+    target: Tensor,
+    weight: Optional[Tensor] = None,
+    reduction: LossReducton = "mean",
+) -> Tensor:
 
     logits = ensure_tensor(input)
 
@@ -117,14 +154,14 @@ def l1_loss(input: Tensor, target: Tensor, weight: Optional[Tensor] = None) -> T
 
         loss = loss * weight
 
-    return nova.mean(loss)
+    return _reduce(loss, reduction)
 
 
 def smooth_l1_loss(
     input: Tensor,
     target: Tensor,
     beta: float = 1.0,
-    reduction: Literal["none", "mean", "sum"] = "mean",
+    reduction: LossReducton = "mean",
     weight: Optional[Tensor] = None,
 ) -> Tensor:
 
@@ -143,21 +180,14 @@ def smooth_l1_loss(
                 f"weights and targets must be have the same shape, {weight.size} != {target.size}"
             )
 
-        loss = loss * weight
-
-    if reduction == "none":
-        return loss
-    elif reduction == "mean":
-        return loss.mean()
-    elif reduction == "sum":
-        return loss.sum()
-
-    else:
-        raise ValueError(f"reduction expect ('sum','mean','none'), got '{reduction}'")
+    return _reduce(loss, reduction)
 
 
 def binary_cross_entropy(
-    input: Tensor, target: Tensor, weight: Optional[Tensor] = None
+    input: Tensor,
+    target: Tensor,
+    weight: Optional[Tensor] = None,
+    reduction: LossReducton = "mean",
 ) -> Tensor:
     input = ensure_tensor(input)
     target = ensure_tensor(target)
@@ -178,11 +208,14 @@ def binary_cross_entropy(
 
         loss = loss * weight
 
-    return nova.mean(loss)
+    return _reduce(loss, reduction)
 
 
 def binary_cross_entropy_with_logits(
-    input: Tensor, target: Tensor, weight: Optional[Tensor] = None
+    input: Tensor,
+    target: Tensor,
+    weight: Optional[Tensor] = None,
+    reduction: LossReducton = "mean",
 ) -> Tensor:
     logits = ensure_tensor(input)
     target = ensure_tensor(target)
@@ -203,14 +236,14 @@ def binary_cross_entropy_with_logits(
 
         loss = loss * weight
 
-    return nova.mean(loss)
+    return _reduce(loss, reduction)
 
 
 def nll_loss(
     log_probs: Tensor,
     target: Tensor,
     weight: Optional[Tensor] = None,
-    reduction: Literal["none", "sum", "mean"] = "mean",
+    reduction: LossReducton = "mean",
 ) -> Tensor:
 
     log_probs = ensure_tensor(log_probs)
@@ -227,14 +260,7 @@ def nll_loss(
 
         loss = loss * weight[target]
 
-    if reduction == "none":
-        return loss
-    elif reduction == "sum":
-        return loss.sum()
-    elif reduction == "mean":
-        return loss.mean()
-    else:
-        raise ValueError(f"reduction expect ('sum','mean','none'), got '{reduction}'")
+    return _reduce(loss, reduction)
 
 
 def cross_entropy(
@@ -251,7 +277,7 @@ def kl_div(
     log_probs: Tensor,
     target: Tensor,
     log_target: bool = False,
-    reduction: Literal["none", "batchmean", "sum", "mean"] = "mean",
+    reduction: LossReducton = "mean",
 ) -> Tensor:
 
     log_probs = ensure_tensor(log_probs)
@@ -266,20 +292,8 @@ def kl_div(
         loss = probs_target * (nova.log(probs_target) - log_probs)
 
     loss = loss.sum(dim=1)
-
-    if reduction == "none":
-        return loss
-    elif reduction == "sum":
-        return nova.sum(loss)
-    elif reduction == "mean":
-        return nova.mean(loss)
-    elif reduction == "batchmean":
-        batch_size = log_probs.size[0]
-        return nova.sum(loss) / batch_size
-    else:
-        raise ValueError(
-            f"reduction expect ('sum','mean','none', 'batchmean'), got '{reduction}'"
-        )
+    batch_size = log_probs.size[0]
+    return _reduce(loss, reduction, batch_size=batch_size)
 
 
 # layer ops
