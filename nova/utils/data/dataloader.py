@@ -36,9 +36,9 @@ class DataLoader:
             self.idx: int = 0
             # Create an array of indices. Shuffle it if required.
             self.order: Tensor = (
-                nova.permutation(len(parent.x))
+                nova.randperm(len(parent.x), dtype=nova.long)
                 if parent.shuffle
-                else nova.arange(len(parent.x))
+                else nova.arange(len(parent.x), dtype=nova.long)
             )
 
         def __iter__(self) -> DataLoader._Iter:
