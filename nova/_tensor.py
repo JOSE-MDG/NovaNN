@@ -372,12 +372,12 @@ class Tensor(TensorBase):
                 raise RuntimeError(
                     "grad can be implicitly created only for scalar outputs"
                 )
-            gradient = np.ones_like(self.data, dtype=self.dtype)
+            gradient = np.ones_like(self.data, dtype=nova.float32)
         else:
             gradient = (
-                gradient.data.astype(self.dtype)
+                gradient.data.astype(nova.float32)
                 if isinstance(gradient, Tensor)
-                else np.asarray(gradient, dtype=self.dtype)
+                else np.asarray(gradient, dtype=nova.float32)
             )
         try:
             _backward(self, gradient=gradient, retain_graph=retain_graph)
