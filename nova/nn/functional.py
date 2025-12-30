@@ -625,8 +625,11 @@ def avg_pool1d(
         raise ValueError(f"AvgPool1d expect 3D tensors, got {input.dim()}")
 
     K = kernel_size
-    S = stride if stride is not None else K
     P = padding
+    if stride is not None:
+        S = stride
+    else:
+        S = K
 
     def _calculate_out_size(L: int) -> int:
         L_out = (L + 2 * P - K) // S + 1
@@ -660,8 +663,11 @@ def avg_pool2d(
     input = ensure_tensor(input)
 
     KH, KW = _pair(kernel_size)
-    SH, SW = _pair(stride) if stride is not None else KH, KW
     PH, PW = _pair(padding)
+    if stride is not None:
+        SH, SW = _pair(stride)
+    else:
+        SH, SW = KH, KW
 
     if input.dim() != 4:
         raise ValueError(f"AvgPool2d expect 4D tensors, got {input.dim()}")
@@ -703,8 +709,11 @@ def avg_pool3d(
         raise ValueError(f"AvgPool3d expect 5D tensors, got {input.dim()}")
 
     KD, KH, KW = _triple(kernel_size)
-    SD, SH, SW = _triple(stride) if stride is not None else KD, KH, KW
     PD, PH, PW = _triple(padding)
+    if stride is not None:
+        SD, SH, SW = _triple(stride)
+    else:
+        SD, SH, SW = KD, KH, KW
 
     def _calculate_out_size(D: int, H: int, W: int) -> tuple[int, int, int]:
         D_out = (D + 2 * PD - KD) // SD + 1

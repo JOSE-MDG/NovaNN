@@ -1,7 +1,7 @@
 from .module import Module
 from .linear import Linear
 from .container import Sequential
-from .activations import (
+from .activation import (
     ReLU,
     LeakyReLU,
     PReLU,
