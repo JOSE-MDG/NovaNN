@@ -15,9 +15,7 @@ class Flatten(Module):
         self.start_dim: int = start_dim
         self.end_dim: int = end_dim
 
-    def forward(
-        self,
-    ) -> Tensor:
+    def forward(self, input: Tensor) -> Tensor:
         return F.flatten(input, start_dim=self.start_dim, end_dim=self.end_dim)
 
     def extra_repr(self) -> str:
