@@ -216,15 +216,27 @@ def binary_cross_entropy_with_logits(
     target: Tensor,
     weight: Optional[Tensor] = None,
     reduction: LossReducton = "mean",
+    pos_weight: Optional[Tensor] = None,
 ) -> Tensor:
     logits = ensure_tensor(input)
     target = ensure_tensor(target)
 
-    loss = (
-        nova.maximum(logits, 0)
-        - logits * target
-        + nova.log(1 + nova.exp(-nova.abs(logits)))
-    )
+    if pos_weight is not None:
+        pos_weight = ensure_tensor(pos_weight)
+
+        max_val = nova.maximum(-logits, 0)
+        log_weight = (pos_weight - 1) * target + 1
+
+        loss = (1 - target) * logits + log_weight * (
+            nova.log(1 + nova.exp(-nova.abs(logits))) + max_val
+        )
+
+    else:
+        loss = (
+            nova.maximum(logits, 0)
+            - logits * target
+            + nova.log(1 + nova.exp(-nova.abs(logits)))
+        )
 
     if weight is not None:
         weight = ensure_tensor(weight)
