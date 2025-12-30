@@ -168,7 +168,7 @@ def binary_cross_entropy(
                 f"weights and targets must be have the same shape, {weight.size} != {target.size}"
             )
 
-        loss = loss * weight[target]
+        loss = loss * weight
 
     return nova.mean(loss)
 
@@ -193,7 +193,7 @@ def binary_cross_entropy_with_logits(
                 f"weights and targets must be have the same shape, {weight.size} != {target.size}"
             )
 
-        loss = loss * weight[target]
+        loss = loss * weight
 
     return nova.mean(loss)
 
@@ -789,7 +789,7 @@ def adaptive_avg_pool3d(input: Tensor, output_size: tuple[int, int, int]) -> Ten
 
     target_D = D if target_D is None else target_D
     target_H = H if target_H is None else target_H
-    target_W = D if target_W is None else target_W
+    target_W = W if target_W is None else target_W
 
     if target_D == 1 and target_H == 1 and target_W == 1:
         return input.mean(dim=(2, 3, 4))
@@ -813,6 +813,7 @@ def max_pool1d(
     kernel_size: KernelSize,
     stride: Optional[Stride] = None,
     padding: Padding = 0,
+    dilation: Dilation = 1,
 ) -> Tensor:
     input = ensure_tensor(input)
 
@@ -820,11 +821,16 @@ def max_pool1d(
         raise ValueError(f"MaxPool1d expect 3D tensors, got {input.dim()}")
 
     K = kernel_size
-    S = stride if stride is not None else K
     P = padding
+    D = dilation
+    if stride is not None:
+        S = stride
+    else:
+        S = K
 
     def _calculate_out_size(L: int) -> int:
-        L_out = (L + 2 * P - K) // S + 1
+        K_eff = (K - 1) * D + 1
+        L_out = (L + 2 * P - K_eff) // S + 1
         return L_out
 
     def _add_padding(input: Tensor) -> Tensor:
@@ -841,7 +847,7 @@ def max_pool1d(
     # Shape of the windows: (N, C, L_out, K)
     shape = (N, C, L_out, kernel_size)
     sN, sC, sL = input_padded.strides
-    strides = (sN, sC, sL * S, sL)
+    strides = (sN, sC, sL * S, sL * D)
 
     return nova.as_strided(input_padded, shape=shape, strides=strides).max(dim=3)
 
@@ -851,11 +857,13 @@ def max_pool2d(
     kernel_size: KernelSize,
     stride: Optional[Stride] = None,
     padding: Padding = 0,
+    dilation: Dilation = 1,
 ) -> Tensor:
     input = ensure_tensor(input)
 
     KH, KW = _pair(kernel_size)
     PH, PW = _pair(padding)
+    DH, DW = _pair(dilation)
     if stride is not None:
         SH, SW = _pair(stride)
     else:
@@ -865,8 +873,10 @@ def max_pool2d(
         raise ValueError(f"MaxPool2d expect 4D tensors, got {input.dim()}")
 
     def _calculate_out_size(H: int, W: int) -> tuple[int, int]:
-        H_out = (H + 2 * PH - KH) // SH + 1
-        W_out = (W + 2 * PW - KW) // SW + 1
+        KH_eff = (KH - 1) * DH + 1
+        KW_eff = (KW - 1) * DW + 1
+        H_out = (H + 2 * PH - KH_eff) // SH + 1
+        W_out = (W + 2 * PW - KW_eff) // SW + 1
         return H_out, W_out
 
     def _add_padding(input: Tensor) -> Tensor:
@@ -883,7 +893,7 @@ def max_pool2d(
     size = (N, C, H_out, W_out, KH, KW)
 
     sN, sC, sH, sW = input_padded.strides
-    strides = (sN, sC, sH * SH, sW * SW, sH, sW)
+    strides = (sN, sC, sH * SH, sW * SW, sH * DH, sW * DW)
 
     return nova.as_strided(input_padded, size=size, strides=strides).max(dim=(4, 5))
 
@@ -893,6 +903,7 @@ def max_pool3d(
     kernel_size: KernelSize,
     stride: Optional[Stride] = None,
     padding: Padding = 0,
+    dilation: Dilation = 1,
 ) -> Tensor:
 
     input = ensure_tensor(input)
@@ -902,15 +913,19 @@ def max_pool3d(
 
     KD, KH, KW = _triple(kernel_size)
     PD, PH, PW = _triple(padding)
+    DD, DH, DW = _triple(dilation)
     if stride is not None:
         SD, SH, SW = _triple(stride)
     else:
         SD, SH, SW = KD, KH, KW
 
     def _calculate_out_size(D: int, H: int, W: int) -> tuple[int, int, int]:
-        D_out = (D + 2 * PD - KD) // SD + 1
-        H_out = (H + 2 * PH - KH) // SH + 1
-        W_out = (W + 2 * PW - KW) // SW + 1
+        KD_eff = (KD - 1) * DD + 1
+        KH_eff = (KH - 1) * DH + 1
+        KW_eff = (KW - 1) * DW + 1
+        D_out = (D + 2 * PD - KD_eff) // SD + 1
+        H_out = (H + 2 * PH - KH_eff) // SH + 1
+        W_out = (W + 2 * PW - KW_eff) // SW + 1
         return D_out, H_out, W_out
 
     def _add_padding(input: Tensor) -> Tensor:
@@ -925,7 +940,7 @@ def max_pool3d(
 
     sN, sC, sD, sH, sW = input_padded.strides
 
-    strides = (sN, sC, sD * SD, sH * SH, sW * SW, sD, sH, sW)
+    strides = (sN, sC, sD * SD, sH * SH, sW * SW, sD * DD, sH * DH, sW * DW)
 
     return nova.as_strided(input_padded, size=size, strides=strides).max(dim=(4, 5, 6))
 
