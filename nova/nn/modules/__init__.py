@@ -14,6 +14,7 @@ from .activation import (
 from .flatten import Flatten
 from .batchnorm import BatchNorm1d, BatchNorm2d, BatchNorm3d
 from .conv import Conv1d, Conv2d, Conv3d
+from .layernorm import LayerNorm
 from .pooling import (
     AvgPool1d,
     AvgPool2d,
@@ -33,6 +34,7 @@ __all__ = [
     "BatchNorm1d",
     "BatchNorm2d",
     "BatchNorm3d",
+    "LayerNorm",
     "Conv1d",
     "Conv2d",
     "Conv3d",

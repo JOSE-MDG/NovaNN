@@ -15,7 +15,7 @@ def sqrt(input: nova.Tensor) -> nova.Tensor:
 
 def mean(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
-    return input.mean(dim, keepdims)
+    return input.mean(dim, keepdims).to(input.dtype)
 
 
 def var(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
@@ -23,7 +23,7 @@ def var(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Ten
     diff = input - input.mean(dim, keepdims)
     diff_sq = diff**2
     var = mean(diff_sq, dim, keepdims)
-    return var
+    return var.to(input.dtype)
 
 
 def std(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
@@ -61,7 +61,7 @@ def pow(input: nova.Tensor, exponent: nova.Tensor | int | float) -> nova.Tensor:
     input = ensure_tensor(input)
     exponent = ensure_tensor(exponent)
 
-    return input**exponent
+    return input.pow(exponent)
 
 
 def maximum(input: nova.Tensor, other: nova.Tensor) -> nova.Tensor:

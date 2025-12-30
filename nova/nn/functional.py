@@ -6,7 +6,15 @@ from nova.utils import ensure_tensor
 
 if TYPE_CHECKING:
     from nova import Tensor
-    from nova._typing import Dim, KernelSize, Stride, Padding, PaddingMode, Dilation
+    from nova._typing import (
+        Dim,
+        KernelSize,
+        Stride,
+        Padding,
+        PaddingMode,
+        Dilation,
+        Size,
+    )
     from nova.nn import Parameter, Buffer
 
 
@@ -970,15 +978,20 @@ def batch_norm(
 
 def layer_norm(
     input: Tensor,
-    normalized_shape: tuple[int, ...],
+    normalized_shape: Size,
     weight: Optional[Tensor] = None,
     bias: Optional[Tensor] = None,
     eps: float = 1e-05,
 ):
 
     input = ensure_tensor(input)
+    dtype = input.dtype
 
     input_shape = input.size
+
+    if not isinstance(normalized_shape, tuple):
+        normalized_shape = (normalized_shape,)
+
     if len(normalized_shape) > len(input_shape):
         raise ValueError(
             f"normalized_shape {normalized_shape} tiene más dimensiones "
@@ -999,6 +1012,7 @@ def layer_norm(
 
     variance = nova.mean((input - mean) ** 2, dim=dims_to_normalize, keepdims=True)
 
+    eps = nova.tensor(eps, dtype=dtype)
     normalized = (input - mean) / nova.sqrt(variance + eps)
 
     if weight is not None:
@@ -1021,7 +1035,7 @@ def layer_norm(
     return normalized
 
 
-def normalize(input: Tensor, p: int = 2, dim: Dim = 1, eps: float = 1e-12) -> Tensor:
+def normalize(input: Tensor, p: int = 2, dim: Dim = 1) -> Tensor:
 
     input = ensure_tensor(input)
 

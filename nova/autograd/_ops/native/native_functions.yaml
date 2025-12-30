@@ -55,6 +55,7 @@ ops:
     tensor:
       dunder: __pow__
       reverse: __rpow__
+      method: pow
       inplace:
         method: pow_
         dunder: __ipow__
