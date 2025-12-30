@@ -25,6 +25,9 @@ type Dtype = Union[
     dtypes.bool,  # type: ignore
 ]
 
+type TensorsOrArrays = tuple[
+    tuple[Tensor, Tensor], tuple[Tensor, Tensor], tuple[Tensor, Tensor]
+] | tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray], tuple[ndarray, ndarray]]
 type TensorOrArray = Union[Tensor, ndarray, list[Tensor], tuple[Tensor, ...]]
 type Inputs = Union[TensorOrArray, int, float, Any]
 type Hook = Callable[[ndarray], Optional[ndarray]]
