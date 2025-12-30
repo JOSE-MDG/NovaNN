@@ -13,6 +13,7 @@ from ._basic import (
     Neg,
     Sign,
     Abs,
+    Ceil,
 )
 
 from ._linalg import *
@@ -39,6 +40,7 @@ __all__ = [
     "Neg",
     "Sign",
     "Abs",
+    "Ceil",
 ]
 
 
