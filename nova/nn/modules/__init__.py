@@ -27,6 +27,16 @@ from .pooling import (
     MaxPool2d,
     MaxPool3d,
 )
+from .loss import (
+    MSELoss,
+    L1Loss,
+    SmoothL1Loss,
+    BCELoss,
+    BCEWithLogitsLoss,
+    NLLLoss,
+    CrossEntropyLoss,
+    KLDivLoss,
+)
 
 __all__ = [
     "Module",
@@ -60,4 +70,12 @@ __all__ = [
     "Softmax",
     "Flatten",
     "LogSoftmax",
+    "MSELoss",
+    "L1Loss",
+    "SmoothL1Loss",
+    "BCELoss",
+    "BCEWithLogitsLoss",
+    "NLLLoss",
+    "CrossEntropyLoss",
+    "KLDivLoss",
 ]
