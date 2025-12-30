@@ -113,6 +113,11 @@ def floor(input: nova.Tensor):
     return input.floor()
 
 
+def ceil(input: nova.Tensor):
+    input = ensure_tensor(input)
+    return input.ceil()
+
+
 def exp(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
     return input.exp()

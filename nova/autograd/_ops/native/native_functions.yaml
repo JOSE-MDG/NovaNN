@@ -5,78 +5,78 @@ ops:
 
   - name: add
     tensor:
-      dunder: "__add__"
-      reverse: "__radd__"
+      dunder: __add__
+      reverse: __radd__
       inplace:
-        method: "add_"
-        dunder: "__iadd__"
+        method: add_
+        dunder: __iadd__
 
   - name: sub
     tensor:
-      dunder: "__sub__"
-      reverse: "__rsub__"
+      dunder: __sub__
+      reverse: __rsub__
       inplace:
-        method: "sub_"
-        dunder: "__isub__"
+        method: sub_
+        dunder: __isub__
 
   - name: mul
     tensor:
-      dunder: "__mul__"
-      reverse: "__rmul__"
+      dunder: __mul__
+      reverse: __rmul__
       inplace:
-        method: "mul_"
-        dunder: "__imul__"
+        method: mul_
+        dunder: __imul__
 
   - name: div
     tensor:
-      dunder: "__truediv__"
-      reverse: "__rtruediv__"
+      dunder: __truediv__
+      reverse: __rtruediv__
       inplace:
-        method: "div_"
-        dunder: "__itruediv__"
+        method: div_
+        dunder: __itruediv__
 
   - name: divint
     tensor:
-      dunder: "__floordiv__"
-      reverse: "__rfloordiv__"
+      dunder: __floordiv__
+      reverse: __rfloordiv__
       inplace:
-        method: "floor_divide_"
-        dunder: "__ifloordiv__"
+        method: floor_divide_
+        dunder: __ifloordiv__
 
   - name: mod
     tensor:
-      dunder: "__mod__"
-      reverse: "__rmod__"
+      dunder: __mod__
+      reverse: __rmod__
       inplace:
-        method: "mod_"
-        dunder: "__imod__"
+        method: mod_
+        dunder: __imod__
 
   - name: pow
     tensor:
-      dunder: "__pow__"
-      reverse: "__rpow__"
+      dunder: __pow__
+      reverse: __rpow__
       inplace:
-        method: "pow_"
-        dunder: "__ipow__"
+        method: pow_
+        dunder: __ipow__
 
   - name: abs
     tensor:
-      dunder: "__abs__"
+      dunder: __abs__
       method: abs
       inplace:
-        method: "abs_"
+        method: abs_
 
   - name: neg
     is_unary: true
     tensor:
-      dunder: "__neg__"
+      dunder: __neg__
 
   # Indexing
 
   - name: getitem
     raw_args: true
     tensor:
-      dunder: "__getitem__"
+      dunder: __getitem__
 
   # Strides and views
 
@@ -96,10 +96,10 @@ ops:
 
   - name: matmul
     tensor:
-      dunder: "__matmul__"
-      reverse: "__rmatmul__"
+      dunder: __matmul__
+      reverse: __rmatmul__
       inplace:
-        dunder: "__imatmul__"
+        dunder: __imatmul__
 
   - name: det
     tensor:
@@ -134,6 +134,12 @@ ops:
       method: log
       inplace:
         method: log_
+
+  - name: ceil
+    tensor:
+      method: ceil
+      inplace:
+        method: ceil_
 
   - name: exp
     tensor:
