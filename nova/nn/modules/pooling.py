@@ -149,7 +149,7 @@ class MaxPool1d(Module):
     def __init__(
         self,
         kernel_size: KernelSize,
-        stride: Optional[Stride] = 1,
+        stride: Optional[Stride] = None,
         padding: Padding = 0,
         dilation: Dilation = 1,
     ) -> None:

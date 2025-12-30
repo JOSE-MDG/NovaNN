@@ -1,7 +1,11 @@
-from typing import Iterable, Self, Optional
+from __future__ import annotations
+from typing import Iterable, Self, Optional, TYPE_CHECKING
 from collections import OrderedDict
 from nova.nn import Parameter, Buffer
 from nova.utils import registry_class
+
+if TYPE_CHECKING:
+    from nova import Tensor
 
 
 @registry_class
@@ -12,10 +16,10 @@ class Module:
         self._modules: dict[str, Module] = {}
         self._training: bool = True
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Tensor:
         return self.forward(*args, **kwargs)
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args, **kwargs) -> Tensor:
         raise NotImplementedError("forward method must be implemented")
 
     def parameters(self, recurse: bool = True) -> Iterable[Parameter]:

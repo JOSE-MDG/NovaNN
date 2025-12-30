@@ -651,7 +651,7 @@ def avg_pool1d(
     sN, sC, sL = input_padded.strides
     strides = (sN, sC, sL * S, sL)
 
-    return nova.as_strided(input_padded, shape=shape, strides=strides).mean(dim=3)
+    return nova.as_strided(input_padded, size=shape, strides=strides).mean(dim=3)
 
 
 def avg_pool2d(
@@ -858,7 +858,7 @@ def max_pool1d(
     sN, sC, sL = input_padded.strides
     strides = (sN, sC, sL * S, sL * D)
 
-    return nova.as_strided(input_padded, shape=shape, strides=strides).max(dim=3)
+    return nova.as_strided(input_padded, size=shape, strides=strides).max(dim=3)
 
 
 def max_pool2d(
