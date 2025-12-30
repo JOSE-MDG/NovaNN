@@ -13,6 +13,17 @@ from .activation import (
 )
 from .batchnorm import BatchNorm1d, BatchNorm2d, BatchNorm3d
 from .conv import Conv1d, Conv2d, Conv3d
+from .pooling import (
+    AvgPool1d,
+    AvgPool2d,
+    AvgPool3d,
+    AdaptiveAvgPool1d,
+    AdaptiveAvgPool2d,
+    AdaptiveAvgPool3d,
+    MaxPool1d,
+    MaxPool2d,
+    MaxPool3d,
+)
 
 __all__ = [
     "Module",
@@ -32,4 +43,13 @@ __all__ = [
     "Tanh",
     "Softmax",
     "LogSoftmax",
+    "AvgPool1d",
+    "AvgPool2d",
+    "AvgPool3d",
+    "AdaptiveAvgPool1d",
+    "AdaptiveAvgPool2d",
+    "AdaptiveAvgPool3d",
+    "MaxPool1d",
+    "MaxPool2d",
+    "MaxPool3d",
 ]
