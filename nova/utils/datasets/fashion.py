@@ -73,13 +73,13 @@ def load_fashion_mnist_data(
 
         if as_tensor:
             x_train = nova.tensor(x_train, dtype=dtype)
-            y_train = nova.tensor(y_train, dtype=dtype)
+            y_train = nova.tensor(y_train, dtype=nova.long)
 
             x_test = nova.tensor(x_test, dtype=dtype)
-            y_test = nova.tensor(y_test, dtype=dtype)
+            y_test = nova.tensor(y_test, dtype=nova.long)
 
             x_val = nova.tensor(x_val, dtype=dtype)
-            y_val = nova.tensor(y_val, dtype=dtype)
+            y_val = nova.tensor(y_val, dtype=nova.long)
 
         return ((x_train, y_train), (x_test, y_test), (x_val, y_val))
 
