@@ -35,7 +35,8 @@ def std(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Ten
 def empty(
     size: tuple[int, ...], *, dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
-    data = np.empty(shape=size, dtype=dtype)
+    dtype = dtype if dtype is not None else nova.float32
+    data = np.zeros(size, dtype=dtype)
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
@@ -247,13 +248,21 @@ def cat(inputs: list[nova.Tensor], dim: Dim = None):
 
 
 def eye(
-    N: int, M: Optional[int] = None, K: int = 0, requires_grad: bool = False
+    N: int,
+    M: Optional[int] = None,
+    K: int = 0,
+    dtype: Optional[Dtype] = None,
+    requires_grad: bool = False,
 ) -> nova.Tensor:
     if M is None:
         M = N
 
-    data = np.eye(N, M, k=K)
-    return nova.Tensor(data, dtype=data.dtype, requires_grad=requires_grad)
+    data = np.eye(N, M, k=K, dtype=dtype if dtype is not None else nova.float32)
+    return nova.Tensor(
+        data,
+        dtype=dtype if dtype is not None else nova.float32,
+        requires_grad=requires_grad,
+    )
 
 
 def one_hot(
@@ -271,8 +280,16 @@ def full(
     dtype: Dtype | None = None,
     requires_grad: bool = False,
 ) -> nova.Tensor:
-    data = np.full(shape=size, fill_value=fill_value, dtype=dtype)
-    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
+    data = np.full(
+        shape=size,
+        fill_value=fill_value,
+        dtype=dtype if dtype is not None else nova.float32,
+    )
+    return nova.Tensor(
+        data,
+        dtype=dtype if dtype is not None else nova.float32,
+        requires_grad=requires_grad,
+    )
 
 
 def arange(
@@ -286,6 +303,9 @@ def arange(
     if stop is None:
         stop = start
         start = 0
+
+    if dtype is None:
+        dtype = nova.float32
 
     data = np.arange(start=start, stop=stop, step=step, dtype=dtype)
 
@@ -309,7 +329,8 @@ def unique(
         axis=dim,
     )
 
-    return nova.Tensor(unique, dtype=unique.dtype, requires_grad=False)
+    unique = unique.astype(input.dtype)  # <-- forzar el mismo dtype que input
+    return nova.Tensor(unique, requires_grad=False, dtype=input.dtype)
 
 
 def argmin(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
@@ -345,7 +366,8 @@ def stack(inputs: list[nova.Tensor], dim: Dim = 0):
 def zeros(
     size: tuple[int, ...], dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
-    data = np.zeros(shape=size, dtype=dtype)
+    dtype = dtype if dtype is not None else nova.float32
+    data = np.zeros(size, dtype=dtype)
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
@@ -364,7 +386,8 @@ def zeros_like(
 def ones(
     size: tuple[int, ...], dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
-    data = np.ones(shape=size, dtype=dtype)
+    dtype = dtype if dtype is not None else nova.float32
+    data = np.ones(size, dtype=dtype)  # idem para ones / empty
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
@@ -387,10 +410,16 @@ def as_strided(input: nova.Tensor, size: tuple[int, ...], strides: tuple[int, ..
 
 
 def linspace(
-    start: int | float, stop: int | float, num: int | float, requires_grad: bool = False
+    start: int | float,
+    stop: int | float,
+    num: int | float,
+    dtype: Optional[Dtype] = None,
+    requires_grad: bool = False,
 ):
-    data = np.linspace(start=start, stop=stop, num=num)
-    return nova.Tensor(data, requires_grad=requires_grad)
+    if dtype is None:
+        dtype = nova.float32
+    data = np.linspace(start=start, stop=stop, num=num, dtype=dtype)
+    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
 def any(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
