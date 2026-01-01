@@ -10,23 +10,23 @@ if TYPE_CHECKING:
 class Sequential(Module):
     def __init__(self, *modules: Module):
         super().__init__()
-        for module in modules:
+        for i, module in enumerate(modules):
             if not isinstance(module, Module):
                 raise ValueError(
                     f"Only Module types can be registered in the sequential container, got {type(module)}"
                 )
 
-            self.register_module(module.__class__.__name__, module)
+            self.register_module(str(i), module)
 
-    def forward(self, x: Tensor):
+    def forward(self, input: Tensor):
         for module in self._modules.values():
-            x = module(x)
-        return x
+            input = module(input)
+        return input
 
     def __len__(self):
         return len(self._modules)
 
-    def _addindent(s_: str, numSpaces):
+    def _addindent(self, s_: str, numSpaces):
         s = s_.split("\n")
         # don't do anything for single-line stuff
         if len(s) == 1:
@@ -39,7 +39,7 @@ class Sequential(Module):
 
     def __repr__(self) -> str:
         """Return a custom repr for ModuleList that compresses repeated module representations."""
-        list_of_reprs = [repr(item) for item in self]
+        list_of_reprs = [repr(item) for item in self._modules.values()]
         if len(list_of_reprs) == 0:
             return self._get_name() + "()"
 

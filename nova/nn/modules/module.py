@@ -11,10 +11,12 @@ if TYPE_CHECKING:
 @registry_class
 class Module:
     def __init__(self):
+        self._initialized: bool = False
         self._parameters: dict[str, Parameter] = {}
         self._buffers: dict[str, Buffer] = {}
         self._modules: dict[str, Module] = {}
         self._training: bool = True
+        self._initialized: bool = True
 
     def __call__(self, *args, **kwargs) -> Tensor:
         return self.forward(*args, **kwargs)
@@ -79,6 +81,10 @@ class Module:
 
     def __setattr__(self, name: str, value: Parameter | Module | Buffer):
 
+        if not getattr(self, "_initialized", False):
+            object.__setattr__(self, name, value)
+            return
+
         if isinstance(value, Parameter):
             self._parameters[name] = value
         elif isinstance(value, Module):
@@ -99,7 +105,7 @@ class Module:
 
         if recurse:
             for moduel_name, module in self._modules.items():
-                submdule_prefix = f"{moduel_name}.{prefix}" if prefix else moduel_name
+                submdule_prefix = f"{prefix}.{moduel_name}" if prefix else moduel_name
                 yield from module.named_parameters(prefix=submdule_prefix, recurse=True)
 
     def named_modules(self, prefix: str = "") -> Iterable[tuple[str, Module]]:
