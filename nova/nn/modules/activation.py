@@ -78,6 +78,7 @@ class Sigmoid(Module):
 
 class Softmax(Module):
     def __inti__(self, dim: Dim = 1) -> None:
+        super().__init__()
         self.dim = dim
 
     def forward(self, input: Tensor) -> Tensor:
