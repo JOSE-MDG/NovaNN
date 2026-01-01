@@ -61,6 +61,7 @@ ops:
         dunder: __ipow__
 
   - name: abs
+    is_unary: true
     tensor:
       dunder: __abs__
       method: abs
@@ -103,6 +104,7 @@ ops:
         dunder: __imatmul__
 
   - name: det
+    is_unary: true
     tensor:
       method: det
 
@@ -111,6 +113,7 @@ ops:
       method: dot
 
   - name: inv
+    is_unary: true
     tensor:
       method: inv
 
@@ -125,36 +128,42 @@ ops:
   # methods
 
   - name: floor
+    is_unary: true
     tensor:
       method: floor
       inplace:
         method: floor_
 
   - name: log
+    is_unary: true
     tensor:
       method: log
       inplace:
         method: log_
 
   - name: ceil
+    is_unary: true
     tensor:
       method: ceil
       inplace:
         method: ceil_
 
   - name: exp
+    is_unary: true
     tensor:
       method: exp
       inplace:
         method: exp_
 
   - name: sqrt
+    is_unary: true
     tensor:
       method: sqrt
       inplace:
         method: sqrt_
 
   - name: sign
+    is_unary: true
     tensor:
       method: sign
       inplace:
