@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 def sqrt(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
-    return input.sqrt()
+    return input.sqrt().to(input.dtype)
 
 
 def mean(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
