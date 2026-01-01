@@ -177,7 +177,7 @@ class Conv3d(Module):
         padding_mode: PaddingMode = "zeros",
         dtype: Optional[Dtype] = None,
     ) -> None:
-        super.__init__()
+        super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.KD, self.KH, self.KW = _triple(kernel_size)

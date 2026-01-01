@@ -350,7 +350,7 @@ def flatten(input: Tensor, start_dim: int = 1, end_dim: int = -1) -> Tensor:
     return input.reshape(*new_shape).to(input.dtype)
 
 
-def _pair(input: int | tuple[int, int]):
+def _pair(input: int | tuple[int, int]) -> tuple[int, int]:
 
     if isinstance(input, int):
         return (input, input)
@@ -376,7 +376,7 @@ def conv1d(
     *,
     bias: Optional[Parameter] = None,
     padding_mode: PaddingMode = "zeros",
-):
+) -> Tensor:
     input = ensure_tensor(input)
 
     if input.dim() != 3:
@@ -464,7 +464,7 @@ def conv2d(
     *,
     bias: Optional[Parameter] = None,
     padding_mode: PaddingMode = "zeros",
-):
+) -> Tensor:
 
     input = ensure_tensor(input)
 
