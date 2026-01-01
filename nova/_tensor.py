@@ -209,7 +209,9 @@ class Tensor(TensorBase):
 
     # --- Operaciones de Casting (Out-of-place) ---
 
-    def to(self, dtype: Dtype) -> Tensor:
+    def to(self, dtype: Dtype) -> Tensor | Self[Tensor]:
+        if dtype == self.dtype:
+            return self
         return Tensor(self.data.astype(dtype), requires_grad=self.requires_grad)
 
     def float(self) -> Tensor:
