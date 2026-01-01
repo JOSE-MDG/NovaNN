@@ -10,28 +10,36 @@ if TYPE_CHECKING:
     from nova._typing import Gradients
 
 
+def _sanitize_index(i):
+    if isinstance(i, slice):
+        return i
+
+    arr = np.asarray(i)
+    if np.issubdtype(arr.dtype, np.floating):
+        arr = arr.astype(np.int64)
+    elif not np.issubdtype(arr.dtype, np.integer):
+        arr = arr.astype(np.int64)
+    return arr
+
+
 @registry_op("getitem")
 class GetItem(Function):
     @staticmethod
-    def forward(
-        ctx: Context, a: ndarray, idx: tuple[int, ...] | int | ndarray
-    ) -> ndarray:
-        # ensure that the was a intege
+    def forward(ctx: Context, a: ndarray, idx) -> ndarray:
 
-        if isinstance(idx, ndarray):
-            if idx.dtype != int:
-                idx = idx.astype(int)
+        if isinstance(idx, tuple):
+            actual_idx = tuple(_sanitize_index(i) for i in idx)
+        else:
+            actual_idx = _sanitize_index(idx)
 
         ctx.save_for_backward(a)
-        ctx.idx = idx
-        return a[idx]
+        ctx.idx = actual_idx
+
+        return a[actual_idx]
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
         (a,) = ctx.saved_tensors
-
         grad_a = np.zeros_like(a, dtype=grad_output.dtype)
-
         np.add.at(grad_a, ctx.idx, grad_output)
-
         return (grad_a, None)
