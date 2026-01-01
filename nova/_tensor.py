@@ -212,7 +212,8 @@ class Tensor(TensorBase):
     def to(self, dtype: Dtype) -> Tensor | Self[Tensor]:
         if dtype == self.dtype:
             return self
-        return Tensor(self.data.astype(dtype), requires_grad=self.requires_grad)
+        data = self.data.astype(dtype, copy=True)
+        return Tensor(data, dtype=dtype, requires_grad=self.requires_grad)
 
     def float(self) -> Tensor:
         return self.to(nova.float32)
