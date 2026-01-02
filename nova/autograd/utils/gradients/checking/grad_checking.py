@@ -14,29 +14,26 @@ def grad_check_wrt_inputs(
     eps=1e-4,
     zero_grads: bool = True,
     **kwargs,
-) -> tuple[ndarray, ndarray]:
+) -> tuple[list[ndarray], list[ndarray]]:
     """
     Numerical gradient checking for your autograd engine.
     """
-
     for x in args:
-        if isinstance(x, (nova.Tensor)):
-            if x.requires_grad:
-                x.zero_grad()
+        if isinstance(x, nova.Tensor) and x.requires_grad:
+            x.zero_grad()
 
+    # --- Forward ---
     y = fn(*args, **kwargs)
 
     grad_output = np.ones_like(y.data, dtype=y.dtype)
-    y.backward(gradient=grad_output)
+    y.backward(grad_output)
 
+    # --- Analytical gradients ---
     analytic_grads = []
     for x in args:
-        if x.requires_grad:
-            analytic_grads.append(x.grad.copy())
-        else:
-            analytic_grads.append(None)
+        analytic_grads.append(np.copy(x.grad) if x.requires_grad else None)
 
-    # --------- Numerical gradients ----------
+    # --- Numerical gradients ---
     numerical_grads = []
 
     for x in args:
@@ -45,8 +42,8 @@ def grad_check_wrt_inputs(
             continue
 
         grad_num = np.zeros_like(x.data, dtype=x.dtype)
-        it = np.nditer(x.data, flags=["multi_index"], op_flags=["readwrite"])
 
+        it = np.nditer(x.data, flags=["multi_index"], op_flags=["readwrite"])
         while not it.finished:
             index = it.multi_index
             orig = x.data[index]
@@ -62,9 +59,11 @@ def grad_check_wrt_inputs(
             grad_num[index] = np.sum((y_pos - y_neg) * grad_output) / (2 * eps)
             it.iternext()
 
+        numerical_grads.append(grad_num)
+
     if zero_grads:
         for input in args:
-            input.zero_grad()
+            if input.requires_grad:
+                input.zero_grad()
 
-        numerical_grads.append(grad_num)
     return analytic_grads, numerical_grads
