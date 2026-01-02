@@ -1,7 +1,18 @@
 from __future__ import annotations
 from nova import dtypes
 from numpy import ndarray
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Type, Union
+from nova.utils.decorators.registry import _OPS_REGISTERED
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Literal,
+    Optional,
+    Type,
+    Union,
+    TypedDict,
+)
 
 if TYPE_CHECKING:
     from nova import Tensor
@@ -60,7 +71,83 @@ type OptimizerStateDict = dict[
 ]
 
 type SchedulerStateDict = dict[Literal["base_lrs", "last_epoch"], list[float] | int]
-type YAMLFile = list[dict[str, dict[str, Any]]]
 type LossReducton = Literal["none", "mean", "sum"] | Literal[
     "none", "mean", "sum", "batchmean"
 ]
+
+type OperationName = Literal[
+    "abs",
+    "add",
+    "arccos",
+    "arcsin",
+    "arctan",
+    "ceil",
+    "clamp",
+    "cos",
+    "cot",
+    "det",
+    "div",
+    "divint",
+    "dot",
+    "exp",
+    "extend",
+    "floor",
+    "getitem",
+    "inv",
+    "log",
+    "matmul",
+    "max",
+    "maximum",
+    "mean",
+    "min",
+    "minimum",
+    "mod",
+    "mul",
+    "neg",
+    "norm",
+    "pad",
+    "permute",
+    "pow",
+    "repeat",
+    "reshape",
+    "sec",
+    "setitem",
+    "sign",
+    "sin",
+    "split",
+    "sqrt",
+    "squeeze",
+    "stride_tricks",
+    "sub",
+    "sum",
+    "tan",
+    "tanh",
+    "tile",
+    "trace",
+    "unsqueeze",
+    "view",
+]
+
+
+class InplaceInfo(TypedDict, total=False):
+    method: str
+    dunder: str
+
+
+class TensorInfo(TypedDict, total=False):
+    dunder: str
+    reverse: str
+    method: str
+    inplace: Union[InplaceInfo, Literal[False]]
+
+
+class OperationInfo(TypedDict, total=False):
+    name: OperationName
+    is_unary: bool
+    raw_args: bool
+    tensor: TensorInfo
+
+
+class YAMLFile(TypedDict):
+
+    ops: List[OperationInfo]
