@@ -956,17 +956,34 @@ def batch_norm(
     momentum: float = 0.1,
     eps: float = 1e-05,
 ) -> Tensor:
+    """
+    Batch Normalization function compatible with N-D inputs.
+    Computes batch statistics during training and uses running estimates
+    during evaluation.
 
+    Args:
+        input: Input tensor of shape (N, C, *).
+        running_mean: Tensor buffer to store running mean (C,).
+        running_var: Tensor buffer to store running variance (C,).
+        weight: Optional learnable scale parameter (C,).
+        bias: Optional learnable shift parameter (C,).
+        training: Whether the layer is in training mode.
+        momentum: Momentum for running statistics update.
+        eps: Numerical stability term.
+
+    Returns:
+        Normalized tensor with same shape and dtype as input.
+    """
     input = ensure_tensor(input)
     dtype = input.dtype
 
     if len(input.size) < 2:
-        raise ValueError(f"expected at last 2D input, go {input.dim()}")
+        raise ValueError(f"Expected at least 2D input, got {input.dim()}")
 
     num_features = input.size[1]
 
     if training:
-        batch_size = input.size[0]
+        # Reduce across batch and spatial dimensions (but not channels)
         dims_to_reduce = [0] + list(range(2, input.dim()))
 
         eps = nova.tensor(eps, dtype=dtype)
@@ -976,16 +993,21 @@ def batch_norm(
         if var_biased.dtype != dtype:
             var_biased = var_biased.to(dtype)
 
-        # print("var dtype ", var_biased.dtype) error!
+        # Compute unbiased variance correction
+        num_reduced = 1
+        for d in dims_to_reduce:
+            num_reduced *= input.size[d]
 
+        if num_reduced > 1:
+            var_unbiased = var_biased * (num_reduced / (num_reduced - 1))
+        else:
+            var_unbiased = var_biased
+
+        # Normalize using batch statistics
         normalized = (input - mu) / nova.sqrt(var_biased + eps)
-        if running_mean is not None and running_var is not None:
-            var_unbiased = (
-                var_biased * (batch_size / (batch_size - 1))
-                if batch_size > 1
-                else var_biased
-            )
 
+        # Update running estimates
+        if running_mean is not None and running_var is not None:
             current_mu = mu.reshape(-1)
             current_var = var_unbiased.reshape(-1)
 
@@ -993,14 +1015,15 @@ def batch_norm(
                 running_mean.copy_(
                     (1 - momentum) * running_mean + momentum * current_mu
                 )
-
                 running_var.copy_((1 - momentum) * running_var + momentum * current_var)
-    else:
 
+    else:
         if running_mean is None or running_var is None:
             raise ValueError(
-                "In evaluation mode, running_mean and running_var must be provided"
+                "In evaluation mode, running_mean and running_var must be provided."
             )
+
+        # Reshape running stats for broadcasting
         mean_shape = [1, num_features] + [1] * (input.dim() - 2)
         var_shape = mean_shape
 
@@ -1010,21 +1033,18 @@ def batch_norm(
 
         normalized = (input - mean_broadcast) / nova.sqrt(var_broadcast + eps)
 
+    # Apply affine transform if provided
     if weight is not None:
         weight = ensure_tensor(weight)
-
         weight_shape = [1, num_features] + [1] * (input.dim() - 2)
-        weight_broadcast = weight.reshape(*weight_shape)
-        normalized = normalized * weight_broadcast
+        normalized = normalized * weight.reshape(*weight_shape)
 
     if bias is not None:
         bias = ensure_tensor(bias)
-
         bias_shape = [1, num_features] + [1] * (input.dim() - 2)
-        bias_broadcast = bias.reshape(*bias_shape)
-        normalized = normalized + bias_broadcast
+        normalized = normalized + bias.reshape(*bias_shape)
 
-    return normalized.to(input.dtype)
+    return normalized.to(dtype)
 
 
 def layer_norm(
