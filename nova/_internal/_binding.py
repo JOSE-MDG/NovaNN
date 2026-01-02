@@ -63,7 +63,7 @@ def bootstrap_to(tensor_cls: Tensor | Any, yaml_path: str = YAML_FILE_PATH) -> N
                         setattr(
                             tensor_cls,
                             inplace[key],
-                            make_inplace_func(op, name, is_unary),
+                            make_inplace_func(op, raw_args, name, is_unary),
                         )
 
         logger.debug("All operations were successfully registered ✅")

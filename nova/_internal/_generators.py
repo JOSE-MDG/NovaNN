@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 
 
 def make_reverse_func(func: Type[Function]) -> Callable[[Tensor, Tensor | Any], Tensor]:
+    from nova import Tensor
+
     def method(self: Tensor, other: Tensor | Any) -> Tensor:
         if not isinstance(other, Tensor):
             other = ensure_tensor(other)
@@ -30,6 +32,8 @@ def make_forward_func(
     raw: bool,
     is_unary: bool,
 ) -> Callable[[Tensor, Any], Tensor]:
+    from nova import Tensor
+
     def method(self: Tensor, *args, **kwargs) -> Tensor:
         if is_unary:
             return func.apply(self)
@@ -48,8 +52,10 @@ def make_forward_func(
 
 
 def make_inplace_func(
-    func: Type[Function], op_name: str, is_unary: bool
+    func: Type[Function], raw: bool, op_name: str, is_unary: bool
 ) -> Callable[[Tensor, Any], Tensor]:
+    from nova import Tensor
+
     def inplace_method(self: Tensor, *args, **kwargs) -> Tensor:
         if self.requires_grad:
             raise RuntimeError(
@@ -64,11 +70,12 @@ def make_inplace_func(
             raise TypeError(f"Operation {func.__name__} requires an 'other' argument.")
 
         other = args[0] if args else kwargs.get("other")
+        remainig_args = args[1:] if len(args) > 1 else ()
 
-        if not isinstance(other, Tensor):
+        if not raw and not isinstance(other, Tensor):
             other = ensure_tensor(other)
 
-        result = func.apply(self, other).data
+        result = func.apply(self, other, *remainig_args, *kwargs).data
 
         if result.dtype != self.data.dtype:
             result = result.astype(self.data.dtype)
