@@ -1,9 +1,10 @@
 # File Tree: NovaNN
 
-**Generated:** 12/28/2025, 3:52:05 PM
+**Generated:** 1/3/2026, 10:27:24 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
+├── 📁 benchmarks
 ├── 📁 examples
 │   ├── 🐍 binary_classification.py
 │   ├── 🐍 conv_example.py
@@ -20,12 +21,20 @@
 │   │   ├── 🐍 _lr_scheduler.py
 │   │   └── 🐍 _optimizer.py
 │   ├── 📁 _internal
-│   │   └── 🐍 _binding.py
+│   │   ├── 🐍 _binding.py
+│   │   └── 🐍 _generators.py
 │   ├── 📁 _typing
 │   │   ├── 🐍 __init__.py
 │   │   └── 🐍 _typing.py
 │   ├── 📁 autograd
 │   │   ├── 📁 _ops
+│   │   │   ├── 📁 _activation
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   ├── 🐍 gelu.py
+│   │   │   │   ├── 🐍 leaky_relu.py
+│   │   │   │   ├── 🐍 prelu.py
+│   │   │   │   ├── 🐍 relu.py
+│   │   │   │   └── 🐍 sigmoid.py
 │   │   │   ├── 📁 _basic
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   └── 🐍 arithmetic.py
@@ -38,7 +47,8 @@
 │   │   │   │   └── 🐍 random.py
 │   │   │   ├── 📁 _indexing
 │   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   └── 🐍 getitem.py
+│   │   │   │   ├── 🐍 getitem.py
+│   │   │   │   └── 🐍 setitem.py
 │   │   │   ├── 📁 _linalg
 │   │   │   │   ├── 📁 views
 │   │   │   │   │   ├── 🐍 __init__.py
@@ -77,24 +87,26 @@
 │   │   │   ├── 🐍 context.py
 │   │   │   └── 🐍 engine.py
 │   │   ├── 📁 tests
+│   │   │   ├── 📁 ops
+│   │   │   ├── 🐍 test_function.py
+│   │   │   └── 🐍 test_grad_checking.py
 │   │   ├── 📁 utils
 │   │   │   ├── 📁 gradients
-│   │   │   │   ├── 📁 checking
-│   │   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   │   └── 🐍 grad_checking.py
 │   │   │   │   ├── 📁 clipping
 │   │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   │   ├── 🐍 clip_grad_norm.py
 │   │   │   │   │   └── 🐍 clip_value.py
 │   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   └── 🐍 grad.py
+│   │   │   │   ├── 🐍 grad.py
+│   │   │   │   └── 🐍 grad_checking.py
 │   │   │   ├── 📁 hooks
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   └── 🐍 handle.py
-│   │   │   └── 🐍 __init__.py
+│   │   │   ├── 🐍 __init__.py
+│   │   │   └── 🐍 processig.py
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 function.py
-│   │   ├── 🐍 functional.py
+│   │   ├── 🐍 grad.py
 │   │   └── 🐍 grad_mode.py
 │   ├── 📁 core
 │   │   ├── 🐍 __init__.py
@@ -105,13 +117,12 @@
 │   │   │   ├── 🐍 __init__.py
 │   │   │   └── 🐍 metrics.py
 │   │   ├── 📁 modules
-│   │   │   ├── 📁 container
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   └── 🐍 container.py
 │   │   │   ├── 🐍 __init__.py
-│   │   │   ├── 🐍 activations.py
+│   │   │   ├── 🐍 activation.py
 │   │   │   ├── 🐍 batchnorm.py
+│   │   │   ├── 🐍 container.py
 │   │   │   ├── 🐍 conv.py
+│   │   │   ├── 🐍 dropout.py
 │   │   │   ├── 🐍 flatten.py
 │   │   │   ├── 🐍 layernorm.py
 │   │   │   ├── 🐍 linear.py
@@ -153,10 +164,13 @@
 │   │   └── 🐍 to_tensor.py
 │   ├── 🐍 __init__.py
 │   ├── 🐍 _tensor.py
+│   ├── 📄 _tensor.pyi
 │   └── 🐍 dtypes.py
 ├── 📁 tests
 │   ├── 📝 README.en.md
-│   └── 📝 README.md
+│   ├── 📝 README.md
+│   └── 🐍 test_dtype_casting.py
+├── 📁 tutorials
 ├── ⚙️ .gitignore
 ├── 📝 CONTRIBUTING.en.md
 ├── 📝 CONTRIBUTING.md
@@ -164,7 +178,7 @@
 ├── 📝 README.en.md
 ├── 📝 README.md
 ├── 📝 Tree.md
-├── 📄 check.ipynb
+├── 📄 checking.ipynb
 ├── 🐍 main.py
 ├── 📄 poetry.lock
 └── ⚙️ pyproject.toml
