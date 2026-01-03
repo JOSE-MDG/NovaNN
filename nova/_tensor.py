@@ -309,7 +309,10 @@ class Tensor(TensorBase):
         if src.data.shape != self.data.shape:
             raise ValueError(f"Shape mismatch: {self.data.shape} vs {src_data.shape}")
 
-        self.data[:] = src_data
+        if src_data.dtype != self.data.dtype:
+            src_data = src_data.astype(self.data.dtype)
+
+        np.copyto(dst=self.data, src=src_data)
 
         return self
 
