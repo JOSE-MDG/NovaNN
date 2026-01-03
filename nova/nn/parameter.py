@@ -11,7 +11,9 @@ class Parameter(Tensor):
     __slots__ = ["is_bn_param"]
 
     def __init__(self, data: Any, requires_grad: bool = True) -> None:
-        super().__init__(data=data, requires_grad=requires_grad, dtype=nova.float32)
+        super().__init__(
+            data=data, requires_grad=requires_grad, dtype=nova.float32, copy=False
+        )
 
         self.is_bn_param: bool = False
 

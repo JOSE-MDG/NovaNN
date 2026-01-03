@@ -16,6 +16,7 @@ from ._basic import (
     Ceil,
 )
 
+from ._activation import *
 from ._linalg import *
 from ._indexing import *
 from .views import *
@@ -43,6 +44,7 @@ __all__ = [
     "Ceil",
 ]
 
+__all__ += _activation.__all__
 __all__ += _linalg.__all__
 __all__ += _indexing.__all__
 __all__ += views.__all__

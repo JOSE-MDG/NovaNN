@@ -37,7 +37,9 @@ class Linear(Module):
 
     def reset_parameters(self) -> None:
 
-        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        init.kaiming_uniform_(
+            self.weight,
+        )
 
         if self.use_bias:
             fan_in = init.get_fans(self.weight.size, mode="fan_in")

@@ -30,7 +30,6 @@ class Tensor(TensorBase):
         "_retain_grad",
         "_inputs",
         "_ctx",
-        "rank",
     ]
 
     _data_internal: ndarray
@@ -43,7 +42,6 @@ class Tensor(TensorBase):
     _backward_hooks: list[Hook]
     _retain_grad: bool
     _inputs: list[Tensor | Any]
-    rank: int
     _ctx: Context
 
     def __init__(
@@ -81,7 +79,6 @@ class Tensor(TensorBase):
         self.data: ndarray = data
         self.requires_grad: bool = requires_grad
         self.grad_fn: Optional[Function] = grad_fn
-        self.rank: int = 0
         self._inputs: list[Tensor] = []
         self._ctx: Optional[Context] = None
         self.grad: Optional[ndarray] = None
@@ -152,6 +149,14 @@ class Tensor(TensorBase):
     def __len__(self) -> int:
         return len(self.data)
 
+    def __bool__(self) -> bool:
+        if self.numel() != 1:
+            raise RuntimeError(
+                "The truth value of a tensor with more than one element is ambiguous. "
+                "Use nova.any() or nova.all() for reduction operations."
+            )
+        return bool(self.item())
+
     def argmax(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         return Tensor(
             self.data.argmax(axis=dim, keepdims=keepdims),
@@ -175,11 +180,6 @@ class Tensor(TensorBase):
 
     def argwhere(self) -> Tensor:
         return Tensor(np.argwhere(self.data), dtype=self.dtype, requires_grad=False)
-
-    def var(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
-        from nova.autograd._ops import var
-
-        return var(self, dim=dim, keepdims=keepdims)
 
     def std(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         from nova.autograd._ops import std
@@ -207,13 +207,21 @@ class Tensor(TensorBase):
             self.data.any(dim, keepdims=keepdims), dtype=nova.bool, requires_grad=False
         )
 
-    # --- Operaciones de Casting (Out-of-place) ---
-
-    def to(self, dtype: Dtype) -> Tensor | Self[Tensor]:
+    def to(self, dtype: Dtype) -> Tensor:
         if dtype == self.dtype:
             return self
         data = self.data.astype(dtype, copy=True)
-        return Tensor(data, dtype=dtype, requires_grad=self.requires_grad)
+
+        out = Tensor(data, dtype=dtype, requires_grad=self.requires_grad)
+
+        # Si el tensor requiere gradiente, preservamos el grafo
+        if self.requires_grad:
+            out._inputs = self._inputs
+            out.grad_fn = self.grad_fn
+            out._ctx = self._ctx
+            out._is_leaf = False
+
+        return out
 
     def float(self) -> Tensor:
         return self.to(nova.float32)

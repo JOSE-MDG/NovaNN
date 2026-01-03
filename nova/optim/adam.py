@@ -14,59 +14,59 @@ class Adam(Optimizer):
         parameters: Iterable[Parameter],
         lr: float,
         betas: tuple[float, float] = (0.9, 0.999),
-        weight_decay: float = 0,
+        weight_decay: float = 0.0,
         eps: float = 1e-8,
     ) -> None:
         super().__init__(
             parameters, {"lr": lr, "betas": betas, "weight_decay": weight_decay}
         )
-
         self.eps = eps
-        self.t = 0
 
-    def _step_impl(self, closure: Closure) -> Optional[float]:
-
-        self.t += 1
-
+    def _step_impl(self, closure: Closure = None) -> Optional[float]:
         loss = closure() if closure else None
 
         for group in self.param_groups:
-
             lr = group["lr"]
-            b1 = group["betas"][0]
-            b2 = group["betas"][1]
+            b1, b2 = group["betas"]
             wd = group["weight_decay"]
 
             for param in group["params"]:
-
                 if param.grad is None:
                     continue
+
+                grad = param.grad
+                data = param.data
 
                 state = self.state.setdefault(
                     param,
                     {
-                        "exp_avg": np.zeros_like(param.data, dtype=param.dtype),
-                        "exp_avg_sq": np.zeros_like(param.data, dtype=param.dtype),
-                        "step": self.t,
+                        "step": 0,
+                        "exp_avg": np.zeros_like(data, dtype=data.dtype),
+                        "exp_avg_sq": np.zeros_like(data, dtype=data.dtype),
                     },
                 )
 
-                if wd > 0:
-                    param.grad += wd * param.data
+                # increment step
+                state["step"] += 1
+                step = state["step"]
 
-                state["exp_avg"] = b1 * state["exp_avg"] + (1 - b1) * param.grad
-                state["exp_avg_sq"] = b2 * state["exp_avg_sq"] + (1 - b2) * (
-                    param.grad**2
-                )
+                m = state["exp_avg"]
+                v = state["exp_avg_sq"]
 
-                bias_correction1 = state["exp_avg"] / (1 - b1 ** state["step"])
-                bias_correction2 = state["exp_avg_sq"] / (1 - b2 ** state["step"])
-
-                param.data -= (
-                    lr * bias_correction1 / (np.sqrt(bias_correction2 + self.eps))
-                )
-
+                # weight decay (coupled L2 regularization)
                 if wd > 0 and not getattr(param, "is_bn_param", False):
-                    param.data -= lr * wd * param.data
+                    grad += wd * data
+
+                # moving averages
+                m[:] = b1 * m + (1 - b1) * grad
+                v[:] = b2 * v + (1 - b2) * (grad**2)
+
+                # bias correction
+                m_hat = m / (1 - b1**step)
+                v_hat = v / (1 - b2**step)
+
+                # parameter update
+                denom = np.sqrt(v_hat) + self.eps
+                param.data -= lr * (m_hat / denom)
 
         return loss

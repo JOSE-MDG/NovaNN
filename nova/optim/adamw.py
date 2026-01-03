@@ -21,49 +21,63 @@ class AdamW(Optimizer):
             params=parameters,
             defaults={"lr": lr, "betas": betas, "weight_decay": weight_decay},
         )
-
-        self.t = 0
         self.eps = eps
 
     def _step_impl(self, closure: Closure = None) -> Optional[float]:
-
-        self.t += 1
-
         loss = closure() if closure else None
 
         for group in self.param_groups:
-
             lr = group["lr"]
-            b1 = group["betas"][0]
-            b2 = group["betas"][1]
+            b1, b2 = group["betas"]
             wd = group["weight_decay"]
 
             for param in group["params"]:
                 if param.grad is None:
                     continue
 
+                grad = param.grad
+                data = param.data
+
+                # init state if needed
                 state = self.state.setdefault(
                     param,
                     {
-                        "step": self.t,
-                        "exp_avg": np.zeros_like(param.data, dtype=param.dtype),
-                        "exp_avg_sq": np.zeros_like(param.data, dtype=param.dtype),
+                        "step": 0,
+                        "exp_avg": np.zeros_like(data, dtype=data.dtype),
+                        "exp_avg_sq": np.zeros_like(data, dtype=data.dtype),
                     },
                 )
 
-                state["exp_avg"] = b1 * state["exp_avg"] + (1 - b1) * param.grad
-                state["exp_avg_sq"] = b2 * state["exp_avg_sq"] + (1 - b2) * (
-                    param.grad**2
-                )
+                # update state['step'] each step
+                state["step"] += 1
+                step = state["step"]
 
-                bias_correction1 = state["exp_avg"] / (1 - b1 ** state["step"])
-                bias_correction2 = state["exp_avg_sq"] / (1 - b2 ** state["step"])
+                m = state["exp_avg"]
+                v = state["exp_avg_sq"]
 
-                param.data -= (
-                    lr * bias_correction1 / (np.sqrt(bias_correction2 + self.eps))
-                )
+                # exponential moving averages
+                m[:] = b1 * m + (1.0 - b1) * grad
+                v[:] = b2 * v + (1.0 - b2) * (grad**2)
 
+                # compute bias-corrected estimates
+                bias_correction1 = 1.0 - (b1**step)
+                bias_correction2 = 1.0 - (b2**step)
+
+                m_hat = m / bias_correction1
+                v_hat = v / bias_correction2
+
+                # decoupled weight decay (apply to parameter before the adaptive step)
                 if wd > 0 and not getattr(param, "is_bn_param", False):
-                    param.data -= lr * wd * param.data
+                    data -= lr * wd * data
+                    # write-back if needed
+                    param.data = data
+
+                # parameter update: lr * m_hat / (sqrt(v_hat) + eps)
+                denom = np.sqrt(v_hat) + self.eps
+                step_size = lr
+                update = step_size * (m_hat / denom)
+
+                # in-place subtract
+                param.data -= update
 
         return loss

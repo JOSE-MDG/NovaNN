@@ -13,8 +13,8 @@ class SGD(Optimizer):
         self,
         parameters: Iterable[Parameter],
         lr: float,
-        momentum: float = 0.9,
-        weight_decay: float = 0,
+        momentum: float = 0.0,
+        weight_decay: float = 0.0,
     ):
         super().__init__(
             params=parameters,
@@ -25,7 +25,6 @@ class SGD(Optimizer):
         loss = closure() if closure else None
 
         for group in self.param_groups:
-
             lr = group["lr"]
             wd = group["weight_decay"]
             momentum = group["momentum"]
@@ -34,19 +33,22 @@ class SGD(Optimizer):
                 if param.grad is None:
                     continue
 
+                grad = param.grad
+                data = param.data
+
                 state = self.state.setdefault(
-                    param, {"velocity": np.zeros_like(param.data, dtype=param.dtype)}
+                    param, {"velocity": np.zeros_like(data, dtype=data.dtype)}
                 )
 
                 if wd > 0 and not getattr(param, "is_bn_param", False):
-                    param.grad += wd * param.data
+                    grad = grad + wd * data
+
+                v = state["velocity"]
 
                 if momentum > 0:
-                    state["velocity"] = (
-                        momentum * state["velocity"] + (1 - momentum) * param.grad
-                    )
-                    param.data -= lr * state["velocity"]
+                    v[:] = momentum * v + grad
+                    param.data -= lr * v
                 else:
-                    param.data -= lr * param.grad
+                    param.data -= lr * grad
 
         return loss

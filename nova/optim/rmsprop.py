@@ -14,9 +14,10 @@ class RMSprop(Optimizer):
         parameters: Iterable[Parameter],
         lr: float,
         alpha: float = 0.99,
-        weight_decay: float = 0,
-        momentum: float = 0,
+        weight_decay: float = 0.0,
+        momentum: float = 0.0,
         centered: bool = True,
+        eps: float = 1e-8,
     ):
         super().__init__(
             parameters,
@@ -28,14 +29,12 @@ class RMSprop(Optimizer):
                 "centered": centered,
             },
         )
-
-        self.eps = 1e-8
+        self.eps = eps
 
     def _step_impl(self, closure: Closure = None) -> Optional[float]:
-        loss = closure() if closure is not None else None
+        loss = closure() if closure else None
 
         for group in self.param_groups:
-
             lr = group["lr"]
             alpha = group["alpha"]
             wd = group["weight_decay"]
@@ -43,46 +42,48 @@ class RMSprop(Optimizer):
             centered = group["centered"]
 
             for param in group["params"]:
+                if param.grad is None:
+                    continue
+
+                grad = param.grad
+                data = param.data
 
                 state = self.state.setdefault(
                     param,
                     {
-                        "exp_avg_sq": np.zeros_like(param.data, dtype=param.dtype),
-                        "exp_avg": np.zeros_like(param.data),
-                        "velocity": np.zeros_like(param.data, dtype=param.dtype),
+                        "step": 0,
+                        "exp_avg_sq": np.zeros_like(data, dtype=data.dtype),
+                        "exp_avg": np.zeros_like(data, dtype=data.dtype),
+                        "velocity": np.zeros_like(data, dtype=data.dtype),
                     },
                 )
 
-                # 1. weight decay
+                state["step"] += 1
+
+                # Weight decay
                 if wd > 0 and not getattr(param, "is_bn_param", False):
-                    param.grad += wd * param.data
+                    grad += wd * data
 
-                # 2. update exp avg mean
-
+                # Exponential moving averages
                 state["exp_avg_sq"][:] = alpha * state["exp_avg_sq"] + (1 - alpha) * (
-                    param.grad**2
+                    grad**2
                 )
 
-                # 3. gradient normalization
                 if centered:
-                    state["exp_avg"][:] = (
-                        alpha * state["exp_avg"] + (1 - alpha) * param.grad
-                    )
-                    safe_var = np.maximum(
-                        state["exp_avg_sq"] - (state["exp_avg"] ** 2), 1e-20
-                    )
-                    denom = np.sqrt(safe_var) + self.eps
+                    state["exp_avg"][:] = alpha * state["exp_avg"] + (1 - alpha) * grad
+                    variance = state["exp_avg_sq"] - state["exp_avg"] ** 2
+                    variance = np.maximum(variance, 1e-20)
+                    denom = np.sqrt(variance) + self.eps
                 else:
                     denom = np.sqrt(state["exp_avg_sq"]) + self.eps
 
+                # Momentum update
                 if momentum > 0:
-                    state["velocity"][:] = momentum * state["velocity"] + (
-                        param.grad / denom
-                    )
+                    state["velocity"][:] = momentum * state["velocity"] + grad / denom
+                    update = state["velocity"]
                 else:
-                    state["velocity"][:] = param.grad / denom
+                    update = grad / denom
 
-                # 5. final Update
-                param.data -= lr * state["velocity"]
+                param.data -= lr * update
 
         return loss

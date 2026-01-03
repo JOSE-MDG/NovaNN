@@ -1,8 +1,9 @@
 from __future__ import annotations
 import nova
 import math
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING, Optional
 from nova.utils import ensure_tensor
+from nova.autograd._ops import ReLU, LeakyReLU, PReLU, GELU, Sigmoid
 
 if TYPE_CHECKING:
     from nova import Tensor
@@ -25,35 +26,29 @@ if TYPE_CHECKING:
 def relu(input: Tensor) -> Tensor:
     input = ensure_tensor(input)
 
-    return nova.maximum(0, input).to(input.dtype)
+    return ReLU.apply(input)
 
 
 def leaky_relu(input: Tensor, alpha: float = 0.01) -> Tensor:
     input = ensure_tensor(input)
     alpha = ensure_tensor(alpha)
 
-    return nova.where(input > 0, input, input * alpha).to(input.dtype)
+    return LeakyReLU.apply(input, alpha)
 
 
 def gelu(input: Tensor) -> Tensor:
-    inner = math.sqrt(2.0 / math.pi) * (input + 0.044715 * nova.pow(input, 3))
-    out = 0.5 * input * (1.0 + nova.tanh(inner))
-    return out.to(input.dtype)
+    return GELU.apply(input)
 
 
 def prelu(input: Tensor, weight: float = 0.25) -> Tensor:
     input = ensure_tensor(input)
     weight = ensure_tensor(weight)
-
-    out = nova.maximum(0, input) + weight * nova.minimum(0, input)
-    return out.to(input.dtype)
+    return PReLU.apply(input, weight)
 
 
 def sigmoid(input: Tensor) -> Tensor:
     input = ensure_tensor(input)
-    return nova.where(
-        input >= 0, 1 / (1 + nova.exp(-input)), nova.exp(input) / (1 + nova.exp(input))
-    ).to(input.dtype)
+    return Sigmoid.apply(input)
 
 
 def tanh(input: Tensor) -> Tensor:
@@ -70,7 +65,7 @@ def softmax(input: Tensor, dim: Dim = 1) -> Tensor:
     exp_logits = nova.exp(stable_logits)
     sum_exp = nova.sum(exp_logits, dim=dim, keepdims=True)
     out = exp_logits / sum_exp
-    return out.to(logits.dtype)
+    return out
 
 
 def log_softmax(input: Tensor, dim: Dim = 1) -> Tensor:
@@ -79,7 +74,7 @@ def log_softmax(input: Tensor, dim: Dim = 1) -> Tensor:
     M = nova.max(input, dim=dim, keepdims=True)
     sum_exp = nova.sum(nova.exp(input - M), dim=dim, keepdims=True)
     out = (input - M) - nova.log(sum_exp)
-    return out.to(input.dtype)
+    return out
 
 
 # criterion
@@ -132,7 +127,7 @@ def mse_loss(
 
         loss = loss * weight
 
-    return _reduce(loss, reduction).to(input.dtype)
+    return _reduce(loss, reduction)
 
 
 def l1_loss(
@@ -211,7 +206,7 @@ def binary_cross_entropy(
 
         loss = loss * weight
 
-    return _reduce(loss, reduction).to(input.dtype)
+    return _reduce(loss, reduction)
 
 
 def binary_cross_entropy_with_logits(
@@ -318,14 +313,14 @@ def linear(
     input: Tensor, weight: Tensor | Parameter, bias: Optional[Tensor | Parameter] = None
 ) -> Tensor:
     input = ensure_tensor(input)
-    output = (input @ weight.T).to(input.dtype)
+    output = input @ weight.T
     if bias is not None:
         out_features = weight.size[0]
 
         bias_view = bias.view((1, out_features))
         output = output + bias_view
 
-    return output.to(input.dtype)
+    return output
 
 
 def flatten(input: Tensor, start_dim: int = 1, end_dim: int = -1) -> Tensor:
@@ -347,7 +342,7 @@ def flatten(input: Tensor, start_dim: int = 1, end_dim: int = -1) -> Tensor:
     if actual_end + 1 < dims:
         new_shape.extend(shape[actual_end + 1 :])
 
-    return input.reshape(*new_shape).to(input.dtype)
+    return input.reshape(*new_shape)
 
 
 def _pair(input: int | tuple[int, int]) -> tuple[int, int]:
@@ -451,7 +446,7 @@ def conv1d(
         bias_view = bias.view((1, out_channels, 1))
         out = out + bias_view
 
-    return out.to(input.dtype)
+    return out
 
 
 def conv2d(
@@ -541,7 +536,7 @@ def conv2d(
         bias_view = bias.view((1, out_channels, 1, 1))
         out = out + bias_view
 
-    return out.to(input.dtype)
+    return out
 
 
 def _triple(input: int | tuple[int, int, int] | str) -> tuple[int, int, int]:
@@ -645,7 +640,7 @@ def conv3d(
         bias_view = bias.view((1, out_channels, 1, 1, 1))
         out = out + bias_view
 
-    return out.to(input.dtype)
+    return out
 
 
 def avg_pool1d(
@@ -686,11 +681,7 @@ def avg_pool1d(
     sN, sC, sL = input_padded.strides
     strides = (sN, sC, sL * S, sL)
 
-    return (
-        nova.as_strided(input_padded, size=shape, strides=strides)
-        .mean(dim=3)
-        .to(input.dtype)
-    )
+    return nova.as_strided(input_padded, size=shape, strides=strides).mean(dim=3)
 
 
 def avg_pool2d(
@@ -732,11 +723,7 @@ def avg_pool2d(
     sN, sC, sH, sW = input_padded.strides
     strides = (sN, sC, sH * SH, sW * SW, sH, sW)
 
-    return (
-        nova.as_strided(input_padded, size=size, strides=strides)
-        .mean(dim=(4, 5))
-        .to(input.dtype)
-    )
+    return nova.as_strided(input_padded, size=size, strides=strides).mean(dim=(4, 5))
 
 
 def avg_pool3d(
@@ -778,23 +765,19 @@ def avg_pool3d(
 
     strides = (sN, sC, sD * SD, sH * SH, sW * SW, sD, sH, sW)
 
-    return (
-        nova.as_strided(input_padded, size=size, strides=strides)
-        .mean(dim=(5, 6, 7))
-        .to(input.dtype)
-    )
+    return nova.as_strided(input_padded, size=size, strides=strides).mean(dim=(5, 6, 7))
 
 
 def global_avg_pool1d(input: Tensor) -> Tensor:
-    return input.mean(dim=2, keepdims=True).to(input.dtype)
+    return input.mean(dim=2, keepdims=True)
 
 
 def global_avg_pool2d(input: Tensor) -> Tensor:
-    return input.mean(dim=(2, 3), keepdims=True).to(input.dtype)
+    return input.mean(dim=(2, 3), keepdims=True)
 
 
 def global_avg_pool3d(input: Tensor) -> Tensor:
-    return input.mean(dim=(2, 3, 4), keepdims=True).to(input.dtype)
+    return input.mean(dim=(2, 3, 4), keepdims=True)
 
 
 def max_pool1d(
@@ -838,11 +821,7 @@ def max_pool1d(
     sN, sC, sL = input_padded.strides
     strides = (sN, sC, sL * S, sL * D)
 
-    return (
-        nova.as_strided(input_padded, size=shape, strides=strides)
-        .max(dim=3)
-        .to(input.dtype)
-    )
+    return nova.as_strided(input_padded, size=shape, strides=strides).max(dim=3)
 
 
 def max_pool2d(
@@ -888,11 +867,7 @@ def max_pool2d(
     sN, sC, sH, sW = input_padded.strides
     strides = (sN, sC, sH * SH, sW * SW, sH * DH, sW * DW)
 
-    return (
-        nova.as_strided(input_padded, size=size, strides=strides)
-        .max(dim=(4, 5))
-        .to(input.dtype)
-    )
+    return nova.as_strided(input_padded, size=size, strides=strides).max(dim=(4, 5))
 
 
 def max_pool3d(
@@ -939,11 +914,7 @@ def max_pool3d(
 
     strides = (sN, sC, sD * SD, sH * SH, sW * SW, sD * DD, sH * DH, sW * DW)
 
-    return (
-        nova.as_strided(input_padded, size=size, strides=strides)
-        .max(dim=(4, 5, 6))
-        .to(input.dtype)
-    )
+    return nova.as_strided(input_padded, size=size, strides=strides).max(dim=(4, 5, 6))
 
 
 def batch_norm(
@@ -975,7 +946,6 @@ def batch_norm(
         Normalized tensor with same shape and dtype as input.
     """
     input = ensure_tensor(input)
-    dtype = input.dtype
 
     if len(input.size) < 2:
         raise ValueError(f"Expected at least 2D input, got {input.dim()}")
@@ -986,12 +956,8 @@ def batch_norm(
         # Reduce across batch and spatial dimensions (but not channels)
         dims_to_reduce = [0] + list(range(2, input.dim()))
 
-        eps = nova.tensor(eps, dtype=dtype)
         mu = nova.mean(input, dim=dims_to_reduce, keepdims=True)
         var_biased = nova.var(input, dim=dims_to_reduce, keepdims=True)
-
-        if var_biased.dtype != dtype:
-            var_biased = var_biased.to(dtype)
 
         # Compute unbiased variance correction
         num_reduced = 1
@@ -1027,7 +993,6 @@ def batch_norm(
         mean_shape = [1, num_features] + [1] * (input.dim() - 2)
         var_shape = mean_shape
 
-        eps = nova.tensor(eps, dtype=dtype)
         mean_broadcast = running_mean.reshape(*mean_shape)
         var_broadcast = running_var.reshape(*var_shape)
 
@@ -1044,7 +1009,7 @@ def batch_norm(
         bias_shape = [1, num_features] + [1] * (input.dim() - 2)
         normalized = normalized + bias.reshape(*bias_shape)
 
-    return normalized.to(dtype)
+    return normalized
 
 
 def layer_norm(
@@ -1103,7 +1068,7 @@ def layer_norm(
 
         normalized = normalized + bias
 
-    return normalized.to(input.dtype)
+    return normalized
 
 
 def normalize(input: Tensor, p: int = 2, dim: Dim = 1) -> Tensor:
@@ -1113,7 +1078,7 @@ def normalize(input: Tensor, p: int = 2, dim: Dim = 1) -> Tensor:
     norm = nova.norm(input, ord=p, dim=dim, keepdims=True)
 
     out = input / norm
-    return out.to(input.dtype)
+    return out
 
 
 def dropout1d(input: Tensor, p: float = 0.5, training: bool = True):
@@ -1129,7 +1094,7 @@ def dropout1d(input: Tensor, p: float = 0.5, training: bool = True):
     mask = ensure_tensor(mask_bool, dtype=input.dtype)
     mask = mask / (1 - p)
     out = input * mask
-    return out.to(input.dtype)
+    return out
 
 
 def dropout2d(input: Tensor, p: float = 0.5, training: bool = True):
@@ -1153,7 +1118,7 @@ def dropout2d(input: Tensor, p: float = 0.5, training: bool = True):
     mask = ensure_tensor(mask_bool, dtype=input.dtype)
     mask = mask / (1 - p)
     out = input * mask
-    return out.to(input.dtype)
+    return out
 
 
 def dropout3d(input: Tensor, p: float = 0.5, training: bool = True):
@@ -1177,4 +1142,4 @@ def dropout3d(input: Tensor, p: float = 0.5, training: bool = True):
     mask = ensure_tensor(mask_bool, dtype=input.dtype)
     mask = mask / (1 - p)
     out = input * mask
-    return out.to(input.dtype)
+    return out

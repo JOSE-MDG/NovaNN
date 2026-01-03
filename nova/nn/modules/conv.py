@@ -75,9 +75,11 @@ class Conv1d(Module):
 
         self.reset_parameters()
 
-    def reset_parameters(self):
+    def reset_parameters(self) -> None:
 
-        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        init.kaiming_uniform_(
+            self.weight,
+        )
 
         if self.use_bias:
             fan_in = init.get_fans(self.weight.size, mode="fan_in")
@@ -138,7 +140,9 @@ class Conv2d(Module):
 
     def reset_parameters(self) -> None:
 
-        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        init.kaiming_uniform_(
+            self.weight,
+        )
 
         if self.use_bias:
             fan_in = init.get_fans(self.weight.size, mode="fan_in")
@@ -201,10 +205,12 @@ class Conv3d(Module):
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
-        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+
+        init.kaiming_uniform_(
+            self.weight,
+        )
 
         if self.use_bias:
-
             fan_in = init.get_fans(self.weight.size, mode="fan_in")
             bound = 1 / math.sqrt(fan_in)
             init.uniform_(self.bias, -bound, bound)
