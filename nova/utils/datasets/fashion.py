@@ -4,7 +4,7 @@ import traceback
 import numpy as np
 import pandas as pd
 from typing import Optional, TYPE_CHECKING
-from nova.utils.log_config import logger
+from nova.utils.logger import logger
 from nova.utils.data import normalize, split_features_and_labels
 from nova.core import (
     EXPORTATION_FASHION_TRAIN_DATA_PATH,
