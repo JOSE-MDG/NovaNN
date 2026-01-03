@@ -24,7 +24,7 @@ def clip_grad_norm_(
         if max_norm is None:
             return 1.0
 
-        p_norm = np.linalg.norm(param, ord=2)
+        p_norm = np.linalg.norm(param.data, ord=2)
         total_norm += np.sum(p_norm**2)
 
     total_norm = np.sqrt(total_norm)
