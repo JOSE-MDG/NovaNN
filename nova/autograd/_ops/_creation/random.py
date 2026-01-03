@@ -92,21 +92,19 @@ def normal(
     mean: float,
     std: float,
     size: Optional[tuple[int, ...]],
-    dtype: Dtype | None = None,
     *,
     generator: Optional[Generator] = None,
 ) -> nova.Tensor:
 
     gen = generator or _default_generator
     data = gen._rng.normal(mean, std, size)
-    return nova.Tensor(data, dtype=dtype)
+    return nova.Tensor(data)
 
 
 def uniform(
     low: float,
     high: float,
     size: Optional[tuple[int, ...]],
-    dtype: Dtype | None = None,
     *,
     generator: Optional[Generator] = None,
 ) -> nova.Tensor:
@@ -114,4 +112,4 @@ def uniform(
     gen = generator or _default_generator
     data = gen._rng.uniform(low, high, size)
 
-    return nova.Tensor(data, dtype=dtype)
+    return nova.Tensor(data)

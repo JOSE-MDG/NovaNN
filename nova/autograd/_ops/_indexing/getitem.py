@@ -15,10 +15,15 @@ def _sanitize_index(i):
         return i
 
     arr = np.asarray(i)
+
+    if arr.dtype == np.bool_:
+        return arr
+
     if np.issubdtype(arr.dtype, np.floating):
         arr = arr.astype(np.int64)
     elif not np.issubdtype(arr.dtype, np.integer):
         arr = arr.astype(np.int64)
+
     return arr
 
 
@@ -26,7 +31,6 @@ def _sanitize_index(i):
 class GetItem(Function):
     @staticmethod
     def forward(ctx: Context, a: ndarray, idx) -> ndarray:
-
         if isinstance(idx, tuple):
             actual_idx = tuple(_sanitize_index(i) for i in idx)
         else:
@@ -41,5 +45,7 @@ class GetItem(Function):
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
         (a,) = ctx.saved_tensors
         grad_a = np.zeros_like(a, dtype=grad_output.dtype)
+
         np.add.at(grad_a, ctx.idx, grad_output)
-        return (grad_a, None)
+
+        return (grad_a,)

@@ -1,4 +1,4 @@
-from .reduce import Sum, Mean, Max, Min
+from .reduce import Sum, Mean, Var, Max, Min
 
 
 __all__ = ["Sum", "Mean", "Max", "Min"]

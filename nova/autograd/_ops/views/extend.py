@@ -24,4 +24,4 @@ class Extend(Function):
 
         grad_output = unbroadcasting(grad_output, org_shape)
 
-        return (grad_output, None)
+        return (grad_output,)

@@ -10,26 +10,23 @@ if TYPE_CHECKING:
 
 def sqrt(input: nova.Tensor) -> nova.Tensor:
     input = ensure_tensor(input)
-    return input.sqrt().to(input.dtype)
+    return input.sqrt()
 
 
 def mean(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
-    return input.mean(dim, keepdims).to(input.dtype)
+    return input.mean(dim, keepdims)
 
 
 def var(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
-    diff = input - input.mean(dim, keepdims)
-    diff_sq = diff**2
-    var = mean(diff_sq, dim, keepdims)
-    return var.to(input.dtype)
+    return input.var(dim, keepdims)
 
 
 def std(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
     input = ensure_tensor(input)
 
-    return sqrt(var(input, dim, keepdims)).to(input.dtype)
+    return sqrt(input.var(dim, keepdims))
 
 
 def empty(
@@ -305,7 +302,7 @@ def arange(
         start = 0
 
     if dtype is None:
-        dtype = nova.float32
+        dtype = nova.long
 
     data = np.arange(start=start, stop=stop, step=step, dtype=dtype)
 

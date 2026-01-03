@@ -53,4 +53,4 @@ class AsStrided(Function):
 
         np.add.at(grad_a.ravel(), flat_indices, grad_output.ravel())
 
-        return (grad_a, None, None)
+        return (grad_a,)

@@ -23,4 +23,4 @@ class View(Function):
 
         grad_output = grad_output.reshape(org_shape)
 
-        return (grad_output, None)
+        return (grad_output,)

@@ -46,7 +46,7 @@ class Sum(Function):
 
         grad_output = np.broadcast_to(grad_output, shape_a)
 
-        return (grad_output, None, None)
+        return (grad_output,)
 
 
 @registry_op("mean")
@@ -80,7 +80,52 @@ class Mean(Function):
 
         grad_output = np.broadcast_to(grad_output, shape_a) / ctx.N
 
-        return (grad_output, None, None)
+        return (grad_output,)
+
+
+@registry_op("var")
+class Var(Function):
+    @staticmethod
+    def forward(
+        ctx: Context, a: ndarray, dim: Optional[Dim] = None, keepdims: bool = False
+    ) -> ndarray:
+
+        dim = _normalize_dim(dim)
+
+        ctx.save_for_backward(a)
+        ctx.dim = dim
+        ctx.keepdims = keepdims
+        ctx.saved_shapes = a.shape
+
+        if dim is None:
+            ctx.N = a.size
+        else:
+            ctx.N = 1
+            for d in dim:
+                ctx.N *= a.shape[d]
+
+        mean_val = np.mean(a, axis=dim, keepdims=keepdims)
+        diff = a - mean_val
+        diff_sq = diff * diff
+
+        var_val = np.mean(diff_sq, axis=dim, keepdims=keepdims)
+        ctx.diff = diff
+
+        return var_val
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        shape_a = ctx.saved_shapes
+        diff = ctx.diff
+
+        if not ctx.keepdims and ctx.dim is not None:
+            grad_output = np.expand_dims(grad_output, ctx.dim)
+
+        grad_output = np.broadcast_to(grad_output, shape_a)
+
+        grad_a = (2.0 / ctx.N) * diff * grad_output
+
+        return (grad_a,)
 
 
 @registry_op("max")
@@ -115,7 +160,7 @@ class Max(Function):
         num_max = ctx.max_vals.sum(axis=ctx.dim, keepdims=True)
         grad /= num_max
 
-        return (grad, None, None)
+        return (grad,)
 
 
 @registry_op("min")
@@ -150,4 +195,4 @@ class Min(Function):
         num_min = ctx.min_vals.sum(axis=ctx.dim, keepdims=True)
         grad /= num_min
 
-        return (grad, None, None)
+        return (grad,)

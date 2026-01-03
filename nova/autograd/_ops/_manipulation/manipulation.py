@@ -26,7 +26,7 @@ class Permute(Function):
 
         inv_dims = np.argsort(ctx.dims)
         grad = np.transpose(grad_output, inv_dims)
-        return (grad, None)
+        return (grad,)
 
 
 @registry_op("reshape")
@@ -41,7 +41,7 @@ class Reshape(Function):
 
         org_shape = ctx.saved_shapes
 
-        return (grad_output.reshape(org_shape), None)
+        return (grad_output.reshape(org_shape),)
 
 
 @registry_op("squeeze")
@@ -55,7 +55,7 @@ class Squeeze(Function):
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
         org_shape = ctx.saved_shapes
 
-        return (grad_output.reshape(org_shape), None)
+        return (grad_output.reshape(org_shape),)
 
 
 @registry_op("unsqueeze")
@@ -69,7 +69,7 @@ class UnSqueeze(Function):
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
         org_shape = ctx.saved_shapes
 
-        return (grad_output.reshape(org_shape), None)
+        return (grad_output.reshape(org_shape),)
 
 
 @registry_op("stack")
@@ -118,7 +118,7 @@ class Split(Function):
     def backward(ctx: Context, *grad_output: ndarray) -> Gradients:
 
         grads = np.concatenate(grad_output, ctx.dim)
-        return (grads, None, None)
+        return (grads,)
 
 
 @registry_op("clamp")
@@ -136,7 +136,7 @@ class Clamp(Function):
 
         mask = (a >= ctx.min_val) & (a <= ctx.max_val)
         grad_a = grad_output * mask
-        return (grad_a, None, None)
+        return (grad_a,)
 
 
 @registry_op("tile")
@@ -154,7 +154,7 @@ class Tile(Function):
         for axis, rep in enumerate(ctx.repeats):
             grad = grad.reshape(rep, shape_a[axis], *shape_a[axis + 1 :]).sum(axis=0)
 
-        return (grad, None)
+        return (grad,)
 
 
 @registry_op("repeat")
@@ -184,7 +184,7 @@ class Repeat(Function):
                 axis=ctx.dim + 1
             )  # *shape_a[ctx.dim + 1 :] normaly is a epmty tuple
 
-        return (grad, None, None)
+        return (grad,)
 
 
 @registry_op("pad")
@@ -211,4 +211,4 @@ class Pad(Function):
             slices.append(slice(before, end))
 
         grad = grad_output[tuple(slices)]
-        return (grad, None, None)
+        return (grad,)

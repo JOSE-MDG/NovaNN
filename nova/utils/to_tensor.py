@@ -59,21 +59,16 @@ def ensure_tensor(
 
         else:
 
-            # For scalars and lists, use float32 as the default if not specified
-            # This is consistent with PyTorch and avoids precision issues
-
-            if isinstance(obj, int):
-                return Tensor(obj, dtype=nova.long)
+            base_dtype = dtype or nova.float32
+            if isinstance(obj, bool):
+                base_dtype = nova.bool
+            elif isinstance(obj, int):
+                base_dtype = nova.long
             elif isinstance(obj, float):
-                return Tensor(obj, dtype=nova.float32)
+                base_dtype = dtype or nova.float32
+            # ---------------------
+            return Tensor(obj, dtype=base_dtype, requires_grad=requires_grad or False)
 
-            inferred_dtype = dtype if dtype is not None else None
-            inferred_requires_grad = (
-                requires_grad if requires_grad is not None else False
-            )
-            return Tensor(
-                obj, dtype=inferred_dtype, requires_grad=inferred_requires_grad
-            )
     except Exception as e:
         exception_lines = [line for line in traceback.format_exception(e)]
         logger.error(

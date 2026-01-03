@@ -11,6 +11,16 @@ if TYPE_CHECKING:
     from nova._typing import Gradients
 
 
+def _ensure_array(num: int | float, dtype):
+    num_is_scalar = isinstance(num, (int, float))
+    if num_is_scalar:
+        num_array = np.array(num, dtype=dtype)
+    else:
+        num_array = num
+
+    return num_array
+
+
 @registry_op("add")
 class Add(Function):
     @staticmethod
@@ -121,9 +131,11 @@ class Floor(Function):
 class Pow(Function):
     @staticmethod
     def forward(ctx: Context, a: ndarray | int, b: ndarray | int) -> ndarray:
-        result = np.power(a, b)
+
+        b_array = _ensure_array(b, a.dtype)
+        result = np.power(a, b_array)
         ctx.save_for_backward(a, b, result)
-        ctx.saved_shapes = (a.shape, b.shape)
+        ctx.saved_shapes = (a.shape, b_array.shape)
         return result
 
     @staticmethod

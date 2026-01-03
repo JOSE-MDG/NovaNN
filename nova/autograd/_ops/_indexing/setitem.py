@@ -22,4 +22,4 @@ class SetItem(Function):
         (key,) = ctx.saved_tensors
         grad_input = grad_output.copy()
         grad_input[key] = 0.0
-        return (grad_input, None, None)
+        return (grad_input,)

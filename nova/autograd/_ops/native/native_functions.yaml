@@ -52,6 +52,7 @@ ops:
         dunder: __imod__
 
   - name: pow
+    raw_args: true
     tensor:
       dunder: __pow__
       reverse: __rpow__
@@ -72,6 +73,43 @@ ops:
     is_unary: true
     tensor:
       dunder: __neg__
+
+  # Activations
+
+  - name: relu
+    is_unary: true
+    tensor:
+      method: relu
+      inplace:
+        method: relu_
+
+  - name: leaky_relu
+    raw_args: true
+    tensor:
+      method: leaky_relu
+      inplace:
+        method: leaky_relu_
+
+  - name: prelu
+    raw_args: true
+    tensor:
+      method: prelu
+      inplace:
+        method: prelu_
+
+  - name: gelu
+    is_unary: true
+    tensor:
+      method: gelu
+      inplace:
+        method: gelu_
+
+  - name: sigmoid
+    is_unary: true
+    tensor:
+      method: sigmoid
+      inplace:
+        method: sigmoid_
 
   # Indexing
 
@@ -188,6 +226,10 @@ ops:
   - name: mean
     tensor:
       method: mean
+
+  - name: var
+    tensor:
+      method: var
 
   - name: sum
     tensor:
