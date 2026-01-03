@@ -8,26 +8,32 @@ if TYPE_CHECKING:
     from nova import Tensor
 
 
-def _bulid_topo(self: Type[Tensor]):
-
+def _build_topo(self: Tensor):
     topo: list[Tensor] = []
     visited: set[Tensor] = set()
-    stack: list[Tensor] = [self]
+    stack: list[tuple[Tensor, bool]] = [(self, False)]
 
     while stack:
-        node = stack.pop()
+        node, processed = stack.pop()
 
-        if node not in visited:
-            visited.add(node)
-
-            if node.grad_fn is not None:
-                for input in node._inputs:
-                    if isinstance(input, nova.Tensor):
-                        stack.append(input)
-
+        if processed:
             topo.append(node)
+            continue
 
-    topo.sort(key=lambda x: x.rank)
+        if node in visited:
+            continue
+
+        visited.add(node)
+        stack.append((node, True))
+
+        if node.grad_fn is not None:
+            for input_tensor in reversed(node._inputs):
+                if (
+                    isinstance(input_tensor, nova.Tensor)
+                    and input_tensor not in visited
+                ):
+                    stack.append((input_tensor, False))
+
     return topo
 
 
@@ -37,11 +43,8 @@ def _backward(
     retain_graph: bool = False,
 ) -> None:
     cls.grad = gradient
-
-    topo_order = _bulid_topo(cls)
-
+    topo_order = _build_topo(cls)
     for tensor in reversed(topo_order):
-
         if tensor.grad_fn is None:
             continue
 
@@ -50,17 +53,14 @@ def _backward(
         if not isinstance(grad_inputs, tuple):
             grad_inputs = (grad_inputs,)
 
-        for inputs, grad in zip(tensor._inputs, grad_inputs):
-
+        for i, (inputs, grad) in enumerate(zip(tensor._inputs, grad_inputs)):
             if inputs.requires_grad and grad is not None:
-
                 grad_broadcasted = np.broadcast_to(grad, inputs.data.shape).copy()
 
                 if inputs.grad is None:
                     inputs.grad = grad_broadcasted
                 else:
                     inputs.grad += grad_broadcasted
-
     for tensor in topo_order:
 
         if tensor.grad is not None and len(tensor._backward_hooks) > 0:
