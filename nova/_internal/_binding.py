@@ -2,7 +2,7 @@ from __future__ import annotations
 import yaml
 import traceback
 from nova.core import YAML_FILE_PATH
-from nova.utils.log_config import logger
+from nova.utils.logger import logger
 from typing import Any, TYPE_CHECKING
 from nova.utils.decorators.registry import _OPS_REGISTERED
 from ._generators import (

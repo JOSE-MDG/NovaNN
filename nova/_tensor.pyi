@@ -5,7 +5,7 @@ from nova._interfaces._base_tensor import TensorBase
 
 if TYPE_CHECKING:
     from nova._typing import Dim, Size, Dtype, Hook
-    from nova.autograd.utils.hooks import HooksHandle
+    from nova.utils.hooks import HooksHandle
     from nova.autograd.function import Function
     from nova.autograd.engine import Context
 

@@ -1,7 +1,7 @@
 import traceback
 import pickle
 import io
-from nova.utils.log_config import logger
+from nova.utils.logger import logger
 
 
 def load(f: str | io.BufferedIOBase, *, weights_only: bool = True):

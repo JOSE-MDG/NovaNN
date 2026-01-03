@@ -1,7 +1,7 @@
 import traceback
 import pickle
 import io
-from nova.utils.log_config import logger
+from nova.utils.logger import logger
 from typing import Any
 
 

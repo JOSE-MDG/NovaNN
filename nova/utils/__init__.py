@@ -10,10 +10,11 @@ from .decorators import registry_class, registry_op, get_registered_classes
 from .to_tensor import ensure_tensor
 
 __all__ = [
+    "hooks",
+    "to_tensor",
     "data",
     "decorators",
-    "gradient_checking",
-    "log_config",
+    "logger",
     "train",
     "visualization",
     "registry_class",

@@ -1,7 +1,7 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+from typing import TYPE_CHECKING, Iterable, Optional
 from nova.utils import registry_class
-from nova.autograd.utils.hooks import HooksHandle
+from nova.utils.hooks import HooksHandle
 
 if TYPE_CHECKING:
     from nova.nn import Parameter
