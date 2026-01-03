@@ -2,7 +2,7 @@ from __future__ import annotations
 import traceback
 import nova
 from typing import Any, Optional
-from nova.utils.log_config import logger
+from nova.utils.logger import logger
 from numpy import ndarray
 
 from typing import TYPE_CHECKING
