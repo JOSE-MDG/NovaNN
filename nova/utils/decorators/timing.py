@@ -1,7 +1,7 @@
 import time
 from functools import wraps
 from typing import Callable, Any
-from nova.utils.log_config import logger
+from nova.utils.logger import logger
 
 
 def chronometer(func: Callable) -> Callable:
