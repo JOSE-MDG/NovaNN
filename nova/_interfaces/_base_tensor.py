@@ -1,4 +1,6 @@
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
+import numpy as np
+import nova
 from numpy import ndarray
 
 if TYPE_CHECKING:
@@ -14,8 +16,13 @@ class TensorBase:
         return self._data_internal
 
     @data.setter
-    def data(self, value: ndarray | Any):
-        self._data_internal = value
+    def data(self, value: ndarray):
+        if hasattr(value, "data") and isinstance(value, nova.Tensor):
+            self._data_internal = value.data
+        elif isinstance(value, np.ndarray):
+            self._data_internal = value
+        else:
+            self._data_internal = np.asarray(value)
 
     @property
     def T(self):
