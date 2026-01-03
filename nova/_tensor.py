@@ -160,26 +160,26 @@ class Tensor(TensorBase):
     def argmax(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         return Tensor(
             self.data.argmax(axis=dim, keepdims=keepdims),
-            dtype=self.dtype,
+            dtype=nova.long,
             requires_grad=False,
         )
 
     def argmin(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         return Tensor(
             self.data.argmin(axis=dim, keepdims=keepdims),
-            dtype=self.dtype,
+            dtype=nova.long,
             requires_grad=False,
         )
 
     def argsort(self, dim: Optional[Dim] = None, kind=None, order=None) -> Tensor:
         return Tensor(
             self.data.argsort(axis=dim, kind=kind, order=order),
-            dtype=self.dtype,
+            dtype=nova.long,
             requires_grad=False,
         )
 
     def argwhere(self) -> Tensor:
-        return Tensor(np.argwhere(self.data), dtype=self.dtype, requires_grad=False)
+        return Tensor(np.argwhere(self.data), dtype=nova.long, requires_grad=False)
 
     def std(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
         from nova.autograd._ops import std
