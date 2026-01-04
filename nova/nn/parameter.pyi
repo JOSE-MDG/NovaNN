@@ -7,7 +7,12 @@ if TYPE_CHECKING:
     from nova._typing import Dtype, Size
 
 class Parameter(Tensor):
-    def __init__(self, data: Tensor = ..., requires_grad: bool = ...) -> None: ...
+    def __init__(
+        self,
+        data: Tensor = ...,
+        dtype: Optional[Dtype] = None,
+        requires_grad: bool = ...,
+    ) -> None: ...
 
 class Buffer(Tensor):
     persistent: bool
@@ -17,10 +22,6 @@ class Buffer(Tensor):
         *,
         persistent: bool = ...,
     ) -> None: ...
-
-def is_lazy(
-    param: Tensor,
-) -> TypeIs[UninitializedParameter | UninitializedBuffer]: ...
 
 class UninitializedParameter(UninitializedTensorMixin, Parameter):
     def __init__(self, requires_grad: bool = ...) -> None: ...
@@ -36,3 +37,7 @@ class UninitializedTensorMixin:
     @property
     def shape(self): ...
     def __repr__(self) -> str: ...
+
+def is_lazy(
+    param: Tensor,
+) -> TypeIs[UninitializedParameter | UninitializedBuffer]: ...
