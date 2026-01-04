@@ -15,13 +15,12 @@ from typing import (
 
 if TYPE_CHECKING:
     from nova import Tensor
+    from nova.nn import Module, Parameter, Buffer
     from nova._interfaces._optimizer import Optimizer
     from nova._interfaces._base_tensor import TensorBase
     from nova._interfaces._lr_scheduler import _LRScheduler
-    from nova.nn.modules.module import Module, Parameter, Buffer
 
 type Size = tuple[int, ...]
-
 type Dtype = Union[
     dtypes.uint8,
     dtypes.int8,
