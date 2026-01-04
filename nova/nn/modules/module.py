@@ -117,6 +117,19 @@ class Module:
                     prefix=submodule_prefix, recurse=True
                 )
 
+    def named_buffers(
+        self, prefix: str = "", recurse: bool = True
+    ) -> Iterable[tuple[str, Buffer]]:
+        for name, buf in self._buffers.items():
+            if buf is not None:
+                full_name = f"{prefix}.{name}" if prefix else name
+                yield full_name, buf
+
+        if recurse:
+            for module_name, module in self._modules.items():
+                submodule_prefix = f"{prefix}.{module_name}" if prefix else module_name
+                yield from module.named_buffers(prefix=submodule_prefix, recurse=True)
+
     def named_modules(self, prefix: str = "") -> Iterable[tuple[str, Module]]:
 
         yield prefix, self
