@@ -19,6 +19,7 @@ class Buffer(Tensor):
     def __init__(
         self,
         data: Tensor = ...,
+        dtype: Optional[Dtype] = None,
         *,
         persistent: bool = ...,
     ) -> None: ...
