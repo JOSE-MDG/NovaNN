@@ -1,6 +1,9 @@
 """
 Argument processing for Function.apply()
-Handles conversion of inputs to raw numpy arrays while tracking tensors.
+
+Handles conversion of inputs to raw numpy arrays while tracking which
+tensors participate in gradient computation. This module ensures type
+consistency and proper gradient flow through operations.
 """
 
 from __future__ import annotations
@@ -14,7 +17,27 @@ if TYPE_CHECKING:
 
 
 def _is_index_like(obj: Any) -> bool:
-    """Check if object is an indexing construct (slice, range, index array)."""
+    """
+    Checks if an object is an indexing construct.
+
+    Indexing constructs (slices, ranges, integer/boolean arrays) should
+    not be converted to the base dtype since they're used for addressing,
+    not computation.
+
+    Args:
+        obj: Object to check.
+
+    Returns:
+        True if obj is a slice, range, or array of integers/booleans.
+
+    Examples:
+        >>> _is_index_like(slice(0, 5))
+        True
+        >>> _is_index_like([0, 2, 4])
+        True
+        >>> _is_index_like([1.0, 2.0])
+        False
+    """
     if isinstance(obj, (slice, range)):
         return True
     if isinstance(obj, (list, tuple, np.ndarray)):
@@ -27,28 +50,67 @@ def _is_index_like(obj: Any) -> bool:
 
 class ArgumentProcessor:
     """
-    Processes arguments for Function.apply()
-    Converts Tensors to ndarrays and tracks which inputs need gradients.
+    Processes arguments for Function.apply() calls.
+
+    This class handles the conversion of Function inputs from high-level
+    Tensor objects to low-level numpy arrays suitable for forward computation.
+    It also tracks which input tensors need gradients for backpropagation.
+
+    Key responsibilities:
+    - Extract numpy arrays from Tensors
+    - Convert scalars to arrays with consistent dtype
+    - Track all Tensors that participate in gradient computation
+    - Preserve special dtypes (bool, int) that shouldn't be cast
+    - Handle nested structures (lists, tuples, dicts)
+    - Skip processing for index-like constructs
+
+    Attributes:
+        base_dtype: Target dtype for numerical arrays (typically float32/float64).
+        tensors_in_graph: List of Tensors tracked for gradient computation.
+
+    Examples:
+        >>> processor = ArgumentProcessor(np.float32)
+        >>> args = (tensor1, 5.0, [1, 2, 3])
+        >>> raw_args, raw_kwargs = processor.process_args(args, {})
+        >>> tensors = processor.get_tracked_tensors()
     """
 
     def __init__(self, base_dtype: dtype):
+        """
+        Initializes the argument processor.
+
+        Args:
+            base_dtype: Base dtype to cast numerical values to.
+        """
         self.base_dtype = base_dtype
         self.tensors_in_graph: list[Tensor] = []
 
     def process_arg(self, arg: Any) -> Any:
         """
-        Process a single argument for forward pass.
+        Processes a single argument for forward pass.
+
+        Conversion rules:
+        - Tensor → numpy array (dtype cast if floating-point)
+        - ndarray → dtype cast if floating-point
+        - float → array with base_dtype
+        - int/bool/str/None → unchanged
+        - Index-like lists/tuples → unchanged
+        - Regular lists/tuples/dicts → recursively processed
+        - slice/range → unchanged
 
         Args:
-            arg: Input argument (Tensor, ndarray, scalar, etc.)
+            arg: Input argument of any type.
 
         Returns:
-            Processed argument (usually ndarray or scalar)
+            Processed argument ready for forward computation.
+
+        Raises:
+            TypeError: If Tensor.data is not a numpy array (indicates bug).
         """
         from nova import Tensor
 
         if isinstance(arg, Tensor):
-            # Track this tensor for gradient computation
+            # Track tensor for gradient computation
             self.tensors_in_graph.append(arg)
 
             # Extract numpy array
@@ -59,15 +121,15 @@ class ArgumentProcessor:
                     f"This indicates a bug in Tensor implementation."
                 )
 
-            # Keep boolean and integer dtypes as-is
+            # Preserve boolean and integer dtypes
             if data.dtype in (np.bool_, np.int32, np.int64):
                 return data
 
-            # Convert to base dtype for numerical stability
+            # Cast to base dtype for numerical stability
             return data.astype(self.base_dtype, copy=False)
 
         elif isinstance(arg, np.ndarray):
-            # Keep boolean/integer arrays as-is
+            # Preserve boolean/integer arrays as-is
             if arg.dtype == np.bool_ or np.issubdtype(arg.dtype, np.integer):
                 return arg
             return arg.astype(self.base_dtype, copy=False)
@@ -91,34 +153,55 @@ class ArgumentProcessor:
         elif isinstance(arg, (slice, range)):
             return arg
 
-        # Pass through unknown types
+        # Pass through unknown types unchanged
         return arg
 
     def process_args(self, args: tuple, kwargs: dict) -> tuple[tuple, dict]:
         """
-        Process all args and kwargs.
+        Processes all positional and keyword arguments.
+
+        Args:
+            args: Tuple of positional arguments.
+            kwargs: Dictionary of keyword arguments.
 
         Returns:
-            Tuple of (processed_args, processed_kwargs)
+            Tuple of (processed_args, processed_kwargs).
         """
         raw_args = tuple(self.process_arg(a) for a in args)
         raw_kwargs = {k: self.process_arg(v) for k, v in kwargs.items()}
         return raw_args, raw_kwargs
 
     def get_tracked_tensors(self) -> list[Tensor]:
-        """Get list of tensors that were tracked during processing."""
+        """
+        Returns list of tensors tracked during argument processing.
+
+        These tensors will be stored as inputs to the operation for
+        gradient computation during the backward pass.
+
+        Returns:
+            List of Tensors that participated in the operation.
+        """
         return self.tensors_in_graph
 
 
 def determine_base_dtype(args: tuple) -> dtype:
     """
-    Determine the base dtype for the operation from arguments.
+    Determines the base dtype for an operation from its arguments.
+
+    Scans arguments for the first Tensor and uses its dtype as the
+    base dtype for the entire operation. This ensures numerical consistency
+    across mixed-type inputs (e.g., Tensor + float).
 
     Args:
-        args: Arguments to scan
+        args: Tuple of arguments to scan.
 
     Returns:
-        Base dtype to use (defaults to float32 if no Tensor found)
+        Base dtype to use (defaults to float32 if no Tensor found).
+
+    Examples:
+        >>> x = nova.tensor([1.0], dtype=nova.float64)
+        >>> dtype = determine_base_dtype((x, 5.0))
+        >>> print(dtype)  # float64
     """
     from nova import Tensor
 
