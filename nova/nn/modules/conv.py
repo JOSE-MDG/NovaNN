@@ -4,15 +4,31 @@ import math
 import nova.nn.init as init
 import nova.nn.functional as F
 from typing import TYPE_CHECKING, Optional
-from nova.nn.modules import Module
-from nova.nn.parameter import Parameter
+from nova.nn.modules import Module, LazyModuleMixin
+from nova.nn.parameter import Parameter, UninitializedParameter
 
 if TYPE_CHECKING:
     from nova import Tensor
     from nova._typing import KernelSize, Stride, Padding, PaddingMode, Dtype, Dilation
 
 
-def _pair(input: int | tuple[int, int]) -> tuple[int, int]:
+def _single(input: int | tuple[int, int] | str) -> int:
+
+    if isinstance(input, tuple):
+        return input[0]
+
+    elif isinstance(input, str):
+        if input == "valid":
+            return 0
+        elif input == "same":
+            raise ValueError(f"The 'same' value is not currently supported")
+        else:
+            raise ValueError(f"Unsupported value '{input}'")
+
+    return int(input)
+
+
+def _pair(input: int | tuple[int, int] | str) -> tuple[int, int]:
 
     if isinstance(input, int):
         return (input, input)
@@ -44,6 +60,10 @@ def _triple(input: int | tuple[int, int, int] | str) -> tuple[int, int, int]:
 
 
 class Conv1d(Module):
+
+    weight: Parameter
+    bias: Parameter
+
     def __init__(
         self,
         in_channels: int,
@@ -58,18 +78,18 @@ class Conv1d(Module):
     ) -> None:
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.K = kernel_size
-        self.S = stride
-        self.P = padding
-        self.D = dilation
+        self.K = _single(kernel_size)
+        self.S = _single(stride)
+        self.P = _single(padding)
+        self.D = _single(dilation)
         self.use_bias = bias
         self.padding_mode = padding_mode
 
-        self.weight: Parameter = Parameter(
-            nova.empty((out_channels, in_channels, self.K), dtype=dtype)
+        self.weight = Parameter(
+            nova.empty((out_channels, in_channels, self.K)), dtype=dtype
         )
         if self.use_bias:
-            self.bias: Parameter = Parameter(nova.empty((out_channels, 1), dtype=dtype))
+            self.bias = Parameter(nova.empty((out_channels, 1)), dtype=dtype)
         else:
             self.register_parameter("bias", None)
 
@@ -77,9 +97,7 @@ class Conv1d(Module):
 
     def reset_parameters(self) -> None:
 
-        init.kaiming_uniform_(
-            self.weight,
-        )
+        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
 
         if self.use_bias:
             fan_in = init.get_fans(self.weight, mode="fan_in")
@@ -106,6 +124,10 @@ class Conv1d(Module):
 
 
 class Conv2d(Module):
+
+    weight: Parameter
+    bias: Parameter
+
     def __init__(
         self,
         in_channels: int,
@@ -128,11 +150,11 @@ class Conv2d(Module):
         self.use_bias: bool = bias
         self.padding_mode: PaddingMode = padding_mode
 
-        self.weight: Parameter = Parameter(
+        self.weight = Parameter(
             nova.empty((out_channels, in_channels, self.KH, self.KW), dtype=dtype)
         )
         if self.use_bias:
-            self.bias: Parameter = Parameter(nova.empty((out_channels, 1), dtype=dtype))
+            self.bias = Parameter(nova.empty((out_channels, 1), dtype=dtype))
         else:
             self.register_parameter("bias", None)
 
@@ -169,6 +191,10 @@ class Conv2d(Module):
 
 
 class Conv3d(Module):
+
+    weight: Parameter
+    bias: Parameter
+
     def __init__(
         self,
         in_channels: int,
@@ -191,14 +217,14 @@ class Conv3d(Module):
         self.use_bias: bool = bias
         self.padding_mode = padding_mode
 
-        self.weight: Parameter = Parameter(
+        self.weight = Parameter(
             nova.empty(
                 (out_channels, in_channels, self.KD, self.KH, self.KW), dtype=dtype
             )
         )
 
         if self.use_bias:
-            self.bias: Parameter = Parameter(nova.empty((out_channels, 1), dtype=dtype))
+            self.bias = Parameter(nova.empty((out_channels, 1), dtype=dtype))
         else:
             self.register_parameter("bias", None)
 
@@ -230,3 +256,176 @@ class Conv3d(Module):
 
     def extra_repr(self) -> str:
         return "{in_channels}, {out_channels}, kernel_size=({KD}, {KH}, {KW}), stride=({SD}, {SH}, {SW}), padding=({PD}, {PH}, {PW}), bias={use_bias}"
+
+
+class _LazyConvXdMixin(LazyModuleMixin):
+
+    in_channels: int
+    out_channels: int
+    weight: UninitializedParameter
+    bias: UninitializedParameter
+    kernel_size: KernelSize
+
+    def __init__(
+        self,
+        out_channels: int,
+        kernel_size: KernelSize,
+        stride: Stride = 1,
+        padding: Padding = 0,
+        dilation: Dilation = 1,
+        bias: bool = True,
+        padding_mode: PaddingMode = "zeros",
+        dtype: Optional[Dtype] = None,
+    ) -> None:
+        Module.__init__(self)
+
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
+        self.dilation = dilation
+        self.use_bias = bias
+        self.padding_mode = padding_mode
+        self.dtype = dtype
+
+        self.weight = UninitializedParameter()
+        if bias:
+            self.bias = UninitializedParameter()
+        else:
+            self.register_parameter("bias", None)
+
+    def reset_parameters(self) -> None:
+        if not self.has_uninitialized_params():
+            super().reset_parameters()
+
+    def initialize_parameters(self, input: Tensor) -> None:
+        if self.has_uninitialized_params():
+            with nova.no_grad():
+
+                self.in_channels = self._get_in_channels(input)
+
+                self.weight = self.weight.materialize(
+                    (self.out_channels, self.in_channels, *self.kernel_size),
+                    dtype=self.dtype,
+                )
+
+                if self.use_bias:
+                    self.bias = self.bias.materialize(
+                        (self.out_channels, 1), dtype=self.dtype
+                    )
+
+                self.reset_parameters()
+
+    def _get_in_channels(self, input: Tensor) -> int:
+        num_spatial_dims = self._get_num_spatial_dims()
+        num_dims_no_batch = num_spatial_dims + 1  # +1 for channels dim
+        num_dims_batch = num_dims_no_batch + 1
+        if input.dim() not in (num_dims_no_batch, num_dims_batch):
+            raise RuntimeError(
+                f"Expected {num_dims_no_batch}D (unbatched) or {num_dims_batch}D (batched) input "
+                f"to {self.__class__.__name__}, but "
+                f"got input of size: {input.shape}"
+            )
+        return input.shape[1] if input.dim() == num_dims_batch else input.shape[0]
+
+    def _get_num_spatial_dims(self) -> int:
+        raise NotImplementedError
+
+
+class LazyConv1d(_LazyConvXdMixin, Conv1d):
+
+    def __init__(
+        self,
+        out_channels: int,
+        kernel_size: KernelSize,
+        stride: Stride = 1,
+        padding: Padding = 0,
+        dilation: Dilation = 1,
+        bias: bool = True,
+        padding_mode: PaddingMode = "zeros",
+        dtype: Optional[Dtype] = None,
+    ) -> None:
+        kernel_size = _single(kernel_size)
+        stride = _single(stride)
+        padding = _single(padding)
+        dilation = _single(dilation)
+
+        super().__init__(
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            bias=bias,
+            padding_mode=padding_mode,
+            dtype=dtype,
+        )
+
+    def _get_num_spatial_dims(self) -> int:
+        return 1
+
+
+class LazyConv2d(_LazyConvXdMixin, Conv2d):
+
+    def __init__(
+        self,
+        out_channels: int,
+        kernel_size: KernelSize,
+        stride: Stride = 1,
+        padding: Padding = 0,
+        dilation: Dilation = 1,
+        bias: bool = True,
+        padding_mode: PaddingMode = "zeros",
+        dtype: Optional[Dtype] = None,
+    ) -> None:
+        kernel_size = _pair(kernel_size)
+        stride = _pair(stride)
+        padding = _pair(padding)
+        dilation = _pair(dilation)
+
+        super().__init__(
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            bias=bias,
+            padding_mode=padding_mode,
+            dtype=dtype,
+        )
+
+    def _get_num_spatial_dims(self) -> int:
+        return 2
+
+
+class LazyConv3d(_LazyConvXdMixin, Conv3d):
+
+    def __init__(
+        self,
+        out_channels: int,
+        kernel_size: KernelSize,
+        stride: Stride = 1,
+        padding: Padding = 0,
+        dilation: Dilation = 1,
+        bias: bool = True,
+        padding_mode: PaddingMode = "zeros",
+        dtype: Optional[Dtype] = None,
+    ) -> None:
+        kernel_size = _triple(kernel_size)
+        stride = _triple(stride)
+        padding = _triple(padding)
+        dilation = _triple(dilation)
+
+        super().__init__(
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            bias=bias,
+            padding_mode=padding_mode,
+            dtype=dtype,
+        )
+
+    def _get_num_spatial_dims(self) -> int:
+        return 3
