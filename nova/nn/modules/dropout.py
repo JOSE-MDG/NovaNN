@@ -7,13 +7,13 @@ if TYPE_CHECKING:
     from nova import Tensor
 
 
-class Dropout1d(Module):
+class Dropout(Module):
     def __init__(self, p: float = 0.5):
         super().__init__()
         self.p = p
 
     def forward(self, input: Tensor) -> Tensor:
-        return F.dropout1d(input, self.p, self._training)
+        return F.dropout(input, self.p, self._training)
 
     def extra_repr(self) -> str:
         return f"p={self.p}"

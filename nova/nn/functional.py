@@ -1081,7 +1081,7 @@ def normalize(input: Tensor, p: int = 2, dim: Dim = 1) -> Tensor:
     return out
 
 
-def dropout1d(input: Tensor, p: float = 0.5, training: bool = True):
+def dropout(input: Tensor, p: float = 0.5, training: bool = True):
     if not training or p == 0:
         return input
 

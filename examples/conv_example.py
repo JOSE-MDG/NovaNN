@@ -59,7 +59,7 @@ class FashionCNN(nn.Module):
             nn.Linear(out_channel, 512),
             nn.BatchNorm1d(512, momentum=0.2),
             nn.ReLU(),
-            nn.Dropout1d(0.5),
+            nn.Dropout(0.5),
             nn.Linear(512, 10),
         )
 
