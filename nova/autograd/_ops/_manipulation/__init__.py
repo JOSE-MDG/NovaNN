@@ -12,6 +12,7 @@ from .manipulation import (
     Pad,
 )
 
+from .clone import Clone
 
 __all__ = [
     "Permute",
@@ -22,6 +23,7 @@ __all__ = [
     "Concat",
     "Split",
     "Clamp",
+    "Clone",
     "Tile",
     "Repeat",
     "Pad",
