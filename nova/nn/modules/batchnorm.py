@@ -185,29 +185,29 @@ class _LayzyNormBase(LazyModuleMixin, _BatchNorm):
         Infers ``num_features`` based on ``input`` and initializes parameters.
         """
         if self.has_uninitialized_params():
+            with nova.no_grad():
+                self.num_features = input.shape[1]
+                if self.track_running_stats:
 
-            self.num_features = input.shape[1]
-            if self.track_running_stats:
+                    self.running_mean = self.running_mean.materialize(
+                        (self.num_features,), dtype=self.dtype
+                    )
+                    self.running_var = self.running_var.materialize(
+                        (self.num_features,), dtype=self.dtype
+                    )
+                    self.num_batches_tracked = self.num_batches_tracked.materialize(
+                        (self.num_features,), dtype=nova.long
+                    )
 
-                self.running_mean = self.running_mean.materialize(
-                    (self.num_features,), dtype=self.dtype
-                )
-                self.running_var = self.running_var.materialize(
-                    (self.num_features,), dtype=self.dtype
-                )
-                self.num_batches_tracked = self.num_batches_tracked.materialize(
-                    (self.num_features,), dtype=nova.long
-                )
+                if self.affine:
+                    self.weight = self.weight.materialize(
+                        (self.num_features,), dtype=self.dtype
+                    )
+                    self.bias = self.bias.materialize(
+                        (self.num_features,), dtype=self.dtype
+                    )
 
-            if self.affine:
-                self.weight = self.weight.materialize(
-                    (self.num_features,), dtype=self.dtype
-                )
-                self.bias = self.bias.materialize(
-                    (self.num_features,), dtype=self.dtype
-                )
-
-            self.reset_parameters()
+                self.reset_parameters()
 
 
 class BatchNorm1d(_BatchNorm):
