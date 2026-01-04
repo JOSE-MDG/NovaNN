@@ -263,8 +263,7 @@ class _LazyConvXdMixin(LazyModuleMixin):
     in_channels: int
     out_channels: int
     weight: UninitializedParameter
-    bias: UninitializedParameter
-    kernel_size: KernelSize
+    bias: Optional[UninitializedParameter]
 
     def __init__(
         self,
@@ -280,19 +279,27 @@ class _LazyConvXdMixin(LazyModuleMixin):
         Module.__init__(self)
 
         self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.dilation = dilation
         self.use_bias = bias
         self.padding_mode = padding_mode
         self.dtype = dtype
+
+        self._store_attributes(kernel_size, stride, padding, dilation)
 
         self.weight = UninitializedParameter()
         if bias:
             self.bias = UninitializedParameter()
         else:
             self.register_parameter("bias", None)
+
+    def _store_attributes(
+        self,
+        kernel_size: KernelSize,
+        stride: Stride,
+        padding: Padding,
+        dilation: Dilation,
+    ):
+        """Overwritten by each subclass to save in its format"""
+        raise NotImplementedError
 
     def reset_parameters(self) -> None:
         if not self.has_uninitialized_params():
@@ -301,13 +308,11 @@ class _LazyConvXdMixin(LazyModuleMixin):
     def initialize_parameters(self, input: Tensor) -> None:
         if self.has_uninitialized_params():
             with nova.no_grad():
-
                 self.in_channels = self._get_in_channels(input)
 
-                self.weight = self.weight.materialize(
-                    (self.out_channels, self.in_channels, *self.kernel_size),
-                    dtype=self.dtype,
-                )
+                weight_shape = self._get_weight_shape()
+
+                self.weight = self.weight.materialize(weight_shape, dtype=self.dtype)
 
                 if self.use_bias:
                     self.bias = self.bias.materialize(
@@ -316,9 +321,13 @@ class _LazyConvXdMixin(LazyModuleMixin):
 
                 self.reset_parameters()
 
+    def _get_weight_shape(self) -> tuple:
+        """The weight shape returns according to the dimensionality"""
+        raise NotImplementedError
+
     def _get_in_channels(self, input: Tensor) -> int:
         num_spatial_dims = self._get_num_spatial_dims()
-        num_dims_no_batch = num_spatial_dims + 1  # +1 for channels dim
+        num_dims_no_batch = num_spatial_dims + 1
         num_dims_batch = num_dims_no_batch + 1
         if input.dim() not in (num_dims_no_batch, num_dims_batch):
             raise RuntimeError(
@@ -361,6 +370,21 @@ class LazyConv1d(_LazyConvXdMixin, Conv1d):
             dtype=dtype,
         )
 
+    def _store_attributes(
+        self,
+        kernel_size: KernelSize,
+        stride: Stride,
+        padding: Padding,
+        dilation: Dilation,
+    ):
+        self.K = kernel_size
+        self.S = stride
+        self.P = padding
+        self.D = dilation
+
+    def _get_weight_shape(self) -> tuple:
+        return (self.out_channels, self.in_channels, self.K)
+
     def _get_num_spatial_dims(self) -> int:
         return 1
 
@@ -394,6 +418,21 @@ class LazyConv2d(_LazyConvXdMixin, Conv2d):
             dtype=dtype,
         )
 
+    def _store_attributes(
+        self,
+        kernel_size: KernelSize,
+        stride: Stride,
+        padding: Padding,
+        dilation: Dilation,
+    ):
+        self.KH, self.KW = kernel_size
+        self.SH, self.SW = stride
+        self.PH, self.PW = padding
+        self.DH, self.DW = dilation
+
+    def _get_weight_shape(self) -> tuple:
+        return (self.out_channels, self.in_channels, self.KH, self.KW)
+
     def _get_num_spatial_dims(self) -> int:
         return 2
 
@@ -426,6 +465,21 @@ class LazyConv3d(_LazyConvXdMixin, Conv3d):
             padding_mode=padding_mode,
             dtype=dtype,
         )
+
+    def _store_attributes(
+        self,
+        kernel_size: KernelSize,
+        stride: Stride,
+        padding: Padding,
+        dilation: Dilation,
+    ):
+        self.KD, self.KH, self.KW = kernel_size
+        self.SD, self.SH, self.SW = stride
+        self.PD, self.PH, self.PW = padding
+        self.DD, self.DH, self.DW = dilation
+
+    def _get_weight_shape(self) -> tuple:
+        return (self.out_channels, self.in_channels, self.KD, self.KH, self.KW)
 
     def _get_num_spatial_dims(self) -> int:
         return 3
