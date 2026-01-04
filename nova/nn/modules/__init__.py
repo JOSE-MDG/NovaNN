@@ -21,7 +21,7 @@ from .batchnorm import (
     LazyBatchNorm2d,
     LazyBatchNorm3d,
 )
-from .conv import Conv1d, Conv2d, Conv3d
+from .conv import Conv1d, Conv2d, Conv3d, LazyConv1d, LazyConv2d, LazyConv3d
 from .dropout import Dropout, Dropout2d, Dropout3d
 from .layernorm import LayerNorm
 from .pooling import (
@@ -74,6 +74,9 @@ __all__ = [
     "Conv1d",
     "Conv2d",
     "Conv3d",
+    "LazyConv1d",
+    "LazyConv2d",
+    "LazyConv3d",
     "ReLU",
     "LeakyReLU",
     "PReLU",
