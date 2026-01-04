@@ -1,7 +1,6 @@
 from __future__ import annotations
 from nova import dtypes
 from numpy import ndarray
-from nova.utils.decorators.registry import _OPS_REGISTERED
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -76,6 +75,11 @@ type LossReducton = Literal["none", "mean", "sum"] | Literal[
 ]
 
 type OperationName = Literal[
+    "relu",
+    "leaky_relu",
+    "prelu",
+    "gelu",
+    "sigmoid",
     "abs",
     "add",
     "arccos",
@@ -126,6 +130,7 @@ type OperationName = Literal[
     "trace",
     "unsqueeze",
     "view",
+    "clone",
 ]
 
 
