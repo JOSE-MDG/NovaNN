@@ -16,9 +16,9 @@ def test_creation_and_dtype():
     assert t2.dtype == nova.double
     assert t3.dtype == nova.int
     assert t4.dtype == nova.long
-    assert t5.size[0] == 5
-    assert t6.size == (3, 3)
-    assert t7.size == (3, 5)
+    assert t5.size(0) == 5
+    assert t6.shape == (3, 3)
+    assert t7.shape == (3, 5)
 
 
 def test_basic_math():
@@ -83,8 +83,8 @@ def test_cat_stack():
     t2 = nova.arange(3) + 3
     c = nova.cat([t1, t2], dim=0)
     s = nova.stack([t1, t2], dim=0)
-    assert c.size[0] == 6
-    assert s.size[0] == 2
+    assert c.shape[0] == 6
+    assert s.shape[0] == 2
 
 
 def test_edge_scalars_and_none():
