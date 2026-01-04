@@ -1,3 +1,9 @@
+"""
+Basic Arithmetic Operations for Nova
+
+This module contains the low-level implementations for the elementary operations (addition, multiplication, exponentiation, etc.) that form the basis of the automatic differentiation engine.
+"""
+
 from .arithmetic import (
     Add,
     Sub,
