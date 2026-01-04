@@ -11,26 +11,6 @@ if TYPE_CHECKING:
     from nova._typing import Gradients
 
 
-def _ensure_array(num: int | float, dtype) -> ndarray:
-    """
-    Converts scalar to numpy array with specified dtype.
-
-    Args:
-        num: Scalar value or array.
-        dtype: Target dtype for conversion.
-
-    Returns:
-        Input as numpy array with specified dtype.
-    """
-    is_scalar = isinstance(num, (int, float))
-    if is_scalar:
-        num_array = np.array(num, dtype=dtype)
-    else:
-        num_array = num
-
-    return num_array
-
-
 @registry_op("add")
 class Add(Function):
     """
@@ -41,10 +21,10 @@ class Add(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a + b."""
-        ctx.saved_shapes = (a.shape, b.shape)
-        return a + b
+        ctx.saved_shapes = (input.shape, other.shape)
+        return input + other
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -54,10 +34,10 @@ class Add(Function):
         Gradient: ∂(a + b)/∂a = 1, ∂(a + b)/∂b = 1
         Both inputs receive the same gradient, unbroadcasted to original shapes.
         """
-        shape_a, shape_b = ctx.saved_shapes
-        grad_a = unbroadcasting(grad_output, shape_a)
-        grad_b = unbroadcasting(grad_output, shape_b)
-        return (grad_a, grad_b)
+        shape_input, shape_other = ctx.saved_shapes
+        grad_input = unbroadcasting(grad_output, shape_input)
+        grad_other = unbroadcasting(grad_output, shape_other)
+        return (grad_input, grad_other)
 
 
 @registry_op("sub")
@@ -70,10 +50,10 @@ class Sub(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a - b."""
-        ctx.saved_shapes = (a.shape, b.shape)
-        return a - b
+        ctx.saved_shapes = (input.shape, other.shape)
+        return input - other
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -83,10 +63,10 @@ class Sub(Function):
         Gradient: ∂(a - b)/∂a = 1, ∂(a - b)/∂b = -1
         First input receives gradient as-is, second receives negated gradient.
         """
-        shape_a, shape_b = ctx.saved_shapes
-        grad_a = unbroadcasting(grad_output, shape_a)
-        grad_b = unbroadcasting(-grad_output, shape_b)
-        return (grad_a, grad_b)
+        shape_input, shape_other = ctx.saved_shapes
+        grad_input = unbroadcasting(grad_output, shape_input)
+        grad_other = unbroadcasting(-grad_output, shape_other)
+        return (grad_input, grad_other)
 
 
 @registry_op("mul")
@@ -99,11 +79,11 @@ class Mul(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a * b."""
-        ctx.save_for_backward(a, b)
-        ctx.saved_shapes = (a.shape, b.shape)
-        return a * b
+        ctx.save_for_backward(input, other)
+        ctx.saved_shapes = (input.shape, other.shape)
+        return input * other
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -113,13 +93,13 @@ class Mul(Function):
         Gradient: ∂(a * b)/∂a = b, ∂(a * b)/∂b = a
         Each input's gradient is the product of grad_output and the other input.
         """
-        a, b = ctx.saved_tensors
-        shape_a, shape_b = ctx.saved_shapes
+        input, other = ctx.saved_tensors
+        shape_input, shape_other = ctx.saved_shapes
 
-        grad_a = unbroadcasting(grad_output * b, shape_a)
-        grad_b = unbroadcasting(grad_output * a, shape_b)
+        grad_input = unbroadcasting(grad_output * other, shape_input)
+        grad_other = unbroadcasting(grad_output * input, shape_other)
 
-        return (grad_a, grad_b)
+        return (grad_input, grad_other)
 
 
 @registry_op("div")
@@ -132,11 +112,11 @@ class Div(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a / b."""
-        ctx.save_for_backward(a, b)
-        ctx.saved_shapes = (a.shape, b.shape)
-        return a / b
+        ctx.save_for_backward(input, other)
+        ctx.saved_shapes = (input.shape, other.shape)
+        return input / other
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -146,13 +126,13 @@ class Div(Function):
         Gradient: ∂(a/b)/∂a = 1/b, ∂(a/b)/∂b = -a/b²
         Uses quotient rule for differentiation.
         """
-        a, b = ctx.saved_tensors
-        shape_a, shape_b = ctx.saved_shapes
+        input, other = ctx.saved_tensors
+        shape_input, shape_other = ctx.saved_shapes
 
-        grad_a = unbroadcasting((1 / b) * grad_output, shape_a)
-        grad_b = unbroadcasting((-a / b**2) * grad_output, shape_b)
+        grad_input = unbroadcasting((1 / other) * grad_output, shape_input)
+        grad_other = unbroadcasting((-input / other**2) * grad_output, shape_other)
 
-        return (grad_a, grad_b)
+        return (grad_input, grad_other)
 
 
 @registry_op("divint")
@@ -168,9 +148,9 @@ class DivInt(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a // b."""
-        return a // b
+        return input // other
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -185,16 +165,13 @@ class Mod(Function):
 
     Forward: out = a % b
     Backward: ∂L/∂a = ∂L/∂out, ∂L/∂b = None
-
-    Note: Gradient w.r.t. 'b' is complex and not commonly needed,
-    so it's simplified to None.
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a % b."""
-        ctx.saved_shapes = a.shape
-        return a % b
+        ctx.saved_shapes = input.shape
+        return input % other
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -204,10 +181,10 @@ class Mod(Function):
         Gradient: ∂(a % b)/∂a = 1 (simplified)
         The gradient w.r.t. 'a' is 1 in smooth regions.
         """
-        shape_a = ctx.saved_shapes
-        grad_a = unbroadcasting(grad_output, shape_a)
+        shape_input = ctx.saved_shapes
+        grad_input = unbroadcasting(grad_output, shape_input)
 
-        return (grad_a, None)
+        return (grad_input, None)
 
 
 @registry_op("floor")
@@ -223,9 +200,9 @@ class Floor(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes floor(a)."""
-        return np.floor(a, b)
+        return np.floor(input, other)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -246,12 +223,12 @@ class Pow(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray | int, b: ndarray | int) -> ndarray:
+    def forward(ctx: Context, input: ndarray | int, other: ndarray | int) -> ndarray:
         """Computes a^b."""
-        b_array = _ensure_array(b, a.dtype)
-        result = np.power(a, b_array)
-        ctx.save_for_backward(a, b, result)
-        ctx.saved_shapes = (a.shape, b_array.shape)
+        other_array = np.array(other, dtype=input.dtype)
+        result = np.power(input, other_array)
+        ctx.save_for_backward(input, other, result)
+        ctx.saved_shapes = (input.shape, other_array.shape)
         return result
 
     @staticmethod
@@ -264,24 +241,22 @@ class Pow(Function):
 
         Uses mask to handle a ≤ 0 gracefully (sets gradient to 0).
         """
-        a, b, result = ctx.saved_tensors
-        shape_a, shape_b = ctx.saved_shapes
+        input, other, result = ctx.saved_tensors
+        shape_input, shape_other = ctx.saved_shapes
 
-        mask_valid = a > 0
+        mask_valid = input > 0
 
-        # Gradient w.r.t. base: b * a^(b-1)
-        grad_a = np.where(
-            mask_valid, grad_output * b * result / np.maximum(a, 1e-10), 0.0
+        grad_input = np.where(
+            mask_valid, grad_output * other * result / np.maximum(input, 1e-10), 0.0
         )
-        grad_a = unbroadcasting(grad_a, shape_a)
+        grad_input = unbroadcasting(grad_input, shape_input)
 
-        # Gradient w.r.t. exponent: a^b * ln(a)
-        grad_b = np.where(
-            mask_valid, grad_output * result * np.log(np.maximum(a, 1e-10)), 0.0
+        grad_other = np.where(
+            mask_valid, grad_output * result * np.log(np.maximum(input, 1e-10)), 0.0
         )
-        grad_b = unbroadcasting(grad_b, shape_b)
+        grad_other = unbroadcasting(grad_other, shape_other)
 
-        return (grad_a, grad_b)
+        return (grad_input, grad_other)
 
 
 @registry_op("exp")
@@ -296,9 +271,9 @@ class Exp(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray | int) -> ndarray:
+    def forward(ctx: Context, input: ndarray | int) -> ndarray:
         """Computes e^a."""
-        result = np.exp(a)
+        result = np.exp(input)
         ctx.save_for_backward(result)
         return result
 
@@ -310,9 +285,9 @@ class Exp(Function):
         Gradient: ∂(e^a)/∂a = e^a
         The derivative of exp is itself.
         """
-        (exp,) = ctx.saved_tensors
-        grad_a = grad_output * exp
-        return (grad_a,)
+        (exp_result,) = ctx.saved_tensors
+        grad_input = grad_output * exp_result
+        return (grad_input,)
 
 
 @registry_op("log")
@@ -327,10 +302,10 @@ class Log(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray | int) -> ndarray:
+    def forward(ctx: Context, input: ndarray | int) -> ndarray:
         """Computes ln(a)."""
-        ctx.save_for_backward(a)
-        return np.log(a)
+        ctx.save_for_backward(input)
+        return np.log(input)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -340,10 +315,10 @@ class Log(Function):
         Gradient: ∂(ln(a))/∂a = 1/a
         Uses epsilon (1e-20) to prevent division by zero.
         """
-        (a,) = ctx.saved_tensors
+        (input,) = ctx.saved_tensors
 
-        grad_a = grad_output * (1 / np.maximum(a, 1e-20))
-        return (grad_a,)
+        grad_input = grad_output * (1 / np.maximum(input, 1e-20))
+        return (grad_input,)
 
 
 @registry_op("sqrt")
@@ -358,9 +333,9 @@ class Sqrt(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray) -> ndarray:
         """Computes √a."""
-        result = np.sqrt(a)
+        result = np.sqrt(input)
         ctx.save_for_backward(result)
         return result
 
@@ -372,10 +347,10 @@ class Sqrt(Function):
         Gradient: ∂(√a)/∂a = 1/(2√a)
         Uses epsilon (1e-20) to prevent division by zero.
         """
-        (sqrt_a,) = ctx.saved_tensors
+        (sqrt_input,) = ctx.saved_tensors
 
-        grad_a = grad_output * 0.5 / np.maximum(sqrt_a, 1e-20)
-        return (grad_a,)
+        grad_input = grad_output * 0.5 / np.maximum(sqrt_input, 1e-20)
+        return (grad_input,)
 
 
 @registry_op("neg")
@@ -388,9 +363,9 @@ class Neg(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray) -> ndarray:
         """Computes -a."""
-        return -a
+        return -input
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -410,15 +385,12 @@ class Sign(Function):
 
     Forward: out = sign(a) = {-1 if a<0, 0 if a=0, 1 if a>0}
     Backward: Not differentiable (returns None)
-
-    Note: Sign is a step function with zero gradient everywhere
-    except at zero where it's undefined.
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray) -> ndarray:
         """Computes sign(a)."""
-        return np.sign(a)
+        return np.sign(input)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -433,15 +405,13 @@ class Abs(Function):
 
     Forward: out = |a|
     Backward: ∂L/∂a = ∂L/∂out * sign(a)
-
-    Note: Technically undefined at a=0, but we use sign(0)=0 for simplicity.
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray) -> ndarray:
         """Computes |a|."""
-        ctx.save_for_backward(a)
-        return np.abs(a)
+        ctx.save_for_backward(input)
+        return np.abs(input)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -451,9 +421,9 @@ class Abs(Function):
         Gradient: ∂(|a|)/∂a = sign(a)
         The gradient is +1 where a>0 and -1 where a<0.
         """
-        (a,) = ctx.saved_tensors
-        grad_a = np.sign(a) * grad_output
-        return (grad_a,)
+        (input,) = ctx.saved_tensors
+        grad_input = np.sign(input) * grad_output
+        return (grad_input,)
 
 
 @registry_op("ceil")
@@ -463,15 +433,12 @@ class Ceil(Function):
 
     Forward: out = ceil(a)
     Backward: Not differentiable (returns None)
-
-    Note: Ceiling is a step function with zero gradient everywhere
-    except at integer boundaries where it's undefined.
     """
 
     @staticmethod
-    def forward(ctx: Context, a: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray) -> ndarray:
         """Computes ceil(a)."""
-        return np.ceil(a)
+        return np.ceil(input)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
