@@ -1,7 +1,8 @@
-##### Ops structure
+# Native operations registry for automatic Tensor method binding
+# This file defines all operations and their corresponding method names
 
 ops:
-  # Arithmetics methods
+  # Basic arithmetic operations
 
   - name: add
     tensor:
@@ -52,7 +53,7 @@ ops:
         dunder: __imod__
 
   - name: pow
-    raw_args: true
+    raw_args: true # Keeps scalar exponents as raw values
     tensor:
       dunder: __pow__
       reverse: __rpow__
@@ -74,7 +75,7 @@ ops:
     tensor:
       dunder: __neg__
 
-  # Activations
+  # Activation functions
 
   - name: relu
     is_unary: true
@@ -84,14 +85,14 @@ ops:
         method: relu_
 
   - name: leaky_relu
-    raw_args: true
+    raw_args: true # Alpha parameter stays as scalar
     tensor:
       method: leaky_relu
       inplace:
         method: leaky_relu_
 
   - name: prelu
-    raw_args: true
+    raw_args: true # Weight parameter stays as scalar/array
     tensor:
       method: prelu
       inplace:
@@ -111,20 +112,20 @@ ops:
       inplace:
         method: sigmoid_
 
-  # Indexing
+  # Indexing operations
 
   - name: getitem
-    raw_args: true
+    raw_args: true # Indices are not converted to tensors
     tensor:
       dunder: __getitem__
 
   - name: setitem
-    raw_args: true
+    raw_args: true # Indices and values kept as-is
     tensor:
       inplace:
         dunder: __setitem__
 
-  # Strides and views
+  # Memory layout and view operations
 
   - name: stride_tricks
     tensor:
@@ -138,7 +139,7 @@ ops:
     tensor:
       method: extend
 
-  # Linear algebra
+  # Linear algebra operations
 
   - name: matmul
     tensor:
@@ -169,7 +170,7 @@ ops:
     tensor:
       method: trace
 
-  # methods
+  # Mathematical functions
 
   - name: floor
     is_unary: true
@@ -213,7 +214,7 @@ ops:
       inplace:
         method: sign_
 
-  # reduction
+  # Reduction operations
 
   - name: max
     tensor:
@@ -235,7 +236,7 @@ ops:
     tensor:
       method: sum
 
-  # manipulation
+  # Shape manipulation operations
 
   - name: permute
     tensor:
@@ -275,7 +276,7 @@ ops:
     tensor:
       method: pad
 
-  # trigonometrics
+  # Trigonometric functions
 
   - name: sin
     is_unary: true
@@ -340,7 +341,7 @@ ops:
       inplace:
         method: arctan_
 
-  # comparison
+  # Comparison operations
 
   - name: maximum
     tensor:
