@@ -3,8 +3,8 @@ import nova
 import nova.nn.init as init
 import nova.nn.functional as F
 from typing import TYPE_CHECKING, Optional
-from nova.nn.modules import Module
-from nova.nn.parameter import Parameter
+from nova.nn.modules import Module, LazyModuleMixin
+from nova.nn.parameter import Parameter, UninitializedParameter
 
 if TYPE_CHECKING:
     from nova import Tensor
@@ -12,6 +12,10 @@ if TYPE_CHECKING:
 
 
 class LayerNorm(Module):
+
+    weight: Parameter
+    bias: Parameter
+
     def __init__(
         self,
         normalized_shape: Size,
@@ -25,12 +29,8 @@ class LayerNorm(Module):
         self.elementwise_affine = elementwise_affine
 
         if self.elementwise_affine:
-            self.weight: Parameter = Parameter(
-                nova.empty((normalized_shape,), dtype=dtype)
-            )
-            self.bias: Parameter = Parameter(
-                nova.empty((normalized_shape,), dtype=dtype)
-            )
+            self.weight = Parameter(nova.empty((normalized_shape,)), dtype=dtype)
+            self.bias = Parameter(nova.empty((normalized_shape,)), dtype=dtype)
         else:
             self.register_parameter("weight", None)
             self.register_parameter("bias", None)
