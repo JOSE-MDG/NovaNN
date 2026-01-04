@@ -13,70 +13,115 @@ if TYPE_CHECKING:
 
 @registry_op("maximum")
 class Maximum(Function):
+    """
+    Element-wise maximum of two tensors.
+
+    Forward:
+        out = max(input, other)
+
+    Backward:
+        d_input = 1.0 where input > other, 0.5 where input == other
+        d_other = 1.0 where other > input, 0.5 where input == other
+    """
+
     @staticmethod
-    def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
-        ctx.save_for_backward(a, b)
-        ctx.saved_shapes = (a.shape, b.shape)
-        return np.maximum(a, b)
+    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+        """Computes element-wise maximum."""
+        ctx.save_for_backward(input, other)
+        ctx.saved_shapes = (input.shape, other.shape)
+        return np.maximum(input, other)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        a, b = ctx.saved_tensors
-        shape_a, shape_b = ctx.saved_shapes
+        """Distributes gradient between input and other, handling ties with 0.5."""
+        input, other = ctx.saved_tensors
+        shape_input, shape_other = ctx.saved_shapes
 
-        mask_a = a > b
-        mask_b = ~mask_a
-        mask_eq = a == b
+        mask_input = input > other
+        mask_other = ~mask_input
+        mask_eq = input == other
 
-        grad_a = mask_a + 0.5 * mask_eq
-        grad_b = mask_b + 0.5 * mask_eq
+        grad_input = mask_input + 0.5 * mask_eq
+        grad_other = mask_other + 0.5 * mask_eq
 
-        grad_a = unbroadcasting(grad_output * grad_a, shape_a)
-        grad_b = unbroadcasting(grad_output * grad_b, shape_b)
-
-        return (grad_a, grad_b)
+        return (
+            unbroadcasting(grad_output * grad_input, shape_input),
+            unbroadcasting(grad_output * grad_other, shape_other),
+        )
 
 
 @registry_op("minimum")
 class Minimum(Function):
+    """
+    Element-wise minimum of two tensors.
+
+    Forward:
+        out = min(input, other)
+
+    Backward:
+        d_input = 1.0 where input < other, 0.5 where input == other
+        d_other = 1.0 where other < input, 0.5 where input == other
+    """
+
     @staticmethod
-    def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
-        ctx.save_for_backward(a, b)
-        ctx.saved_shapes = (a.shape, b.shape)
-        return np.minimum(a, b)
+    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+        """Computes element-wise minimum."""
+        ctx.save_for_backward(input, other)
+        ctx.saved_shapes = (input.shape, other.shape)
+        return np.minimum(input, other)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        a, b = ctx.saved_tensors
-        shape_a, shape_b = ctx.saved_shapes
+        """Distributes gradient between input and other, handling ties with 0.5."""
+        input, other = ctx.saved_tensors
+        shape_input, shape_other = ctx.saved_shapes
 
-        mask_a = a > b
-        mask_b = ~mask_a
-        mask_eq = a == b
+        mask_input = input < other
+        mask_other = ~mask_input
+        mask_eq = input == other
 
-        grad_a = mask_a + 0.5 * mask_eq
-        grad_b = mask_b + 0.5 * mask_eq
+        grad_input = mask_input + 0.5 * mask_eq
+        grad_other = mask_other + 0.5 * mask_eq
 
-        grad_a = unbroadcasting(grad_output * grad_a, shape_a)
-        grad_b = unbroadcasting(grad_output * grad_b, shape_b)
-
-        return (grad_a, grad_b)
+        return (
+            unbroadcasting(grad_output * grad_input, shape_input),
+            unbroadcasting(grad_output * grad_other, shape_other),
+        )
 
 
 @registry_op("where")
 class Where(Function):
+    """
+    Element-wise selection based on a condition.
+
+    Forward:
+        out = input where condition is True, else other
+
+    Backward:
+        d_input = grad_output where condition is True
+        d_other = grad_output where condition is False
+    """
+
     @staticmethod
-    def forward(ctx: Context, condition, a: ndarray, b: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, condition: ndarray, input: ndarray, other: ndarray
+    ) -> ndarray:
+        """Selects elements from input or other based on condition."""
         ctx.save_for_backward(condition)
-        ctx.saved_shapes = (a.shape, b.shape)
-        return np.where(condition, a, b)
+        ctx.saved_shapes = (input.shape, other.shape)
+        return np.where(condition, input, other)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """Routes gradients only through the selected branches."""
         (condition,) = ctx.saved_tensors
-        shape_a, shape_b = ctx.saved_shapes
+        shape_input, shape_other = ctx.saved_shapes
 
-        grad_a = unbroadcasting(np.where(condition, grad_output, 0.0), shape_a)
-        grad_b = unbroadcasting(np.where(condition, 0.0, grad_output), shape_b)
+        grad_input = np.where(condition, grad_output, 0.0)
+        grad_other = np.where(~condition, grad_output, 0.0)
 
-        return (None, grad_a, grad_b)
+        return (
+            None,  # Condition is not differentiable
+            unbroadcasting(grad_input, shape_input),
+            unbroadcasting(grad_other, shape_other),
+        )
