@@ -11,8 +11,16 @@ from .activation import (
     Softmax,
     LogSoftmax,
 )
+from .lazy import LazyModuleMixin
 from .flatten import Flatten
-from .batchnorm import BatchNorm1d, BatchNorm2d, BatchNorm3d
+from .batchnorm import (
+    BatchNorm1d,
+    BatchNorm2d,
+    BatchNorm3d,
+    LazyBatchNorm1d,
+    LazyBatchNorm2d,
+    LazyBatchNorm3d,
+)
 from .conv import Conv1d, Conv2d, Conv3d
 from .dropout import Dropout, Dropout2d, Dropout3d
 from .layernorm import LayerNorm
@@ -40,12 +48,16 @@ from .loss import (
 
 __all__ = [
     "Module",
+    "LazyModuleMixin",
     "Linear",
     "LazyLinear",
     "Sequential",
     "BatchNorm1d",
     "BatchNorm2d",
     "BatchNorm3d",
+    "LazyBatchNorm1d",
+    "LazyBatchNorm2d",
+    "LazyBatchNorm3d",
     "LayerNorm",
     "AvgPool1d",
     "AvgPool2d",
