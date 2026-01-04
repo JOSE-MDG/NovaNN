@@ -140,6 +140,30 @@ class Tensor(TensorBase):
     def __rge__(self, other) -> Tensor:
         return self.__le__(other)
 
+    def eq(self, other) -> Tensor:
+        """Element-wise equality (alias for ==)."""
+        return self.__eq__(other)
+
+    def ne(self, other) -> Tensor:
+        """Element-wise inequality (alias for !=)."""
+        return self.__ne__(other)
+
+    def lt(self, other) -> Tensor:
+        """Element-wise less than (alias for <)."""
+        return self.__lt__(other)
+
+    def le(self, other) -> Tensor:
+        """Element-wise less than or equal (alias for <=)."""
+        return self.__le__(other)
+
+    def gt(self, other) -> Tensor:
+        """Element-wise greater than (alias for >)."""
+        return self.__gt__(other)
+
+    def ge(self, other) -> Tensor:
+        """Element-wise greater than or equal (alias for >=)."""
+        return self.__ge__(other)
+
     def __invert__(self) -> Tensor:
         return Tensor(~self.data, dtype=nova.bool, requires_grad=False)
 
@@ -187,7 +211,7 @@ class Tensor(TensorBase):
         return std(self, dim=dim, keepdims=keepdims)
 
     def detach(self) -> Tensor:
-        return Tensor(self.data, dtype=self.dtype, requires_grad=False)
+        return Tensor(self.data, dtype=self._dtype_internal, requires_grad=False)
 
     def item(self) -> float | int:
         if self.numel() > 1:
@@ -207,14 +231,67 @@ class Tensor(TensorBase):
             self.data.any(dim, keepdims=keepdims), dtype=nova.bool, requires_grad=False
         )
 
+    def clone(self) -> Tensor:
+        """
+        Returns a copy of the tensor with the same data.
+
+        If the original tensor requires gradients, the cloned tensor
+        will be connected to the computation graph and gradients will
+        flow back through the clone operation.
+
+        Examples:
+            >>> x = nova.tensor([1.0, 2.0], requires_grad=True)
+            >>> y = x.clone()
+            >>> y[0] = 999  # Doesn't affect x
+            >>> loss = y.sum()
+            >>> loss.backward()
+            >>> print(x.grad)  # Gradients flow through
+            [1., 1.]
+        """
+        from nova.autograd._ops import Clone
+
+        if self.requires_grad:
+            return Clone.apply(self)
+        else:
+            return Tensor(
+                self.data.copy(), dtype=self._dtype_internal, requires_grad=False
+            )
+
+    def type(self, dtype: Optional[Dtype] = None) -> Tensor | str:
+        """
+        Returns the type if dtype is None, or casts to dtype.
+
+        Examples:
+            >>> x.type()
+            'nova.float32'
+            >>> x.type(nova.int64)
+            tensor([...], dtype=int64)
+        """
+        if dtype is None:
+            return f"nova.{np.dtype(self._dtype_internal).name}"
+        return self.to(dtype)
+
+    def is_contiguous(self) -> bool:
+        """Returns True if the tensor is contiguous in memory."""
+        return self.data.flags["C_CONTIGUOUS"]
+
+    def contiguous(self) -> Tensor:
+        """Returns a contiguous tensor."""
+        if self.is_contiguous():
+            return self
+        return Tensor(
+            np.ascontiguousarray(self.data),
+            dtype=self._dtype_internal,
+            requires_grad=self.requires_grad,
+        )
+
     def to(self, dtype: Dtype) -> Tensor:
-        if dtype == self.dtype:
+        if dtype == self._dtype_internal:
             return self
         data = self.data.astype(dtype, copy=True)
 
         out = Tensor(data, dtype=dtype, requires_grad=self.requires_grad)
 
-        # Si el tensor requiere gradiente, preservamos el grafo
         if self.requires_grad:
             out._inputs = self._inputs
             out.grad_fn = self.grad_fn
@@ -256,7 +333,7 @@ class Tensor(TensorBase):
             )
 
         self.data = np.random.normal(loc=mean, scale=std, size=self.data.shape).astype(
-            self.dtype
+            self._dtype_internal
         )
 
     def uniform_(self, low: float = -1, high: float = 1) -> None:
@@ -266,7 +343,7 @@ class Tensor(TensorBase):
             )
 
         self.data = np.random.uniform(low=low, high=high, size=self.data.shape).astype(
-            self.dtype
+            self._dtype_internal
         )
 
     def random_(self) -> None:
@@ -275,7 +352,7 @@ class Tensor(TensorBase):
                 f"Cannot perform inplace operation on a tensor that requires gradients"
             )
 
-        self.data = np.random.rand(self.data.shape).astype(self.dtype)
+        self.data = np.random.rand(self.data.shape).astype(self._dtype_internal)
 
     def zero_(self) -> None:
         if self.requires_grad:
@@ -408,7 +485,7 @@ class Tensor(TensorBase):
         result += f", requires_grad={self.requires_grad}"
         result += f", grad_fn={repr(self.grad_fn)}"
 
-        dtype_str = np.dtype(self.dtype).name
+        dtype_str = np.dtype(self._dtype_internal).name
         result += f", dtype={dtype_str}"
         result += ")"
         return result
