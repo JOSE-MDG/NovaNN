@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Iterable, Self, Optional, TYPE_CHECKING
 from collections import OrderedDict
 from nova.nn import Parameter, Buffer
+from nova.nn.parameter import UninitializedParameter, UninitializedBuffer, is_lazy
 from nova.utils import registry_class
 
 if TYPE_CHECKING:
@@ -50,7 +51,7 @@ class Module:
 
         if buffer is None:
             self._buffers[name] = None
-        elif not isinstance(buffer, Buffer):
+        elif not isinstance(buffer, Buffer) and not is_lazy(buffer):
             raise ValueError("Only Buffer types can be registered.")
         else:
             self._buffers[name] = buffer
@@ -61,7 +62,7 @@ class Module:
 
         if param is None:
             self._parameters[name] = None
-        elif not isinstance(param, Parameter):
+        elif not isinstance(param, Parameter) and not is_lazy(param):
             raise ValueError("Only Parameter types can be registered.")
         else:
             self._parameters[name] = param
@@ -79,17 +80,23 @@ class Module:
 
         setattr(self, name, module)
 
-    def __setattr__(self, name: str, value: Parameter | Module | Buffer):
+    def __setattr__(
+        self,
+        name: str,
+        value: (
+            Parameter | Module | Buffer | UninitializedBuffer | UninitializedParameter
+        ),
+    ):
 
         if not getattr(self, "_initialized", False):
             object.__setattr__(self, name, value)
             return
 
-        if isinstance(value, Parameter):
+        if isinstance(value, (Parameter, UninitializedParameter)):
             self._parameters[name] = value
         elif isinstance(value, Module):
             self._modules[name] = value
-        elif isinstance(value, Buffer):
+        elif isinstance(value, (Buffer, UninitializedBuffer)):
             self._buffers[name] = value
 
         object.__setattr__(self, name, value)

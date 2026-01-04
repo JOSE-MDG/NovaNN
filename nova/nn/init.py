@@ -130,7 +130,7 @@ def get_fans(
 
 def xavier_normal_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
-    fan_in, fan_out = get_fans(shape=tensor.shape, mode="both")
+    fan_in, fan_out = get_fans(tensor, mode="both")
 
     std = gain * np.sqrt(2.0 / (fan_in + fan_out))
 
@@ -143,7 +143,7 @@ def xavier_normal_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
 def xavier_uniform_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
-    fan_in, fan_out = get_fans(shape=tensor.shape, mode="both")
+    fan_in, fan_out = get_fans(tensor, mode="both")
 
     limit = gain * np.sqrt(6.0 / (fan_in + fan_out))
 
@@ -161,7 +161,7 @@ def kaiming_normal_(
     mode: str = "fan_in",
 ) -> None:
 
-    fan = get_fans(shape=tensor.shape, mode=mode)
+    fan = get_fans(tensor, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
     std = gain / np.sqrt(fan)
@@ -180,7 +180,7 @@ def kaiming_uniform_(
     mode: str = "fan_in",
 ) -> None:
 
-    fan = get_fans(shape=tensor.shape, mode=mode)
+    fan = get_fans(tensor, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
     limit = gain * np.sqrt(3.0 / fan)

@@ -1,5 +1,5 @@
 from .module import Module
-from .linear import Linear
+from .linear import Linear, LazyLinear
 from .container import Sequential
 from .activation import (
     ReLU,
@@ -41,6 +41,7 @@ from .loss import (
 __all__ = [
     "Module",
     "Linear",
+    "LazyLinear",
     "Sequential",
     "BatchNorm1d",
     "BatchNorm2d",
