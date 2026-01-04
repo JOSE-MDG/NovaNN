@@ -9,32 +9,89 @@ if TYPE_CHECKING:
 def grad(
     outputs: Tensor | list[Tensor],
     inputs: Tensor | list[Tensor],
-    gradients: Optional[Tensor | ndarray | list[Tensor | ndarray]] = None,
-    retain_grads: bool = True,
+    grad_outputs: Optional[Tensor | ndarray | list[Tensor | ndarray]] = None,
+    retain_graph: bool = False,
+    create_graph: bool = False,
+    allow_unused: bool = False,
 ) -> list[ndarray] | ndarray:
+    """
+    Computes gradients of outputs with respect to inputs.
 
-    if not isinstance(inputs, list):
+    Args:
+        outputs: Tensor or list of tensors to differentiate.
+        inputs: Tensor or list of tensors with respect to which to compute gradients.
+        grad_outputs: Gradients with respect to outputs. If None, assumed to be ones.
+        retain_graph: If False, the graph is freed after backward (default PyTorch behavior).
+        create_graph: If True, graph of derivatives is constructed (for higher-order derivatives).
+        allow_unused: If True, returns None for unused inputs instead of raising error.
+
+    Returns:
+        List of gradients (or single gradient if inputs was a single Tensor).
+
+    Examples:
+        >>> x = nova.tensor([1.0, 2.0, 3.0], requires_grad=True)
+        >>> y = (x ** 2).sum()
+        >>> grads = nova.grad(y, x)
+        >>> print(grads)  # [2.0, 4.0, 6.0]
+    """
+    # Normalize inputs to list
+    single_input = not isinstance(inputs, (list, tuple))
+    if single_input:
         inputs = [inputs]
 
-    elif not isinstance(outputs, list):
+    # Normalize outputs to list
+    single_output = not isinstance(outputs, (list, tuple))
+    if single_output:
         outputs = [outputs]
 
-    if gradients is not None and not isinstance(gradients, (list, tuple)):
-        gradients = [gradients]
+    # Normalize grad_outputs to list
+    if grad_outputs is not None:
+        if not isinstance(grad_outputs, (list, tuple)):
+            grad_outputs = [grad_outputs]
+        if len(grad_outputs) != len(outputs):
+            raise ValueError(
+                f"grad_outputs must have {len(outputs)} elements, got {len(grad_outputs)}"
+            )
 
-    prev_grads = {input: input.grad for input in inputs}
+    # Save prev gradients
+    prev_grads = {inp: inp.grad for inp in inputs}
 
-    for input in inputs:
-        input.zero_grad(set_to_none=True)
+    # Clean gradients
+    for inp in inputs:
+        inp.zero_grad(set_to_none=True)
 
+    # Backward pass for each output
     for i, output in enumerate(outputs):
-        gradient = gradients[i] if gradients else None
-        output.backward(gradient=gradient)
+        if not output.requires_grad:
+            raise RuntimeError(f"Output {i} does not require gradients")
 
-    grads = [inp.grad for inp in inputs]
+        gradient = None
+        if grad_outputs is not None:
+            gradient = grad_outputs[i]
+            if isinstance(gradient, Tensor):
+                gradient = gradient.data
 
-    if retain_grads:
-        for input in inputs:
-            input.grad = prev_grads[input]
+        output.backward(
+            gradient=gradient, retain_graph=retain_graph or (i < len(outputs) - 1)
+        )
 
-    return grads[0] if len(grads) == 1 else grads
+    # Recolect gradients
+    grads = []
+    for inp in inputs:
+        if inp.grad is None:
+            if allow_unused:
+                grads.append(None)
+            else:
+                raise RuntimeError(
+                    f"One of the inputs did not contribute to the output. Set allow_unused=True if this is expected."
+                )
+        else:
+            grads.append(inp.grad.copy() if not create_graph else inp.grad)
+
+    # Restore previous gradients if the graph is not desired
+    if not create_graph:
+        for inp in inputs:
+            inp.grad = prev_grads[inp]
+
+    # Return single gradient if it was single input
+    return grads[0] if single_input else grads
