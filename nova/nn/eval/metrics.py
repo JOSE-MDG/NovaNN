@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 def r2_score(
     model: Module,
     data_loader: DataLoader,
-) -> Tensor:
+) -> float:
 
     all_y_true = []
     all_y_pred = []
@@ -33,5 +33,20 @@ def r2_score(
         if sst == 0:
             return 1.0
 
-        r2 = 1 - (sse / sst)
+        r2 = (1 - (sse / sst)).item()
     return r2
+
+
+def accuracy(model: Module, loader: DataLoader) -> float:
+    model.eval()
+    total = 0
+    correct = 0
+
+    with nova.no_grad():
+        for input, target in loader:
+            output = model(input)
+            preds = output.argmax(dim=1)
+            correct += (preds == target).sum().item()
+            total += target.size[0]
+        acc = correct / total
+    return acc
