@@ -1,7 +1,7 @@
 import nova
 import pytest
 import numpy as np
-from nova.utils.log_config import logger
+from nova.utils.logger import logger
 
 
 def test_creation_and_dtype():

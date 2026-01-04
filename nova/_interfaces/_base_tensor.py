@@ -29,13 +29,13 @@ class TensorBase:
         return self.permute()
 
     @property
-    def size(self) -> Size:
+    def shape(self) -> Size:
         """Returns the shape of the tensor (alias for shape)."""
         return self._data_internal.shape
 
     @property
     def dtype(self) -> Dtype:
-        return self.type()
+        return self._dtype_internal
 
     @property
     def strides(self) -> tuple[int, ...]:
@@ -93,7 +93,7 @@ class TensorBase:
             4
         """
         if dim is None:
-            return self.size
+            return self.shape
 
         # handle negatives indices
         if dim < 0:
@@ -104,4 +104,4 @@ class TensorBase:
                 f"Dimension out of range (expected to be in range of [-{self.dim()}, {self.dim() -1}], but got {dim})"
             )
 
-        return self.size[dim]
+        return self.shape[dim]

@@ -47,6 +47,6 @@ def accuracy(model: Module, loader: DataLoader) -> float:
             output = model(input)
             preds = output.argmax(dim=1)
             correct += (preds == target).sum().item()
-            total += target.size[0]
+            total += target.size(0)
         acc = correct / total
     return acc

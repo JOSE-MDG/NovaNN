@@ -5,6 +5,7 @@ from typing import Any, Literal, Optional, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from nova.nn import Parameter, Buffer
+    from nova import Tensor
     from nova._typing import Size
 
 """
@@ -101,12 +102,12 @@ def _calculate_fans(shape: Size) -> tuple[int, int]:
 
 
 def get_fans(
-    shape: Size, mode: Literal["both", "fan_in", "fan_out"] = "fan_in"
+    tensor: Tensor, mode: Literal["both", "fan_in", "fan_out"] = "fan_in"
 ) -> Union[int, tuple[int, int]]:
     """Calculate fan values for weight initialization.
 
     Args:
-        shape: Weight tensor shape.
+        tensor: Tensor object to calculate fans.
         mode: One of 'fan_in', 'fan_out', or 'both'.
 
     Returns:
@@ -115,6 +116,7 @@ def get_fans(
     Raises:
         ValueError: If mode is invalid or shape has invalid dimensions.
     """
+    shape = tensor.shape
     _validate_mode(mode)
     fan_in, fan_out = _calculate_fans(shape)
 
@@ -128,7 +130,7 @@ def get_fans(
 
 def xavier_normal_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
-    fan_in, fan_out = get_fans(shape=tensor.size, mode="both")
+    fan_in, fan_out = get_fans(shape=tensor.shape, mode="both")
 
     std = gain * np.sqrt(2.0 / (fan_in + fan_out))
 
@@ -141,7 +143,7 @@ def xavier_normal_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
 def xavier_uniform_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
-    fan_in, fan_out = get_fans(shape=tensor.size, mode="both")
+    fan_in, fan_out = get_fans(shape=tensor.shape, mode="both")
 
     limit = gain * np.sqrt(6.0 / (fan_in + fan_out))
 
@@ -159,7 +161,7 @@ def kaiming_normal_(
     mode: str = "fan_in",
 ) -> None:
 
-    fan = get_fans(shape=tensor.size, mode=mode)
+    fan = get_fans(shape=tensor.shape, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
     std = gain / np.sqrt(fan)
@@ -178,7 +180,7 @@ def kaiming_uniform_(
     mode: str = "fan_in",
 ) -> None:
 
-    fan = get_fans(shape=tensor.size, mode=mode)
+    fan = get_fans(shape=tensor.shape, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
     limit = gain * np.sqrt(3.0 / fan)
@@ -190,7 +192,9 @@ def kaiming_uniform_(
     tensor.requires_grad_(prev_state)
 
 
-def uniform_(tensor: Parameter | Buffer, low: float = 0, high: float = 1) -> None:
+def uniform_(
+    tensor: Tensor | Parameter | Buffer, low: float = 0, high: float = 1
+) -> None:
 
     prev_state = tensor.requires_grad
 
@@ -199,46 +203,48 @@ def uniform_(tensor: Parameter | Buffer, low: float = 0, high: float = 1) -> Non
     tensor.requires_grad_(prev_state)
 
 
-def normal_(weight: Parameter | Buffer, mean: float = 0, std: float = 1) -> None:
+def normal_(
+    tensor: Tensor | Parameter | Buffer, mean: float = 0, std: float = 1
+) -> None:
 
-    prev_state = weight.requires_grad
+    prev_state = tensor.requires_grad
 
-    weight.requires_grad_(False)
-    weight.normal_(mean, std)
-    weight.requires_grad_(prev_state)
-
-
-def constant_(weight: Parameter | Buffer, val: Any) -> None:
-
-    prev_state = weight.requires_grad
-
-    weight.requires_grad_(False)
-    weight.fill_(val)
-    weight.requires_grad_(prev_state)
+    tensor.requires_grad_(False)
+    tensor.normal_(mean, std)
+    tensor.requires_grad_(prev_state)
 
 
-def zeros_(weight: Parameter | Buffer) -> None:
+def constant_(tensor: Tensor | Parameter | Buffer, val: Any) -> None:
 
-    prev_state = weight.requires_grad
+    prev_state = tensor.requires_grad
 
-    weight.requires_grad_(False)
-    weight.zero_()
-    weight.requires_grad_(prev_state)
-
-
-def ones_(weight: Parameter | Buffer) -> None:
-
-    prev_state = weight.requires_grad
-
-    weight.requires_grad_(False)
-    weight.ones_()
-    weight.requires_grad_(prev_state)
+    tensor.requires_grad_(False)
+    tensor.fill_(val)
+    tensor.requires_grad_(prev_state)
 
 
-def random_(weight: Parameter | Buffer) -> None:
+def zeros_(tensor: Tensor | Parameter | Buffer) -> None:
 
-    prev_state = weight.requires_grad
+    prev_state = tensor.requires_grad
 
-    weight.requires_grad_(False)
-    weight.random_()
-    weight.requires_grad_(prev_state)
+    tensor.requires_grad_(False)
+    tensor.zero_()
+    tensor.requires_grad_(prev_state)
+
+
+def ones_(tensor: Tensor | Parameter | Buffer) -> None:
+
+    prev_state = tensor.requires_grad
+
+    tensor.requires_grad_(False)
+    tensor.ones_()
+    tensor.requires_grad_(prev_state)
+
+
+def random_(tensor: Tensor | Parameter | Buffer) -> None:
+
+    prev_state = tensor.requires_grad
+
+    tensor.requires_grad_(False)
+    tensor.random_()
+    tensor.requires_grad_(prev_state)

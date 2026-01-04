@@ -120,9 +120,9 @@ def mse_loss(
 
         weight = ensure_tensor(weight)
 
-        if weight.size != target.size:
+        if weight.shape != target.shape:
             raise ValueError(
-                f"weights and targets must be have the same shape, {weight.size} != {target.size}"
+                f"weights and targets must be have the same shape, {weight.shape} != {target.shape}"
             )
 
         loss = loss * weight
@@ -145,9 +145,9 @@ def l1_loss(
 
         weight = ensure_tensor(weight)
 
-        if weight.size != target.size:
+        if weight.shape != target.shape:
             raise ValueError(
-                f"weights and targets must be have the same shape, {weight.size} != {target.size}"
+                f"weights and targets must be have the same shape, {weight.shape} != {target.shape}"
             )
 
         loss = loss * weight
@@ -173,9 +173,9 @@ def smooth_l1_loss(
     if weight is not None:
         weight = ensure_tensor(weight)
 
-        if weight.size != target.size:
+        if weight.shape != target.shape:
             raise ValueError(
-                f"weights and targets must be have the same shape, {weight.size} != {target.size}"
+                f"weights and targets must be have the same shape, {weight.shape} != {target.shape}"
             )
 
     return _reduce(loss, reduction).to(logits.dtype)
@@ -199,9 +199,9 @@ def binary_cross_entropy(
     if weight is not None:
         weight = ensure_tensor(weight)
 
-        if weight.size != target.size:
+        if weight.shape != target.shape:
             raise ValueError(
-                f"weights and targets must be have the same shape, {weight.size} != {target.size}"
+                f"weights and targets must be have the same shape, {weight.shape} != {target.shape}"
             )
 
         loss = loss * weight
@@ -239,9 +239,9 @@ def binary_cross_entropy_with_logits(
     if weight is not None:
         weight = ensure_tensor(weight)
 
-        if weight.size != target.size:
+        if weight.shape != target.shape:
             raise ValueError(
-                f"weights and targets must be have the same shape, {weight.size} != {target.size}"
+                f"weights and targets must be have the same shape, {weight.shape} != {target.shape}"
             )
 
         loss = loss * weight
@@ -258,14 +258,14 @@ def nll_loss(
 
     log_probs = ensure_tensor(log_probs)
     target = ensure_tensor(target)
-    N = log_probs.size[0]
+    N = log_probs.size(0)
 
     loss = -log_probs[nova.arange(N, dtype=nova.long), target]
 
     if weight is not None:
-        if weight.size != target.size:
+        if weight.shape != target.shape:
             raise ValueError(
-                f"weights and targets must be have the same shape, {weight.size} != {target.size}"
+                f"weights and targets must be have the same shape, {weight.shape} != {target.shape}"
             )
 
         loss = loss * weight[target]
@@ -280,7 +280,7 @@ def cross_entropy(
     logits = ensure_tensor(input)
     log_probs = log_softmax(logits)
 
-    return nll_loss(log_probs, target, weight=weight).to(logits.dtype)
+    return nll_loss(log_probs, target, weight=weight)
 
 
 def kl_div(
@@ -302,8 +302,8 @@ def kl_div(
         loss = probs_target * (nova.log(probs_target) - log_probs)
 
     loss = loss.sum(dim=1)
-    batch_size = log_probs.size[0]
-    return _reduce(loss, reduction, batch_size=batch_size).to(log_probs.dtype)
+    batch_size = log_probs.size(0)
+    return _reduce(loss, reduction, batch_size=batch_size)
 
 
 # layer ops
@@ -315,7 +315,7 @@ def linear(
     input = ensure_tensor(input)
     output = input @ weight.T
     if bias is not None:
-        out_features = weight.size[0]
+        out_features = weight.size(0)
 
         bias_view = bias.view((1, out_features))
         output = output + bias_view
@@ -330,7 +330,7 @@ def flatten(input: Tensor, start_dim: int = 1, end_dim: int = -1) -> Tensor:
     actual_start = start_dim if start_dim >= 0 else dims + start_dim
     actual_end = end_dim if end_dim >= 0 else dims + end_dim
 
-    shape = input.size
+    shape = input.shape
 
     new_shape = list(shape[:actual_start])
 
@@ -427,9 +427,9 @@ def conv1d(
 
         return col, L_out
 
-    out_channels = weight.size[0]
+    out_channels = weight.size(0)
 
-    input_size = input.size
+    input_size = input.shape
 
     N = input_size[0]
 
@@ -518,8 +518,8 @@ def conv2d(
 
         return col, H_out, W_out
 
-    out_channels = weight.size[0]
-    input_size = input.size
+    out_channels = weight.size(0)
+    input_size = input.shape
 
     N = input_size[0]
 
@@ -623,8 +623,8 @@ def conv3d(
 
         return col, D_out, H_out, W_out
 
-    out_channels = weight.size[0]
-    input_size = input.size
+    out_channels = weight.size(0)
+    input_size = input.shape
     N = input_size[0]
 
     col, D_out, H_out, W_out = _im2col(input=input, input_size=input_size)
@@ -670,18 +670,18 @@ def avg_pool1d(
         pad_width = ((0, 0), (0, 0), (P, P))
         return nova.pad(input, pad_width, mode="constant")
 
-    N, C, L = input.size
+    N, C, L = input.shape
 
     input_padded = _add_padding(input)
 
     L_out = _calculate_out_size(L)
 
-    # Shape of the windows: (N, C, L_out, K)
-    shape = (N, C, L_out, kernel_size)
+    # size of the windows: (N, C, L_out, K)
+    size = (N, C, L_out, kernel_size)
     sN, sC, sL = input_padded.strides
     strides = (sN, sC, sL * S, sL)
 
-    return nova.as_strided(input_padded, size=shape, strides=strides).mean(dim=3)
+    return nova.as_strided(input_padded, size=size, strides=strides).mean(dim=3)
 
 
 def avg_pool2d(
@@ -713,7 +713,7 @@ def avg_pool2d(
 
         return nova.pad(input, pad_width=pad_width, mode="constant")
 
-    N, C, H, W = input.size
+    N, C, H, W = input.shape
 
     input_padded = _add_padding(input)
     H_out, W_out = _calculate_out_size(H, W)
@@ -755,7 +755,7 @@ def avg_pool3d(
         pad_width = ((0, 0), (0, 0), (PD, PD), (PH, PH), (PW, PW))
         return nova.pad(input, pad_width, mode="constant")
 
-    N, C, D, H, W = input.size
+    N, C, D, H, W = input.shape
     input_padded = _add_padding(input=input)
     D_out, H_out, W_out = _calculate_out_size(D, H, W)
 
@@ -810,7 +810,7 @@ def max_pool1d(
         pad_width = ((0, 0), (0, 0), (P, P))
         return nova.pad(input, pad_width, mode="constant")
 
-    N, C, L = input.size
+    N, C, L = input.shape
 
     input_padded = _add_padding(input)
 
@@ -857,7 +857,7 @@ def max_pool2d(
 
         return nova.pad(input, pad_width=pad_width, mode="constant")
 
-    N, C, H, W = input.size
+    N, C, H, W = input.shape
 
     input_padded = _add_padding(input)
     H_out, W_out = _calculate_out_size(H, W)
@@ -904,7 +904,7 @@ def max_pool3d(
         pad_width = ((0, 0), (0, 0), (PD, PD), (PH, PH), (PW, PW))
         return nova.pad(input, pad_width, mode="constant")
 
-    N, C, D, H, W = input.size
+    N, C, D, H, W = input.shape
     input_padded = _add_padding(input=input)
     D_out, H_out, W_out = _calculate_out_size(D, H, W)
 
@@ -947,10 +947,10 @@ def batch_norm(
     """
     input = ensure_tensor(input)
 
-    if len(input.size) < 2:
+    if len(input.shape) < 2:
         raise ValueError(f"Expected at least 2D input, got {input.dim()}")
 
-    num_features = input.size[1]
+    num_features = input.size(1)
 
     if training:
         # Reduce across batch and spatial dimensions (but not channels)
@@ -962,7 +962,7 @@ def batch_norm(
         # Compute unbiased variance correction
         num_reduced = 1
         for d in dims_to_reduce:
-            num_reduced *= input.size[d]
+            num_reduced *= input.size(d)
 
         if num_reduced > 1:
             var_unbiased = var_biased * (num_reduced / (num_reduced - 1))
@@ -1023,7 +1023,7 @@ def layer_norm(
     input = ensure_tensor(input)
     dtype = input.dtype
 
-    input_shape = input.size
+    input_shape = input.shape
 
     if not isinstance(normalized_shape, tuple):
         normalized_shape = (normalized_shape,)
@@ -1090,7 +1090,7 @@ def dropout1d(input: Tensor, p: float = 0.5, training: bool = True):
 
     input = ensure_tensor(input)
 
-    mask_bool = nova.rand(*input.size) > p
+    mask_bool = nova.rand(*input.shape) > p
     mask = ensure_tensor(mask_bool, dtype=input.dtype)
     mask = mask / (1 - p)
     out = input * mask
@@ -1110,7 +1110,7 @@ def dropout2d(input: Tensor, p: float = 0.5, training: bool = True):
     if input.dim() != 4:
         raise ValueError(f"dropout2d expected input 4D, got{input.dim()}")
 
-    N, C = input.size[0], input.size[1]
+    N, C = input.size(0), input.size(1)
 
     mask_size = (N, C, 1, 1)
 
@@ -1134,7 +1134,7 @@ def dropout3d(input: Tensor, p: float = 0.5, training: bool = True):
     if input.dim() != 5:
         raise ValueError(f"dropout3d expected input 5D, got{input.dim()}")
 
-    N, C = input.size[0], input.size[1]
+    N, C = input.size(0), input.size(1)
 
     mask_size = (N, C, 1, 1, 1)
 

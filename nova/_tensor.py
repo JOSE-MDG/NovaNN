@@ -211,7 +211,7 @@ class Tensor(TensorBase):
         return std(self, dim=dim, keepdims=keepdims)
 
     def detach(self) -> Tensor:
-        return Tensor(self.data, dtype=self._dtype_internal, requires_grad=False)
+        return Tensor(self.data, dtype=self.dtype, requires_grad=False)
 
     def item(self) -> float | int:
         if self.numel() > 1:
@@ -253,9 +253,7 @@ class Tensor(TensorBase):
         if self.requires_grad:
             return Clone.apply(self)
         else:
-            return Tensor(
-                self.data.copy(), dtype=self._dtype_internal, requires_grad=False
-            )
+            return Tensor(self.data.copy(), dtype=self.dtype, requires_grad=False)
 
     def type(self, dtype: Optional[Dtype] = None) -> Tensor | str:
         """
@@ -268,7 +266,7 @@ class Tensor(TensorBase):
             tensor([...], dtype=int64)
         """
         if dtype is None:
-            return f"nova.{np.dtype(self._dtype_internal).name}"
+            return f"nova.{np.dtype(self.dtype).name}"
         return self.to(dtype)
 
     def is_contiguous(self) -> bool:
@@ -281,12 +279,12 @@ class Tensor(TensorBase):
             return self
         return Tensor(
             np.ascontiguousarray(self.data),
-            dtype=self._dtype_internal,
+            dtype=self.dtype,
             requires_grad=self.requires_grad,
         )
 
     def to(self, dtype: Dtype) -> Tensor:
-        if dtype == self._dtype_internal:
+        if dtype == self.dtype:
             return self
         data = self.data.astype(dtype, copy=True)
 
@@ -333,7 +331,7 @@ class Tensor(TensorBase):
             )
 
         self.data = np.random.normal(loc=mean, scale=std, size=self.data.shape).astype(
-            self._dtype_internal
+            self.dtype
         )
 
     def uniform_(self, low: float = -1, high: float = 1) -> None:
@@ -343,7 +341,7 @@ class Tensor(TensorBase):
             )
 
         self.data = np.random.uniform(low=low, high=high, size=self.data.shape).astype(
-            self._dtype_internal
+            self.dtype
         )
 
     def random_(self) -> None:
@@ -352,7 +350,7 @@ class Tensor(TensorBase):
                 f"Cannot perform inplace operation on a tensor that requires gradients"
             )
 
-        self.data = np.random.rand(self.data.shape).astype(self._dtype_internal)
+        self.data = np.random.rand(self.data.shape).astype(self.dtype)
 
     def zero_(self) -> None:
         if self.requires_grad:
@@ -485,7 +483,7 @@ class Tensor(TensorBase):
         result += f", requires_grad={self.requires_grad}"
         result += f", grad_fn={repr(self.grad_fn)}"
 
-        dtype_str = np.dtype(self._dtype_internal).name
+        dtype_str = np.dtype(self.dtype).name
         result += f", dtype={dtype_str}"
         result += ")"
         return result

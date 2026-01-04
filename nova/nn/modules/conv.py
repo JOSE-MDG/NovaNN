@@ -82,7 +82,7 @@ class Conv1d(Module):
         )
 
         if self.use_bias:
-            fan_in = init.get_fans(self.weight.size, mode="fan_in")
+            fan_in = init.get_fans(self.weight, mode="fan_in")
             bound = 1 / math.sqrt(fan_in)
             init.uniform_(self.bias, -bound, bound)
 
@@ -145,7 +145,7 @@ class Conv2d(Module):
         )
 
         if self.use_bias:
-            fan_in = init.get_fans(self.weight.size, mode="fan_in")
+            fan_in = init.get_fans(self.weight, mode="fan_in")
             bound = 1 / math.sqrt(fan_in)
             init.uniform_(self.bias, -bound, bound)
 
@@ -211,7 +211,7 @@ class Conv3d(Module):
         )
 
         if self.use_bias:
-            fan_in = init.get_fans(self.weight.size, mode="fan_in")
+            fan_in = init.get_fans(self.weight, mode="fan_in")
             bound = 1 / math.sqrt(fan_in)
             init.uniform_(self.bias, -bound, bound)
 
