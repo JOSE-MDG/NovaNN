@@ -10,26 +10,32 @@ if TYPE_CHECKING:
     from nova._typing import Gradients
 
 
-def _ensure_array(num: int | float, dtype):
-    num_is_scalar = isinstance(num, (int, float))
-    if num_is_scalar:
-        num_array = np.array(num, dtype=dtype)
-    else:
-        num_array = num
-
-    return num_array
-
-
 @registry_op("leaky_relu")
 class LeakyReLU(Function):
+    """
+    Leaky Rectified Linear Unit activation function.
+
+    Forward: out = x if x > 0 else alpha * x
+    Backward: dL/dx = dL/dout * (1 if x > 0 else alpha)
+    """
+
     @staticmethod
     def forward(ctx: Context, input: ndarray, alpha: float = 0.01) -> ndarray:
-        alpha_arra = _ensure_array(alpha)
-        ctx.save_for_backward(input, alpha_arra)
+        """
+        Computes the forward pass of LeakyReLU.
+
+        Args:
+            input: Input data.
+            alpha: Slope of the activation for x < 0.
+        """
+        # Store alpha as array for consistency in autograd engine
+        alpha_arr = np.array(alpha, dtype=input.dtype)
+        ctx.save_for_backward(input, alpha_arr)
         return np.where(input > 0, input, input * alpha)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """Computes the gradient of LeakyReLU."""
         input, alpha = ctx.saved_tensors
         grad_input = grad_output * np.where(input > 0, 1.0, alpha)
         return (grad_input, None)

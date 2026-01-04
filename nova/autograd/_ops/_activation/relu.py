@@ -12,13 +12,22 @@ if TYPE_CHECKING:
 
 @registry_op("relu")
 class ReLU(Function):
+    """
+    Rectified Linear Unit activation function.
+
+    Forward: out = max(0, x)
+    Backward: dL/dx = dL/dout * (1 if x > 0 else 0)
+    """
+
     @staticmethod
     def forward(ctx: Context, input: ndarray) -> ndarray:
+        """Computes the forward pass of ReLU."""
         ctx.save_for_backward(input)
         return np.maximum(input, 0)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """Computes the gradient of ReLU."""
         (input,) = ctx.saved_tensors
         grad_input = grad_output * (input > 0)
         return (grad_input,)

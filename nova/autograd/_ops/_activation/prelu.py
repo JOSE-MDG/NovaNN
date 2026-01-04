@@ -10,27 +10,34 @@ if TYPE_CHECKING:
     from nova._typing import Gradients
 
 
-def _ensure_array(num: int | float, dtype):
-    num_is_scalar = isinstance(num, (int, float))
-    if num_is_scalar:
-        num_array = np.array(num, dtype=dtype)
-    else:
-        num_array = num
-
-    return num_array
-
-
 @registry_op("prelu")
 class PReLU(Function):
+    """
+    Parametric Rectified Linear Unit activation function.
+
+    Forward: out = max(0, x) + weight * min(0, x)
+    Backward: Gradient is computed for both input and the learnable weight.
+    """
+
     @staticmethod
     def forward(ctx: Context, input: ndarray, weight: float | ndarray) -> ndarray:
-        weight_array = _ensure_array(weight, input.dtype)
-        ctx.save_for_backward(input, weight_array)
-        return np.where(input > 0, input, weight * input)
+        """
+        Computes the forward pass of PReLU.
+
+        Args:
+            input: Input data.
+            weight: Learnable parameter (scalar or array).
+        """
+        weight_arr = np.asarray(weight, dtype=input.dtype)
+        ctx.save_for_backward(input, weight_arr)
+        return np.where(input > 0, input, weight_arr * input)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """Computes gradients for input and weight."""
         input, weight = ctx.saved_tensors
+
         grad_input = grad_output * np.where(input > 0, 1.0, weight)
         grad_weight = np.sum(grad_output * np.where(input > 0, 0.0, input))
+
         return (grad_input, grad_weight)
