@@ -10,8 +10,7 @@ if TYPE_CHECKING:
     from nova._typing import Gradients, Dim
 
 
-def _normalize_dim(dim: Optional[Dim] = None) -> tuple[int, ...]:
-
+def _normalize_dim(dim: Optional[Dim] = None) -> Optional[tuple[int, ...]]:
     if dim is None:
         return None
     elif isinstance(dim, int):
@@ -24,175 +23,230 @@ def _normalize_dim(dim: Optional[Dim] = None) -> tuple[int, ...]:
 
 @registry_op("sum")
 class Sum(Function):
+    """
+    Sum of tensor elements.
+
+    Forward: out = sum(input)
+    Backward: ∂L/∂input = broadcast(grad_output)
+    """
+
     @staticmethod
     def forward(
-        ctx: Context, a: ndarray, dim: Optional[Dim] = None, keepdims: bool = False
+        ctx: Context,
+        input: ndarray,
+        dim: Optional[Dim] = None,
+        keepdims: bool = False,
     ) -> ndarray:
-
+        """Compute the sum over specified dimensions."""
         dim = _normalize_dim(dim)
 
         ctx.dim = dim
         ctx.keepdims = keepdims
-        ctx.saved_shapes = a.shape
+        ctx.saved_shape = input.shape
 
-        return np.sum(a, axis=dim, keepdims=keepdims)
+        return np.sum(input, axis=dim, keepdims=keepdims)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        shape_a = ctx.saved_shapes
+        """
+        Backward pass for sum.
 
+        The gradient is: grad_output broadcasted to input shape
+        """
         if not ctx.keepdims and ctx.dim is not None:
             grad_output = np.expand_dims(grad_output, ctx.dim)
 
-        grad_output = np.broadcast_to(grad_output, shape_a)
-
-        return (grad_output,)
+        grad_input = np.broadcast_to(grad_output, ctx.saved_shape)
+        return (grad_input,)
 
 
 @registry_op("mean")
 class Mean(Function):
+    """
+    Mean of tensor elements.
+
+    Forward: out = mean(input)
+    Backward: ∂L/∂input = broadcast(grad_output) / N
+    """
+
     @staticmethod
     def forward(
-        ctx: Context, a: ndarray, dim: Optional[Dim] = None, keepdims: bool = False
+        ctx: Context,
+        input: ndarray,
+        dim: Optional[Dim] = None,
+        keepdims: bool = False,
     ) -> ndarray:
-
+        """Compute the mean over specified dimensions."""
         dim = _normalize_dim(dim)
 
         ctx.dim = dim
         ctx.keepdims = keepdims
-        ctx.saved_shapes = a.shape
+        ctx.saved_shape = input.shape
 
         if dim is None:
-            ctx.N = a.size
+            ctx.N = input.size
         else:
             ctx.N = 1
             for d in dim:
-                ctx.N *= a.shape[d]
+                ctx.N *= input.shape[d]
 
-        return np.mean(a, axis=dim, keepdims=keepdims)
+        return np.mean(input, axis=dim, keepdims=keepdims)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        shape_a = ctx.saved_shapes
+        """
+        Backward pass for mean.
 
+        The gradient is: broadcast(grad_output) divided by number of elements
+        """
         if not ctx.keepdims and ctx.dim is not None:
             grad_output = np.expand_dims(grad_output, ctx.dim)
 
-        grad_output = np.broadcast_to(grad_output, shape_a) / ctx.N
-
-        return (grad_output,)
+        grad_input = np.broadcast_to(grad_output, ctx.saved_shape) / ctx.N
+        return (grad_input,)
 
 
 @registry_op("var")
 class Var(Function):
+    """
+    Variance of tensor elements.
+
+    Forward: out = var(input)
+    Backward: ∂L/∂input = (2 / N) * (input - mean) * grad_output
+    """
+
     @staticmethod
     def forward(
-        ctx: Context, a: ndarray, dim: Optional[Dim] = None, keepdims: bool = False
+        ctx: Context,
+        input: ndarray,
+        dim: Optional[Dim] = None,
+        keepdims: bool = False,
     ) -> ndarray:
-
+        """Compute the variance over specified dimensions."""
         dim = _normalize_dim(dim)
 
-        ctx.save_for_backward(a)
+        ctx.save_for_backward(input)
         ctx.dim = dim
         ctx.keepdims = keepdims
-        ctx.saved_shapes = a.shape
+        ctx.saved_shape = input.shape
 
         if dim is None:
-            ctx.N = a.size
+            ctx.N = input.size
         else:
             ctx.N = 1
             for d in dim:
-                ctx.N *= a.shape[d]
+                ctx.N *= input.shape[d]
 
-        mean_val = np.mean(a, axis=dim, keepdims=keepdims)
-        diff = a - mean_val
-        diff_sq = diff * diff
+        mean_val = np.mean(input, axis=dim, keepdims=keepdims)
+        diff = input - mean_val
 
-        var_val = np.mean(diff_sq, axis=dim, keepdims=keepdims)
         ctx.diff = diff
-
-        return var_val
+        return np.mean(diff * diff, axis=dim, keepdims=keepdims)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        shape_a = ctx.saved_shapes
-        diff = ctx.diff
+        """
+        Backward pass for variance.
 
+        The gradient is: (2 / N) * (input - mean) * grad_output
+        """
         if not ctx.keepdims and ctx.dim is not None:
             grad_output = np.expand_dims(grad_output, ctx.dim)
 
-        grad_output = np.broadcast_to(grad_output, shape_a)
-
-        grad_a = (2.0 / ctx.N) * diff * grad_output
-
-        return (grad_a,)
+        grad_output = np.broadcast_to(grad_output, ctx.saved_shape)
+        grad_input = (2.0 / ctx.N) * ctx.diff * grad_output
+        return (grad_input,)
 
 
 @registry_op("max")
 class Max(Function):
-    def forward(
-        ctx: Context, a: ndarray, dim: Optional[Dim] = None, keepdims: bool = False
-    ) -> ndarray:
+    """
+    Maximum value of tensor elements.
 
+    Forward: out = max(input)
+    Backward: ∂L/∂input = grad_output distributed over max elements
+    """
+
+    @staticmethod
+    def forward(
+        ctx: Context,
+        input: ndarray,
+        dim: Optional[Dim] = None,
+        keepdims: bool = False,
+    ) -> ndarray:
+        """Compute the maximum over specified dimensions."""
         dim = _normalize_dim(dim)
 
         ctx.dim = dim
         ctx.keepdims = keepdims
-        ctx.saved_shapes = a.shape
+        ctx.saved_shape = input.shape
 
         if dim is None:
-            ctx.max_vals = a == a.max()
+            ctx.mask = input == input.max()
         else:
-            ctx.max_vals = a == a.max(axis=dim, keepdims=True)
+            ctx.mask = input == input.max(axis=dim, keepdims=True)
 
-        return np.max(a, axis=dim, keepdims=keepdims)
+        return np.max(input, axis=dim, keepdims=keepdims)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        shape_a = ctx.saved_shapes
+        """
+        Backward pass for max.
 
+        The gradient is: grad_output evenly distributed among max elements
+        """
         if not ctx.keepdims and ctx.dim is not None:
             grad_output = np.expand_dims(grad_output, ctx.dim)
 
-        grad_output = np.broadcast_to(grad_output, shape_a)
+        grad_output = np.broadcast_to(grad_output, ctx.saved_shape)
 
-        grad = grad_output * ctx.max_vals
-        num_max = ctx.max_vals.sum(axis=ctx.dim, keepdims=True)
-        grad /= num_max
-
-        return (grad,)
+        grad_input = grad_output * ctx.mask
+        grad_input /= ctx.mask.sum(axis=ctx.dim, keepdims=True)
+        return (grad_input,)
 
 
 @registry_op("min")
 class Min(Function):
-    def forward(
-        ctx: Context, a: ndarray, dim: Optional[Dim] = None, keepdims: bool = False
-    ) -> ndarray:
+    """
+    Minimum value of tensor elements.
 
+    Forward: out = min(input)
+    Backward: ∂L/∂input = grad_output distributed over min elements
+    """
+
+    @staticmethod
+    def forward(
+        ctx: Context,
+        input: ndarray,
+        dim: Optional[Dim] = None,
+        keepdims: bool = False,
+    ) -> ndarray:
+        """Compute the minimum over specified dimensions."""
         dim = _normalize_dim(dim)
 
         ctx.dim = dim
         ctx.keepdims = keepdims
-        ctx.saved_shapes = a.shape
+        ctx.saved_shape = input.shape
 
         if dim is None:
-            ctx.min_vals = a == a.min()
+            ctx.mask = input == input.min()
         else:
-            ctx.min_vals = a == a.min(axis=dim, keepdims=True)
+            ctx.mask = input == input.min(axis=dim, keepdims=True)
 
-        return np.min(a, axis=dim, keepdims=keepdims)
+        return np.min(input, axis=dim, keepdims=keepdims)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        shape_a = ctx.saved_shapes
+        """
+        Backward pass for min.
 
+        The gradient is: grad_output evenly distributed among min elements
+        """
         if not ctx.keepdims and ctx.dim is not None:
             grad_output = np.expand_dims(grad_output, ctx.dim)
 
-        grad_output = np.broadcast_to(grad_output, shape_a)
+        grad_output = np.broadcast_to(grad_output, ctx.saved_shape)
 
-        grad = grad_output * ctx.min_vals
-        num_min = ctx.min_vals.sum(axis=ctx.dim, keepdims=True)
-        grad /= num_min
-
-        return (grad,)
+        grad_input = grad_output * ctx.mask
+        grad_input /= ctx.mask.sum(axis=ctx.dim, keepdims=True)
+        return (grad_input,)
