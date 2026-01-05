@@ -20,8 +20,8 @@ class Maximum(Function):
         out = max(input, other)
 
     Backward:
-        d_input = 1.0 where input > other, 0.5 where input == other
-        d_other = 1.0 where other > input, 0.5 where input == other
+        ∂input = 1.0 where input > other, 0.5 where input == other
+        ∂other = 1.0 where other > input, 0.5 where input == other
     """
 
     @staticmethod
@@ -59,8 +59,8 @@ class Minimum(Function):
         out = min(input, other)
 
     Backward:
-        d_input = 1.0 where input < other, 0.5 where input == other
-        d_other = 1.0 where other < input, 0.5 where input == other
+        ∂input = 1.0 where input < other, 0.5 where input == other
+        ∂other = 1.0 where other < input, 0.5 where input == other
     """
 
     @staticmethod
@@ -98,8 +98,8 @@ class Where(Function):
         out = input where condition is True, else other
 
     Backward:
-        d_input = grad_output where condition is True
-        d_other = grad_output where condition is False
+        ∂input = grad_output where condition is True
+        ∂other = grad_output where condition is False
     """
 
     @staticmethod

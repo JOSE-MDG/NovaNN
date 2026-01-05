@@ -9,90 +9,337 @@ if TYPE_CHECKING:
 
 
 def sqrt(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise square root of the input tensor.
+
+    Equivalent to `torch.sqrt`. The operation is differentiable for positive values.
+
+    Args:
+        input (Tensor): The input tensor.
+
+    Returns:
+        nova.Tensor: A tensor containing the square roots of the elements in `input`.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 4.0, 9.0], requires_grad=True)
+        >>> y = nova.sqrt(x)
+        >>> print(y)
+        [1.0, 2.0, 3.0]
+    """
     input = ensure_tensor(input)
     return input.sqrt()
 
 
 def mean(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
+    """
+    Computes the mean of elements along a given dimension.
+
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim, optional): Dimension along which to compute the mean.
+        keepdims (bool, optional): If True, retains reduced dimensions.
+
+    Returns:
+        nova.Tensor: The mean value(s) as a tensor.
+
+    Examples:
+        >>> x = nova.tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad=True)
+        >>> y = nova.mean(x, dim=0)
+        >>> print(y)
+        [2.0, 3.0]
+    """
     input = ensure_tensor(input)
     return input.mean(dim, keepdims)
 
 
 def var(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
+    """
+    Computes the variance of elements along a given dimension.
+
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim, optional): Dimension to reduce.
+        keepdims (bool, optional): Whether to keep the reduced dimension.
+
+    Returns:
+        nova.Tensor: The variance along the specified dimension.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 2.0, 3.0], requires_grad=True)
+        >>> y = nova.var(x)
+        >>> print(y)
+        0.6666667
+    """
     input = ensure_tensor(input)
     return input.var(dim, keepdims)
 
 
 def std(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
-    input = ensure_tensor(input)
+    """
+    Computes the standard deviation of elements along a given dimension.
 
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim, optional): Dimension to reduce.
+        keepdims (bool, optional): Whether to keep reduced dimension.
+
+    Returns:
+        nova.Tensor: The standard deviation along the specified dimension.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 2.0, 3.0], requires_grad=True)
+        >>> y = nova.std(x)
+        >>> print(y)
+        0.8164966
+    """
+    input = ensure_tensor(input)
     return sqrt(input.var(dim, keepdims))
 
 
 def empty(
     size: tuple[int, ...], *, dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
+    """
+    Returns a new tensor filled with uninitialized values (zeros by default).
+
+    Args:
+        size (tuple[int, ...]): Shape of the new tensor.
+        dtype (Dtype, optional): Data type of the tensor.
+        requires_grad (bool, optional): If True, enables gradient tracking.
+
+    Returns:
+        nova.Tensor: A new tensor with specified properties.
+
+    Examples:
+        >>> x = nova.empty((2, 3))
+        >>> print(x.shape)
+        (2, 3)
+    """
     dtype = dtype if dtype is not None else nova.float32
     data = np.zeros(size, dtype=dtype)
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
 def min(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
-    input = ensure_tensor(input)
+    """
+    Returns the minimum value of all elements in the input tensor.
 
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim, optional): Dimension to reduce.
+        keepdims (bool, optional): Retain reduced dimensions.
+
+    Returns:
+        nova.Tensor: The minimum value(s).
+
+    Examples:
+        >>> x = nova.tensor([[2.0, 3.0], [1.0, 4.0]])
+        >>> y = nova.min(x)
+        >>> print(y)
+        1.0
+    """
+    input = ensure_tensor(input)
     return input.min(dim=dim, keepdims=keepdims)
 
 
 def max(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
-    input = ensure_tensor(input)
+    """
+    Returns the maximum value of all elements in the input tensor.
 
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim, optional): Dimension to reduce.
+        keepdims (bool, optional): Retain reduced dimensions.
+
+    Returns:
+        nova.Tensor: The maximum value(s).
+
+    Examples:
+        >>> x = nova.tensor([[2.0, 3.0], [1.0, 4.0]])
+        >>> y = nova.max(x)
+        >>> print(y)
+        4.0
+    """
+    input = ensure_tensor(input)
     return input.max(dim=dim, keepdims=keepdims)
 
 
 def sum(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
-    input = ensure_tensor(input)
+    """
+    Computes the sum of all elements in the input tensor.
 
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim, optional): Dimension to reduce.
+        keepdims (bool, optional): Retain reduced dimensions.
+
+    Returns:
+        nova.Tensor: Sum of tensor elements.
+
+    Examples:
+        >>> x = nova.tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad=True)
+        >>> y = nova.sum(x)
+        >>> print(y)
+        10.0
+    """
+    input = ensure_tensor(input)
     return input.sum(dim=dim, keepdims=keepdims)
 
 
 def pow(input: nova.Tensor, exponent: nova.Tensor | int | float) -> nova.Tensor:
+    """
+    Raises each element of the input tensor to the power of the given exponent.
+
+    Args:
+        input (Tensor): Base tensor.
+        exponent (nova.Tensor | int | float): Exponent to raise each element.
+
+    Returns:
+        nova.Tensor: Result of the power operation.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 2.0, 3.0], requires_grad=True)
+        >>> y = nova.pow(x, 2)
+        >>> print(y)
+        [1.0, 4.0, 9.0]
+    """
     input = ensure_tensor(input)
     exponent = ensure_tensor(exponent)
-
     return input.pow(exponent)
 
 
 def maximum(input: nova.Tensor, other: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise maximum between two tensors.
+
+    Args:
+        input (Tensor): First input tensor.
+        other (Tensor): Second input tensor.
+
+    Returns:
+        nova.Tensor: A tensor with element-wise maxima.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 5.0, 3.0])
+        >>> y = nova.tensor([2.0, 4.0, 6.0])
+        >>> z = nova.maximum(x, y)
+        >>> print(z)
+        [2.0, 5.0, 6.0]
+    """
     input = ensure_tensor(input)
     other = ensure_tensor(other)
-
     return input.maximum(other)
 
 
 def minimum(input: nova.Tensor, other: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise minimum between two tensors.
+
+    Args:
+        input (Tensor): First input tensor.
+        other (Tensor): Second input tensor.
+
+    Returns:
+        nova.Tensor: A tensor containing the element-wise minima.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 5.0, 3.0])
+        >>> y = nova.tensor([2.0, 4.0, 6.0])
+        >>> z = nova.minimum(x, y)
+        >>> print(z)
+        [1.0, 4.0, 3.0]
+    """
     input = ensure_tensor(input)
     other = ensure_tensor(other)
-
     return input.minimum(other)
 
 
 def clamp(input: nova.Tensor, min_val: float, max_val: float) -> nova.Tensor:
-    input = ensure_tensor(input)
+    """
+    Clamps all elements in the input tensor into the range [min_val, max_val].
 
+    Args:
+        input (Tensor): Input tensor.
+        min_val (float): Lower bound of the range.
+        max_val (float): Upper bound of the range.
+
+    Returns:
+        nova.Tensor: Tensor with values clamped within [min_val, max_val].
+
+    Examples:
+        >>> x = nova.tensor([-1.0, 0.5, 3.0])
+        >>> y = nova.clamp(x, 0.0, 1.0)
+        >>> print(y)
+        [0.0, 0.5, 1.0]
+    """
+    input = ensure_tensor(input)
     return input.clamp(min_val, max_val)
 
 
 def split(input: nova.Tensor, sections: int, dim: Dim = None) -> nova.Tensor:
+    """
+    Splits the tensor into multiple sections along a given dimension.
+
+    Args:
+        input (Tensor): Tensor to split.
+        sections (int): Number of sections to divide the tensor into.
+        dim (Dim, optional): Dimension to split along.
+
+    Returns:
+        list[nova.Tensor]: A list of tensors resulting from the split.
+
+    Examples:
+        >>> x = nova.tensor([1, 2, 3, 4, 5, 6])
+        >>> parts = nova.split(x, 3)
+        >>> [print(p) for p in parts]
+        [1, 2]
+        [3, 4]
+        [5, 6]
+    """
     input = ensure_tensor(input)
     return input.split(sections=sections, dim=dim)
 
 
 def tile(input: nova.Tensor, repeats: int) -> nova.Tensor:
+    """
+    Repeats the elements of the tensor along each dimension.
+
+    Args:
+        input (Tensor): Input tensor.
+        repeats (int): Number of repetitions.
+
+    Returns:
+        nova.Tensor: Tiled tensor.
+
+    Examples:
+        >>> x = nova.tensor([1, 2, 3])
+        >>> y = nova.tile(x, 2)
+        >>> print(y)
+        [1, 2, 3, 1, 2, 3]
+    """
     input = ensure_tensor(input)
     return input.tile(repeats)
 
 
 def repeat_interleave(input: nova.Tensor, repeats: int, dim):
+    """
+    Repeats elements of a tensor along a given dimension.
+
+    Args:
+        input (Tensor): Input tensor.
+        repeats (int): Number of repetitions per element.
+        dim (int): Dimension along which to repeat.
+
+    Returns:
+        nova.Tensor: Tensor with repeated elements.
+
+    Examples:
+        >>> x = nova.tensor([[1, 2], [3, 4]])
+        >>> y = nova.repeat_interleave(x, 2, dim=1)
+        >>> print(y)
+        [[1, 1, 2, 2],
+         [3, 3, 4, 4]]
+    """
     input = ensure_tensor(input)
     return input.repeat(repeats=repeats, dim=dim)
 
@@ -102,125 +349,483 @@ def pad(
     pad_width: tuple[tuple[int, ...], ...] | tuple[int, ...],
     mode: Literal["constant", "reflect", "wrap", "edge"] = "constant",
 ):
+    """
+    Pads the tensor with a specified mode and width.
+
+    Args:
+        input (Tensor): Input tensor.
+        pad_width (tuple): Tuple specifying padding widths per dimension.
+        mode (str, optional): Padding mode ('constant', 'reflect', 'wrap', 'edge').
+
+    Returns:
+        nova.Tensor: Padded tensor.
+
+    Examples:
+        >>> x = nova.tensor([[1, 2], [3, 4]])
+        >>> y = nova.pad(x, ((1, 1), (1, 1)), mode="constant")
+        >>> print(y)
+        [[0, 0, 0, 0],
+         [0, 1, 2, 0],
+         [0, 3, 4, 0],
+         [0, 0, 0, 0]]
+    """
     input = ensure_tensor(input)
     return input.pad(pad_width, mode)
 
 
 def floor(input: nova.Tensor):
+    """
+    Applies the floor function element-wise to the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor with floored values.
+
+    Examples:
+        >>> x = nova.tensor([1.7, -2.3, 3.9])
+        >>> y = nova.floor(x)
+        >>> print(y)
+        [1.0, -3.0, 3.0]
+    """
     input = ensure_tensor(input)
     return input.floor()
 
 
 def ceil(input: nova.Tensor):
+    """
+    Applies the ceil function element-wise to the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor with ceiled values.
+
+    Examples:
+        >>> x = nova.tensor([1.2, -2.8, 3.1])
+        >>> y = nova.ceil(x)
+        >>> print(y)
+        [2.0, -2.0, 4.0]
+    """
     input = ensure_tensor(input)
     return input.ceil()
 
 
 def exp(input: nova.Tensor) -> nova.Tensor:
+    """
+    Applies the exponential function element-wise.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor with exponentiated values.
+
+    Examples:
+        >>> x = nova.tensor([0.0, 1.0, 2.0])
+        >>> y = nova.exp(x)
+        >>> print(y)
+        [1.0, 2.718, 7.389]
+    """
     input = ensure_tensor(input)
     return input.exp()
 
 
 def sin(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise sine of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor containing the sine of each element.
+
+    Examples:
+        >>> x = nova.tensor([0.0, np.pi / 2])
+        >>> y = nova.sin(x)
+        >>> print(y)
+        [0.0, 1.0]
+    """
     input = ensure_tensor(input)
     return input.sin()
 
 
 def cos(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise cosine of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor containing the cosine of each element.
+
+    Examples:
+        >>> x = nova.tensor([0.0, np.pi])
+        >>> y = nova.cos(x)
+        >>> print(y)
+        [1.0, -1.0]
+    """
     input = ensure_tensor(input)
     return input.cos()
 
 
 def tan(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise tangent of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor containing tangent of each element.
+
+    Examples:
+        >>> x = nova.tensor([0.0, np.pi / 4])
+        >>> y = nova.tan(x)
+        >>> print(y)
+        [0.0, 1.0]
+    """
     input = ensure_tensor(input)
     return input.tan()
 
 
 def tanh(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise hyperbolic tangent of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor containing tanh of each element.
+
+    Examples:
+        >>> x = nova.tensor([-1.0, 0.0, 1.0])
+        >>> y = nova.tanh(x)
+        >>> print(y)
+        [-0.7615, 0.0, 0.7615]
+    """
     input = ensure_tensor(input)
     return input.tanh()
 
 
 def sec(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise secant (1 / cos) of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor containing secant of each element.
+
+    Examples:
+        >>> x = nova.tensor([0.0, np.pi / 4])
+        >>> y = nova.sec(x)
+        >>> print(y)
+        [1.0, 1.4142]
+    """
     input = ensure_tensor(input)
     return input.sec()
 
 
 def cot(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise cotangent (1 / tan) of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor containing cotangent of each element.
+
+    Examples:
+        >>> x = nova.tensor([np.pi / 4, np.pi / 2])
+        >>> y = nova.cot(x)
+        >>> print(y)
+        [1.0, 0.0]
+    """
     input = ensure_tensor(input)
     return input.cot()
 
 
 def log(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the natural logarithm element-wise.
+
+    Args:
+        input (Tensor): Input tensor (positive values only).
+
+    Returns:
+        nova.Tensor: Tensor containing the logarithm of each element.
+
+    Examples:
+        >>> x = nova.tensor([1.0, np.e, np.e ** 2])
+        >>> y = nova.log(x)
+        >>> print(y)
+        [0.0, 1.0, 2.0]
+    """
     input = ensure_tensor(input)
     return input.log()
 
 
 def reshape(input: nova.Tensor, dims: Dim) -> nova.Tensor:
-    input = ensure_tensor(input)
+    """
+    Returns a tensor with the same data but different shape.
 
+    Args:
+        input (Tensor): Input tensor.
+        dims (Dim): New shape.
+
+    Returns:
+        nova.Tensor: Reshaped tensor.
+
+    Examples:
+        >>> x = nova.tensor([[1, 2, 3], [4, 5, 6]])
+        >>> y = nova.reshape(x, (3, 2))
+        >>> print(y)
+        [[1, 2],
+         [3, 4],
+         [5, 6]]
+    """
+    input = ensure_tensor(input)
     return input.reshape(*dims)
 
 
 def dot(input: nova.Tensor, other: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the dot product between two tensors.
+
+    Args:
+        input (Tensor): First input tensor.
+        other (Tensor): Second input tensor.
+
+    Returns:
+        nova.Tensor: Scalar tensor representing the dot product.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 2.0, 3.0])
+        >>> y = nova.tensor([4.0, 5.0, 6.0])
+        >>> z = nova.dot(x, y)
+        >>> print(z)
+        32.0
+    """
     input = ensure_tensor(input)
     other = ensure_tensor(other)
-
     return input.dot(other)
 
 
 def det(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the determinant of a square matrix tensor.
+
+    Args:
+        input (Tensor): Square matrix tensor.
+
+    Returns:
+        nova.Tensor: Scalar tensor representing the determinant.
+
+    Examples:
+        >>> x = nova.tensor([[1.0, 2.0], [3.0, 4.0]])
+        >>> y = nova.det(x)
+        >>> print(y)
+        -2.0
+    """
     input = ensure_tensor(input)
     return input.det()
 
 
 def inv(input: nova.Tensor) -> nova.Tensor:
-    input = ensure_tensor(input)
+    """
+    Computes the inverse of a square matrix tensor.
 
+    Args:
+        input (Tensor): Square matrix tensor.
+
+    Returns:
+        nova.Tensor: Inverse matrix tensor.
+
+    Examples:
+        >>> x = nova.tensor([[1.0, 2.0], [3.0, 4.0]])
+        >>> y = nova.inv(x)
+        >>> print(y)
+        [[-2.0, 1.0],
+         [1.5, -0.5]]
+    """
+    input = ensure_tensor(input)
     return input.inv()
 
 
 def trace(input: nova.Tensor) -> nova.Tensor:
-    input = ensure_tensor(input)
+    """
+    Computes the trace (sum of diagonal elements) of a matrix tensor.
 
+    Args:
+        input (Tensor): Matrix tensor.
+
+    Returns:
+        nova.Tensor: Scalar tensor representing the trace.
+
+    Examples:
+        >>> x = nova.tensor([[1.0, 2.0], [3.0, 4.0]])
+        >>> y = nova.trace(x)
+        >>> print(y)
+        5.0
+    """
+    input = ensure_tensor(input)
     return input.trace()
 
 
 def norm(
     input: nova.Tensor, ord: int = 2, dim: Optional[Dim] = None, keepdims: bool = False
 ) -> nova.Tensor:
-    input = ensure_tensor(input)
+    """
+    Computes the matrix or vector norm.
 
+    Args:
+        input (Tensor): Input tensor.
+        ord (int, optional): Order of the norm (default 2).
+        dim (Dim, optional): Dimension to compute norm over.
+        keepdims (bool, optional): Whether to retain reduced dimensions.
+
+    Returns:
+        nova.Tensor: Tensor representing the computed norm.
+
+    Examples:
+        >>> x = nova.tensor([[1.0, 2.0], [3.0, 4.0]])
+        >>> y = nova.norm(x)
+        >>> print(y)
+        5.4772
+    """
+    input = ensure_tensor(input)
     return input.norm(ord, dim=dim, keepdims=keepdims)
 
 
 def abs(input: nova.Tensor) -> nova.Tensor:
+    """
+    Returns the absolute value of each element in the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor with absolute values.
+
+    Examples:
+        >>> x = nova.tensor([-1.0, 0.0, 2.0])
+        >>> y = nova.abs(x)
+        >>> print(y)
+        [1.0, 0.0, 2.0]
+    """
     input = ensure_tensor(input)
     return input.abs()
 
 
 def sign(input: nova.Tensor) -> nova.Tensor:
-    input = ensure_tensor(input)
+    """
+    Returns the sign of each element in the tensor:
+    -1 for negative, 0 for zero, 1 for positive.
 
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor of signs.
+
+    Examples:
+        >>> x = nova.tensor([-3.0, 0.0, 5.0])
+        >>> y = nova.sign(x)
+        >>> print(y)
+        [-1.0, 0.0, 1.0]
+    """
+    input = ensure_tensor(input)
     return input.sign()
 
 
 def arcsin(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the inverse sine of each element (in radians).
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor with arcsin values.
+
+    Examples:
+        >>> x = nova.tensor([0.0, 1.0])
+        >>> y = nova.arcsin(x)
+        >>> print(y)
+        [0.0, 1.5708]
+    """
     input = ensure_tensor(input)
     return input.arcsin()
 
 
 def arccos(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the inverse cosine of each element (in radians).
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor with arccos values.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 0.0])
+        >>> y = nova.arccos(x)
+        >>> print(y)
+        [0.0, 1.5708]
+    """
     input = ensure_tensor(input)
     return input.arccos()
 
 
 def arctan(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the inverse tangent of each element (in radians).
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Tensor with arctangent values.
+
+    Examples:
+        >>> x = nova.tensor([0.0, 1.0])
+        >>> y = nova.arctan(x)
+        >>> print(y)
+        [0.0, 0.7854]
+    """
     input = ensure_tensor(input)
     return input.arctan()
 
 
 def where(condition: nova.Tensor, x: nova.Tensor, y: nova.Tensor):
+    """
+    Selects elements from `x` or `y` depending on `condition`.
+
+    Args:
+        condition (Tensor): Boolean condition tensor.
+        x (Tensor): Values selected where condition is True.
+        y (Tensor): Values selected where condition is False.
+
+    Returns:
+        nova.Tensor: Tensor composed of elements from `x` or `y`.
+
+    Examples:
+        >>> cond = nova.tensor([True, False, True])
+        >>> x = nova.tensor([1, 2, 3])
+        >>> y = nova.tensor([9, 9, 9])
+        >>> z = nova.where(cond, x, y)
+        >>> print(z)
+        [1, 9, 3]
+    """
     from nova.autograd._ops import Where
 
     x = ensure_tensor(x)
@@ -229,16 +834,68 @@ def where(condition: nova.Tensor, x: nova.Tensor, y: nova.Tensor):
 
 
 def permute(input: nova.Tensor, *dims: Dim) -> nova.Tensor:
+    """
+    Permutes the dimensions of the input tensor according to `dims`.
+
+    Args:
+        input (Tensor): Input tensor.
+        *dims (Dim): Desired ordering of dimensions.
+
+    Returns:
+        nova.Tensor: Permuted tensor.
+
+    Examples:
+        >>> x = nova.tensor([[1, 2, 3], [4, 5, 6]])
+        >>> y = nova.permute(x, 1, 0)
+        >>> print(y)
+        [[1, 4],
+         [2, 5],
+         [3, 6]]
+    """
     input = ensure_tensor(input)
     return input.permute(dims)
 
 
 def unsqueeze(input: nova.Tensor, dim: Dim) -> nova.Tensor:
+    """
+    Adds a dimension of size one at the specified position.
+
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim): Position at which to insert the new dimension.
+
+    Returns:
+        nova.Tensor: Tensor with an extra dimension.
+
+    Examples:
+        >>> x = nova.tensor([1, 2, 3])
+        >>> y = nova.unsqueeze(x, 0)
+        >>> print(y.shape)
+        (1, 3)
+    """
     input = ensure_tensor(input)
     return input.unsqueeze(dim)
 
 
 def cat(inputs: list[nova.Tensor], dim: Dim = None):
+    """
+    Concatenates a list of tensors along a given dimension.
+
+    Args:
+        inputs (list[nova.Tensor]): List of tensors to concatenate.
+        dim (Dim, optional): Dimension to concatenate along.
+
+    Returns:
+        nova.Tensor: Concatenated tensor.
+
+    Examples:
+        >>> a = nova.tensor([[1, 2]])
+        >>> b = nova.tensor([[3, 4]])
+        >>> c = nova.cat([a, b], dim=0)
+        >>> print(c)
+        [[1, 2],
+         [3, 4]]
+    """
     from nova.autograd._ops import Concat
 
     return Concat.apply(inputs, dim)
@@ -251,6 +908,26 @@ def eye(
     dtype: Optional[Dtype] = None,
     requires_grad: bool = False,
 ) -> nova.Tensor:
+    """
+    Creates a 2-D identity matrix with ones on the diagonal and zeros elsewhere.
+
+    Args:
+        N (int): Number of rows.
+        M (Optional[int]): Number of columns. Defaults to N if not provided.
+        K (int): Index of the diagonal. Defaults to 0.
+        dtype (Optional[Dtype]): Data type of the returned tensor.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        nova.Tensor: Identity matrix of shape (N, M).
+
+    Examples:
+        >>> x = nova.eye(3)
+        >>> print(x)
+        [[1, 0, 0],
+         [0, 1, 0],
+         [0, 0, 1]]
+    """
     if M is None:
         M = N
 
@@ -265,6 +942,25 @@ def eye(
 def one_hot(
     labels: nova.Tensor, num_classes: int, requires_grad: bool = False
 ) -> nova.Tensor:
+    """
+    Converts a tensor of labels to one-hot encoded format.
+
+    Args:
+        labels (Tensor): Input tensor with integer class labels.
+        num_classes (int): Total number of classes.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        nova.Tensor: One-hot encoded tensor.
+
+    Examples:
+        >>> labels = nova.tensor([0, 2, 1])
+        >>> y = nova.one_hot(labels, num_classes=3)
+        >>> print(y)
+        [[1, 0, 0],
+         [0, 0, 1],
+         [0, 1, 0]]
+    """
     labels = ensure_tensor(labels)
     data = np.eye(num_classes)[labels.data.astype(nova.long)]
     return nova.Tensor(data, dtype=nova.long, requires_grad=requires_grad)
@@ -277,6 +973,24 @@ def full(
     dtype: Dtype | None = None,
     requires_grad: bool = False,
 ) -> nova.Tensor:
+    """
+    Creates a tensor filled with the specified value.
+
+    Args:
+        size (tuple[int, ...] | list): Shape of the output tensor.
+        fill_value (Any): Value to fill the tensor with.
+        dtype (Optional[Dtype]): Data type of the tensor.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        nova.Tensor: Tensor filled with `fill_value`.
+
+    Examples:
+        >>> x = nova.full((2,3), 7)
+        >>> print(x)
+        [[7, 7, 7],
+         [7, 7, 7]]
+    """
     data = np.full(
         shape=size,
         fill_value=fill_value,
@@ -297,6 +1011,28 @@ def arange(
     dtype: Dtype | None = None,
     requires_grad: bool = False,
 ) -> nova.Tensor:
+    """
+    Returns a 1-D tensor with values from `start` to `stop` (exclusive) with a given step.
+
+    Args:
+        start (int | float): Start of the interval.
+        stop (Optional[int | float]): End of the interval. If None, interval is [0, start).
+        step (int | float): Step size.
+        dtype (Optional[Dtype]): Data type of the output tensor.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        nova.Tensor: 1-D tensor of evenly spaced values.
+
+    Examples:
+        >>> x = nova.arange(3)
+        >>> print(x)
+        [0, 1, 2]
+
+        >>> y = nova.arange(1, 5, 2)
+        >>> print(y)
+        [1, 3]
+    """
     if stop is None:
         stop = start
         start = 0
@@ -316,6 +1052,27 @@ def unique(
     return_counts: bool = False,
     dim: Dim = None,
 ):
+    """
+    Returns the unique elements of a tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+        sorted (bool): Whether to return sorted unique elements.
+        return_inverse (bool): Whether to return indices to reconstruct original tensor.
+        return_counts (bool): Whether to return counts of each unique element.
+        dim (Dim): Dimension along which to find unique elements. Defaults to None.
+
+    Returns:
+        nova.Tensor or tuple[nova.Tensor, ...]: Tensor of unique elements, optionally with inverse indices and counts.
+
+    Examples:
+        >>> x = nova.tensor([1, 2, 2, 3])
+        >>> nova.unique(x)
+        [1, 2, 3]
+
+        >>> nova.unique(x, return_inverse=True, return_counts=True)
+        ([1, 2, 3], [0, 1, 1, 2], [1, 2, 1])
+    """
     input = ensure_tensor(input)
 
     unique = np.unique(
@@ -331,30 +1088,110 @@ def unique(
 
 
 def argmin(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
+    """
+    Returns the indices of the minimum values along a specified dimension.
+
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim): Dimension along which to find minima. Defaults to None (flattened tensor).
+        keepdims (bool): Whether to keep the reduced dimension.
+
+    Returns:
+        nova.Tensor: Tensor of indices of minimum values.
+
+    Examples:
+        >>> x = nova.tensor([3, 1, 2])
+        >>> nova.argmin(x)
+        1
+    """
     input = ensure_tensor(input)
 
     return input.argmin(dim=dim, keepdims=keepdims)
 
 
 def argmax(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
+    """
+    Returns the indices of the maximum values along a specified dimension.
+
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim): Dimension along which to find maxima. Defaults to None (flattened tensor).
+        keepdims (bool): Whether to keep the reduced dimension.
+
+    Returns:
+        nova.Tensor: Tensor of indices of maximum values.
+
+    Examples:
+        >>> x = nova.tensor([3, 1, 2])
+        >>> nova.argmax(x)
+        0
+    """
     input = ensure_tensor(input)
 
     return input.argmax(dim=dim, keepdims=keepdims)
 
 
 def argsort(input: nova.Tensor, dim: Dim = -1, kind=None, order=None):
+    """
+    Returns the indices that would sort a tensor along a given dimension.
+
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim): Dimension along which to sort.
+        kind (optional): Sorting algorithm.
+        order (optional): Field order for structured arrays.
+
+    Returns:
+        nova.Tensor: Indices that would sort the tensor.
+
+    Examples:
+        >>> x = nova.tensor([3, 1, 2])
+        >>> nova.argsort(x)
+        [1, 2, 0]
+    """
     input = ensure_tensor(input)
 
     return input.argsort(dim=dim, kind=kind, order=order)
 
 
 def argwhere(input: nova.Tensor):
+    """
+    Returns the indices of non-zero elements in the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        nova.Tensor: Indices of non-zero elements.
+
+    Examples:
+        >>> x = nova.tensor([0, 1, 2])
+        >>> nova.argwhere(x)
+        [[1], [2]]
+    """
     input = ensure_tensor(input)
 
     return input.argwhere()
 
 
 def stack(inputs: list[nova.Tensor], dim: Dim = 0):
+    """
+    Stacks a sequence of tensors along a new dimension.
+
+    Args:
+        inputs (list[nova.Tensor]): List of tensors to stack.
+        dim (Dim): Dimension along which to insert the new axis.
+
+    Returns:
+        nova.Tensor: Stacked tensor.
+
+    Examples:
+        >>> a = nova.tensor([1, 2])
+        >>> b = nova.tensor([3, 4])
+        >>> nova.stack([a, b], dim=0)
+        [[1, 2],
+         [3, 4]]
+    """
     from nova.autograd._ops import Stack
 
     return Stack.apply(inputs, dim)
@@ -363,6 +1200,23 @@ def stack(inputs: list[nova.Tensor], dim: Dim = 0):
 def zeros(
     size: tuple[int, ...], dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
+    """
+    Returns a tensor filled with zeros.
+
+    Args:
+        size (tuple[int, ...]): Shape of the tensor.
+        dtype (Optional[Dtype]): Data type.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        nova.Tensor: Tensor of zeros.
+
+    Examples:
+        >>> x = nova.zeros((2,3))
+        >>> print(x)
+        [[0, 0, 0],
+         [0, 0, 0]]
+    """
     dtype = dtype if dtype is not None else nova.float32
     data = np.zeros(size, dtype=dtype)
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
@@ -371,6 +1225,23 @@ def zeros(
 def zeros_like(
     input: nova.Tensor, dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
+    """
+    Returns a tensor of zeros with the same shape as input.
+
+    Args:
+        input (Tensor): Reference tensor.
+        dtype (Optional[Dtype]): Data type of output tensor.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        nova.Tensor: Tensor of zeros matching `input` shape.
+
+    Examples:
+        >>> x = nova.tensor([[1,2],[3,4]])
+        >>> nova.zeros_like(x)
+        [[0, 0],
+         [0, 0]]
+    """
     input = ensure_tensor(input)
     data = np.zeros_like(input.data, dtype=input.dtype if dtype is None else dtype)
     return nova.Tensor(
@@ -383,6 +1254,22 @@ def zeros_like(
 def ones(
     size: tuple[int, ...], dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
+    """
+    Returns a tensor filled with ones.
+
+    Args:
+        size (tuple[int, ...]): Shape of the tensor.
+        dtype (Optional[Dtype]): Data type.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        nova.Tensor: Tensor of ones.
+
+    Examples:
+        >>> nova.ones((2,2))
+        [[1,1],
+         [1,1]]
+    """
     dtype = dtype if dtype is not None else nova.float32
     data = np.ones(size, dtype=dtype)  # idem para ones / empty
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
@@ -391,6 +1278,23 @@ def ones(
 def ones_like(
     input: nova.Tensor, dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
+    """
+    Returns a tensor of ones with the same shape as input.
+
+    Args:
+        input (Tensor): Reference tensor.
+        dtype (Optional[Dtype]): Data type of output tensor.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        nova.Tensor: Tensor of ones matching `input` shape.
+
+    Examples:
+        >>> x = nova.tensor([[0,0],[0,0]])
+        >>> nova.ones_like(x)
+        [[1,1],
+         [1,1]]
+    """
     input = ensure_tensor(input)
     data = np.ones_like(input.data, dtype=input.dtype if dtype is None else dtype)
     return nova.Tensor(
@@ -401,6 +1305,23 @@ def ones_like(
 
 
 def as_strided(input: nova.Tensor, size: tuple[int, ...], strides: tuple[int, ...]):
+    """
+    Returns a view of the input tensor with the given shape and strides.
+
+    Args:
+        input (Tensor): Input tensor.
+        size (tuple[int, ...]): Shape of the output tensor.
+        strides (tuple[int, ...]): Strides for each dimension.
+
+    Returns:
+        nova.Tensor: Strided tensor view.
+
+    Examples:
+        >>> x = nova.tensor([1,2,3,4])
+        >>> nova.as_strided(x, size=(2,2), strides=(1,1))
+        [[1,2],
+         [2,3]]
+    """
     input = ensure_tensor(input)
 
     return input.as_strided(size=size, strides=strides)
@@ -413,6 +1334,23 @@ def linspace(
     dtype: Optional[Dtype] = None,
     requires_grad: bool = False,
 ):
+    """
+    Returns a 1-D tensor of `num` evenly spaced points between `start` and `stop`.
+
+    Args:
+        start (int | float): Start value.
+        stop (int | float): End value.
+        num (int | float): Number of points.
+        dtype (Optional[Dtype]): Data type.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        nova.Tensor: Tensor of evenly spaced values.
+
+    Examples:
+        >>> nova.linspace(0, 1, 5)
+        [0.0, 0.25, 0.5, 0.75, 1.0]
+    """
     if dtype is None:
         dtype = nova.float32
     data = np.linspace(start=start, stop=stop, num=num, dtype=dtype)
@@ -420,11 +1358,43 @@ def linspace(
 
 
 def any(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
+    """
+    Returns True if any element is non-zero along a given dimension.
+
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim): Dimension to reduce. Defaults to None.
+        keepdims (bool): Whether to keep reduced dimensions.
+
+    Returns:
+        nova.Tensor: Boolean tensor.
+
+    Examples:
+        >>> x = nova.tensor([[0,1],[0,0]])
+        >>> nova.any(x, dim=0)
+        [False, True]
+    """
     input = ensure_tensor(input)
     return input.any(dim, keepdims=keepdims)
 
 
 def all(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
+    """
+    Returns True if all elements are non-zero along a given dimension.
+
+    Args:
+        input (Tensor): Input tensor.
+        dim (Dim): Dimension to reduce. Defaults to None.
+        keepdims (bool): Whether to keep reduced dimensions.
+
+    Returns:
+        nova.Tensor: Boolean tensor.
+
+    Examples:
+        >>> x = nova.tensor([[1,1],[0,1]])
+        >>> nova.all(x, dim=1)
+        [True, False]
+    """
     input = ensure_tensor(input)
     return input.all(dim, keepdims=keepdims)
 
@@ -436,6 +1406,25 @@ def allclose(
     atol: float = 1e-8,
     equal_nan: bool = False,
 ) -> bool:
+    """
+    Returns True if all elements of two tensors are close within given tolerances.
+
+    Args:
+        input (Tensor): First tensor.
+        other (Tensor): Second tensor.
+        rtol (float): Relative tolerance.
+        atol (float): Absolute tolerance.
+        equal_nan (bool): Whether to compare NaNs as equal.
+
+    Returns:
+        bool: True if tensors are element-wise equal within tolerance.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 2.0])
+        >>> y = nova.tensor([1.0, 2.000001])
+        >>> nova.allclose(x, y)
+        True
+    """
     input = ensure_tensor(input)
     other = ensure_tensor(other)
 
