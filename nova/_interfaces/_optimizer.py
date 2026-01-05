@@ -150,10 +150,12 @@ class Optimizer:
             The loss value if provided.
 
         Example:
-            >>> optimizer.zero_grad()
-            >>> loss = loss_fn(model(x), y)
-            >>> loss.backward()
-            >>> optimizer.step()
+            >>> optimizer = nova.optim.SGD(model.parameters(), lr=0.1)
+            >>> for epoch in range(100):
+            ...     optimizer.zero_grad()
+            ...     loss = criterion(model(x), y)
+            ...     loss.backward()
+            ...     optimizer.step()
         """
 
         for hook in self._step_pre_hook:
