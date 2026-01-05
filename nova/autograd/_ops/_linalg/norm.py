@@ -12,39 +12,45 @@ if TYPE_CHECKING:
 
 @registry_op("norm")
 class Norm(Function):
+    """
+    Vector or matrix norm.
+
+    Forward: computes np.linalg.norm(input, ord=ord, axis=dim, keepdims=keepdims)
+    Backward: ∂L/∂input = grad_output * input / ||input||
+    """
+
     @staticmethod
     def forward(
         ctx: Context,
-        a: ndarray,
+        input: ndarray,
         ord: int = 2,
         dim: Optional[Dim] = None,
         keepdims: bool = False,
     ) -> ndarray:
-
-        result = np.linalg.norm(a, ord=ord, axis=dim, keepdims=keepdims)
+        """Compute the norm of input along given axis/dim."""
+        result = np.linalg.norm(input, ord=ord, axis=dim, keepdims=keepdims)
         ctx.result = result
         ctx.ord = ord
         ctx.dim = dim
         ctx.keepdims = keepdims
-        ctx.save_for_backward(a)
-
+        ctx.save_for_backward(input)
         return result
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        (a,) = ctx.saved_tensors
+        """
+        Backward pass for norm.
+
+        The gradient is: grad_input = grad_output * input / ||input||
+        """
+        (input,) = ctx.saved_tensors
         out = ctx.result
 
         if ctx.ord == 2:
-
             if not ctx.keepdims and ctx.dim is not None:
                 grad_output = np.expand_dims(grad_output, ctx.dim)
                 out = np.expand_dims(out, ctx.dim)
 
             safe_out = np.where(out == 0, 1.0, out)
-
-            grad_a = grad_output * (a / safe_out)
-
-            grad_a = np.where(grad_a == 0, 0.0, out)
-
-            return (grad_a,)
+            grad_input = grad_output * (input / safe_out)
+            return (grad_input,)

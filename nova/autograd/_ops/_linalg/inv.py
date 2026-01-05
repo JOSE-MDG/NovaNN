@@ -12,18 +12,27 @@ if TYPE_CHECKING:
 
 @registry_op("inv")
 class Inv(Function):
-    @staticmethod
-    def forward(ctx: Context, a: ndarray) -> ndarray:
-        result = np.linalg.inv(a)
-        ctx.save_for_backward(result.T)
+    """
+    Matrix inversion.
 
+    Forward: out = inv(input)
+    Backward: ∂L/∂input = -inv(input)^T · grad_output · inv(input)^T
+    """
+
+    @staticmethod
+    def forward(ctx: Context, input: ndarray) -> ndarray:
+        """Compute the inverse of a square matrix."""
+        result = np.linalg.inv(input)
+        ctx.save_for_backward(result.T)
         return result
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """
+        Backward pass for inverse matrix.
 
+        The gradient is: grad_input = -inv(input)^T · grad_output · inv(input)^T
+        """
         (inv_T,) = ctx.saved_tensors
-
-        grad_a = -inv_T @ grad_output @ inv_T
-
-        return (grad_a,)
+        grad_input = -inv_T @ grad_output @ inv_T
+        return (grad_input,)

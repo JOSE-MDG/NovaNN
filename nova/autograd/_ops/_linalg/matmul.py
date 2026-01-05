@@ -11,17 +11,27 @@ if TYPE_CHECKING:
 
 @registry_op("matmul")
 class MatMul(Function):
+    """
+    Matrix multiplication using '@' operator.
+
+    Forward: out = input @ other
+    Backward: ∂L/∂input = grad_output @ other^T, ∂L/∂other = input^T @ grad_output
+    """
+
     @staticmethod
-    def forward(ctx: Context, a: ndarray, b: ndarray) -> ndarray:
-        ctx.save_for_backward(a, b)
-        return a @ b
+    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+        """Compute matrix multiplication of input and other."""
+        ctx.save_for_backward(input, other)
+        return input @ other
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """
+        Backward pass for matmul.
 
-        a, b = ctx.saved_tensors
-
-        grad_a = grad_output @ b.T
-        grad_b = a.T @ grad_output
-
-        return (grad_a, grad_b)
+        The gradient is: grad_input = grad_output @ other^T, grad_other = input^T @ grad_output
+        """
+        input, other = ctx.saved_tensors
+        grad_input = grad_output @ other.T
+        grad_other = input.T @ grad_output
+        return (grad_input, grad_other)

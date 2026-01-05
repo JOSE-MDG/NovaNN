@@ -12,16 +12,27 @@ if TYPE_CHECKING:
 
 @registry_op("trace")
 class Trace(Function):
+    """
+    Trace of a square matrix.
+
+    Forward: out = sum(diag(input))
+    Backward: ∂L/∂input = grad_output * I
+    """
+
     @staticmethod
-    def forward(ctx: Context, a: ndarray) -> ndarray:
-        ctx.save_for_backward(a)
-        return np.linalg.trace(a)
+    def forward(ctx: Context, input: ndarray) -> ndarray:
+        """Compute the trace (sum of diagonal elements) of a square matrix."""
+        ctx.save_for_backward(input)
+        return np.linalg.trace(input)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        (a,) = ctx.saved_tensors
+        """
+        Backward pass for trace.
 
-        N = a.shape[0]
-        grad_a = np.eye(N=N) * grad_output
-
-        return (grad_a,)
+        The gradient is: grad_input = grad_output * identity matrix
+        """
+        (input,) = ctx.saved_tensors
+        N = input.shape[0]
+        grad_input = np.eye(N) * grad_output
+        return (grad_input,)

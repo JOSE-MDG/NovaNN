@@ -12,17 +12,29 @@ if TYPE_CHECKING:
 
 @registry_op("det")
 class Det(Function):
+    """
+    Determinant of a square matrix.
+
+    Forward: out = det(input)
+    Backward: ∂L/∂input = ∂L/∂out * det(input) * (input^-T)
+    """
+
     @staticmethod
-    def forward(ctx: Context, a: ndarray) -> ndarray:
-        result = np.linalg.det(a)
-        ctx.save_for_backward(a, result)
+    def forward(ctx: Context, input: ndarray) -> ndarray:
+        """Compute the determinant of a square matrix."""
+        result = np.linalg.det(input)
+        ctx.save_for_backward(input, result)
         return result
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        (a, det) = ctx.saved_tensors
-        inv_T = np.linalg.inv(a).T
+        """
+        Backward pass for determinant.
 
-        grad_a = det @ grad_output @ inv_T
+        The gradient is: grad_input = det(input) * grad_output * input^-T
+        """
+        input, det_val = ctx.saved_tensors
+        inv_T = np.linalg.inv(input).T
 
-        return (grad_a,)
+        grad_input = det_val * grad_output * inv_T
+        return (grad_input,)
