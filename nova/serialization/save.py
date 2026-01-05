@@ -1,3 +1,9 @@
+"""
+Serialization saving utilities.
+
+Provides helpers for serializing NovaNN objects using pickle.
+"""
+
 import traceback
 import pickle
 import io
@@ -6,6 +12,29 @@ from typing import Any
 
 
 def save(obj: Any, f: str | io.BufferedIOBase, protocol: int = pickle.HIGHEST_PROTOCOL):
+    """
+    Serialize an object to a file or file-like object using pickle.
+
+    This function is typically used to store model weights, optimizers,
+    or training checkpoints.
+
+    Args:
+        obj: Object to serialize.
+        f: File path or file-like object opened in binary mode.
+        protocol: Pickle protocol version to use.
+
+    Example:
+        >>> import nova
+        >>> import nova.nn as nn
+        >>>
+        >>> model = nn.Linear(10, 5)
+        >>> save(model, "model.pt")
+        >>>
+        >>> # Save to an in-memory buffer
+        >>> import io
+        >>> buffer = io.BytesIO()
+        >>> nova.save(model, buffer)
+    """
 
     try:
         if isinstance(f, str):
