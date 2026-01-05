@@ -1,3 +1,26 @@
+"""
+Autograd operations registry.
+
+This module aggregates and exposes all differentiable operations
+supported by the autograd engine. Each operation is implemented
+as a subclass of `Function` and registered through the internal
+operator registry.
+
+The operations are organized by category:
+- Basic arithmetic
+- Activations
+- Linear algebra
+- Indexing and views
+- Reductions
+- Tensor manipulation
+- Trigonometric functions
+- Comparison operators
+- Tensor creation
+
+Only the symbols listed in `__all__` are considered part of the
+public autograd API.
+"""
+
 from ._basic import (
     Add,
     Sub,

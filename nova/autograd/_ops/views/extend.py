@@ -13,15 +13,25 @@ if TYPE_CHECKING:
 
 @registry_op("extend")
 class Extend(Function):
+    """
+    Broadcast an array to a new shape.
+
+    Forward: out = broadcast_to(a, size)
+    """
+
     @staticmethod
-    def forward(ctx: Context, a: ndarray, size: Size) -> ndarray:
-        ctx.saved_shapes = a.shape
-        return np.broadcast_to(a, shape=size)
+    def forward(ctx: Context, input: ndarray, size: Size) -> ndarray:
+        ctx.saved_shapes = input.shape
+        return np.broadcast_to(input, shape=size)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """
+        Backward pass for extend.
+
+        The gradient is reduced back to the original shape
+        by summing over broadcasted dimensions.
+        """
         org_shape = ctx.saved_shapes
-
         grad_output = unbroadcasting(grad_output, org_shape)
-
         return (grad_output,)
