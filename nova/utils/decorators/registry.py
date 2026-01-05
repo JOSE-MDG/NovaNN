@@ -39,8 +39,8 @@ def registry_op(op_name: str) -> Callable[[Type[Function]], Type[Function]]:
     Register an autograd Function under a public operation name.
 
     This decorator associates a string operation name with a subclass
-    of `Function`. It is primarily used to map serialized operations
-    back to their corresponding Function classes during deserialization.
+    of `Function`. The mapping is later used during deserialization
+    to safely reconstruct computation graphs.
 
     Args:
         op_name: Public name of the operation (e.g., "add", "relu").
@@ -49,8 +49,21 @@ def registry_op(op_name: str) -> Callable[[Type[Function]], Type[Function]]:
         A decorator that registers a Function subclass.
 
     Raises:
-        ValueError: If the decorated object is not a Function subclass.
+        ValueError: If the decorated object is not a subclass of `Function`.
+
+    Example:
+        >>> from nova.autograd.function import Function
+        >>> from nova.utils.decorators.registry import registry_op
+        >>>
+        >>> @registry_op("add")
+        ... class Add(Function):
+        ...     @staticmethod
+        ...     def forward(ctx, x, y):
+        ...         return x + y
+        ...
+        >>> # The operation "add" is now safely registered
     """
+
     from nova.autograd.function import Function
 
     def register(cls: Type[Function]):
