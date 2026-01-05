@@ -16,7 +16,7 @@ class LeakyReLU(Function):
     Leaky Rectified Linear Unit activation function.
 
     Forward: out = x if x > 0 else alpha * x
-    Backward: dL/dx = dL/dout * (1 if x > 0 else alpha)
+    Backward: ∂L/∂x = ∂L/∂out * (1 if x > 0 else alpha)
     """
 
     @staticmethod

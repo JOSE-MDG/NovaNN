@@ -16,7 +16,7 @@ class Sigmoid(Function):
     Sigmoid activation function.
 
     Forward: out = 1 / (1 + exp(-x))
-    Backward: dL/dx = dL/dout * out * (1 - out)
+    Backward: ∂L/∂x = ∂L/∂out * out * (1 - out)
     """
 
     @staticmethod

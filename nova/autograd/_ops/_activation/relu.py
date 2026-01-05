@@ -16,7 +16,7 @@ class ReLU(Function):
     Rectified Linear Unit activation function.
 
     Forward: out = max(0, x)
-    Backward: dL/dx = dL/dout * (1 if x > 0 else 0)
+    Backward: ∂L/∂x = ∂L/∂out * (1 if x > 0 else 0)
     """
 
     @staticmethod
