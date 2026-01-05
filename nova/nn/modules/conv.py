@@ -6,57 +6,11 @@ import nova.nn.functional as F
 from typing import TYPE_CHECKING, Optional
 from nova.nn.modules import Module, LazyModuleMixin
 from nova.nn.parameter import Parameter, UninitializedParameter
+from nova.nn.utils.standardization import _single, _pair, _triple
 
 if TYPE_CHECKING:
     from nova import Tensor
     from nova._typing import KernelSize, Stride, Padding, PaddingMode, Dtype, Dilation
-
-
-def _single(input: int | tuple[int, int] | str) -> int:
-
-    if isinstance(input, tuple):
-        return input[0]
-
-    elif isinstance(input, str):
-        if input == "valid":
-            return 0
-        elif input == "same":
-            raise ValueError(f"The 'same' value is not currently supported")
-        else:
-            raise ValueError(f"Unsupported value '{input}'")
-
-    return int(input)
-
-
-def _pair(input: int | tuple[int, int] | str) -> tuple[int, int]:
-
-    if isinstance(input, int):
-        return (input, input)
-
-    elif isinstance(input, str):
-        if input == "valid":
-            return (0, 0)
-        elif input == "same":
-            raise ValueError(f"The 'same' value is not currently supported")
-        else:
-            raise ValueError(f"Unsupported value '{input}'")
-
-    return tuple(input)
-
-
-def _triple(input: int | tuple[int, int, int] | str) -> tuple[int, int, int]:
-
-    if isinstance(input, int):
-        return (input, input, input)
-
-    elif isinstance(input, str):
-        if input == "valid":
-            return (0, 0, 0)
-        elif input == "same":
-            raise ValueError(f"The 'same' value is not currently supported")
-        else:
-            raise ValueError(f"Unsupported value '{input}'")
-    return tuple(input)
 
 
 class Conv1d(Module):
