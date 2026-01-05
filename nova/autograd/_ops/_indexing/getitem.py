@@ -29,8 +29,19 @@ def _sanitize_index(index):
 
 @registry_op("getitem")
 class GetItem(Function):
+    """
+    Tensor indexing operation.
+
+    Forward:
+        out = input[index]
+
+    Backward:
+        ∂input accumulates grad_output at indexed positions
+    """
+
     @staticmethod
     def forward(ctx: Context, input: ndarray, index) -> ndarray:
+        """Extract elements from input using indexing."""
         if isinstance(index, tuple):
             actual_idx = tuple(_sanitize_index(i) for i in index)
         else:
@@ -43,6 +54,11 @@ class GetItem(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """
+        Backward pass for getitem.
+
+        The gradient is accumulated at the indexed positions.
+        """
         (input,) = ctx.saved_tensors
         grad_input = np.zeros_like(input, dtype=grad_output.dtype)
 
