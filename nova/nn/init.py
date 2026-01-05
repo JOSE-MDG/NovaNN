@@ -9,10 +9,31 @@ if TYPE_CHECKING:
     from nova._typing import Size
 
 """
-Weight initialization utilities.
+Parameter initialization utilities.
 
-Provides common initializers (Xavier/Glorot, Kaiming/He) and a small random
-initializer used as default. All functions use Google-style docstrings.
+This module provides common weight initialization methods used in neural
+networks, including Xavier/Glorot and Kaiming/He initializations, as well as
+simple uniform, normal, and constant initializers.
+
+The functions operate *in-place* on Tensors, Parameters, or Buffers and
+temporarily disable gradient tracking during initialization.
+
+Design notes:
+- All initializers follow conventions used in modern deep learning frameworks
+  (e.g., PyTorch).
+- Fan-in and fan-out are inferred automatically from tensor shapes.
+- Boolean tensors are not supported as initialization targets.
+
+Typical usage:
+    >>> import nova
+    >>> form nova.nn import init
+    >>> w = Parameter(nova.empty((128, 256)), dtype=nova.float32)
+    >>> init.kaiming_normal_(w, nonlinearity="relu")
+
+Available initializers:
+- Xavier / Glorot: xavier_normal_, xavier_uniform_
+- Kaiming / He: kaiming_normal_, kaiming_uniform_
+- Basic: uniform_, normal_, constant_, zeros_, ones_, random_
 """
 
 
@@ -22,7 +43,11 @@ def calculate_gain(
     ],
     param: Optional[float] = None,
 ) -> float:
-    """Return the recommended gain value for the given nonlinearity.
+    """
+    Return the recommended gain value for a given nonlinearity.
+
+    The gain is used to scale the variance of weight initializations in
+    Xavier/Glorot and Kaiming/He methods.
 
     Args:
         nonlinearity: Name of the activation function. Supported values:
@@ -31,7 +56,13 @@ def calculate_gain(
             slope for leaky ReLU). Uses sensible defaults if None.
 
     Returns:
-        Gain multiplier as float.
+        Gain multiplier as a float.
+
+    Examples:
+        >>> calculate_gain("relu")
+        1.4142135623730951
+        >>> calculate_gain("leaky_relu", param=0.2)
+        1.3867504905630728
 
     Raises:
         ValueError: If `nonlinearity` is not supported.
@@ -104,18 +135,32 @@ def _calculate_fans(shape: Size) -> tuple[int, int]:
 def get_fans(
     tensor: Tensor, mode: Literal["both", "fan_in", "fan_out"] = "fan_in"
 ) -> Union[int, tuple[int, int]]:
-    """Calculate fan values for weight initialization.
+    """
+    Compute fan-in and fan-out values for a weight tensor.
+
+    Fan values are used to scale the variance of initialization distributions.
+    The calculation depends on the tensor shape and supports linear and convolutional layers.
 
     Args:
-        tensor: Tensor object to calculate fans.
-        mode: One of 'fan_in', 'fan_out', or 'both'.
+        tensor: Tensor whose shape is used to compute fan values.
+        mode: One of:
+            - "fan_in": return only fan-in
+            - "fan_out": return only fan-out
+            - "both": return (fan_in, fan_out)
 
     Returns:
-        Single fan value or tuple (fan_in, fan_out) depending on mode.
+        An integer fan value or a tuple (fan_in, fan_out) if mode="both".
+
+    Examples:
+        >>> import nova
+        >>> w = nova.randn(64, 128)
+        >>> get_fans(w, mode="both")
+        (128, 64)
 
     Raises:
-        ValueError: If mode is invalid or shape has invalid dimensions.
+        ValueError: If mode is invalid or tensor shape is unsupported.
     """
+
     shape = tensor.shape
     _validate_mode(mode)
     fan_in, fan_out = _calculate_fans(shape)
@@ -129,6 +174,22 @@ def get_fans(
 
 
 def xavier_normal_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
+    """
+    Initialize tensor using Xavier (Glorot) normal initialization.
+
+    The tensor is filled with values drawn from:
+        N(0, gain * sqrt(2 / (fan_in + fan_out)))
+
+    Args:
+        tensor: Parameter or Buffer to initialize.
+        gain: Optional scaling factor (see `calculate_gain`).
+
+    Example:
+        >>> import nova
+        >>> from nova.nn import init, Parameter
+        >>> w = Parameter(nova.empty((128, 256)), dtype=nova.float32)
+        >>> init.xavier_normal_(w)
+    """
 
     fan_in, fan_out = get_fans(tensor, mode="both")
 
@@ -142,6 +203,22 @@ def xavier_normal_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
 
 
 def xavier_uniform_(tensor: Parameter | Buffer, gain: float = 1.0) -> None:
+    """
+    Initialize tensor using Xavier (Glorot) uniform initialization.
+
+    Values are drawn from:
+        U(-limit, limit), where limit = gain * sqrt(6 / (fan_in + fan_out))
+
+    Args:
+        tensor: Parameter or Buffer to initialize.
+        gain: Optional scaling factor.
+
+    Example:
+        >>> import nova
+        >>> from nova.nn import init, Parameter
+        >>> w = Parameter(nova.empty((128, 256)), dtype=nova.float32)
+        >>> init.xavier_uniform_(w)
+    """
 
     fan_in, fan_out = get_fans(tensor, mode="both")
 
@@ -160,7 +237,23 @@ def kaiming_normal_(
     nonlinearity: str = "leaky_relu",
     mode: str = "fan_in",
 ) -> None:
+    """
+    Initialize tensor using Kaiming (He) normal initialization.
 
+    Commonly used for ReLU-like nonlinearities.
+
+    Args:
+        tensor: Parameter or Buffer to initialize.
+        a: Optional negative slope for leaky ReLU.
+        nonlinearity: Activation function name.
+        mode: One of 'fan_in' or 'fan_out'.
+
+    Example:
+        >>> import nova
+        >>> from nova.nn import init, Parameter
+        >>> w = Parameter(nova.empty((64, 128)), dtype=nova.float32)
+        >>> init.kaiming_normal_(w, nonlinearity="relu")
+    """
     fan = get_fans(tensor, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
 
@@ -179,6 +272,21 @@ def kaiming_uniform_(
     nonlinearity: str = "relu",
     mode: str = "fan_in",
 ) -> None:
+    """
+    Initialize tensor using Kaiming (He) uniform initialization.
+
+    Args:
+        tensor: Parameter or Buffer to initialize.
+        a: Optional negative slope for leaky ReLU.
+        nonlinearity: Activation function name.
+        mode: One of 'fan_in' or 'fan_out'.
+
+    Example:
+        >>> import nova
+        >>> from nova.nn import init, Parameter
+        >>> w = Parameter(nova.empty((64, 128)), dtype=nova.float32)
+        >>> init.kaiming_uniform_(w)
+    """
 
     fan = get_fans(tensor, mode=mode)
     gain = calculate_gain(nonlinearity=nonlinearity, param=a)
@@ -195,6 +303,7 @@ def kaiming_uniform_(
 def uniform_(
     tensor: Tensor | Parameter | Buffer, low: float = 0, high: float = 1
 ) -> None:
+    """Fill tensor with values drawn from a uniform distribution."""
 
     prev_state = tensor.requires_grad
 
@@ -206,6 +315,7 @@ def uniform_(
 def normal_(
     tensor: Tensor | Parameter | Buffer, mean: float = 0, std: float = 1
 ) -> None:
+    """Fill tensor with values drawn from a normal distribution."""
 
     prev_state = tensor.requires_grad
 
@@ -215,6 +325,7 @@ def normal_(
 
 
 def constant_(tensor: Tensor | Parameter | Buffer, val: Any) -> None:
+    """Fill tensor with a constant value."""
 
     prev_state = tensor.requires_grad
 
@@ -224,6 +335,7 @@ def constant_(tensor: Tensor | Parameter | Buffer, val: Any) -> None:
 
 
 def zeros_(tensor: Tensor | Parameter | Buffer) -> None:
+    """Fill tensor with zeros."""
 
     prev_state = tensor.requires_grad
 
@@ -233,6 +345,7 @@ def zeros_(tensor: Tensor | Parameter | Buffer) -> None:
 
 
 def ones_(tensor: Tensor | Parameter | Buffer) -> None:
+    """Fill tensor with ones."""
 
     prev_state = tensor.requires_grad
 
@@ -242,6 +355,7 @@ def ones_(tensor: Tensor | Parameter | Buffer) -> None:
 
 
 def random_(tensor: Tensor | Parameter | Buffer) -> None:
+    """Fill tensor with random values using the tensor's default RNG."""
 
     prev_state = tensor.requires_grad
 
