@@ -13,7 +13,7 @@ import pickle
 from nova.utils.decorators.registry import _MODULES
 from nova.utils import get_registered_classes
 
-ALLOWED_MODULES = {
+ALLOWED_MODULES: set[str] = {
     "numpy",
     "numpy.core.multiarray",
     "numpy.core.numeric",
