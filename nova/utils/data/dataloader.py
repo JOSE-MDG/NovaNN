@@ -29,11 +29,9 @@ class DataLoader:
         >>> loader = DataLoader(x, y, batch_size=2, shuffle=False)
         >>> for xb, yb in loader:
         ...     print(xb, yb)
-        tensor([[1. 2.]
-                [3. 4.]])
-        tensor([0 1])
-        tensor([[5. 6.]])
-        tensor([0])
+        tensor([[1., 2.],
+                [3., 4.]]) tensor([0., 1.])
+        tensor([[5., 6.]]) tensor([0.])
     """
 
     class _Iter:
