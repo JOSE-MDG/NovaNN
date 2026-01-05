@@ -10,11 +10,11 @@ if TYPE_CHECKING:
     from nova._typing import Gradients
 
 
-def _sanitize_index(i):
-    if isinstance(i, slice):
-        return i
+def _sanitize_index(index):
+    if isinstance(index, slice):
+        return index
 
-    arr = np.asarray(i)
+    arr = np.asarray(index)
 
     if arr.dtype == np.bool_:
         return arr
@@ -30,22 +30,22 @@ def _sanitize_index(i):
 @registry_op("getitem")
 class GetItem(Function):
     @staticmethod
-    def forward(ctx: Context, a: ndarray, idx) -> ndarray:
-        if isinstance(idx, tuple):
-            actual_idx = tuple(_sanitize_index(i) for i in idx)
+    def forward(ctx: Context, input: ndarray, index) -> ndarray:
+        if isinstance(index, tuple):
+            actual_idx = tuple(_sanitize_index(i) for i in index)
         else:
-            actual_idx = _sanitize_index(idx)
+            actual_idx = _sanitize_index(index)
 
-        ctx.save_for_backward(a)
+        ctx.save_for_backward(input)
         ctx.idx = actual_idx
 
-        return a[actual_idx]
+        return input[actual_idx]
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        (a,) = ctx.saved_tensors
-        grad_a = np.zeros_like(a, dtype=grad_output.dtype)
+        (input,) = ctx.saved_tensors
+        grad_input = np.zeros_like(input, dtype=grad_output.dtype)
 
-        np.add.at(grad_a, ctx.idx, grad_output)
+        np.add.at(grad_input, ctx.idx, grad_output)
 
-        return (grad_a,)
+        return (grad_input,)

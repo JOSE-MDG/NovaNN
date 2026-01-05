@@ -12,10 +12,11 @@ if TYPE_CHECKING:
 @registry_op("setitem")
 class SetItem(Function):
     @staticmethod
-    def forward(ctx: Context, a: ndarray, key: Any, value: Any) -> ndarray:
+    def forward(ctx: Context, input: ndarray, key: Any, value: Any) -> ndarray:
+
         ctx.save_for_backward(key)
-        a[key] = value
-        return a
+        input[key] = value
+        return input
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
