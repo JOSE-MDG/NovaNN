@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from nova._typing import Dtype, Size
 
 class Parameter(Tensor):
+    is_bn_param: bool
     def __init__(
         self,
         data: Tensor = ...,
