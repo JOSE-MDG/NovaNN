@@ -3,8 +3,8 @@ import nova
 import nova.nn.init as init
 import nova.nn.functional as F
 from typing import TYPE_CHECKING, Optional
-from nova.nn.modules import Module, LazyModuleMixin
-from nova.nn.parameter import Parameter, UninitializedParameter
+from nova.nn.modules import Module
+from nova.nn.parameter import Parameter
 
 if TYPE_CHECKING:
     from nova import Tensor

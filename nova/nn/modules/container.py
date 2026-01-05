@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from typing import Type
 from nova.nn.modules import Module
 
 if TYPE_CHECKING:

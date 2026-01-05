@@ -5,8 +5,8 @@ import nova.nn.init as init
 import nova.nn.functional as F
 from typing import TYPE_CHECKING, Optional
 from nova.nn.modules import Module, LazyModuleMixin
-from nova.nn.parameter import Parameter, UninitializedParameter
-from nova.nn.utils.standardization import _single, _pair, _triple
+from nova.nn import Parameter, UninitializedParameter
+from nova.nn.utils import _single, _pair, _triple
 
 if TYPE_CHECKING:
     from nova import Tensor
