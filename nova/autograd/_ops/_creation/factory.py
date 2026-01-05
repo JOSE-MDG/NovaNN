@@ -937,9 +937,7 @@ def eye(
     )
 
 
-def one_hot(
-    labels: nova.Tensor, num_classes: int, requires_grad: bool = False
-) -> nova.Tensor:
+def one_hot(labels: nova.Tensor, num_classes: int) -> nova.Tensor:
     """
     Converts a tensor of labels to one-hot encoded format.
 
@@ -959,9 +957,12 @@ def one_hot(
                 [0, 0, 1],
                 [0, 1, 0]])
     """
-    labels = ensure_tensor(labels, dtype=nova.long).data
-    data = np.eye(num_classes)[labels]
-    return nova.Tensor(data, dtype=nova.long, requires_grad=requires_grad)
+    if not isinstance(num_classes, int):
+        raise ValueError(f"num_classes expect a integer, got '{type(num_classes)}'")
+    labels = ensure_tensor(labels, dtype=nova.long)
+
+    data = nova.eye(num_classes)[labels]
+    return data
 
 
 def full(
