@@ -135,8 +135,8 @@ def randint(
     Examples:
         >>> x = nova.randint(0, 5, size=(2,2))
         >>> print(x)
-        [[0, 3],
-         [1, 4]]
+        tensor([[0, 3],
+                [1, 4]])
     """
     gen = generator or _default_generator
     dtype = dtype if dtype is not None else nova.long
@@ -169,7 +169,7 @@ def randperm(
     Examples:
         >>> x = nova.randperm(5)
         >>> print(x)
-        [3, 1, 4, 0, 2]
+        tensor([3, 1, 4, 0, 2])
     """
     gen = generator or _default_generator
     dtype = dtype if dtype is not None else nova.long
