@@ -1,3 +1,9 @@
+"""
+AdamW optimizer for NovaNN.
+
+Implements AdamW algorithm (decoupled weight decay) for parameter updates.
+"""
+
 from __future__ import annotations
 import numpy as np
 from nova._interfaces._optimizer import Optimizer
@@ -9,6 +15,30 @@ if TYPE_CHECKING:
 
 
 class AdamW(Optimizer):
+    """
+    Implements AdamW optimizer with decoupled weight decay.
+
+    Args:
+        parameters (Iterable[Parameter]): Iterable of parameters to optimize.
+        lr (float): Learning rate.
+        betas (tuple[float, float]): Coefficients used for computing running averages of gradient and squared gradient. Defaults to (0.9, 0.999).
+        weight_decay (float): Weight decay (L2 penalty). Defaults to 0.0.
+        eps (float): Term added to denominator to improve numerical stability. Defaults to 1e-8.
+
+    Examples:
+        >>> import nova
+        >>> import numpy as np
+        >>> from nova.nn import Parameter
+        >>> from nova.optim import AdamW
+        >>>
+        >>> p = Parameter(nova.randn(3, 3))
+        >>> optimizer = AdamW([p], lr=0.01, weight_decay=0.01)
+        >>> for step in range(5):
+        ...     # fake gradient
+        ...     p.grad = np.random.randn(*p.shape)
+        ...     optimizer.step()
+    """
+
     def __init__(
         self,
         parameters: Iterable[Parameter],
@@ -38,7 +68,6 @@ class AdamW(Optimizer):
                 grad = param.grad
                 data = param.data
 
-                # init state if needed
                 state = self.state.setdefault(
                     param,
                     {
@@ -48,7 +77,6 @@ class AdamW(Optimizer):
                     },
                 )
 
-                # update state['step'] each step
                 state["step"] += 1
                 step = state["step"]
 
@@ -59,25 +87,17 @@ class AdamW(Optimizer):
                 m[:] = b1 * m + (1.0 - b1) * grad
                 v[:] = b2 * v + (1.0 - b2) * (grad**2)
 
-                # compute bias-corrected estimates
-                bias_correction1 = 1.0 - (b1**step)
-                bias_correction2 = 1.0 - (b2**step)
+                # bias correction
+                m_hat = m / (1.0 - b1**step)
+                v_hat = v / (1.0 - b2**step)
 
-                m_hat = m / bias_correction1
-                v_hat = v / bias_correction2
-
-                # decoupled weight decay (apply to parameter before the adaptive step)
+                # decoupled weight decay (before adaptive step)
                 if wd > 0 and not getattr(param, "is_bn_param", False):
                     data -= lr * wd * data
-                    # write-back if needed
                     param.data = data
 
-                # parameter update: lr * m_hat / (sqrt(v_hat) + eps)
+                # parameter update
                 denom = np.sqrt(v_hat) + self.eps
-                step_size = lr
-                update = step_size * (m_hat / denom)
-
-                # in-place subtract
-                param.data -= update
+                param.data -= lr * (m_hat / denom)
 
         return loss

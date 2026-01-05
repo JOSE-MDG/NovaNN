@@ -1,3 +1,9 @@
+"""
+SGD optimizer for NovaNN.
+
+Supports momentum and optional weight decay.
+"""
+
 from __future__ import annotations
 import numpy as np
 from nova._interfaces._optimizer import Optimizer
@@ -9,6 +15,28 @@ if TYPE_CHECKING:
 
 
 class SGD(Optimizer):
+    """
+    Stochastic Gradient Descent optimizer with momentum.
+
+    Args:
+        parameters (Iterable[Parameter]): Iterable of parameters to optimize.
+        lr (float): Learning rate.
+        momentum (float): Momentum factor. Defaults to 0.0.
+        weight_decay (float): Weight decay (L2 penalty). Defaults to 0.0.
+
+    Examples:
+        >>> import nova
+        >>> import numpy as np
+        >>> from nova.nn import Parameter
+        >>> from nova.optim import SGD
+        >>>
+        >>> p = Parameter(nova.randn(2, 2))
+        >>> optimizer = SGD([p], lr=0.1, momentum=0.9)
+        >>> for step in range(3):
+        ...     p.grad = np.random.randn(*p.shape)
+        ...     optimizer.step()
+    """
+
     def __init__(
         self,
         parameters: Iterable[Parameter],
@@ -41,7 +69,7 @@ class SGD(Optimizer):
                 )
 
                 if wd > 0 and not getattr(param, "is_bn_param", False):
-                    grad = grad + wd * data
+                    grad += wd * data
 
                 v = state["velocity"]
 

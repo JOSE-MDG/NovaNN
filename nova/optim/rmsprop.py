@@ -1,3 +1,9 @@
+"""
+RMSprop optimizer for NovaNN.
+
+Supports optional momentum, centered variance, and weight decay.
+"""
+
 from __future__ import annotations
 import numpy as np
 from nova._interfaces._optimizer import Optimizer
@@ -9,6 +15,31 @@ if TYPE_CHECKING:
 
 
 class RMSprop(Optimizer):
+    """
+    RMSprop optimizer.
+
+    Args:
+        parameters (Iterable[Parameter]): Iterable of parameters to optimize.
+        lr (float): Learning rate.
+        alpha (float): Smoothing constant. Defaults to 0.99.
+        weight_decay (float): L2 penalty. Defaults to 0.0.
+        momentum (float): Momentum factor. Defaults to 0.0.
+        centered (bool): Whether to normalize by the centered variance. Defaults to True.
+        eps (float): Small term for numerical stability. Defaults to 1e-8.
+
+    Examples:
+        >>> import nova
+        >>> import numpy as np
+        >>> from nova.nn import Parameter
+        >>> from nova.optim import RMSprop
+        >>>
+        >>> p = Parameter(nova.randn(2, 2))
+        >>> optimizer = RMSprop([p], lr=0.01, alpha=0.9)
+        >>> for step in range(3):
+        ...     p.grad = np.random.randn(*p.shape)
+        ...     optimizer.step()
+    """
+
     def __init__(
         self,
         parameters: Iterable[Parameter],
@@ -60,11 +91,9 @@ class RMSprop(Optimizer):
 
                 state["step"] += 1
 
-                # Weight decay
                 if wd > 0 and not getattr(param, "is_bn_param", False):
                     grad += wd * data
 
-                # Exponential moving averages
                 state["exp_avg_sq"][:] = alpha * state["exp_avg_sq"] + (1 - alpha) * (
                     grad**2
                 )
@@ -77,7 +106,6 @@ class RMSprop(Optimizer):
                 else:
                     denom = np.sqrt(state["exp_avg_sq"]) + self.eps
 
-                # Momentum update
                 if momentum > 0:
                     state["velocity"][:] = momentum * state["velocity"] + grad / denom
                     update = state["velocity"]
