@@ -44,12 +44,11 @@ class Function(ABC, metaclass=FunctionMeta):
 
         output_dtype = output.dtype
 
-        # --- Improved numeric type normalization ---
-        # Always cast numeric outputs to the base float dtype,
-        # except for purely boolean tensors.
-        if np.issubdtype(output_dtype, np.bool_):
-            pass
-        else:
+        if (
+            not np.issubdtype(output_dtype, np.bool_)
+            and not np.issubdtype(output_dtype, np.integer)
+            and not np.issubdtype(output_dtype, np.complexfloating)
+        ):
             output = output.astype(base_dtype, copy=False)
             output_dtype = base_dtype
 

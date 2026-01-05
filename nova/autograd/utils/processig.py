@@ -44,7 +44,7 @@ def _is_index_like(obj: Any) -> bool:
         if len(obj) == 0:
             return True
         first = obj[0]
-        return isinstance(first, (int, bool, np.integer, np.bool_))
+        return isinstance(first, (int, np.integer))
     return False
 
 
@@ -126,8 +126,10 @@ class ArgumentProcessor:
                 return data
 
             # Cast to base dtype for numerical stability
-            return data.astype(self.base_dtype, copy=False)
+            if np.issubdtype(self.base_dtype, np.floating):
+                return data.astype(self.base_dtype, copy=False)
 
+            return data
         elif isinstance(arg, np.ndarray):
             # Preserve boolean/integer arrays as-is
             if arg.dtype == np.bool_ or np.issubdtype(arg.dtype, np.integer):
@@ -205,12 +207,12 @@ def determine_base_dtype(args: tuple) -> dtype:
     """
     from nova import Tensor
 
-    base_dtype = None
     for arg in args:
-        if isinstance(arg, Tensor):
-            base_dtype = arg.dtype
-            break
-    if base_dtype is None:
-        base_dtype = nova.float32
+        if isinstance(arg, Tensor) and np.issubdtype(arg.dtype, np.floating):
+            return arg.dtype
 
-    return base_dtype
+    for arg in args:
+        if isinstance(arg, Tensor) and np.issubdtype(arg.dtype, np.complexfloating):
+            return arg.dtype
+
+    return nova.float32
