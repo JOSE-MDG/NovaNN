@@ -201,7 +201,7 @@ def determine_base_dtype(args: tuple) -> dtype:
         Base dtype to use (defaults to float32 if no Tensor found).
 
     Examples:
-        >>> x = nova.tensor([1.0], dtype=nova.float64)
+        >>> x = nova.tensor([1.0], dtype=nova.double)
         >>> dtype = determine_base_dtype((x, 5.0))
         >>> print(dtype)  # float64
     """
