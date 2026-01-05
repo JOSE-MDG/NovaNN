@@ -8,17 +8,32 @@ if TYPE_CHECKING:
 
 
 class DataLoader:
-    """Iterable data loader that yields mini-batches from a dataset.
+    """
+    Iterable data loader that yields mini-batches from feature and label tensors.
 
-    This class wraps feature and label arrays and provides an iterator that
-    return (xb, yb) batches. It supports shuffling the data at the start of
-    each epoch.
+    This class wraps input features and labels and provides an iterator that
+    returns `(xb, yb)` batches for training or evaluation. Supports optional
+    shuffling at the start of each epoch.
 
     Attributes:
-        x (Tensor): Input feature array of shape (N, ...).
-        y (Tensor): Label array of shape (N, ...).
-        batch_size (int): Batch size (i.e., number of samples per batch).
-        shuffle (bool): Whether to shuffle samples each epoch.
+        x (Tensor): Input feature tensor of shape (N, ...).
+        y (Tensor): Label tensor of shape (N, ...).
+        batch_size (int): Number of samples per batch.
+        shuffle (bool): Whether to shuffle the dataset each epoch.
+
+    Examples:
+        >>> import nova
+        >>> from nova.utils.data import DataLoader
+        >>> x = nova.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+        >>> y = nova.tensor([0, 1, 0])
+        >>> loader = DataLoader(x, y, batch_size=2, shuffle=False)
+        >>> for xb, yb in loader:
+        ...     print(xb, yb)
+        tensor([[1. 2.]
+                [3. 4.]])
+        tensor([0 1])
+        tensor([[5. 6.]])
+        tensor([0])
     """
 
     class _Iter:

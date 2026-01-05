@@ -21,20 +21,39 @@ def load_fashion_mnist_data(
     do_normalize: bool = True,
     tensor4d: bool = False,
     as_tensor: bool = True,
-    dtype: Optional[Dtype] = None,
+    dtype: Optional["Dtype"] = None,
     train_path: str = EXPORTATION_FASHION_TRAIN_DATA_PATH,
     test_path: str = FASHION_TEST_DATA_PATH,
     val_path: str = FASHION_VALIDATION_DATA_PATH,
 ):
     """
     Load Fashion-MNIST dataset from CSV files and optionally normalize it.
+
     Args:
-        train_path: Path to the training data CSV file.
-        test_path: Path to the test data CSV file.
-        val_path: Path to the validation data CSV file.
-        normalize: Whether to normalize the data using training set statistics.
+        do_normalize (bool): Whether to normalize using training set statistics.
+        tensor4d (bool): If True, reshape input features to (N, 1, 28, 28).
+        as_tensor (bool): If True, convert outputs to NovaNN Tensors.
+        dtype (Optional[Dtype]): Data type for input tensors.
+        train_path (str): Path to training CSV file.
+        test_path (str): Path to test CSV file.
+        val_path (str): Path to validation CSV file.
+
     Returns:
-        A tuple containing (x_train, y_train), (x_test, y_test), (x_val, y_val).
+        tuple: ((x_train, y_train), (x_test, y_test), (x_val, y_val))
+
+    Examples:
+        >>> from nova.utils.datasets import fashion
+        >>> ((x_train, y_train), (x_test, y_test), (x_val, y_val)) = fashion.load_fashion_mnist_data(
+            as_tensor=True,
+            tensor4d=True,
+            dtype=nova.float32,
+        )
+        >>> x_train.shape
+        (50000, 1, 28, 28)
+        >>> y_train.dtype
+        int64
+        >>> x_test.dtype
+        float32
     """
 
     try:
