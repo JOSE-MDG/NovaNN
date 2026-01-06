@@ -19,7 +19,7 @@ def make_reverse_func(
     the operation. For example, `5 + tensor` calls `tensor.__radd__(5)`.
 
     Args:
-        func: The Function class implementing the operation's forward/backward logic.
+        func (Function): The Function class implementing the operation's forward/backward logic.
 
     Returns:
         A method that swaps operand order and applies the operation.
@@ -45,18 +45,18 @@ def make_method(func: Type[Function]) -> Callable[[Tensor, ...], Tensor]:  # typ
 
     Creates a simple forwarding method that passes all arguments directly
     to the Function's apply method. Used for regular named methods like
-    `tensor.add(other)`.
+    `tensor.add(other)` or `tensor.pow(2)`.
 
     Args:
-        func: The Function class implementing the operation.
+        func (Function): The Function class implementing the operation.
 
     Returns:
         A method that forwards arguments to the Function's apply method.
 
     Examples:
         >>> # Internal usage: binding regular methods
-        >>> add_method = make_method(Add)
-        >>> result = tensor.add(other)  # Calls Add.apply(tensor, other)
+        >>> add_method = make_method(Pow)
+        >>> result = tensor.pow(other)  # Calls Pow.apply(tensor, other)
     """
 
     def method(self: Tensor, *args, **kwargs) -> Tensor:
@@ -78,10 +78,10 @@ def make_forward_func(
     both unary and binary operations.
 
     Args:
-        func: The Function class implementing the operation.
-        raw: If True, skips automatic Tensor conversion for arguments.
-            Used for operations that need raw scalar values.
-        is_unary: If True, operation takes only self as input (e.g., __neg__).
+        func (Function): The Function class implementing the operation.
+        raw (bool): If True, skips automatic Tensor conversion for arguments.
+            Used for operations that need raw scalar values (e.g. __getitem__).
+        is_unary (bool): If True, operation takes only self as input (e.g., __neg__).
 
     Returns:
         A method that validates inputs and applies the operation.
@@ -138,10 +138,10 @@ def make_inplace_func(
     5. Returns self for method chaining
 
     Args:
-        func: The Function class implementing the operation.
-        raw: If True, skips automatic Tensor conversion for arguments.
-        op_name: Name of the operation for error messages.
-        is_unary: If True, operation takes only self as input.
+        func (Function): The Function class implementing the operation.
+        raw (bool): If True, skips automatic Tensor conversion for arguments.
+        op_name (str): Name of the operation for error messages.
+        is_unary (bool): If True, operation takes only self as input.
 
     Returns:
         A method that performs the operation in-place and returns self.

@@ -3,7 +3,7 @@ import yaml
 import traceback
 from nova.core import YAML_FILE_PATH
 from nova.utils.logger import logger
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from nova.utils.decorators.registry import _OPS_REGISTERED
 from ._generators import (
     make_forward_func,
@@ -26,7 +26,7 @@ def native_yaml(path: str = YAML_FILE_PATH) -> YAMLFile:
     their signatures, and how they should be bound to the Tensor class.
 
     Args:
-        path: Path to the YAML configuration file. Defaults to the framework's
+        path (str): Path to the YAML configuration file. Defaults to the framework's
             native operations file.
 
     Returns:
@@ -71,8 +71,8 @@ def bootstrap_to(tensor_cls: type[Tensor], yaml_path: str = YAML_FILE_PATH) -> N
     4. Attaches methods to the Tensor class if they don't already exist
 
     Args:
-        tensor_cls: The Tensor class to which operations will be bound.
-        yaml_path: Path to the YAML configuration file defining operations.
+        tensor_cls (type[Tensor]): The Tensor class to which operations will be bound.
+        yaml_path (str): Path to the YAML configuration file defining operations.
 
     Raises:
         KeyError: If an operation references a Function that isn't registered.
@@ -85,7 +85,7 @@ def bootstrap_to(tensor_cls: type[Tensor], yaml_path: str = YAML_FILE_PATH) -> N
         - Raw_args flag controls whether arguments are auto-converted to Tensors
 
     Examples:
-        >>> # Internal usage during framework initialization
+        >>> # Internal usage during framework initialization `nova/__init__.py`
         >>> from nova import Tensor
         >>> bootstrap_to(Tensor)  # Binds all operations from YAML
     """
