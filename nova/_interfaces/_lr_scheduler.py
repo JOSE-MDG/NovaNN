@@ -21,8 +21,8 @@ class _LRScheduler:
         Initialize the learning rate scheduler.
 
         Args:
-            optimizer: Optimizer whose learning rate will be scheduled.
-            last_epoch: Index of the last epoch. Use -1 for initial state.
+            optimizer (Optimizer): Optimizer whose learning rate will be scheduled.
+            last_epoch (int): Index of the last epoch. Use -1 for initial state.
         """
         self.optimizer: Optimizer = optimizer
         self.last_epoch: int = last_epoch
@@ -45,8 +45,10 @@ class _LRScheduler:
         Advance the scheduler by one step and update learning rates.
 
         Example:
-            >>> optimizer = nova.optim.SGD(model.parameters(), lr=0.1)
-            >>> scheduler = nova.optim.lr_scheduler.StepLR(optimizer, step_size=10)
+            >>> impor nova.optim as optim
+            >>>
+            >>> optimizer = optim.SGD(model.parameters(), lr=0.1)
+            >>> scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10)
             >>>
             >>> for epoch in range(100):
             ...     train(...)
@@ -86,7 +88,7 @@ class _LRScheduler:
         Load the scheduler state.
 
         Args:
-            state_dict: Scheduler state dictionary.
+            state_dict (SchedulerStateDict): Scheduler state dictionary.
         """
         self.base_lrs = state_dict["base_lrs"]
         self.last_epoch = state_dict["last_epoch"]

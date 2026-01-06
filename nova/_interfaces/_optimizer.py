@@ -33,19 +33,22 @@ class Optimizer:
         Initialize the optimizer.
 
         Args:
-            params: Iterable of parameters or parameter groups.
+            params (Iterable[Parameter]): Iterable of parameters or parameter groups.
                 Can be:
                 - an iterable of Parameters
                 - an iterable of dicts with a "params" key
-            defaults: Dictionary of default hyperparameters (e.g., lr).
+            defaults (Defaults): Dictionary of default hyperparameters (e.g., lr, betas).
 
         Raises:
             ValueError: If `params` is empty.
         """
 
-        self.param_groups: ParamGroups = []
+        param_group: ParamGroups
+        defaults: Defaults
+
+        self.param_groups = []
         self.state: State = {}
-        self.defaults: Defaults = defaults
+        self.defaults = defaults
         self._step_pre_hook: list[StepHook] = []
         self._step_post_hook: list[StepHook] = []
 
@@ -70,7 +73,7 @@ class Optimizer:
         subsets of parameters.
 
         Args:
-            group: Dictionary containing a "params" key and optional
+            group (Group): Dictionary containing a "params" key and optional
                 hyperparameters.
 
         Raises:
@@ -98,7 +101,7 @@ class Optimizer:
         Register a hook to be called before each optimization step.
 
         Args:
-            hook: Callable receiving the optimizer instance.
+            hook (StepHook): Callable receiving the optimizer instance.
 
         Returns:
             A handle that can be used to remove the hook.
@@ -112,7 +115,7 @@ class Optimizer:
         Register a hook to be called after each optimization step.
 
         Args:
-            hook: Callable receiving the optimizer instance.
+            hook (StepHook): Callable receiving the optimizer instance.
 
         Returns:
             A handle that can be used to remove the hook.
@@ -144,13 +147,14 @@ class Optimizer:
         implementation, and then executes post-step hooks.
 
         Args:
-            closure: Optional callable returning the loss.
+            closure (Closure): Optional callable returning the loss.
 
         Returns:
             The loss value if provided.
 
         Example:
-            >>> optimizer = nova.optim.SGD(model.parameters(), lr=0.1)
+            >>> import nova.optim as optim
+            >>> optimizer = optim.SGD(model.parameters(), lr=0.1)
             >>> for epoch in range(100):
             ...     optimizer.zero_grad()
             ...     loss = criterion(model(x), y)
@@ -173,7 +177,7 @@ class Optimizer:
         Clear gradients of all optimized parameters.
 
         Args:
-            set_to_none: If True, gradients are set to None instead of zero.
+            set_to_none (bool): If True, gradients are set to None instead of zero.
         """
         for group in self.param_groups:
             for param in group["params"]:
@@ -201,7 +205,7 @@ class Optimizer:
         Load the optimizer state.
 
         Args:
-            state_dict: Optimizer state dictionary obtained from `state_dict`.
+            state_dict (OptimizerStateDict): Optimizer state dictionary obtained from `state_dict`.
         """
 
         self.state = state_dict["state"]

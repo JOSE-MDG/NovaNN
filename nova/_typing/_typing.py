@@ -131,8 +131,9 @@ type State = dict[Parameter, dict[str, Any]]
 """Optimizer state dictionary mapping parameters to their state."""
 
 type OptimizerStateDict = dict[
-    Literal["state", "param_groups"], Union[State, list[dict[str, Any]]]
+    Literal["state", "param_groups"], Union[State, ParamGroups]
 ]
+
 """Complete optimizer state for serialization."""
 
 

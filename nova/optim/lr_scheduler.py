@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from nova._interfaces._optimizer import Optimizer
 
+__all__ = ["StepLR", "CosineAnnealingLR", "OneCycleLR"]
+
 
 class StepLR(_LRScheduler):
     """

@@ -29,7 +29,8 @@ class TensorBase:
         Sets the underlying data from numpy array or Nova tensor.
         The tensor .data allways must be a ndarray.
 
-        Args: value (ndarray): NumPy array that will act as the .data file of the Tensor wrapper class
+        Args:
+            value (ndarray): NumPy array that will act as the .data file of the Tensor wrapper class
         """
         if hasattr(value, "data") and isinstance(value, nova.Tensor):
             self._data_internal = value.data
@@ -108,7 +109,7 @@ class TensorBase:
         Returns the size of the tensor or a specific dimension.
 
         Args:
-            dim: Dimension index. If None, returns full shape tuple.
+            dim (Optional[Dim]): Dimension index. If None, returns full shape tuple.
                 Supports negative indexing.
 
         Returns:
