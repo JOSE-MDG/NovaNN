@@ -18,7 +18,7 @@ class SetItem(Function):
         input[key] = value
 
     Backward:
-        ∂input = grad_output with zeros at assigned positions
+        ∂L/∂input = grad_output with zeros at assigned positions
     """
 
     @staticmethod

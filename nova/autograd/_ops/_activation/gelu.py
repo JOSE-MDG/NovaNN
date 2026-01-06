@@ -16,8 +16,8 @@ class GELU(Function):
     """
     Gaussian Error Linear Unit (GELU) activation function.
 
-    Uses the tanh approximation:
-    0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
+    Forward: out = 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
+    Backward: ∂L/∂out = 0.5 * input * (1.0 - tanh_inner^2) * sqrt(2.0/pi) * (1.0 + 3.0 * 0.044715 * input^2)
     """
 
     @staticmethod

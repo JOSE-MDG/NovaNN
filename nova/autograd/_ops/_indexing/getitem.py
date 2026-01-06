@@ -36,7 +36,7 @@ class GetItem(Function):
         out = input[index]
 
     Backward:
-        ∂input accumulates grad_output at indexed positions
+        ∂L/∂input accumulates grad_output at indexed positions
     """
 
     @staticmethod
