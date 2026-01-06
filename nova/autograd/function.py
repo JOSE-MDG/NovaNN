@@ -62,7 +62,7 @@ class Function(ABC, metaclass=FunctionMeta):
     """
 
     @staticmethod
-    def forward(ctx: Context, *args: Any, **kwargs) -> np.ndarray:
+    def forward(ctx: Context, *args: Any, **kwargs: Any) -> np.ndarray:
         """
         Computes the forward pass of the operation.
 
@@ -71,9 +71,9 @@ class Function(ABC, metaclass=FunctionMeta):
         for use in the backward pass.
 
         Args:
-            ctx: Context object for saving tensors/values needed in backward.
-            *args: Input arrays and parameters for the operation.
-            **kwargs: Additional keyword arguments.
+            ctx (Context): Context object for saving tensors/values needed in backward.
+            *args (Any): Input arrays and parameters for the operation.
+            **kwargs (Any): Additional keyword arguments.
 
         Returns:
             Result of the operation as a numpy array.
@@ -94,8 +94,8 @@ class Function(ABC, metaclass=FunctionMeta):
         and computes gradients with respect to each input that requires_grad.
 
         Args:
-            ctx: Context containing saved tensors from forward pass.
-            grad_output: Gradient of the loss with respect to this operation's output.
+            ctx (Context): Context containing saved tensors from forward pass.
+            grad_output (ndarray): Gradient of the loss with respect to this operation's output.
 
         Returns:
             Tuple of gradients, one for each input. Return None for inputs
