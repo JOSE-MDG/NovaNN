@@ -11,11 +11,36 @@ if TYPE_CHECKING:
 
 class Tensor(TensorBase):
     """
-    Main tensor class supporting automatic differentiation.
+    Main tensor class with automatic differentiation support.
 
-    This class extends TensorBase with gradient computation capabilities,
-    arithmetic operations, and a comprehensive set of tensor manipulations
-    similar to PyTorch's interface.
+    Tensor is the core data structure in Nova, similar to PyTorch's torch.Tensor.
+    It wraps a numpy array and provides:
+    - Automatic differentiation via the autograd system
+    - Rich set of operations (arithmetic, linear algebra, etc.)
+    - GPU-like API (though currently CPU-only)
+    - Gradient tracking and backpropagation
+
+    Attributes:
+        data: Underlying numpy array containing the tensor's values.
+        dtype: Data type of tensor elements.
+        requires_grad: If True, operations are tracked for gradient computation.
+        grad: Accumulated gradients (None until backward is called).
+        grad_fn: Function that created this tensor (None for leaf tensors).
+        shape: Dimensions of the tensor.
+        device: Always 'cpu' (GPU support planned).
+
+    Examples:
+        >>> # Create tensors
+        >>> x = nova.tensor([1.0, 2.0, 3.0], requires_grad=True)
+        >>> w = nova.tensor([0.5, -0.5, 1.0], requires_grad=True)
+
+        >>> # Forward pass
+        >>> y = (x * w).sum()
+
+        >>> # Backward pass
+        >>> y.backward()
+        >>> print(x.grad)  # [0.5, -0.5, 1.0]
+        >>> print(w.grad)  # [1.0, 2.0, 3.0]
     """
 
     _data_internal: ndarray
