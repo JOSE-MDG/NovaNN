@@ -392,7 +392,7 @@ class Tensor(TensorBase):
         new_shape.extend(shape[end_dim + 1 :])
 
         # Reshape
-        return self.reshape(tuple(new_shape))
+        return self.reshape(*tuple(new_shape))
 
     def detach(self) -> Tensor:
         """
