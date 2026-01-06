@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Self
 import numpy as np
 import nova
 from numpy import ndarray
@@ -13,7 +13,7 @@ class TensorBase:
 
     This abstract base defines the interface for tensor shape, dtype, strides,
     and other fundamental attributes. Actual tensor operations are implemented
-    in subclasses.
+    in subclasses and in the yaml file.
     """
 
     __slots__ = []
@@ -24,8 +24,13 @@ class TensorBase:
         return self._data_internal
 
     @data.setter
-    def data(self, value: ndarray):
-        """Sets the underlying data from numpy array or Nova tensor."""
+    def data(self, value: ndarray) -> None:
+        """
+        Sets the underlying data from numpy array or Nova tensor.
+        The tensor .data allways must be a ndarray.
+
+        Args: value (ndarray): NumPy array that will act as the .data file of the Tensor wrapper class
+        """
         if hasattr(value, "data") and isinstance(value, nova.Tensor):
             self._data_internal = value.data
         elif isinstance(value, np.ndarray):
@@ -34,7 +39,7 @@ class TensorBase:
             self._data_internal = np.asarray(value)
 
     @property
-    def T(self):
+    def T(self) -> Self:
         """Returns the transposed tensor (convenience alias for permute())."""
         return self.permute()
 
@@ -75,12 +80,12 @@ class TensorBase:
 
     @property
     def is_cuda(self) -> bool:
-        """Returns False (Nova doesn't support CUDA yet)."""
+        """Returns False (NovaNN doesn't support CUDA yet)."""
         return False
 
     @property
     def device(self) -> str:
-        """Returns 'cpu' (Nova only supports CPU currently)."""
+        """Returns 'cpu' (NovaNN only supports CPU currently)."""
         return "cpu"
 
     def numel(self) -> int:
