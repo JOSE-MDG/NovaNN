@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from nova import Tensor
 
+GradOut = Optional[Tensor | ndarray | list[Tensor | ndarray]]
+
 
 def grad(
     outputs: Tensor | list[Tensor],
     inputs: Tensor | list[Tensor],
-    grad_outputs: Optional[Tensor | ndarray | list[Tensor | ndarray]] = None,
+    grad_outputs: GradOut = None,
     retain_graph: bool = False,
     create_graph: bool = False,
     allow_unused: bool = False,
@@ -18,12 +20,12 @@ def grad(
     Computes gradients of outputs with respect to inputs.
 
     Args:
-        outputs: Tensor or list of tensors to differentiate.
-        inputs: Tensor or list of tensors with respect to which to compute gradients.
-        grad_outputs: Gradients with respect to outputs. If None, assumed to be ones.
-        retain_graph: If False, the graph is freed after backward (default PyTorch behavior).
-        create_graph: If True, graph of derivatives is constructed (for higher-order derivatives).
-        allow_unused: If True, returns None for unused inputs instead of raising error.
+        outputs (Tensor | list[Tensor]): Tensor or list of tensors to differentiate.
+        inputs (Tensor | list[Tensor]): Tensor or list of tensors with respect to which to compute gradients.
+        grad_outputs (GradOut): Gradients with respect to outputs. If None, assumed to be ones.
+        retain_graph (bool): If False, the graph is freed after backward (default PyTorch behavior).
+        create_graph (bool): If True, graph of derivatives is constructed (for higher-order derivatives).
+        allow_unused (bool): If True, returns None for unused inputs instead of raising error.
 
     Returns:
         List of gradients (or single gradient if inputs was a single Tensor).
