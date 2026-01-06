@@ -30,6 +30,7 @@ from ._typing import (
     OptimizerStateDict,
     SchedulerStateDict,
     LossReducton,
+    Average,
 )
 
 __all__ = [
@@ -64,4 +65,5 @@ __all__ = [
     "State",
     "OptimizerStateDict",
     "SchedulerStateDict",
+    "Average",
 ]

@@ -153,6 +153,10 @@ ops:
     tensor:
       method: det
 
+  - name: diag
+    tensor:
+      method: diag
+
   - name: dot
     tensor:
       method: dot

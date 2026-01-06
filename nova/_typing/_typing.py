@@ -212,6 +212,7 @@ type OperationName = Literal[
     "unsqueeze",
     "view",
     "clone",
+    "diag",
 ]
 """Registered operation names for YAML binding."""
 
@@ -266,3 +267,9 @@ class YAMLFile(TypedDict):
 
     ops: List[OperationInfo]
     """List of all operation definitions."""
+
+
+# Metrics Types
+
+type Average = Literal["micro", "macro", "weighted", None]
+"""averages for metrics"""
