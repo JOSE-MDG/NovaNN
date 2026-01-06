@@ -12,257 +12,203 @@ if TYPE_CHECKING:
 
 @registry_op("permute")
 class Permute(Function):
-    """
-    Permute the dimensions of a tensor.
-
-    Forward: out = transpose(input, dims)
-    Backward: ∂L/∂input = transpose(grad_output, inverse(dims))
-    """
-
     @staticmethod
-    def forward(ctx: Context, input: ndarray, *dims: Optional[Dim]) -> ndarray:
-        """Reorder tensor dimensions according to dims."""
+    def forward(ctx: Context, a: ndarray, *dims: Optional[Dim]) -> ndarray:
         if not dims:
             dims = None
         ctx.dims = dims
-        return np.transpose(input, axes=dims)
+        return np.transpose(a, axes=dims)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        """
-        Backward pass for permute.
-
-        The gradient is: transpose(grad_output, inverse permutation)
-        """
         if ctx.dims is None:
-            return (grad_output.T,)
+            return (grad_output.T, None)
 
         inv_dims = np.argsort(ctx.dims)
-        grad_input = np.transpose(grad_output, inv_dims)
-        return (grad_input,)
+        grad = np.transpose(grad_output, inv_dims)
+        return (grad,)
 
 
 @registry_op("reshape")
 class Reshape(Function):
-    """
-    Reshape a tensor without changing its data.
-
-    Forward: out = reshape(input, new_shape)
-    Backward: ∂L/∂input = reshape(grad_output, original_shape)
-    """
-
     @staticmethod
-    def forward(ctx: Context, input: ndarray, *size: Dim) -> ndarray:
-        """Reshape tensor to the given size."""
-        ctx.saved_shape = input.shape
-        return np.reshape(input, shape=size)
+    def forward(ctx: Context, a: ndarray, *size: Dim) -> ndarray:
+        ctx.saved_shapes = a.shape
+        return np.reshape(a, shape=size)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        """
-        Backward pass for reshape.
 
-        The gradient is: reshape grad_output to original input shape
-        """
-        return (grad_output.reshape(ctx.saved_shape),)
+        org_shape = ctx.saved_shapes
+
+        return (grad_output.reshape(org_shape),)
 
 
 @registry_op("squeeze")
 class Squeeze(Function):
-    """
-    Remove dimensions of size 1.
-
-    Forward: out = squeeze(input)
-    Backward: ∂L/∂input = reshape(grad_output, original_shape)
-    """
-
     @staticmethod
-    def forward(ctx: Context, input: ndarray, dim: Optional[Dim] = None) -> ndarray:
-        """Remove singleton dimensions."""
-        ctx.saved_shape = input.shape
-        return np.squeeze(input, axis=dim)
+    def forward(ctx: Context, a: ndarray, dim: Optional[Dim] = None) -> ndarray:
+        ctx.saved_shapes = a.shape
+        return np.squeeze(a, axis=dim)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        """
-        Backward pass for squeeze.
+        org_shape = ctx.saved_shapes
 
-        The gradient is: reshape grad_output to original input shape
-        """
-        return (grad_output.reshape(ctx.saved_shape),)
+        return (grad_output.reshape(org_shape),)
 
 
 @registry_op("unsqueeze")
 class UnSqueeze(Function):
-    """
-    Insert a dimension of size 1.
-
-    Forward: out = expand_dims(input)
-    Backward: ∂L/∂input = reshape(grad_output, original_shape)
-    """
-
     @staticmethod
-    def forward(ctx: Context, input: ndarray, dim: Dim) -> ndarray:
-        """Insert a singleton dimension."""
-        ctx.saved_shape = input.shape
-        return np.expand_dims(input, axis=dim)
+    def forward(ctx: Context, a: ndarray, dim: Dim) -> ndarray:
+        ctx.saved_shapes = a.shape
+        return np.expand_dims(a, axis=dim)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        """
-        Backward pass for unsqueeze.
+        org_shape = ctx.saved_shapes
 
-        The gradient is: reshape grad_output to original input shape
-        """
-        return (grad_output.reshape(ctx.saved_shape),)
+        return (grad_output.reshape(org_shape),)
 
 
 @registry_op("stack")
 class Stack(Function):
-    """
-    Stack tensors along a new dimension.
-
-    Forward: out = stack(inputs, dim)
-    Backward: ∂L/∂inputs = split(grad_output)
-    """
-
     @staticmethod
     def forward(ctx: Context, inputs: list[ndarray], dim: Dim = 0) -> ndarray:
-        """Stack tensors along a new axis."""
         ctx.dim = dim
         ctx.N = len(inputs)
         return np.stack(inputs, axis=dim)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        """
-        Backward pass for stack.
 
-        The gradient is: split grad_output along stacked dimension
-        """
         grads = np.split(grad_output, ctx.N, axis=ctx.dim)
         grads = [g.squeeze(ctx.dim) for g in grads]
-        return (*grads,)
+        return (*grads, None)
 
 
 @registry_op("concat")
 class Concat(Function):
-    """
-    Concatenate tensors along an existing dimension.
-
-    Forward: out = concatenate(tensors, dim)
-    Backward: ∂L/∂tensors = split(grad_output)
-    """
-
     @staticmethod
-    def forward(ctx: Context, tensors: list[ndarray], dim: Dim = 0) -> ndarray:
-        """Concatenate tensors along a dimension."""
+    def forward(ctx: Context, tensors: list[ndarray], dim: ndarray = 0) -> ndarray:
         ctx.saved_shapes = [t.shape for t in tensors]
         ctx.dim = dim
         return np.concatenate(tensors, axis=dim)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        """
-        Backward pass for concat.
+        shapes = ctx.saved_shapes
 
-        The gradient is: split grad_output according to original tensor sizes
-        """
-        sizes = [s[ctx.dim] for s in ctx.saved_shapes]
+        sizes = [s[ctx.dim] for s in shapes]
         offsets = np.cumsum(sizes)[:-1]
+
         grads = np.split(grad_output, offsets, axis=ctx.dim)
-        return (*grads,)
+        return (*grads, None)
 
 
 @registry_op("split")
 class Split(Function):
-    """
-    Split a tensor into multiple sections.
-
-    Forward: out = split(input, sections)
-    Backward: ∂L/∂input = concatenate(grad_outputs)
-    """
-
     @staticmethod
-    def forward(ctx: Context, input: ndarray, sections: int, dim: Dim = 0) -> ndarray:
-        """Split tensor into equal sections."""
+    def forward(ctx: Context, a: ndarray, sections: int, dim: Dim = 0) -> ndarray:
         ctx.dim = dim
-        return np.array_split(input, sections, dim)
+        return np.array_split(a, sections, dim)
 
     @staticmethod
     def backward(ctx: Context, *grad_output: ndarray) -> Gradients:
-        """
-        Backward pass for split.
 
-        The gradient is: concatenate all grad_outputs
-        """
-        grad_input = np.concatenate(grad_output, axis=ctx.dim)
-        return (grad_input,)
+        grads = np.concatenate(grad_output, ctx.dim)
+        return (grads,)
 
 
 @registry_op("clamp")
 class Clamp(Function):
-    """
-    Clamp tensor values to a given range.
-
-    Forward: out = clip(input, min, max)
-    Backward: ∂L/∂input = grad_output where input ∈ [min, max]
-    """
-
     @staticmethod
-    def forward(
-        ctx: Context, input: ndarray, min_val: float, max_val: float
-    ) -> ndarray:
-        """Clamp tensor values to a range."""
-        ctx.save_for_backward(input)
+    def forward(ctx: Context, a: ndarray, min_val: float, max_val: float) -> ndarray:
+        ctx.save_for_backward(a)
         ctx.min_val = min_val
         ctx.max_val = max_val
-        return np.clip(input, min_val, max_val)
+        return np.clip(a, min_val, max_val)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output) -> Gradients:
+        (a,) = ctx.saved_tensors
+
+        mask = (a >= ctx.min_val) & (a <= ctx.max_val)
+        grad_a = grad_output * mask
+        return (grad_a,)
+
+
+@registry_op("tile")
+class Tile(Function):
+    @staticmethod
+    def forward(ctx: Context, a: ndarray, repeats: int) -> ndarray:
+        ctx.repeats = repeats
+        ctx.saved_shapes = a.shape
+        return np.tile(a, repeats)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        """
-        Backward pass for clamp.
+        shape_a = ctx.saved_shapes
+        grad = grad_output
+        for axis, rep in enumerate(ctx.repeats):
+            grad = grad.reshape(rep, shape_a[axis], *shape_a[axis + 1 :]).sum(axis=0)
 
-        The gradient is: grad_output masked by clamp range
-        """
-        (input,) = ctx.saved_tensors
-        mask = (input >= ctx.min_val) & (input <= ctx.max_val)
-        grad_input = grad_output * mask
-        return (grad_input,)
+        return (grad,)
+
+
+@registry_op("repeat")
+class Repeat(Function):
+    @staticmethod
+    def forward(ctx: Context, a: ndarray, repeats: int, dim: Dim = 0) -> ndarray:
+        ctx.saved_shapes = a.shape
+        ctx.repeats = repeats
+        ctx.dim = dim
+
+        return np.repeat(a, repeats, axis=dim)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output) -> Gradients:
+        shape_a = ctx.saved_shapes
+
+        if ctx.dim is None:
+            grad = grad_output.reshape(-1, ctx.repeats).sum(axis=1)
+            grad = grad.reshape(shape_a)
+        else:
+            grad = grad_output.reshape(
+                *shape_a[: ctx.dim],
+                shape_a[ctx.dim],
+                ctx.repeats,
+                *shape_a[ctx.dim + 1 :],
+            ).sum(
+                axis=ctx.dim + 1
+            )  # *shape_a[ctx.dim + 1 :] normaly is a epmty tuple
+
+        return (grad,)
 
 
 @registry_op("pad")
 class Pad(Function):
-    """
-    Pad a tensor.
-
-    Forward: out = pad(input)
-    Backward: ∂L/∂input = slice(grad_output)
-    """
-
     @staticmethod
     def forward(
         ctx: Context,
-        input: ndarray,
+        a: ndarray,
         pad_width: tuple[tuple[int, ...], ...],
         mode: str = "constant",
     ) -> ndarray:
-        """Pad tensor according to pad_width."""
         ctx.pad_width = pad_width
-        return np.pad(input, pad_width, mode=mode)
+        return np.pad(a, pad_width, mode=mode)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        """
-        Backward pass for pad.
+        pad_width = ctx.pad_width
 
-        The gradient is: remove padded regions from grad_output
-        """
         slices = []
-        for i, (before, after) in enumerate(ctx.pad_width):
+
+        for i, (before, after) in enumerate(pad_width):
+
             end = grad_output.shape[i] - after
             slices.append(slice(before, end))
 
-        grad_input = grad_output[tuple(slices)]
-        return (grad_input,)
+        grad = grad_output[tuple(slices)]
+        return (grad,)

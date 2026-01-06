@@ -19,7 +19,7 @@ class View(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, size: Size) -> ndarray:
+    def forward(ctx: Context, input: ndarray, *size: Size) -> ndarray:
         ctx.saved_shapes = input.shape
         return np.reshape(input, size)
 

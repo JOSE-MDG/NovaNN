@@ -20,7 +20,7 @@ class Extend(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, size: Size) -> ndarray:
+    def forward(ctx: Context, input: ndarray, *size: Size) -> ndarray:
         ctx.saved_shapes = input.shape
         return np.broadcast_to(input, shape=size)
 
