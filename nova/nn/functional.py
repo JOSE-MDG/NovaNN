@@ -771,23 +771,7 @@ def flatten(input: Tensor, start_dim: int = 1, end_dim: int = -1) -> Tensor:
         (2, 48)
     """
     input = ensure_tensor(input)
-    dims = input.dim()
-
-    actual_start = start_dim if start_dim >= 0 else dims + start_dim
-    actual_end = end_dim if end_dim >= 0 else dims + end_dim
-
-    shape = input.shape
-    new_shape = list(shape[:actual_start])
-
-    flattened_size = 1
-    for i in range(actual_start, actual_end + 1):
-        flattened_size *= shape[i]
-    new_shape.append(flattened_size)
-
-    if actual_end + 1 < dims:
-        new_shape.extend(shape[actual_end + 1 :])
-
-    return input.reshape(*new_shape)
+    return input.flatten(start_dim, end_dim)
 
 
 def conv1d(

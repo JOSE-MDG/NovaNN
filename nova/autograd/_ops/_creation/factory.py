@@ -875,6 +875,33 @@ def unsqueeze(input: nova.Tensor, dim: Dim) -> nova.Tensor:
     return input.unsqueeze(dim)
 
 
+def flatten(input: nova.Tensor, start_dim: int = 0, end_dim: int = -1) -> nova.Tensor:
+    """
+    Flattens continuous dimensions within a range.
+
+    Args:
+        input (Tensor): Tensor to be flattened
+        start_dim (int): First dimension to flatten (default: 0)
+        end_dim (int): Last dimension to flatten (default: -1, last dim)
+
+    Returns:
+        Tensor with flattened dimensions
+    Examples:
+        >>> import nova
+        >>> x = nova.randn(2, 3, 4, 5)
+        >>> nova.flatten(x, 1, 2).shape
+        (2, 12, 5)  # flattened dims 1 and 2: 3*4=12
+
+        >>> nova.flatten(x, 0, -1).shape
+        (120,)  # all dimensions flattened: 2*3*4*5=120
+
+        >>> nova.flatten(x, 1).shape
+        (2, 60)  # from dim 1 to the end: 3*4*5=60
+    """
+    input = ensure_tensor(input)
+    return input.flatten(start_dim, end_dim)
+
+
 def cat(inputs: list[nova.Tensor], dim: Dim = None):
     """
     Concatenates a list of tensors along a given dimension.

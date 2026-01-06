@@ -329,6 +329,71 @@ class Tensor(TensorBase):
 
     # Utility operations
 
+    def flatten(self, start_dim: int = 0, end_dim: int = -1) -> Self:
+        """
+        Flattens continuous dimensions within a range.
+
+        Args:
+            start_dim: First dimension to flatten (default: 0)
+            end_dim: Last dimension to flatten (default: -1, last dim)
+
+        Returns:
+            Tensor with flattened dimensions
+        Examples:
+            >>> x = nova.randn(2, 3, 4, 5)
+            >>> x.flatten(1, 2).shape
+            (2, 12, 5)  # flattened dims 1 and 2: 3*4=12
+
+            >>> x.flatten(0, -1).shape
+            (120,)  # all dimensions flattened: 2*3*4*5=120
+
+            >>> x.flatten(1).shape
+            (2, 60)  # from dim 1 to the end: 3*4*5=60
+        """
+        # Normalize negative indices
+        ndim = self.ndim
+        start_dim = start_dim if start_dim >= 0 else ndim + start_dim
+        end_dim = end_dim if end_dim >= 0 else ndim + end_dim
+
+        # Validations
+        if start_dim < 0 or start_dim >= ndim:
+            raise IndexError(
+                f"Dimension out of range (expected to be in range of [{-ndim}, {ndim-1}], "
+                f"but got {start_dim})"
+            )
+        if end_dim < 0 or end_dim >= ndim:
+            raise IndexError(
+                f"Dimension out of range (expected to be in range of [{-ndim}, {ndim-1}], "
+                f"but got {end_dim})"
+            )
+        if start_dim > end_dim:
+            raise RuntimeError(
+                f"flatten() has invalid args: start_dim cannot come after end_dim "
+                f"(got start_dim={start_dim}, end_dim={end_dim})"
+            )
+
+        # Special case: if start_dim == end_dim, do nothing
+        if start_dim == end_dim:
+            return self
+
+        # Calculate new shape
+        shape = list(self.shape)
+
+        # Dims before the range to flatten
+        new_shape = shape[:start_dim]
+
+        # Calculate product of dimensions to flatten
+        flattened_size = 1
+        for i in range(start_dim, end_dim + 1):
+            flattened_size *= shape[i]
+        new_shape.append(flattened_size)
+
+        # Dims after the range to flatten
+        new_shape.extend(shape[end_dim + 1 :])
+
+        # Reshape
+        return self.reshape(tuple(new_shape))
+
     def detach(self) -> Tensor:
         """
         Returns a new tensor detached from the computation graph.
