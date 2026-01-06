@@ -28,3 +28,6 @@ __pycache__/
 
 # enviroments variables
 .env
+
+# experimentation
+checking.ipynb
