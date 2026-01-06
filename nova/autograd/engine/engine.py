@@ -24,7 +24,7 @@ def _build_topo(self: Tensor) -> list[Tensor]:
     4. Returns tensors in reverse topological order (output → inputs)
 
     Args:
-        self: Output tensor to start traversal from.
+        self (Tensor): Output tensor to start traversal from.
 
     Returns:
         List of tensors in topological order (from output to leaf nodes).
