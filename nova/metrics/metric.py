@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 class Metric(ABC):
     """
-    Abstract base class for all metrics in Nova.
+    Abstract base class for all metrics in NovaNN.
 
     Metrics are used to evaluate model performance during training and validation.
     Unlike loss functions, metrics are not used for backpropagation and can track
@@ -90,8 +90,8 @@ class Metric(ABC):
         batch during training or evaluation.
 
         Args:
-            preds: Model predictions for the current batch.
-            targets: Ground truth labels/values for the current batch.
+            preds (Tensor): Model predictions for the current batch.
+            targets (Tensor): Ground truth labels/values for the current batch.
 
         Raises:
             ValueError: If preds and targets have mismatched shapes.
@@ -138,8 +138,8 @@ class Metric(ABC):
         Validates that predictions and targets have matching shapes.
 
         Args:
-            preds: Predicted values.
-            targets: Ground truth values.
+            preds (Tensor): Predicted values.
+            targets (Tensor): Ground truth values.
 
         Raises:
             ValueError: If shapes don't match.

@@ -19,8 +19,8 @@ class ClassificationStat(Metric):
     strategies for multi-class problems.
 
     Args:
-        num_classes: Number of classes.
-        average: Strategy to reduce results across classes:
+        num_classes (int): Number of classes.
+        average (Average): Strategy to reduce results across classes:
             - 'micro': Calculate metrics globally by counting total TP, FN and FP.
             - 'macro': Calculate metrics for each label, and find their unweighted mean.
               Does not take label imbalance into account.
@@ -60,7 +60,7 @@ class ClassificationStat(Metric):
         """
         matrix = self.cm.compute()  # (num_classes, num_classes)
 
-        tp = nova.tensor(np.diag(matrix.data))
+        tp = matrix.diag()
 
         support = matrix.sum(dim=1)
 
@@ -84,7 +84,7 @@ class ClassificationStat(Metric):
         else:
             return scores
 
-    def _check_avg(self, avg: Optional[str]) -> None:
+    def _check_avg(self, avg: Average) -> None:
         avgs = ("micro", "macro", "weighted", None)
         if avg not in avgs:
             raise ValueError(
@@ -110,7 +110,7 @@ class Accuracy(ClassificationStat):
     def __init__(self, num_classes, average="micro"):
         super().__init__(num_classes, average)
 
-    def _calculate(self, tp, fp, fn, tn, support):
+    def _calculate(self, tp, fp, fn, tn, support) -> Tensor:
         # Accuracy is (TP + TN) / Total
         total = tp + fp + fn + tn
         return (tp + tn) / (total + 1e-8)

@@ -21,7 +21,7 @@ class ROCAUC(Metric):
     Calculated using the trapezoidal rule approximation.
 
     Args:
-        num_classes: Number of classes (currently supports binary classification best).
+        num_classes (int): Number of classes (currently supports binary classification best).
 
     Examples:
         >>> auc = ROCAUC()

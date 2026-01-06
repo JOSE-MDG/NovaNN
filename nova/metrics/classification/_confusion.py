@@ -75,8 +75,8 @@ class ConfusionMatrix(Metric):
         if preds.ndim > 1:
             preds = preds.argmax(dim=1)
 
-        preds = preds.reshape(-1)
-        target = target.reshape(-1)
+        preds = preds.flatten()
+        target = target.flatten()
 
         p_data = preds.data
         t_data = target.data
