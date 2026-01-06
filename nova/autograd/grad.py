@@ -1,17 +1,16 @@
 from __future__ import annotations
+import nova
 from numpy import ndarray
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from nova import Tensor
 
-GradOut = Optional[Tensor | ndarray | list[Tensor | ndarray]]
-
 
 def grad(
     outputs: Tensor | list[Tensor],
     inputs: Tensor | list[Tensor],
-    grad_outputs: GradOut = None,
+    grad_outputs: Optional[Tensor | ndarray | list[Tensor | ndarray]] = None,
     retain_graph: bool = False,
     create_graph: bool = False,
     allow_unused: bool = False,
@@ -70,7 +69,7 @@ def grad(
         gradient = None
         if grad_outputs is not None:
             gradient = grad_outputs[i]
-            if isinstance(gradient, Tensor):
+            if isinstance(gradient, nova.Tensor):
                 gradient = gradient.data
 
         output.backward(
