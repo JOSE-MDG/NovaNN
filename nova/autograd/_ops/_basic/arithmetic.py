@@ -23,8 +23,10 @@ class Add(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a + b."""
-        ctx.saved_shapes = (input.shape, other.shape)
-        return input + other
+        other_array = np.array(other, dtype=input.dtype)
+        ctx.saved_shapes = (input.shape, other_array.shape)
+        ctx.save_for_backward(input, other_array)
+        return input + other_array
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -52,8 +54,10 @@ class Sub(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a - b."""
-        ctx.saved_shapes = (input.shape, other.shape)
-        return input - other
+        other_array = np.array(other, dtype=input.dtype)
+        ctx.saved_shapes = (input.shape, other_array.shape)
+        ctx.save_for_backward(input, other_array)
+        return input - other_array
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -81,9 +85,10 @@ class Mul(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a * b."""
-        ctx.save_for_backward(input, other)
-        ctx.saved_shapes = (input.shape, other.shape)
-        return input * other
+        other_array = np.array(other, dtype=input.dtype)
+        ctx.saved_shapes = (input.shape, other_array.shape)
+        ctx.save_for_backward(input, other_array)
+        return input * other_array
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -114,9 +119,10 @@ class Div(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a / b."""
-        ctx.save_for_backward(input, other)
-        ctx.saved_shapes = (input.shape, other.shape)
-        return input / other
+        other_array = np.array(other, dtype=input.dtype)
+        ctx.saved_shapes = (input.shape, other_array.shape)
+        ctx.save_for_backward(input, other_array)
+        return input / other_array
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -150,7 +156,8 @@ class DivInt(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a // b."""
-        return input // other
+        other_array = np.array(other, dtype=input.dtype)
+        return input // other_array
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -170,8 +177,9 @@ class Mod(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a % b."""
-        ctx.saved_shapes = input.shape
-        return input % other
+        other_array = np.array(other, dtype=input.dtype)
+        ctx.saved_shapes = (input.shape, other_array.shape)
+        return input % other_array
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -202,7 +210,8 @@ class Floor(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes floor(a)."""
-        return np.floor(input, other)
+        other_array = np.array(other, dtype=input.dtype)
+        return np.floor(input, other_array)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -297,8 +306,6 @@ class Log(Function):
 
     Forward: out = ln(a)
     Backward: ∂L/∂a = ∂L/∂out * (1/a)
-
-    Note: Only defined for a > 0. Uses epsilon for numerical stability.
     """
 
     @staticmethod
@@ -317,7 +324,7 @@ class Log(Function):
         """
         (input,) = ctx.saved_tensors
 
-        grad_input = grad_output * (1 / np.maximum(input, 1e-20))
+        grad_input = grad_output * 1 / (input + 1e-20)
         return (grad_input,)
 
 
@@ -328,8 +335,6 @@ class Sqrt(Function):
 
     Forward: out = √a
     Backward: ∂L/∂a = ∂L/∂out * (1/(2√a))
-
-    Note: Only defined for a ≥ 0. Uses epsilon for numerical stability.
     """
 
     @staticmethod
@@ -349,7 +354,7 @@ class Sqrt(Function):
         """
         (sqrt_input,) = ctx.saved_tensors
 
-        grad_input = grad_output * 0.5 / np.maximum(sqrt_input, 1e-20)
+        grad_input = grad_output * 0.5 / (sqrt_input + 1e-20)
         return (grad_input,)
 
 

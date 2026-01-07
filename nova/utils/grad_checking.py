@@ -5,10 +5,6 @@ This module provides functions to perform **numerical gradient checking**,
 comparing analytical gradients computed by backpropagation with finite-difference
 approximations. It is useful for testing custom operations and ensuring that
 gradients are correctly implemented.
-
-Key functionality:
-- grad_check_wrt_inputs: Compute and compare analytical vs numerical gradients
-  for input tensors.
 """
 
 from __future__ import annotations
@@ -71,46 +67,66 @@ def grad_check_wrt_inputs(
         >>> nova.allclose(analytic[0], numeric[0], rtol=1e-3, atol=1e-5)
         True
     """
-    # Zero gradients if needed
+    # Zero gradients before starting
     for x in args:
         if isinstance(x, nova.Tensor) and x.requires_grad:
-            x.zero_grad()
+            x.zero_grad(set_to_none=True)
 
-    # Compute forward pass and backpropagate
+    # Forward pass
     y = fn(*args, **kwargs)
-    grad_output = np.ones_like(y.data, dtype=y.dtype)
-    y.backward(grad_output)
 
-    # Store analytical gradients
+    # Check output is scalar or can be reduced
+    if y.numel() == 1:
+        grad_output = np.ones_like(y.data, dtype=y.dtype)
+    else:
+        # For non-scalar outputs, use ones as grad_output
+        grad_output = np.ones_like(y.data, dtype=y.dtype)
+
+    # Backward pass
+    y.backward(grad_output, retain_graph=False)
+
+    # Store analytical gradients (copy them before they get cleared)
     analytic_grads = []
     for x in args:
-        analytic_grads.append(np.copy(x.grad) if x.requires_grad else None)
+        if x.requires_grad:
+            if x.grad is not None:
+                analytic_grads.append(np.copy(x.grad))
+            else:
+                # If grad is None, it means this input doesn't contribute
+                analytic_grads.append(np.zeros_like(x.data))
+        else:
+            analytic_grads.append(None)
 
-    # Compute numerical gradients
     numerical_grads = []
-    for x in args:
+    for idx, x in enumerate(args):
         if not x.requires_grad:
             numerical_grads.append(None)
             continue
 
+        # Initialize numerical gradient array
         grad_num = np.zeros_like(x.data, dtype=x.dtype)
 
-        # iterate over all indices of the tensor
+        # Iterate over all indices of the tensor
         it = np.nditer(x.data, flags=["multi_index"], op_flags=["readwrite"])
         while not it.finished:
             index = it.multi_index
-            orig = x.data[index]
+            orig = x.data[index].copy()  # Save original value
 
+            # Perturb +eps
+            x.data[index] = orig + eps
             with nova.no_grad():
-                x.data[index] = orig + eps
                 y_pos = fn(*args, **kwargs).data.copy()
 
-                x.data[index] = orig - eps
+            # Perturb -eps
+            x.data[index] = orig - eps
+            with nova.no_grad():
                 y_neg = fn(*args, **kwargs).data.copy()
 
-                x.data[index] = orig
+            # Restore original value
+            x.data[index] = orig
 
-            # central difference formula
+            # Central difference formula
+            # grad = (f(x+eps) - f(x-eps)) / (2*eps)
             grad_num[index] = np.sum((y_pos - y_neg) * grad_output) / (2 * eps)
             it.iternext()
 
@@ -118,8 +134,8 @@ def grad_check_wrt_inputs(
 
     # Optionally zero gradients after checking
     if zero_grads:
-        for input in args:
-            if input.requires_grad:
-                input.zero_grad()
+        for x in args:
+            if x.requires_grad:
+                x.zero_grad(set_to_none=True)
 
     return analytic_grads, numerical_grads

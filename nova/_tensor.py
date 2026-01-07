@@ -74,7 +74,7 @@ class Tensor(TensorBase):
     _is_leaf: bool
     _backward_hooks: list[Hook]
     _retain_grad: bool
-    _inputs: list[Tensor | Any]
+    _inputs: list[Tensor]
     _ctx: Context
 
     def __init__(

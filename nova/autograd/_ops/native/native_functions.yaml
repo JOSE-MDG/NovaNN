@@ -8,6 +8,7 @@ ops:
     tensor:
       dunder: __add__
       reverse: __radd__
+      method: add
       inplace:
         method: add_
         dunder: __iadd__
@@ -16,6 +17,7 @@ ops:
     tensor:
       dunder: __sub__
       reverse: __rsub__
+      method: sub
       inplace:
         method: sub_
         dunder: __isub__
@@ -24,6 +26,7 @@ ops:
     tensor:
       dunder: __mul__
       reverse: __rmul__
+      method: mul
       inplace:
         method: mul_
         dunder: __imul__
@@ -32,6 +35,7 @@ ops:
     tensor:
       dunder: __truediv__
       reverse: __rtruediv__
+      method: div
       inplace:
         method: div_
         dunder: __itruediv__
@@ -40,6 +44,7 @@ ops:
     tensor:
       dunder: __floordiv__
       reverse: __rfloordiv__
+      method: floor_divide
       inplace:
         method: floor_divide_
         dunder: __ifloordiv__
@@ -48,6 +53,7 @@ ops:
     tensor:
       dunder: __mod__
       reverse: __rmod__
+      method: mod
       inplace:
         method: mod_
         dunder: __imod__

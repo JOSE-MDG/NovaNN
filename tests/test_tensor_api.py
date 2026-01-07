@@ -1,7 +1,7 @@
 import nova
 import pytest
-from nova.autograd.grad import grad
 import numpy as np
+from nova.autograd.grad import grad
 
 
 def test_size():
@@ -35,3 +35,11 @@ def test_grad_function():
     grads = grad(y, x)
     expected = np.array([2.0, 4.0, 6.0])
     assert nova.allclose(grads, expected)
+
+
+def test_grad_mode():
+    x = nova.tensor([1.0, 2.0, 3.0], requires_grad=True)
+    with nova.no_grad():
+        y = nova.sum(2 * x)
+
+    assert y.requires_grad == False
