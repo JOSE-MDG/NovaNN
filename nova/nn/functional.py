@@ -743,7 +743,7 @@ def linear(
 
     if bias is not None:
         out_features = weight.size(0)
-        bias_view = bias.view((1, out_features))
+        bias_view = bias.view(1, out_features)
         output = output + bias_view
 
     return output
