@@ -9,6 +9,8 @@ from op_signatures import (
     create_op_wrapper,
 )
 
+nova.manual_seed(8)
+
 
 @pytest.mark.parametrize("op_name", ALL_TESTABLE_OPS)
 def test_operation_gradients(op_name):

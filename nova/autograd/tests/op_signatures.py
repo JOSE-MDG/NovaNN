@@ -1,4 +1,5 @@
 import nova
+import numpy as np
 from enum import Enum
 from typing import Callable, TYPE_CHECKING
 
@@ -119,7 +120,8 @@ def make_test_input(op_name: str, shape: Size = (4, 4), requires_grad: bool = Tr
 
     # Operations that need positive inputs
     if op_name in ["log", "sqrt"]:
-        return nova.rand(*shape, requires_grad=requires_grad) + 0.1
+        data = np.random.rand(*shape) + 0.5
+        return nova.tensor(data, requires_grad=requires_grad)
 
     # Operations that require square matrices
     if op_name in ["det", "inv", "trace"]:

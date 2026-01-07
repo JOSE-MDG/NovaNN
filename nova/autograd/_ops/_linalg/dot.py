@@ -32,6 +32,14 @@ class Dot(Function):
         The gradient is: grad_input = grad_output · other^T, grad_other = input^T · grad_output
         """
         input, other = ctx.saved_tensors
-        grad_input = grad_output.dot(other.T)
-        grad_other = input.T.dot(grad_output)
+
+        if input.ndim <= 1 and other.ndim <= 1:
+            # Vectores
+            grad_input = grad_output * other
+            grad_other = grad_output * input
+        else:
+            # Matrices
+            grad_input = np.dot(grad_output, other.T)
+            grad_other = np.dot(input.T, grad_output)
+
         return (grad_input, grad_other)
