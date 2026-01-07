@@ -160,7 +160,7 @@ class Concat(Function):
     @staticmethod
     def forward(ctx: Context, inputs: list[ndarray], dim: ndarray = 0) -> ndarray:
         """Concatenate tensors along existing dimension"""
-        ctx.saved_shapes = [i.shape for i in input]
+        ctx.saved_shapes = [i.shape for i in inputs]
         ctx.dim = dim
         return np.concatenate(inputs, axis=dim)
 
