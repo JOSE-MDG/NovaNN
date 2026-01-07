@@ -77,7 +77,7 @@ def grad_check_wrt_inputs(
 
     # Check output is scalar or can be reduced
     if y.numel() == 1:
-        grad_output = np.ones_like(y.data, dtype=y.dtype)
+        grad_output = np.array([1.0], dtype=y.dtype)
     else:
         # For non-scalar outputs, use ones as grad_output
         grad_output = np.ones_like(y.data, dtype=y.dtype)
