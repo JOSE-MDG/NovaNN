@@ -1,5 +1,6 @@
 from __future__ import annotations
 import nova
+from nova.nn import init
 import nova.nn.functional as F
 from typing import TYPE_CHECKING, Optional
 from nova.nn.modules import Module
@@ -215,10 +216,18 @@ class PReLU(Module):
         dtype: Optional[Dtype] = None,
     ) -> None:
         super().__init__()
+
+        self.init = init
         self.num_parameters = num_parameters
         self.weight: Parameter = Parameter(
-            nova.tensor(num_parameters, dtype=dtype).fill_(init)
+            nova.empty((num_parameters,)), dtype=nova.float32
         )
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+
+        init.constant_(self.weight, self.init)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies PReLU activation using learnable weights.
