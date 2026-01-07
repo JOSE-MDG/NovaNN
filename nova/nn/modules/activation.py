@@ -114,7 +114,7 @@ class LeakyReLU(Module):
         return f"negative_slope={self.negative_slope}"
 
 
-class GeLU(Module):
+class GELU(Module):
     """Applies the Gaussian Error Linear Unit function element-wise.
 
     The GELU activation function is defined as:
