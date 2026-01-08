@@ -571,6 +571,44 @@ def log(input: nova.Tensor) -> nova.Tensor:
     return input.log()
 
 
+def isnan(input: nova.Tensor) -> np.ndarray:
+    """
+    Returns a boolean array indicating if each element is NaN.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        np.ndarray: A boolean array of the same shape as input.
+
+    Examples:
+        >>> x = nova.tensor([1.0, np.nan, 2.0])
+        >>> print(nova.isnan(x))
+        [False  True False]
+    """
+    input = ensure_tensor(input)
+    return np.isnan(input.data)
+
+
+def isinf(input: nova.Tensor) -> np.ndarray:
+    """
+    Returns a boolean array indicating if each element is positive or negative infinity.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        np.ndarray: A boolean array of the same shape as input.
+
+    Examples:
+        >>> x = nova.tensor([1.0, np.inf, -np.inf])
+        >>> print(nova.isinf(x))
+        [False  True  True]
+    """
+    input = ensure_tensor(input)
+    return np.isinf(input.data)
+
+
 def reshape(input: nova.Tensor, dims: Dim) -> nova.Tensor:
     """
     Returns a tensor with the same data but different shape.
