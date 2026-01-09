@@ -3,6 +3,7 @@ import nova
 import traceback
 import numpy as np
 import pandas as pd
+from nova.utils.data import Dataset
 from typing import Optional, TYPE_CHECKING
 from nova.utils.logger import logger
 from nova.utils.data import normalize, split_features_and_labels
@@ -15,13 +16,26 @@ from nova.core import (
 
 if TYPE_CHECKING:
     from nova._typing import Dtype
+    from nova import Tensor
+
+
+class FashionData(Dataset):
+    def __init__(self, x: Tensor, y: Tensor) -> None:
+        self.x = x
+        self.y = y
+
+    def __len__(self) -> int:
+        return len(self.x)
+
+    def __getitem__(self, index) -> tuple[Tensor, Tensor]:
+        return self.x[index], self.y[index]
 
 
 def load_fashion_mnist_data(
-    do_normalize: bool = True,
     tensor4d: bool = False,
     as_tensor: bool = True,
-    dtype: Optional["Dtype"] = None,
+    do_normalize: bool = True,
+    dtype: Optional[Dtype] = None,
     train_path: str = EXPORTATION_FASHION_TRAIN_DATA_PATH,
     test_path: str = FASHION_TEST_DATA_PATH,
     val_path: str = FASHION_VALIDATION_DATA_PATH,
@@ -30,9 +44,9 @@ def load_fashion_mnist_data(
     Load Fashion-MNIST dataset from CSV files and optionally normalize it.
 
     Args:
-        do_normalize (bool): Whether to normalize using training set statistics.
         tensor4d (bool): If True, reshape input features to (N, 1, 28, 28).
         as_tensor (bool): If True, convert outputs to NovaNN Tensors.
+        do_normalize (bool): Whether to normalize using training set statistics.
         dtype (Optional[Dtype]): Data type for input tensors.
         train_path (str): Path to training CSV file.
         test_path (str): Path to test CSV file.
@@ -100,8 +114,12 @@ def load_fashion_mnist_data(
             x_val = nova.tensor(x_val, dtype=dtype)
             y_val = nova.tensor(y_val, dtype=nova.long)
 
-        return ((x_train, y_train), (x_test, y_test), (x_val, y_val))
+        # Set dataset objects
+        train = FashionData(x_train, y_train)
+        test = FashionData(x_test, y_test)
+        val = FashionData(x_val, y_val)
 
+        return train, test, val
     # Handle exceptions during data loading
     except Exception as e:
         lines = [line for line in traceback.format_exception(e)]

@@ -11,7 +11,7 @@ from __future__ import annotations
 import nova
 import numpy as np
 from numpy import ndarray
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Optional
 
 if TYPE_CHECKING:
     from nova import Tensor
@@ -22,6 +22,7 @@ def grad_check_wrt_inputs(
     *args: Tensor,
     eps: float = 1e-4,
     zero_grads: bool = True,
+    domain_bounds: Optional[tuple[float, float]] = None,
     **kwargs,
 ) -> tuple[list[ndarray], list[ndarray]]:
     """
@@ -41,6 +42,7 @@ def grad_check_wrt_inputs(
             Defaults to 1e-4.
         zero_grads (bool, optional): If True, resets gradients of input tensors
             after checking. Defaults to True.
+        domain_bounds (tuple[float, float]): tuple (min, max) for clamping, e.g., (0, 1) for probabilities
         **kwargs: Additional keyword arguments to pass to `fn`.
 
     Returns:
@@ -114,11 +116,19 @@ def grad_check_wrt_inputs(
 
             # Perturb +eps
             x.data[index] = orig + eps
+            if domain_bounds is not None:
+                x.data[index] = np.clip(
+                    x.data[index], domain_bounds[0], domain_bounds[1]
+                )
             with nova.no_grad():
                 y_pos = fn(*args, **kwargs).data.copy()
 
             # Perturb -eps
             x.data[index] = orig - eps
+            if domain_bounds is not None:
+                x.data[index] = np.clip(
+                    x.data[index], domain_bounds[0], domain_bounds[1]
+                )
             with nova.no_grad():
                 y_neg = fn(*args, **kwargs).data.copy()
 

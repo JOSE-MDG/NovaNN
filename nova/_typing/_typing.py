@@ -16,10 +16,11 @@ from typing import (
 if TYPE_CHECKING:
     from nova import Tensor
     from nova.nn import Module, Parameter, Buffer
+    from nova.utils.datasets.minist import MnistData
+    from nova.utils.datasets.fashion import FashionData
     from nova._interfaces._optimizer import Optimizer
     from nova._interfaces._base_tensor import TensorBase
     from nova._interfaces._lr_scheduler import _LRScheduler
-
 
 # Core Tensor Types
 
@@ -50,13 +51,6 @@ type TensorOrArray = Union[Tensor, ndarray, list[Tensor], tuple[Tensor, ...]]
 type Inputs = Union[TensorOrArray, int, float, Any]
 """General input type for operations (tensors, scalars, or arrays)."""
 
-type TensorsOrArrays = (
-    tuple[tuple[Tensor, Tensor], tuple[Tensor, Tensor], tuple[Tensor, Tensor]]
-    | tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray], tuple[ndarray, ndarray]]
-)
-"""Type for training data batches (typically features, targets, and optionally weights)."""
-
-
 # Autograd Types
 
 
@@ -81,6 +75,13 @@ type HooksList = list[Hook] | list[StepHook] | list[Hooks]
 type Closure = Optional[Callable[[], Optional[float]]]
 """Optional closure function for optimizers that reevaluate the model."""
 
+# Datasets types
+
+type Mnist = tuple[MnistData, MnistData, MnistData]
+"""Return type for the function that loads the mnist dataset"""
+
+type Fashion = tuple[FashionData, FashionData, FashionData]
+"""Return type for the function that loads the fashion-mnist dataset"""
 
 # Module and Parameter Types
 
