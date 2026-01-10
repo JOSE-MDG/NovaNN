@@ -111,9 +111,13 @@ class Accuracy(ClassificationStat):
         super().__init__(num_classes, average)
 
     def _calculate(self, tp, fp, fn, tn, support) -> Tensor:
-        # Accuracy is (TP + TN) / Total
-        total = tp + fp + fn + tn
-        return (tp + tn) / (total + 1e-8)
+        # If this is micro-average (tp, fp, fn are scalars)
+        if tp.ndim == 0:
+            # Micro: just TP / Total samples
+            return tp / (support + 1e-8)
+        else:
+            # Per-class: tp / support for that class
+            return tp / (support + 1e-8)
 
 
 class Precision(ClassificationStat):
