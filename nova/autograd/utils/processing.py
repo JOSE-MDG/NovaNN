@@ -190,29 +190,43 @@ def determine_base_dtype(args: tuple) -> dtype:
     """
     Determines the base dtype for an operation from its arguments.
 
-    Scans arguments for the first Tensor and uses its dtype as the
-    base dtype for the entire operation. This ensures numerical consistency
-    across mixed-type inputs (e.g., Tensor + float).
+    Scans arguments prioritizing floating-point types over integers to ensure
+    proper type promotion in mixed operations (e.g., int * float → float).
+
+    Priority order:
+    1. Complex floating-point (complex64, complex128)
+    2. Floating-point (float16, float32, float64)
+    3. Integer (int32, int64) - only if no floats found
+    4. Default to float32 if no Tensor found
 
     Args:
         args: Tuple of arguments to scan.
 
     Returns:
-        Base dtype to use (defaults to float32 if no Tensor found).
+        Base dtype to use for the operation.
 
     Examples:
-        >>> x = nova.tensor([1.0], dtype=nova.double)
-        >>> dtype = determine_base_dtype((x, 5.0))
-        >>> print(dtype)  # float64
+        >>> x = nova.tensor([1.0], dtype=nova.float32)
+        >>> y = nova.tensor([2], dtype=nova.int64)
+        >>> dtype = determine_base_dtype((y, x))  # Order doesn't matter
+        >>> print(dtype)  # float32 (prioritizes float over int)
     """
     from nova import Tensor
 
-    for arg in args:
-        if isinstance(arg, Tensor) and np.issubdtype(arg.dtype, np.floating):
-            return arg.dtype
-
+    # First pass: look for complex types (highest priority)
     for arg in args:
         if isinstance(arg, Tensor) and np.issubdtype(arg.dtype, np.complexfloating):
             return arg.dtype
 
+    # Second pass: look for floating-point types
+    for arg in args:
+        if isinstance(arg, Tensor) and np.issubdtype(arg.dtype, np.floating):
+            return arg.dtype
+
+    # Third pass: look for integer types (only if no floats found)
+    for arg in args:
+        if isinstance(arg, Tensor) and np.issubdtype(arg.dtype, np.integer):
+            return arg.dtype
+
+    # Default to float32 if no Tensor found
     return nova.float32
