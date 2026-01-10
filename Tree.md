@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/7/2026, 10:25:48 PM
+**Generated:** 1/10/2026, 6:57:05 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -94,7 +94,7 @@
 │   │   │   └── 🐍 test_operations.py
 │   │   ├── 📁 utils
 │   │   │   ├── 🐍 __init__.py
-│   │   │   └── 🐍 processig.py
+│   │   │   └── 🐍 processing.py
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 function.py
 │   │   ├── 🐍 grad.py
