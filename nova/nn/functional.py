@@ -598,7 +598,7 @@ def nll_loss(
         tensor(0.41702995, requires_grad=False, grad_fn=None, dtype=float32)
     """
     log_probs = ensure_tensor(log_probs)
-    target = ensure_tensor(target, dtype=nova.long)
+    target = ensure_tensor(target)
     N = log_probs.size(0)
 
     # Extract log probability of correct class for each sample
