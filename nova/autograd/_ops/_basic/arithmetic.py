@@ -85,7 +85,7 @@ class Mul(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a * b."""
-        other_array = np.array(other, dtype=input.dtype)
+        other_array = np.asarray(other)
         ctx.saved_shapes = (input.shape, other_array.shape)
         ctx.save_for_backward(input, other_array)
         return input * other_array
@@ -119,7 +119,7 @@ class Div(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a / b."""
-        other_array = np.array(other, dtype=input.dtype)
+        other_array = np.asarray(other)
         ctx.saved_shapes = (input.shape, other_array.shape)
         ctx.save_for_backward(input, other_array)
         return input / other_array
@@ -156,7 +156,7 @@ class DivInt(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a // b."""
-        other_array = np.array(other, dtype=input.dtype)
+        other_array = np.asarray(other)
         return input // other_array
 
     @staticmethod
@@ -177,7 +177,7 @@ class Mod(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a % b."""
-        other_array = np.array(other, dtype=input.dtype)
+        other_array = np.asarray(other)
         ctx.saved_shapes = (input.shape, other_array.shape)
         return input % other_array
 
@@ -210,7 +210,7 @@ class Floor(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes floor(a)."""
-        other_array = np.array(other, dtype=input.dtype)
+        other_array = np.asarray(other)
         return np.floor(input, other_array)
 
     @staticmethod
@@ -234,7 +234,7 @@ class Pow(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray | int, other: ndarray | int) -> ndarray:
         """Computes a^b."""
-        other_array = np.array(other, dtype=input.dtype)
+        other_array = np.asarray(other)
         result = np.power(input, other_array)
         ctx.save_for_backward(input, other, result)
         ctx.saved_shapes = (input.shape, other_array.shape)

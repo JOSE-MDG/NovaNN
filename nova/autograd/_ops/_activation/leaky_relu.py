@@ -29,7 +29,7 @@ class LeakyReLU(Function):
             alpha: Slope of the activation for x < 0.
         """
         # Store alpha as array for consistency in autograd engine
-        alpha_arr = np.array(alpha, dtype=input.dtype)
+        alpha_arr = np.asarray(alpha)
         ctx.save_for_backward(input, alpha_arr)
         return np.where(input > 0, input, input * alpha)
 

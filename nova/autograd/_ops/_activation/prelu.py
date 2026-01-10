@@ -28,7 +28,7 @@ class PReLU(Function):
             input: Input data.
             weight: Learnable parameter (scalar or array).
         """
-        weight_arr = np.asarray(weight, dtype=input.dtype)
+        weight_arr = np.asarray(weight)
         ctx.save_for_backward(input, weight_arr)
         return np.where(input > 0, input, weight_arr * input)
 
