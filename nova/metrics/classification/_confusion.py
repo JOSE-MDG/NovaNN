@@ -46,7 +46,7 @@ class ConfusionMatrix(Metric):
         >>> # Visualize with matplotlib/seaborn...
 
     Note:
-        - Uses efficient numpy histogram calculation internally
+        - Uses efficient bincount for discrete class indices
         - Supports both probabilities/logits (automatically applies argmax) and class indices
         - Row index = True Class, Column index = Predicted Class
         - Returns a Float Tensor
@@ -75,19 +75,36 @@ class ConfusionMatrix(Metric):
         if preds.ndim > 1:
             preds = preds.argmax(dim=1)
 
+        if self.matrix is None:
+            self.reset()
+
         preds = preds.flatten()
         target = target.flatten()
 
-        p_data = preds.data
-        t_data = target.data
-        H, _, _ = np.histogram2d(
-            t_data,
-            p_data,
-            bins=self.num_classes,
-            range=[[0, self.num_classes], [0, self.num_classes]],
-        )
+        # Convert to numpy and ensure integer type
+        p_data = preds.data.astype(np.int64)
+        t_data = target.data.astype(np.int64)
 
-        self.matrix += nova.tensor(H)
+        # Filter out invalid indices (optional safety check)
+        valid_mask = (
+            (t_data >= 0)
+            & (t_data < self.num_classes)
+            & (p_data >= 0)
+            & (p_data < self.num_classes)
+        )
+        t_data = t_data[valid_mask]
+        p_data = p_data[valid_mask]
+
+        # Use bincount for efficient discrete counting
+        # Combine true and pred into single index: true * num_classes + pred
+        k = self.num_classes
+        indices = t_data * k + p_data
+
+        # Count occurrences and reshape to confusion matrix
+        counts = np.bincount(indices, minlength=k * k)
+        H = counts.reshape(k, k)
+
+        self.matrix += H
 
     def compute(self) -> Tensor:
         """
