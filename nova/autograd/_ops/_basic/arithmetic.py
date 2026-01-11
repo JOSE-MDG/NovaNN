@@ -23,7 +23,7 @@ class Add(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a + b."""
-        other_array = np.array(other, dtype=input.dtype)
+        other_array = np.asarray(other)
         ctx.saved_shapes = (input.shape, other_array.shape)
         ctx.save_for_backward(input, other_array)
         return input + other_array
@@ -54,7 +54,7 @@ class Sub(Function):
     @staticmethod
     def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
         """Computes a - b."""
-        other_array = np.array(other, dtype=input.dtype)
+        other_array = np.asarray(other)
         ctx.saved_shapes = (input.shape, other_array.shape)
         ctx.save_for_backward(input, other_array)
         return input - other_array
