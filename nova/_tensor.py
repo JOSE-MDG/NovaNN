@@ -237,6 +237,25 @@ class Tensor(TensorBase):
         """Bitwise NOT operation."""
         return Tensor(~self.data, dtype=nova.bool, requires_grad=False)
 
+    def __getstate__(self):
+        """Return state for pickling.
+
+        Needed because the class uses __slots__.
+        """
+        state = {}
+        for slot in self.__slots__:
+            if hasattr(self, slot):
+                state[slot] = getattr(self, slot)
+        return state
+
+    def __setstate__(self, state):
+        """Restore state from pickling.
+
+        Needed because the class uses __slots__.
+        """
+        for slot, value in state.items():
+            setattr(self, slot, value)
+
     def __hash__(self):
         """Hash based on object identity."""
         return id(self)
