@@ -1,10 +1,7 @@
-"""Tests for nova.serialization.save module."""
-
 import pytest
 from pathlib import Path
 import io
 import pickle
-
 import nova
 import nova.nn as nn
 from nova import save
