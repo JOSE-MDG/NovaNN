@@ -481,10 +481,7 @@ def binary_cross_entropy(
 
     eps = 1e-12
 
-    # Clamp to avoid log(0)
-    input = nova.clamp(input, eps, 1 - eps)
-
-    loss = -(target * nova.log(input) + (1 - target) * nova.log(1 - input))
+    loss = -(target * nova.log(input + eps) + (1 - target) * nova.log(1 - input + eps))
 
     if weight is not None:
         weight = ensure_tensor(weight)
@@ -513,7 +510,10 @@ def binary_cross_entropy_with_logits(
     in a single, stable operation to avoid overflow from large logits.
 
     Forward:
-        loss = max(-x, 0) - x * y + log(1 + exp(-|x|))
+        loss = max(x, 0) - x * y + log(1 + exp(-|x|))
+
+    With pos_weight:
+        loss = max(x, 0) - x * y + (1 + (pos_weight - 1) * y) * log(1 + exp(-|x|))
 
     Args:
         input: Predicted logits (unbounded real values).
@@ -531,28 +531,23 @@ def binary_cross_entropy_with_logits(
         >>> targets = nova.tensor([1.0, 0.0, 1.0, 0.0])
         >>> F.binary_cross_entropy_with_logits(logits, targets)
         tensor(0.27892, requires_grad=False, grad_fn=None, dtype=float32)
-
-        >>> pos_weight = nova.tensor([2.0])
-        >>> F.binary_cross_entropy_with_logits(logits, targets, pos_weight=pos_weight)
-        tensor(1.7360054, requires_grad=False, grad_fn=None, dtype=float32)
     """
     logits = ensure_tensor(input)
     target = ensure_tensor(target)
 
-    # Stable computation
-    max_val = nova.maximum(logits, 0)
+    # Numerically stable computation: max(x, 0) - x * y + log(1 + exp(-|x|))
+    max_val = nova.maximum(logits, 0.0)
 
     if pos_weight is not None:
         pos_weight = ensure_tensor(pos_weight)
-        log_weight = (pos_weight - 1) * target + 1
-
-        # Weighted numerically stable BCE
-        loss = (1 - target) * logits + log_weight * (
-            nova.log(1 + nova.exp(-nova.abs(logits))) + max_val
-        )
+        # BCE with pos_weight:
+        # loss = max(x,0) - x*y + (1 + (w-1)*y) * log(1 + exp(-|x|))
+        log_term = nova.log(1.0 + nova.exp(-nova.abs(logits)))
+        log_weight = 1.0 + (pos_weight - 1.0) * target
+        loss = max_val - logits * target + log_weight * log_term
     else:
         # Standard BCE with logits (stable)
-        loss = max_val - logits * target + nova.log(1 + nova.exp(-nova.abs(logits)))
+        loss = max_val - logits * target + nova.log(1.0 + nova.exp(-nova.abs(logits)))
 
     # Optional element-wise weighting
     if weight is not None:
