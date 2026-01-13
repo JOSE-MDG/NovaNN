@@ -9,8 +9,82 @@ if TYPE_CHECKING:
     from nova import Tensor
 
 
-@registry_class
-class Module:
+class ModuleMeta(type):
+    """
+    Metaclass for automatic registration of Module subclasses.
+
+    This metaclass automatically registers all classes that inherit from
+    Module in the serialization registry. This enables safe deserialization
+    of any Module subclass without requiring explicit @registry_class
+    decorators on each class.
+
+    The registration happens at class definition time, ensuring that all
+    Module subclasses (Linear, Conv2d, ReLU, etc.) can be safely loaded
+    with weights_only=True.
+
+    Note:
+        The Module base class itself is not registered to avoid redundancy.
+        Only its subclasses are automatically registered.
+
+    Examples::
+
+        >>> from nova.nn import Module
+        >>>
+        >>> # This class is automatically registered
+        >>> class CustomLayer(Module):
+        ...     def __init__(self):
+        ...         super().__init__()
+        ...
+        >>> # Can be safely serialized and deserialized
+        >>> import nova
+        >>> layer = CustomLayer()
+        >>> nova.save(layer, "custom_layer.pth")
+        >>> loaded = nova.load("custom_layer.pth", weights_only=True)
+        ✅ Successfully loaded from custom_layer.pth
+        >>>
+        >>> # All built-in modules are also auto-registered
+        >>> from nova.nn import Linear
+        >>> model = Linear(10, 5)
+        >>> nova.save(model, "model.pth")
+        >>> loaded_model = nova.load("model.pth", weights_only=True)
+
+    See Also:
+        - :func:`nova.utils.decorators.registry.registry_class`: Manual registration
+        - :class:`nova.nn.Module`: Base class for all neural network modules
+        - :func:`nova.serialization.load`: Safe deserialization with weights_only
+    """
+
+    def __new__(mcs, name, bases, namespace, **kwargs):
+        """
+        Create a new Module subclass and register it automatically.
+
+        This method is called when a new class inheriting from Module is
+        defined. It creates the class normally and then registers it in
+        the serialization registry for safe deserialization.
+
+        Args:
+            name: Name of the class being created
+            bases: Tuple of base classes
+            namespace: Dictionary containing class attributes and methods
+            **kwargs: Additional keyword arguments passed to type.__new__
+
+        Returns:
+            The newly created and registered class
+
+        Note:
+            This is called automatically by Python when defining classes.
+            Users should not call this method directly.
+        """
+        cls = super().__new__(mcs, name, bases, namespace, **kwargs)
+
+        # Auto-register the class (except Module itself)
+        if name != "Module":
+            registry_class(cls)
+
+        return cls
+
+
+class Module(metaclass=ModuleMeta):
     """Base class for all neural network modules.
 
     Your models should subclass this class. Modules can contain other Modules,
