@@ -569,7 +569,7 @@ class Module:
 
     def state_dict(
         self, destination: Optional[OrderedDict | dict] = None, prefix: str = ""
-    ):
+    ) -> dict:
         """Returns a dictionary containing the whole state of the module.
 
         Both parameters and persistent buffers (e.g., running averages in BatchNorm)
@@ -618,7 +618,7 @@ class Module:
 
         return destination
 
-    def load_state_dict(self, state_dict: OrderedDict | dict, prefix: str = ""):
+    def load_state_dict(self, state_dict: OrderedDict | dict, prefix: str = "") -> None:
         """Copies parameters and buffers from ``state_dict`` into this module and its descendants.
 
         If a key in ``state_dict`` corresponds to a parameter or buffer in this module,
