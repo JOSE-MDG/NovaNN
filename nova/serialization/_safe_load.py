@@ -124,7 +124,8 @@ class SafeUnpickler(pickle.Unpickler):
             # Fallback: check registry by name only
             for (_, name), registered_cls in _MODULES.items():
                 if name == global_name:
-                    return registered_cls
+                    cls = registered_cls
+                    break
 
         if cls is not None:
             return cls
