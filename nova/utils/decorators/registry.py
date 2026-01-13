@@ -92,12 +92,9 @@ def get_registered_classes(module, name) -> ModuleTypes:
         name: Class name.
 
     Returns:
-        The registered class.
+        The registered class or None if not found.
 
     Raises:
         KeyError: If the class is not found in the registry.
     """
-    if (module, name) in _MODULES:
-        return _MODULES[(module, name)]
-    else:
-        raise KeyError(f"key '{(module, name)}' not found")
+    return _MODULES.get((module, name), None)
