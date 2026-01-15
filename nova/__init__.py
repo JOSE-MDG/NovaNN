@@ -5,6 +5,7 @@ from .dtypes import *
 from .utils import registry_class, ensure_tensor, registry_op
 from ._internal._binding import bootstrap_to
 from ._tensor import Tensor
+import nova.autograd as autograd
 from .autograd.grad_mode import is_grad_enabled, enable_grad, no_grad
 from .autograd._ops._creation import *
 from .autograd._ops._creation import __all__ as creation_all
@@ -28,6 +29,8 @@ __all__ = [
     "bool",
     # Tensor
     "Tensor",
+    # autograd
+    "autograd",
     # grad_state
     "is_grad_enabled",
     # registers
