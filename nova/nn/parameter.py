@@ -99,6 +99,8 @@ class UninitializedTensorMixin:
     Provides a common interface for lazy initialization of parameters and buffers.
     """
 
+    __slots__ = []
+
     @abstractmethod
     def materialize(self, shape: Size, dtype: Optional[Dtype] = None):
         """Materialize the uninitialized tensor with a specific shape and optional dtype."""
@@ -126,13 +128,15 @@ class UninitializedParameter(UninitializedTensorMixin, Parameter):
         (3, 3)
     """
 
+    __slots__ = []
+
     def __init__(self, requires_grad: bool = True) -> None:
         dummy_tensor = nova.empty(0)
         Parameter.__init__(self, data=dummy_tensor, requires_grad=requires_grad)
 
     def materialize(self, size: Size, dtype: Optional[Dtype] = None) -> Parameter:
         tensor = nova.empty(size, dtype=dtype)
-        return Parameter(tensor)
+        return Parameter(tensor, requires_grad=self.requires_grad)
 
     def __repr__(self) -> str:
         return "<UninitializedParameter>"
@@ -151,6 +155,8 @@ class UninitializedBuffer(UninitializedTensorMixin, Buffer):
         >>> mat.shape
         (2, 2)
     """
+
+    __slots__ = []
 
     def __init__(self, persistent: bool = True) -> None:
         dummy_tensor = nova.empty(0)
