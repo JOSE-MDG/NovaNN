@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/10/2026, 6:57:05 PM
+**Generated:** 1/15/2026, 7:15:43 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -165,7 +165,8 @@
 │   ├── 🐍 __init__.py
 │   ├── 🐍 _tensor.py
 │   ├── 📄 _tensor.pyi
-│   └── 🐍 dtypes.py
+│   ├── 🐍 dtypes.py
+│   └── 🐍 exceptions.py
 ├── 📁 tests
 │   ├── 📁 functional
 │   │   ├── 🐍 test_activation.py
