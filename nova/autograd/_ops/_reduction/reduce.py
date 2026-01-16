@@ -137,7 +137,7 @@ class Var(Function):
             for d in dim:
                 ctx.N *= input.shape[d]
 
-        mean_val = np.mean(input, axis=dim, keepdims=keepdims)
+        mean_val = np.mean(input, axis=dim, keepdims=True)
         diff = input - mean_val
 
         ctx.diff = diff

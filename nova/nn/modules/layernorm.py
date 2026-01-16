@@ -111,13 +111,17 @@ class LayerNorm(Module):
         dtype: Optional[Dtype] = None,
     ) -> None:
         super().__init__()
+
+        if not isinstance(normalized_shape, tuple):
+            normalized_shape = (normalized_shape,)
+
         self.normalized_shape = normalized_shape
         self.eps = eps
         self.elementwise_affine = elementwise_affine
 
         if self.elementwise_affine:
-            self.weight = Parameter(nova.empty((normalized_shape,)), dtype=dtype)
-            self.bias = Parameter(nova.empty((normalized_shape,)), dtype=dtype)
+            self.weight = Parameter(nova.empty(normalized_shape), dtype=dtype)
+            self.bias = Parameter(nova.empty(normalized_shape), dtype=dtype)
         else:
             self.register_parameter("weight", None)
             self.register_parameter("bias", None)
