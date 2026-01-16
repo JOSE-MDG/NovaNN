@@ -1,4 +1,5 @@
 from __future__ import annotations
+import numpy as np
 from numpy import ndarray
 from nova.autograd.function import Function
 from nova.utils import registry_op
