@@ -105,12 +105,13 @@ class Sequential(Module):
         skip connections, consider subclassing ``Module`` directly.
     """
 
-    _modules: dict[str, Module]
+    _modules: dict[str, Module]  # type: ignore[assignment]
 
     @overload
     def __init__(self, *args: Module) -> None: ...
 
     @overload
+    # pyrefly: ignore [inconsistent-overload]
     def __init__(self, arg: OrderedDict[str, Module]) -> None: ...
 
     def __init__(self, *args: Module):  # pyright: ignore[reportInconsistentOverload]
