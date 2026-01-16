@@ -265,13 +265,15 @@ class Sequential(Module):
             >>> del model[-1]  # Remove last module
         """
         if isinstance(idx, slice):
-            for key in list(self._modules.keys())[idx]:
-                delattr(self, key)
+            keys_to_delete = list(self._modules.keys())[idx]
+            for key in keys_to_delete:
+                del self._modules[key]
         else:
             key = self._get_item_by_idx(self._modules.keys(), idx)
-            delattr(self, key)
+            del self._modules[key]
+
         # To preserve numbering
-        str_indices = [str(i) for i in range(len(self._modules))]
+        str_indices = [str(i) for i in range(len(self))]
         self._modules = OrderedDict(
             zip(str_indices, self._modules.values(), strict=True)
         )
@@ -489,6 +491,190 @@ class Sequential(Module):
             input = module(input)
         return input
 
+    def __add__(self, other) -> Sequential:
+        """Concatenates two Sequential containers.
+
+        Creates a new Sequential containing all modules from both containers
+        in order. The original containers remain unchanged.
+
+        Args:
+            other: Another Sequential container to concatenate
+
+        Returns:
+            New Sequential with modules from both containers
+
+        Raises:
+            ValueError: If other is not a Sequential instance
+
+        Examples::
+
+            >>> model1 = Sequential(Linear(10, 20), ReLU())
+            >>> model2 = Sequential(Linear(20, 10), Tanh())
+            >>> combined = model1 + model2
+            >>> print(len(combined))
+            4
+            >>> # Original models unchanged
+            >>> print(len(model1))
+            2
+        """
+        if isinstance(other, Sequential):
+            ret = Sequential()
+            for layer in self:
+                ret.append(layer)
+            for layer in other:
+                ret.append(layer)
+            return ret
+        else:
+            raise ValueError(
+                "add operator supports only objects "
+                f"of Sequential class, but {str(type(other))} is given."
+            )
+
+    def __iadd__(self, other) -> Self:
+        """In-place concatenation with another Sequential container.
+
+        Extends this Sequential by appending all modules from the other
+        Sequential. Modifies this container in-place.
+
+        Args:
+            other: Another Sequential container to concatenate
+
+        Returns:
+            Self for method chaining
+
+        Raises:
+            ValueError: If other is not a Sequential instance
+
+        Examples::
+
+            >>> model = Sequential(Linear(10, 20), ReLU())
+            >>> other = Sequential(Linear(20, 10), Tanh())
+            >>> model += other
+            >>> print(len(model))
+            4
+            >>> # model was modified in-place
+        """
+        if isinstance(other, Sequential):
+            offset = len(self)
+            for i, module in enumerate(other):
+                self.register_module(str(i + offset), module)
+            return self
+        else:
+            raise ValueError(
+                "add operator supports only objects "
+                f"of Sequential class, but {str(type(other))} is given."
+            )
+
+    def __mul__(self, other: int) -> Sequential:
+        """Repeats the Sequential container a specified number of times.
+
+        Creates a new Sequential with all modules repeated 'other' times.
+        Useful for creating repetitive architectures.
+
+        Args:
+            other: Number of times to repeat the modules (must be positive)
+
+        Returns:
+            New Sequential with repeated modules
+
+        Raises:
+            TypeError: If other is not an integer
+            ValueError: If other is non-positive
+
+        Examples::
+
+            >>> block = Sequential(Linear(10, 10), ReLU())
+            >>> repeated = block * 3
+            >>> print(len(repeated))
+            6
+            >>> # Creates: Linear, ReLU, Linear, ReLU, Linear, ReLU
+
+            >>> # Useful for building deep networks
+            >>> residual_block = Sequential(Conv2d(64, 64, 3), BatchNorm2d(64), ReLU())
+            >>> deep_net = residual_block * 10  # 10 repeated blocks
+        """
+        if not isinstance(other, int):
+            raise TypeError(
+                f"unsupported operand type(s) for *: {type(self)} and {type(other)}"
+            )
+        elif other <= 0:
+            raise ValueError(
+                f"Non-positive multiplication factor {other} for {type(self)}"
+            )
+        else:
+            combined = Sequential()
+            offset = 0
+            for _ in range(other):
+                for module in self:
+                    combined.register_module(str(offset), module)
+                    offset += 1
+            return combined
+
+    def __rmul__(self, other: int) -> Sequential:
+        """Repeats the Sequential container (reverse multiplication).
+
+        Allows writing '3 * model' instead of 'model * 3'.
+        See __mul__ for details.
+
+        Args:
+            other: Number of times to repeat the modules
+
+        Returns:
+            New Sequential with repeated modules
+
+        Examples::
+
+            >>> block = Sequential(Linear(10, 10), ReLU())
+            >>> repeated = 3 * block  # Same as block * 3
+            >>> print(len(repeated))
+            6
+        """
+        return self.__mul__(other)
+
+    def __imul__(self, other: int) -> Self:
+        """In-place repetition of the Sequential container.
+
+        Repeats all current modules 'other' times within the same container.
+        Modifies this container in-place.
+
+        Args:
+            other: Number of times to repeat the modules (must be positive)
+
+        Returns:
+            Self for method chaining
+
+        Raises:
+            TypeError: If other is not an integer
+            ValueError: If other is non-positive
+
+        Examples::
+
+            >>> model = Sequential(Linear(10, 10), ReLU())
+            >>> model *= 3
+            >>> print(len(model))
+            6
+            >>> # model was modified in-place
+
+            >>> # Before: [Linear, ReLU]
+            >>> # After:  [Linear, ReLU, Linear, ReLU, Linear, ReLU]
+        """
+        if not isinstance(other, int):
+            raise TypeError(
+                f"unsupported operand type(s) for *: {type(self)} and {type(other)}"
+            )
+        elif other <= 0:
+            raise ValueError(
+                f"Non-positive multiplication factor {other} for {type(self)}"
+            )
+        else:
+            len_original = len(self)
+            offset = len(self)
+            for _ in range(other - 1):
+                for i in range(len_original):
+                    self.register_module(str(i + offset), self._modules[str(i)])
+                offset += len_original
+            return self
+
     def __len__(self):
         """Returns the number of modules in the Sequential container.
 
@@ -582,5 +768,3 @@ class Sequential(Module):
         main_str += "\n  " + "\n  ".join(lines) + "\n"
         main_str += ")"
         return main_str
-
-    # TODO: Implement arithmetic operations between containers
