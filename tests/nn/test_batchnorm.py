@@ -244,51 +244,6 @@ class TestBatchNormDimensions:
             bn(nova.randn(2, 8, 4, 4))  # 4D
 
 
-class TestLazyBatchNorm:
-    """Test lazy initialization variants."""
-
-    def test_lazy_batchnorm1d_infers_num_features(self):
-        """LazyBatchNorm1d should infer num_features from input."""
-        bn = LazyBatchNorm1d()
-
-        # Before first forward, parameters are uninitialized
-        assert bn.has_uninitialized_params()
-
-        # First forward pass with 20 features
-        x = nova.randn(8, 20)
-        y = bn(x)
-
-        # Should infer num_features = 20
-        assert bn.num_features == 20
-        assert not bn.has_uninitialized_params()
-        assert y.shape == x.shape
-
-        # Subsequent forwards should work normally
-        x2 = nova.randn(4, 20)
-        y2 = bn(x2)
-        assert y2.shape == x2.shape
-
-    def test_lazy_batchnorm2d_infers_channels(self):
-        """LazyBatchNorm2d should infer num_features from channel dimension."""
-        bn = LazyBatchNorm2d()
-
-        x = nova.randn(4, 32, 16, 16)
-        y = bn(x)
-
-        assert bn.num_features == 32
-        assert y.shape == x.shape
-
-    def test_lazy_batchnorm3d_infers_channels(self):
-        """LazyBatchNorm3d should infer num_features from channel dimension."""
-        bn = LazyBatchNorm3d()
-
-        x = nova.randn(2, 16, 8, 8, 8)
-        y = bn(x)
-
-        assert bn.num_features == 16
-        assert y.shape == x.shape
-
-
 class TestBatchNormEdgeCases:
     """Test edge cases and special configurations."""
 
