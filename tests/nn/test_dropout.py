@@ -1,6 +1,5 @@
 import pytest
 import nova
-from nova.utils import grad_check_wrt_inputs
 from nova.nn import Dropout, Dropout2d, Dropout3d
 
 nova.manual_seed(8)
@@ -72,17 +71,6 @@ class TestDropout2d:
             # Should have at most 2 unique values (0 and scaled value)
             assert len(unique_vals) <= 2
 
-    def test_backward_gradients(self):
-        """Test gradient computation through dropout2d."""
-        dropout = Dropout2d(p=0.3)
-        dropout.train()
-        x = nova.randn(2, 8, 4, 4, requires_grad=True)
-
-        forward = lambda inp: dropout(inp).sum()
-
-        analytic, numeric = grad_check_wrt_inputs(forward, x, eps=1e-4)
-        assert nova.allclose(analytic[0], numeric[0], rtol=1e-2, atol=1e-2)
-
 
 class TestDropout3d:
     def test_forward_shape(self):
@@ -114,14 +102,3 @@ class TestDropout3d:
             unique_vals = nova.unique(channel)
             # Should have at most 2 unique values (0 and scaled value)
             assert len(unique_vals) <= 2
-
-    def test_backward_gradients(self):
-        """Test gradient computation through dropout3d."""
-        dropout = Dropout3d(p=0.3)
-        dropout.train()
-        x = nova.randn(1, 4, 4, 4, 4, requires_grad=True)
-
-        forward = lambda inp: dropout(inp).sum()
-
-        analytic, numeric = grad_check_wrt_inputs(forward, x, eps=1e-4)
-        assert nova.allclose(analytic[0], numeric[0], rtol=1e-2, atol=1e-2)

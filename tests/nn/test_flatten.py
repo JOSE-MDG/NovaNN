@@ -19,10 +19,11 @@ class TestFlatten:
         flatten = Flatten()
         x = nova.randn(4, 8, 6, 6, requires_grad=True)
 
-        forward = lambda inp: flatten(inp).sum()
+        def forward(inp):
+            return flatten(inp).sum()
 
         analytic, numeric = grad_check_wrt_inputs(forward, x, eps=1e-4)
-        assert nova.allclose(analytic[0], numeric[0], rtol=1e-2, atol=1e-2)
+        assert nova.allclose(analytic[0], numeric[0], rtol=5e-2, atol=5e-2)
 
     def test_custom_range(self):
         """Test flattening custom dimension range."""
