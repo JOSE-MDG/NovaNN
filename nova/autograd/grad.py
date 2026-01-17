@@ -84,7 +84,7 @@ def grad(
                 grads.append(None)
             else:
                 raise RuntimeError(
-                    f"One of the inputs did not contribute to the output. Set allow_unused=True if this is expected."
+                    "One of the inputs did not contribute to the output. Set allow_unused=True if this is expected."
                 )
         else:
             grads.append(inp.grad.copy() if not create_graph else inp.grad)
