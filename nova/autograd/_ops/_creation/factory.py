@@ -319,7 +319,7 @@ def tile(input: nova.Tensor, repeats: int) -> nova.Tensor:
     return input.tile(repeats)
 
 
-def repeat_interleave(input: nova.Tensor, repeats: int, dim):
+def repeat_interleave(input: nova.Tensor, repeats: int, dim: Optional[Dim] = None):
     """
     Repeats elements of a tensor along a given dimension.
 
@@ -889,7 +889,7 @@ def permute(input: nova.Tensor, *dims: Dim) -> nova.Tensor:
                 [3, 6]])
     """
     input = ensure_tensor(input)
-    return input.permute(dims)
+    return input.permute(*dims)
 
 
 def unsqueeze(input: nova.Tensor, dim: Dim) -> nova.Tensor:
