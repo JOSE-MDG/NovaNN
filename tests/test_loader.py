@@ -2,6 +2,8 @@ import pytest
 import nova
 from nova.utils.data import Dataset, DataLoader
 
+nova.manual_seed(8)
+
 
 class SimpleDataset(Dataset):
     """Simple dataset for testing"""
