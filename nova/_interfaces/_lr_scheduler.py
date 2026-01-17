@@ -45,7 +45,7 @@ class _LRScheduler:
         Advance the scheduler by one step and update learning rates.
 
         Example:
-            >>> impor nova.optim as optim
+            >>> import nova.optim as optim
             >>>
             >>> optimizer = optim.SGD(model.parameters(), lr=0.1)
             >>> scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10)
