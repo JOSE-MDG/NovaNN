@@ -208,10 +208,9 @@ class Floor(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray) -> ndarray:
         """Computes floor(a)."""
-        other_array = np.asarray(other)
-        return np.floor(input, other_array)
+        return np.floor(input)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
