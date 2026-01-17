@@ -5,6 +5,7 @@ Supports optional momentum, centered variance, and weight decay.
 """
 
 from __future__ import annotations
+import nova
 import numpy as np
 from nova._interfaces._optimizer import Optimizer
 from typing import TYPE_CHECKING, Iterable, Optional
@@ -63,7 +64,10 @@ class RMSprop(Optimizer):
         self.eps = eps
 
     def _step_impl(self, closure: Closure = None) -> Optional[float]:
-        loss = closure() if closure else None
+        loss = None
+        if closure is not None:
+            with nova.enable_grad():
+                loss = closure()
 
         for group in self.param_groups:
             lr = group["lr"]
