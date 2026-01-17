@@ -1,17 +1,31 @@
 from __future__ import annotations
 import numpy as np
-from typing import TYPE_CHECKING, Any, Type, Callable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Type,
+    overload,
+    Union,
+)
 from nova.utils import ensure_tensor
-
 
 if TYPE_CHECKING:
     from nova.autograd.function import Function
     from nova import Tensor
+    from nova._typing import (
+        UnaryMethod,
+        BinaryMethod,
+        ReverseBinaryMethod,
+        VariadicMethod,
+        InplaceUnaryMethod,
+        InplaceBinaryMethod,
+        T,
+    )
 
 
 def make_reverse_func(
     func: Type[Function],
-) -> Callable[[Tensor, Tensor | Any], Tensor]:
+) -> ReverseBinaryMethod:
     """
     Generates a reverse operation method wrapper (e.g., __radd__).
 
@@ -19,10 +33,15 @@ def make_reverse_func(
     the operation. For example, `5 + tensor` calls `tensor.__radd__(5)`.
 
     Args:
-        func (Function): The Function class implementing the operation's forward/backward logic.
+        func: The Function class implementing the operation's forward/backward logic.
 
     Returns:
-        A method that swaps operand order and applies the operation.
+        A reverse binary method that swaps operand order and applies the operation.
+
+    Type Safety:
+        - Input: `(self: Tensor, other: Tensor | Any) -> Tensor`
+        - Automatically converts non-Tensor arguments to Tensors
+        - Returns a new Tensor (non-mutating)
 
     Examples:
         >>> # Internal usage: binding __radd__ for Add operation
@@ -31,15 +50,19 @@ def make_reverse_func(
     """
     from nova import Tensor
 
-    def method(self: Tensor, other: Tensor | Any) -> Tensor:
+    def method(self: Tensor, other: Union[Tensor, Any], /) -> Tensor:
         if not isinstance(other, Tensor):
             other = ensure_tensor(other)
         return func.apply(other, self)
 
-    return method
+    return method  # type: ignore[return-value]
 
 
-def make_method(func: Type[Function]) -> Callable[[Tensor, ...], Tensor]:  # type: ignore
+@overload
+def make_method(func: Type[Function]) -> VariadicMethod: ...
+
+
+def make_method(func: Type[Function]) -> VariadicMethod:
     """
     Generates a standard method wrapper for operations.
 
@@ -48,28 +71,52 @@ def make_method(func: Type[Function]) -> Callable[[Tensor, ...], Tensor]:  # typ
     `tensor.add(other)` or `tensor.pow(2)`.
 
     Args:
-        func (Function): The Function class implementing the operation.
+        func: The Function class implementing the operation.
 
     Returns:
-        A method that forwards arguments to the Function's apply method.
+        A variadic method that forwards all arguments to Function.apply.
+
+    Type Safety:
+        - Input: `(self: Tensor, *args, **kwargs) -> Tensor`
+        - Flexible signature for different operation types
+        - Returns a new Tensor (non-mutating)
 
     Examples:
         >>> # Internal usage: binding regular methods
-        >>> add_method = make_method(Pow)
-        >>> result = tensor.pow(other)  # Calls Pow.apply(tensor, other)
+        >>> pow_method = make_method(Pow)
+        >>> result = tensor.pow(2)  # Calls Pow.apply(tensor, 2)
+
+        >>> sum_method = make_method(Sum)
+        >>> result = tensor.sum(dim=0, keepdims=True)  # Calls Sum.apply(tensor, dim=0, keepdims=True)
     """
 
-    def method(self: Tensor, *args, **kwargs) -> Tensor:
+    def method(self: Tensor, /, *args: Any, **kwargs: Any) -> Tensor:
         return func.apply(self, *args, **kwargs)
 
-    return method
+    return method  # type: ignore[return-value]
+
+
+@overload
+def make_forward_func(
+    func: Type[Function],
+    raw: bool,
+    is_unary: bool = False,
+) -> UnaryMethod: ...
+
+
+@overload
+def make_forward_func(
+    func: Type[Function],
+    raw: bool,
+    is_unary: bool = False,
+) -> BinaryMethod: ...
 
 
 def make_forward_func(
     func: Type[Function],
     raw: bool,
     is_unary: bool,
-) -> Callable[[Tensor, ...], Tensor]:  # type: ignore
+) -> Union[UnaryMethod, BinaryMethod]:
     """
     Generates a forward operation method wrapper (e.g., __add__, __mul__).
 
@@ -78,51 +125,81 @@ def make_forward_func(
     both unary and binary operations.
 
     Args:
-        func (Function): The Function class implementing the operation.
-        raw (bool): If True, skips automatic Tensor conversion for arguments.
+        func: The Function class implementing the operation.
+        raw: If True, skips automatic Tensor conversion for arguments.
             Used for operations that need raw scalar values (e.g. __getitem__).
-        is_unary (bool): If True, operation takes only self as input (e.g., __neg__).
+        is_unary: If True, operation takes only self as input (e.g., __neg__).
 
     Returns:
-        A method that validates inputs and applies the operation.
+        A unary or binary method depending on the is_unary flag.
+
+    Type Safety:
+        - Unary: `(self: Tensor) -> Tensor`
+        - Binary: `(self: Tensor, other: Tensor | Any) -> Tensor`
+        - Auto-converts non-Tensor arguments unless raw=True
+        - Returns a new Tensor (non-mutating)
 
     Raises:
         TypeError: If a binary operation is called without arguments.
 
     Examples:
-        >>> # Internal usage: binding __add__ for Add operation
-        >>> __add__ = make_forward_func(Add, raw=False, is_unary=False)
-        >>> result = tensor + 5  # Calls Add.apply(tensor, 5)
-
-        >>> # Unary operation example
+        >>> # Unary operation
         >>> __neg__ = make_forward_func(Neg, raw=False, is_unary=True)
         >>> result = -tensor  # Calls Neg.apply(tensor)
+
+        >>> # Binary operation with auto-conversion
+        >>> __add__ = make_forward_func(Add, raw=False, is_unary=False)
+        >>> result = tensor + 5  # Calls Add.apply(tensor, ensure_tensor(5))
+
+        >>> # Binary operation with raw args (no conversion)
+        >>> __getitem__ = make_forward_func(GetItem, raw=True, is_unary=False)
+        >>> result = tensor[0]  # Calls GetItem.apply(tensor, 0) - index stays int
     """
     from nova import Tensor
 
-    def method(self: Tensor, *args, **kwargs) -> Tensor:
-        # Handle unary operations (no additional arguments needed)
-        if is_unary:
+    if is_unary:
+
+        def unary_method(self: Tensor, /) -> Tensor:
             return func.apply(self)
 
-        # Validate that binary operations have an argument
-        if not args and not kwargs:
-            raise TypeError(f"Operation {func.__name__} requires an 'other' argument.")
+        return unary_method  # type: ignore[return-value]
 
-        other = args[0] if args else kwargs.get("other")
+    else:
 
-        # Convert to Tensor unless raw mode is enabled
-        if not raw and not isinstance(other, Tensor):
-            other = ensure_tensor(other)
+        def binary_method(self: Tensor, other: Union[Tensor, Any], /) -> Tensor:
+            # Convert to Tensor unless raw mode is enabled
+            if not raw and not isinstance(other, Tensor):
+                other = ensure_tensor(other)
 
-        return func.apply(self, other)
+            return func.apply(self, other)
 
-    return method
+        return binary_method  # type: ignore[return-value]
+
+
+@overload
+def make_inplace_func(
+    func: Type[Function],
+    raw: bool,
+    op_name: str,
+    is_unary: bool = True,
+) -> InplaceUnaryMethod: ...
+
+
+@overload
+def make_inplace_func(
+    func: Type[Function],
+    raw: bool,
+    op_name: str,
+    is_unary: bool = False,
+) -> InplaceBinaryMethod: ...
 
 
 def make_inplace_func(
-    func: Type[Function], raw: bool, op_name: str, is_unary: bool
-) -> Callable[[Tensor, ...], Tensor]:  # type: ignore
+    func: Type[Function],
+    raw: bool,
+    op_name: str,
+    is_unary: bool,
+) -> Union[InplaceUnaryMethod, InplaceBinaryMethod]:
     """
     Generates an in-place operation method wrapper (e.g., add_, __iadd__).
 
@@ -138,24 +215,36 @@ def make_inplace_func(
     5. Returns self for method chaining
 
     Args:
-        func (Function): The Function class implementing the operation.
-        raw (bool): If True, skips automatic Tensor conversion for arguments.
-        op_name (str): Name of the operation for error messages.
-        is_unary (bool): If True, operation takes only self as input.
+        func: The Function class implementing the operation.
+        raw: If True, skips automatic Tensor conversion for arguments.
+        op_name: Name of the operation for error messages.
+        is_unary: If True, operation takes only self as input.
 
     Returns:
-        A method that performs the operation in-place and returns self.
+        An in-place unary or binary method that modifies self and returns self.
+
+    Type Safety:
+        - Unary: `(self: T) -> T` where T is bound to Tensor
+        - Binary: `(self: T, other: Tensor | Any) -> T`
+        - Returns the same instance (mutating operation)
+        - Generic T ensures type checkers know it's the same object
 
     Raises:
         RuntimeError: If called on a tensor that requires gradients.
         TypeError: If a binary operation is called without arguments.
 
     Examples:
-        >>> # Internal usage: binding add_ for Add operation
+        >>> # Unary in-place
+        >>> abs_ = make_inplace_func(Abs, raw=False, op_name='abs', is_unary=True)
+        >>> x = nova.tensor([-1.0, 2.0], requires_grad=False)
+        >>> x.abs_()  # Modifies x in-place, returns x
+        >>> print(x)  # tensor([1.0, 2.0])
+
+        >>> # Binary in-place with chaining
         >>> add_ = make_inplace_func(Add, raw=False, op_name='add', is_unary=False)
         >>> x = nova.tensor([1.0, 2.0], requires_grad=False)
-        >>> x.add_(5)  # Modifies x in-place
-        >>> print(x)  # tensor([6.0, 7.0])
+        >>> x.add_(5).mul_(2)  # Chain in-place operations
+        >>> print(x)  # tensor([12.0, 14.0])
 
         >>> # Error case: tensor with gradients
         >>> y = nova.tensor([1.0, 2.0], requires_grad=True)
@@ -163,40 +252,52 @@ def make_inplace_func(
     """
     from nova import Tensor
 
-    def inplace_method(self: Tensor, *args, **kwargs) -> Tensor:
-        # Prevent in-place ops on tensors in the computation graph
-        if self.requires_grad:
-            raise RuntimeError(
-                f"Cannot perform inplace operation '{op_name}_' on a tensor "
-                f"that requires gradients. Use the out-of-place version instead."
-            )
+    if is_unary:
 
-        # Handle unary operations
-        if is_unary:
-            result = func.apply(self).data
-        else:
-            # Validate binary operation arguments
-            if not args and not kwargs:
-                raise TypeError(
-                    f"Operation {func.__name__} requires an 'other' argument."
+        def inplace_unary_method(self: T, /) -> T:
+            # Prevent in-place ops on tensors in the computation graph
+            if self.requires_grad:
+                raise RuntimeError(
+                    f"Cannot perform inplace operation '{op_name}_' on a tensor "
+                    f"that requires gradients. Use the out-of-place version instead."
                 )
 
-            other = args[0] if args else kwargs.get("other")
-            remaining_args = args[1:] if len(args) > 1 else ()
+            result = func.apply(self).data
+
+            # Preserve original dtype through casting if needed
+            if result.dtype != self.data.dtype:
+                result = result.astype(self.data.dtype)
+
+            # Copy result into original tensor's data buffer
+            np.copyto(dst=self.data, src=result)
+
+            return self
+
+        return inplace_unary_method  # type: ignore[return-value]
+
+    else:
+
+        def inplace_binary_method(self: T, other: Union[Tensor, Any], /) -> T:
+            # Prevent in-place ops on tensors in the computation graph
+            if self.requires_grad:
+                raise RuntimeError(
+                    f"Cannot perform inplace operation '{op_name}_' on a tensor "
+                    f"that requires gradients. Use the out-of-place version instead."
+                )
 
             # Convert to Tensor unless raw mode is enabled
             if not raw and not isinstance(other, Tensor):
                 other = ensure_tensor(other)
 
-            result = func.apply(self, other, *remaining_args, **kwargs).data
+            result = func.apply(self, other).data
 
-        # Preserve original dtype through casting if needed
-        if result.dtype != self.data.dtype:
-            result = result.astype(self.data.dtype)
+            # Preserve original dtype through casting if needed
+            if result.dtype != self.data.dtype:
+                result = result.astype(self.data.dtype)
 
-        # Copy result into original tensor's data buffer
-        np.copyto(dst=self.data, src=result)
+            # Copy result into original tensor's data buffer
+            np.copyto(dst=self.data, src=result)
 
-        return self
+            return self
 
-    return inplace_method
+        return inplace_binary_method  # type: ignore[return-value]
