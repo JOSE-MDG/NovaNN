@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/17/2026, 7:02:39 PM
+**Generated:** 1/17/2026, 11:17:23 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -209,39 +209,15 @@
 │   │   └── 🐍 test_save.py
 │   ├── 📝 README.en.md
 │   ├── 📝 README.md
-│   ├── 🐍 test_binding.py
+│   ├── 🐍 test_api.py
+│   ├── 🐍 test_binding_system.py
+│   ├── 🐍 test_conversion.py
 │   ├── 🐍 test_creation_and_casting.py
 │   ├── 🐍 test_hooks.py
 │   ├── 🐍 test_loader.py
 │   ├── 🐍 test_metrics.py
-│   ├── 🐍 test_registry.py
-│   └── 🐍 test_tensor_api.py
+│   └── 🐍 test_registry.py
 ├── 📁 tutorials
-│   ├── 📁 advanced
-│   │   ├── 🐍 01_schedulers.py
-│   │   ├── 🐍 02_metrics.py
-│   │   ├── 🐍 03_no_grad.py
-│   │   ├── 🐍 04_convolutionals.py
-│   │   ├── 🐍 05_checkpoints.py
-│   │   ├── 🐍 06_clipping.py
-│   │   ├── 🐍 07_hooks.py
-│   │   ├── 🐍 08_batchnorm.py
-│   │   └── 🐍 09_cnns.py
-│   ├── 📁 basic
-│   │   ├── 🐍 01_nova_intro.py
-│   │   ├── 🐍 02_tensor.py
-│   │   ├── 🐍 03_basic_operations.py
-│   │   ├── 🐍 04_sgd_optimizer.py
-│   │   ├── 🐍 05_backward_and_gradients.py
-│   │   └── 🐍 06_simple_mlp.py
-│   ├── 📁 intermediate
-│   │   ├── 🐍 01_optimizers.py
-│   │   ├── 🐍 02_functinal.py
-│   │   ├── 🐍 03_module.py
-│   │   ├── 🐍 04_no_grad.py
-│   │   ├── 🐍 05_training_loop.py
-│   │   ├── 🐍 06_standarization.py
-│   │   └── 🐍 07_classifier.py
 │   └── 📝 philosophy.md
 ├── ⚙️ .gitignore
 ├── 📝 CONTRIBUTING.en.md
