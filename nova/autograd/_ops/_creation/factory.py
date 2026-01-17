@@ -1055,16 +1055,57 @@ def full(
         tensor([[7, 7, 7],
                 [7, 7, 7]])
     """
+
+    if dtype is None:
+        dtype = nova.float32
+
     data = np.full(
         shape=size,
         fill_value=fill_value,
-        dtype=dtype if dtype is not None else nova.float32,
+        dtype=dtype,
     )
     return nova.Tensor(
         data,
-        dtype=dtype if dtype is not None else nova.float32,
+        dtype=dtype,
         requires_grad=requires_grad,
     )
+
+
+def full_like(
+    input: nova.Tensor,
+    fill_value: Any,
+    *,
+    dtype: Optional[Dtype] = None,
+    requires_grad: bool = False,
+) -> nova.Tensor:
+    """
+    Returns a tensor with the same size as `input` filled with `fill_value`.
+
+    Args:
+        input (Tensor): The reference tensor whose shape will be mimicked.
+        fill_value (Any): Value to fill the output tensor with.
+        dtype (Optional[Dtype]): Data type of the tensor. If None, it defaults
+            to nova.float32.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        Tensor: A tensor of the same shape as `input` filled with `fill_value`.
+
+    Examples:
+        >>> x = nova.ones((2, 2))
+        >>> y = nova.full_like(x, 3.14)
+        >>> print(y)
+        tensor([[3.14, 3.14],
+                [3.14, 3.14]])
+    """
+
+    input = ensure_tensor(input)
+
+    if dtype is None:
+        dtype = nova.float32
+
+    data = np.full_like(input.data, fill_value=fill_value, dtype=dtype)
+    return nova.Tensor(data, dtype=dtype, requires_grad=requires_grad)
 
 
 def arange(
