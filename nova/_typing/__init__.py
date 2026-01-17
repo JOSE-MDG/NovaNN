@@ -32,6 +32,14 @@ from ._typing import (
     SchedulerStateDict,
     LossReducton,
     Average,
+    T,
+    UnaryMethod,
+    BinaryMethod,
+    ReverseBinaryMethod,
+    VariadicMethod,
+    InplaceUnaryMethod,
+    InplaceBinaryMethod,
+    InplaceVariadicMethod,
 )
 
 __all__ = [
@@ -68,4 +76,12 @@ __all__ = [
     "OptimizerStateDict",
     "SchedulerStateDict",
     "Average",
+    "T",
+    "UnaryMethod",
+    "BinaryMethod",
+    "ReverseBinaryMethod",
+    "VariadicMethod",
+    "InplaceUnaryMethod",
+    "InplaceBinaryMethod",
+    "InplaceVariadicMethod",
 ]

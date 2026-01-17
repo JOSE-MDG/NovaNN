@@ -11,6 +11,8 @@ from typing import (
     Type,
     Union,
     TypedDict,
+    Protocol,
+    TypeVar,
 )
 
 if TYPE_CHECKING:
@@ -280,3 +282,58 @@ class YAMLFile(TypedDict):
 
 type Average = Literal["micro", "macro", "weighted", None]
 """averages for metrics"""
+
+# Binding Types
+
+
+# Type variable for the Tensor class
+T = TypeVar("T", bound="Tensor")
+
+
+# Protocol for unary operations (self) -> Tensor
+class UnaryMethod(Protocol):
+    """Protocol for unary methods like __neg__, __abs__, relu()."""
+
+    def __call__(self, __self: Tensor, /) -> Tensor: ...
+
+
+# Protocol for binary operations (self, other) -> Tensor
+class BinaryMethod(Protocol):
+    """Protocol for binary methods like __add__, __mul__."""
+
+    def __call__(self, __self: Tensor, __other: Union[Tensor, Any], /) -> Tensor: ...
+
+
+# Protocol for reverse binary operations (self, other) -> Tensor
+class ReverseBinaryMethod(Protocol):
+    """Protocol for reverse methods like __radd__, __rmul__."""
+
+    def __call__(self, __self: Tensor, __other: Union[Tensor, Any], /) -> Tensor: ...
+
+
+# Protocol for variadic methods that accept args/kwargs
+class VariadicMethod(Protocol):
+    """Protocol for methods with variable arguments like sum(dim=...), reshape(...)."""
+
+    def __call__(self, __self: Tensor, /, *args: Any, **kwargs: Any) -> Tensor: ...
+
+
+# Protocol for in-place unary operations
+class InplaceUnaryMethod(Protocol):
+    """Protocol for in-place unary methods like abs_(), relu_()."""
+
+    def __call__(self, __self: T, /) -> T: ...
+
+
+# Protocol for in-place binary operations
+class InplaceBinaryMethod(Protocol):
+    """Protocol for in-place binary methods like add_(), mul_()."""
+
+    def __call__(self, __self: T, __other: Union[Tensor, Any], /) -> T: ...
+
+
+# Protocol for in-place variadic operations
+class InplaceVariadicMethod(Protocol):
+    """Protocol for in-place methods with args/kwargs like clamp_()."""
+
+    def __call__(self, __self: T, /, *args: Any, **kwargs: Any) -> T: ...
