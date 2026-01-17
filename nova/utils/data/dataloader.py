@@ -1,7 +1,7 @@
 from __future__ import annotations
 import nova
 from .dataset import Dataset
-from typing import Iterator, Tuple, TYPE_CHECKING
+from typing import Iterator, Tuple, TYPE_CHECKING, Self
 
 
 if TYPE_CHECKING:
@@ -96,7 +96,7 @@ class DataLoader:
             order (Tensor): Tensor of indices defining the iteration order (shuffled or sequential)
         """
 
-        def __init__(self, parent: DataLoader):
+        def __init__(self, parent: DataLoader) -> None:
             self.parent: DataLoader = parent
             self.idx: int = 0
             # Create an array of indices. Shuffle it if required.
@@ -106,7 +106,7 @@ class DataLoader:
                 else nova.arange(len(parent.dataset), dtype=nova.long)
             )
 
-        def __iter__(self) -> DataLoader._Iter:
+        def __iter__(self) -> Self:
             """Returns the iterator itself.
 
             Returns:
