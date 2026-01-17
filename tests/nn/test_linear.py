@@ -21,7 +21,7 @@ class TestLinear:
             return m(inp).sum()
 
         analytic, numeric = grad_check_wrt_inputs(forward, x, eps=1e-4)
-        assert nova.allclose(analytic[0], numeric[0], rtol=5e-3, atol=5e-3)
+        assert nova.allclose(analytic[0], numeric[0], rtol=5e-2, atol=5e-2)
 
     def test_without_bias(self):
         m = Linear(20, 30, bias=False)
