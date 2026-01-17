@@ -9,6 +9,30 @@ if TYPE_CHECKING:
     from nova import Tensor
 
 
+def _addindent(s_: str, numSpaces: int):
+    """Adds indentation to a multi-line string.
+
+    Helper method for formatting the string representation by adding spaces
+    to each line.
+
+    Args:
+        s_: String to indent
+        numSpaces: Number of spaces to add to each line
+
+    Returns:
+        Indented string
+    """
+    s = s_.split("\n")
+    # don't do anything for single-line stuff
+    if len(s) == 1:
+        return s_
+    first = s.pop(0)
+    s = [(numSpaces * " ") + line for line in s]
+    s = "\n".join(s)
+    s = first + "\n" + s
+    return s
+
+
 class ModuleMeta(type):
     """
     Metaclass for automatic registration of Module subclasses.
@@ -784,7 +808,7 @@ class Module(metaclass=ModuleMeta):
         child_lines = []
         for key, module in self._modules.items():
             mod_str = repr(module)
-            mod_str = self._addindent(mod_str, 2)
+            mod_str = _addindent(mod_str, 2)
             child_lines.append("(" + key + "): " + mod_str)
         lines = extra_lines + child_lines
 
@@ -832,27 +856,3 @@ class Module(metaclass=ModuleMeta):
             MyModule(param1=10, param2=20)
         """
         return ""
-
-    @staticmethod
-    def _addindent(s_: str, numSpaces: int):
-        """Adds indentation to a multi-line string.
-
-        Helper method for formatting the string representation by adding spaces
-        to each line.
-
-        Args:
-            s_: String to indent
-            numSpaces: Number of spaces to add to each line
-
-        Returns:
-            Indented string
-        """
-        s = s_.split("\n")
-        # don't do anything for single-line stuff
-        if len(s) == 1:
-            return s_
-        first = s.pop(0)
-        s = [(numSpaces * " ") + line for line in s]
-        s = "\n".join(s)
-        s = first + "\n" + s
-        return s
