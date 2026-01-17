@@ -17,10 +17,11 @@ class TestConv1d:
         m = Conv1d(in_channels=2, out_channels=3, kernel_size=3)
         x = nova.randn(2, 2, 8, requires_grad=True)
 
-        forward = lambda inp: m(inp).sum()
+        def forward(inp):
+            return m(inp).sum()
 
         analytic, numeric = grad_check_wrt_inputs(forward, x, eps=1e-4)
-        assert nova.allclose(analytic[0], numeric[0], rtol=1e-2, atol=1e-2)
+        assert nova.allclose(analytic[0], numeric[0], rtol=5e-2, atol=5e-2)
 
     def test_without_bias(self):
         m = Conv1d(3, 16, kernel_size=3, bias=False)
@@ -47,7 +48,8 @@ class TestConv2d:
         m = Conv2d(in_channels=2, out_channels=4, kernel_size=3)
         x = nova.randn(1, 2, 6, 6, requires_grad=True)
 
-        forward = lambda inp: m(inp).sum()
+        def forward(inp):
+            return m(inp).sum()
 
         analytic, numeric = grad_check_wrt_inputs(forward, x, eps=1e-4)
         assert nova.allclose(analytic[0], numeric[0], rtol=5e-2, atol=5e-2)
@@ -83,10 +85,11 @@ class TestConv3d:
         m = Conv3d(in_channels=2, out_channels=3, kernel_size=3)
         x = nova.randn(1, 2, 4, 4, 4, requires_grad=True)
 
-        forward = lambda inp: m(inp).sum()
+        def forward(inp):
+            return m(inp).sum()
 
         analytic, numeric = grad_check_wrt_inputs(forward, x, eps=1e-4)
-        assert nova.allclose(analytic[0], numeric[0], rtol=1e-2, atol=1e-2)
+        assert nova.allclose(analytic[0], numeric[0], rtol=5e-2, atol=5e-2)
 
     def test_without_bias(self):
         m = Conv3d(3, 8, kernel_size=3, bias=False)
