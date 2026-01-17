@@ -1,0 +1,19 @@
+[run]
+source =
+    nova
+
+omit =
+    */tests/*
+    */__init__.py
+    examples/*
+    benchmarks/*
+    notebooks/*
+    nova/autograd/_ops/native/*
+    nova/_internal/*
+    nova/_typing/*
+    *.pyi
+
+[report]
+show_missing = True
+skip_covered = True
+precision = 2
