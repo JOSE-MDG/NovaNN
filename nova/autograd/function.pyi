@@ -6,7 +6,7 @@ from nova import Tensor
 from nova._typing import Gradients
 from .engine import Context
 
-TFunction = TypeVar("TFunction", bound=Function)
+TFunction = TypeVar("TFunction", bound="Function")
 
 class FunctionMeta(ABCMeta):
     def __repr__(cls) -> str: ...
