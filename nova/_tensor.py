@@ -8,12 +8,12 @@ from nova._interfaces._base_tensor import TensorBase
 from nova.utils import registry_class, ensure_tensor
 from nova.utils.logger import logger
 from nova.autograd.engine import _backward
+from nova.utils.hooks import HooksHandle
 
 if TYPE_CHECKING:
     from nova.autograd.function import Function
     from nova._typing import Dtype, Hook, Dim
     from nova.autograd.engine import Context
-    from nova.utils.hooks import HooksHandle
 
 
 @registry_class
@@ -601,7 +601,7 @@ class Tensor(TensorBase):
         """
         if self.requires_grad:
             raise RuntimeError(
-                f"Cannot perform inplace operation on a tensor that requires gradients"
+                "Cannot perform inplace operation on a tensor that requires gradients"
             )
 
         self.data = np.random.normal(loc=mean, scale=std, size=self.data.shape).astype(
@@ -621,7 +621,7 @@ class Tensor(TensorBase):
         """
         if self.requires_grad:
             raise RuntimeError(
-                f"Cannot perform inplace operation on a tensor that requires gradients"
+                "Cannot perform inplace operation on a tensor that requires gradients"
             )
 
         self.data = np.random.uniform(low=low, high=high, size=self.data.shape).astype(
@@ -637,7 +637,7 @@ class Tensor(TensorBase):
         """
         if self.requires_grad:
             raise RuntimeError(
-                f"Cannot perform inplace operation on a tensor that requires gradients"
+                "Cannot perform inplace operation on a tensor that requires gradients"
             )
 
         self.data = np.random.rand(*self.data.shape).astype(self.dtype)
@@ -651,7 +651,7 @@ class Tensor(TensorBase):
         """
         if self.requires_grad:
             raise RuntimeError(
-                f"Cannot perform inplace operation on a tensor that requires gradients"
+                "Cannot perform inplace operation on a tensor that requires gradients"
             )
 
         self.data.fill(0.0)
@@ -665,7 +665,7 @@ class Tensor(TensorBase):
         """
         if self.requires_grad:
             raise RuntimeError(
-                f"Cannot perform inplace operation on a tensor that requires gradients"
+                "Cannot perform inplace operation on a tensor that requires gradients"
             )
 
         self.data.fill(1.0)
@@ -682,7 +682,7 @@ class Tensor(TensorBase):
         """
         if self.requires_grad:
             raise RuntimeError(
-                f"Cannot perform inplace operation on a tensor that requires gradients"
+                "Cannot perform inplace operation on a tensor that requires gradients"
             )
 
         self.data.fill(value)
