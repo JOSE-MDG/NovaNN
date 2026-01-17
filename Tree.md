@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/15/2026, 7:15:43 PM
+**Generated:** 1/17/2026, 7:02:39 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -22,7 +22,9 @@
 │   ├── 📁 _interfaces
 │   │   ├── 🐍 _base_tensor.py
 │   │   ├── 🐍 _lr_scheduler.py
-│   │   └── 🐍 _optimizer.py
+│   │   ├── 📄 _lr_scheduler.pyi
+│   │   ├── 🐍 _optimizer.py
+│   │   └── 📄 _optimizer.pyi
 │   ├── 📁 _internal
 │   │   ├── 🐍 _binding.py
 │   │   └── 🐍 _generators.py
@@ -85,7 +87,9 @@
 │   │   ├── 📁 engine
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 context.py
-│   │   │   └── 🐍 engine.py
+│   │   │   ├── 📄 context.pyi
+│   │   │   ├── 🐍 engine.py
+│   │   │   └── 📄 engine.pyi
 │   │   ├── 📁 tests
 │   │   │   ├── 🐍 op_signatures.py
 │   │   │   ├── 🐍 test_backward.py
@@ -97,7 +101,9 @@
 │   │   │   └── 🐍 processing.py
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 function.py
+│   │   ├── 📄 function.pyi
 │   │   ├── 🐍 grad.py
+│   │   ├── 📄 grad.pyi
 │   │   └── 🐍 grad_mode.py
 │   ├── 📁 core
 │   │   ├── 🐍 __init__.py
@@ -129,6 +135,7 @@
 │   │   │   ├── 🐍 linear.py
 │   │   │   ├── 🐍 loss.py
 │   │   │   ├── 🐍 module.py
+│   │   │   ├── 📄 module.pyi
 │   │   │   └── 🐍 pooling.py
 │   │   ├── 📁 utils
 │   │   │   ├── 🐍 __init__.py
@@ -136,21 +143,30 @@
 │   │   │   └── 🐍 standardization.py
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 functional.py
+│   │   ├── 📄 functional.pyi
 │   │   ├── 🐍 init.py
+│   │   ├── 📄 init.pyi
 │   │   ├── 🐍 parameter.py
 │   │   └── 📄 parameter.pyi
 │   ├── 📁 optim
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 adam.py
+│   │   ├── 📄 adam.pyi
 │   │   ├── 🐍 adamw.py
+│   │   ├── 📄 adamw.pyi
 │   │   ├── 🐍 lr_scheduler.py
+│   │   ├── 📄 lr_scheduler.pyi
 │   │   ├── 🐍 rmsprop.py
-│   │   └── 🐍 sgd.py
+│   │   ├── 📄 rmsprop.pyi
+│   │   ├── 🐍 sgd.py
+│   │   └── 📄 sgd.pyi
 │   ├── 📁 serialization
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 _safe_load.py
 │   │   ├── 🐍 load.py
-│   │   └── 🐍 save.py
+│   │   ├── 📄 load.pyi
+│   │   ├── 🐍 save.py
+│   │   └── 📄 save.pyi
 │   ├── 📁 utils
 │   │   ├── 📁 decorators
 │   │   │   ├── 🐍 __init__.py
@@ -184,6 +200,7 @@
 │   ├── 📁 optim
 │   │   ├── 🐍 test_adam.py
 │   │   ├── 🐍 test_adamw.py
+│   │   ├── 🐍 test_common.py
 │   │   ├── 🐍 test_rmsprop.py
 │   │   ├── 🐍 test_schedulers.py
 │   │   └── 🐍 test_sgd.py
@@ -193,7 +210,6 @@
 │   ├── 📝 README.en.md
 │   ├── 📝 README.md
 │   ├── 🐍 test_binding.py
-│   ├── 🐍 test_conversion.py
 │   ├── 🐍 test_creation_and_casting.py
 │   ├── 🐍 test_hooks.py
 │   ├── 🐍 test_loader.py
