@@ -3,12 +3,14 @@ import nova
 import numpy as np
 from .engine import Context
 from .utils import ArgumentProcessor, determine_base_dtype
-from typing import Any, TYPE_CHECKING, Type
+from typing import Any, TYPE_CHECKING, Type, TypeVar
 from abc import ABC, ABCMeta
 
 if TYPE_CHECKING:
     from nova import Tensor
     from nova._typing import Gradients
+
+TFunction = TypeVar("TFunction", bound="Function")
 
 
 class FunctionMeta(ABCMeta):
@@ -116,7 +118,7 @@ class Function(ABC, metaclass=FunctionMeta):
         raise NotImplementedError
 
     @classmethod
-    def apply(cls: Type[Function], *args: Any, **kwargs: Any) -> Tensor:
+    def apply(cls: Type[TFunction], *args: Any, **kwargs: Any) -> Tensor:
         """
         Applies the operation and builds the computational graph.
 
