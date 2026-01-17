@@ -40,3 +40,4 @@ class HooksHandle:
         """Remove the hook from its list if it has not been removed yet."""
         if not self._removed and len(self.hooks_list) > 0:
             self.hooks_list.remove(self.hooks_func)
+            self._removed = True
