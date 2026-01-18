@@ -31,3 +31,8 @@ __pycache__/
 
 # experimentation
 checking.ipynb
+
+# Coverage
+.coverage
+.coveragerc
+htmlcov/
