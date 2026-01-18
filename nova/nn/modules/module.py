@@ -319,6 +319,69 @@ class Module(metaclass=ModuleMeta):
                 if module is not None:
                     yield from module.buffers(recurse=True)
 
+    def modules(self, recurse: bool = True) -> Iterable[Module]:
+        """Returns an iterator over all modules in the network.
+
+        This yields all submodules contained in this module, which is useful for
+        operations that need to be applied to all layers (e.g., initialization,
+        mode switching, or inspection).
+
+        Args:
+            recurse: If ``True``, yields modules of this module and all submodules
+                recursively. Otherwise, yields only direct child modules.
+                Default: ``True``
+
+        Yields:
+            Module: Child modules
+
+        Note:
+            Unlike ``parameters()`` and ``buffers()``, this method does NOT yield
+            ``self``. It only yields the submodules contained in ``self._modules``.
+
+        Examples::
+
+            >>> model = Sequential(
+            ...     Linear(10, 20),
+            ...     ReLU(),
+            ...     BatchNorm1d(20),
+            ...     Linear(20, 5)
+            ... )
+            >>> modules = list(model.modules())
+            >>> print(len(modules))  # 4 (all submodules)
+            >>> for m in modules:
+            ...     print(type(m).__name__)
+            # Linear
+            # ReLU
+            # BatchNorm1d
+            # Linear
+
+            >>> # Only direct children (not nested)
+            >>> class TwoLayerNet(Module):
+            ...     def __init__(self):
+            ...         super().__init__()
+            ...         self.block1 = Sequential(Linear(10, 20), ReLU())
+            ...         self.block2 = Linear(20, 5)
+            ...
+            >>> model = TwoLayerNet()
+            >>> direct = list(model.modules(recurse=False))
+            >>> print(len(direct))  # 2 (block1, block2)
+            >>> all_modules = list(model.modules(recurse=True))
+            >>> print(len(all_modules))  # 4 (block1, Linear, ReLU, block2)
+
+            >>> # Apply operation to all modules
+            >>> for m in model.modules():
+            ...     if isinstance(m, Linear):
+            ...         nn.init.xavier_normal_(m.weight)
+        """
+        for m in self._modules.values():
+            if m is not None:
+                yield m
+
+        if recurse:
+            for m in self._modules.values():
+                if m is not None:
+                    yield from m.modules(recurse=True)
+
     def register_buffer(self, name: str, buffer: Optional[Buffer]) -> None:
         """Adds a buffer to the module.
 
