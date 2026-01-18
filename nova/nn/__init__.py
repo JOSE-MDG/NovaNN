@@ -5,13 +5,15 @@ from .parameter import (
     UninitializedBuffer,
     UninitializedParameter,
 )
-from .modules import *
+from .modules import *  # noqa: F403
+from . import init
 
 __all__ = [
+    "init",
     "Parameter",
     "Buffer",
     "is_lazy",
     "UninitializedBuffer",
     "UninitializedParameter",
 ]
-__all__.extend(modules.__all__)
+__all__.extend(modules.__all__)  # noqa: F405
