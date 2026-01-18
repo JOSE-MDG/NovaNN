@@ -28,7 +28,7 @@ def normalize(
         >>> normalize(x, x_mean=2.0, x_std=1.0)
         array([-1.,  0.,  1.])
     """
-    return (x_data - x_mean) / x_std
+    return (x_data - x_mean) / (x_std + 1e-8)
 
 
 def split_features_and_labels(
