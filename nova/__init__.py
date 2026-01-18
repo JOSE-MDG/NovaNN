@@ -1,13 +1,84 @@
+"""
+NovaNN Core API
+===============
+
+This module defines the **public top-level API of NovaNN**.
+
+It acts as the main entry point of the framework, exposing the core abstractions
+and utilities required for building, training, and analyzing neural networks.
+The goal of this module is to provide a **clean, minimal, and explicit user-facing
+interface**, while hiding the internal complexity of the framework.
+s
+At a high level, this module is responsible for:
+
+- Exposing the `Tensor` type, which represents both data and differentiable values.
+- Providing factory functions for tensor creation (e.g. `tensor`, `zeros`, `randn`, etc.).
+- Making data types (`dtypes`) available at the top level.
+- Managing global autograd state (enabling/disabling gradient tracking).
+- Registering and binding operations dynamically to the `Tensor` class.
+- Exposing serialization utilities (`save`, `load`).
+- Initializing the operator system via a bootstrap mechanism.
+
+Design Philosophy
+-----------------
+NovaNN follows a **PyTorch-inspired but minimalistic design**, prioritizing:
+
+- Explicitness over magic
+- Computational graphs
+- Predictable autograd behavior
+- Low overhead for CPU-based experimentation
+- Readable and inspectable internals
+
+This module intentionally re-exports selected symbols from internal submodules
+to provide a convenient and discoverable API, while keeping the internal layout
+modular and well-isolated.
+
+Public API Surface
+------------------
+The symbols exposed here represent the **stable API** intended for users.
+Internal modules (prefixed with `_`) are not considered part of the public API
+and may change without notice.
+
+Key components exposed:
+
+- `Tensor`: Core tensor abstraction with autograd support
+- `tensor(...)`: Primary tensor factory function
+- Dtypes: `float32`, `int`, `bool`, etc.
+- Autograd utilities: `is_grad_enabled`, `enable_grad`, `no_grad`
+- Serialization: `save`, `load`
+- Operation registries and dynamic bindings
+
+Dynamic Operation Binding
+-------------------------
+At import time, NovaNN dynamically binds operations defined in YAML and Python
+implementations to the `Tensor` class. This allows operators such as arithmetic,
+activation functions, indexing, and linear algebra routines to be attached
+without hardcoding them into the class definition.
+
+This design enables:
+- Clear separation between tensor structure and operations
+- Easier extensibility
+- Fine-grained control over operator registration
+
+Versioning
+----------
+The `__version__` attribute reflects the current framework version and follows
+semantic versioning.
+
+This module is intentionally lightweight in logic and heavy in orchestration,
+serving as the connective layer between NovaNN’s internal systems and its users.
+"""
+
 from __future__ import annotations
 import builtins
 from typing import Any, TYPE_CHECKING, Optional
-from .dtypes import *
+from .dtypes import *  # noqa: F403
 from .utils import registry_class, ensure_tensor, registry_op
 from ._internal._binding import bootstrap_to
 from ._tensor import Tensor
 import nova.autograd as autograd
 from .autograd.grad_mode import is_grad_enabled, enable_grad, no_grad
-from .autograd._ops._creation import *
+from .autograd._ops._creation import *  # noqa: F403
 from .autograd._ops._creation import __all__ as creation_all
 from .serialization import save, load
 
@@ -50,7 +121,7 @@ __all__ = [
 
 __all__.extend(creation_all)
 
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
 
 def tensor(
