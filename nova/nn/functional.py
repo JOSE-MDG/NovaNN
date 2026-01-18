@@ -601,7 +601,7 @@ def nll_loss(
 
     if weight is not None:
         if weight.shape[0] != log_probs.size(1):
-            raise ValueError(f"weight must have same size as number of classes")
+            raise ValueError("weight must have same size as number of classes")
 
         loss = loss * weight[target]
 
