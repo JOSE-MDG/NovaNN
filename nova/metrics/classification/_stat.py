@@ -1,8 +1,6 @@
 from __future__ import annotations
-import nova
-import numpy as np
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Literal
 from ..metric import Metric
 from ._confusion import ConfusionMatrix
 
@@ -32,7 +30,18 @@ class ClassificationStat(Metric):
         ValueError: If `average` is not one of the allowed values.
     """
 
-    def __init__(self, num_classes: int, average: Average = "macro") -> None:
+    def __init__(
+        self,
+        num_classes: int,
+        average: Average = "macro",
+        task: Literal["multiclass", "binary"] = "multiclass",
+    ) -> None:
+
+        self.task = task
+
+        if task == "binary" and num_classes != 2:
+            raise ValueError("Binary task requires num_classes=2")
+
         self.num_classes = num_classes
         self.cm = ConfusionMatrix(num_classes)
         self.average: Average = average
@@ -107,8 +116,13 @@ class Accuracy(ClassificationStat):
         >>> print(acc.compute())
     """
 
-    def __init__(self, num_classes, average="micro"):
-        super().__init__(num_classes, average)
+    def __init__(
+        self,
+        num_classes,
+        average="micro",
+        task: Literal["multiclass", "binary"] = "multiclass",
+    ):
+        super().__init__(num_classes, average, task)
 
     def _calculate(self, tp, fp, fn, tn, support) -> Tensor:
         # If this is micro-average (tp, fp, fn are scalars)

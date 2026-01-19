@@ -1,7 +1,7 @@
 from __future__ import annotations
 import nova
 import numpy as np
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 from ..metric import Metric
 
 if TYPE_CHECKING:
@@ -43,8 +43,15 @@ class ROCAUC(Metric):
         - ROC Curve: https://en.wikipedia.org/wiki/Receiver_operating_characteristic
     """
 
-    def __init__(self, num_classes: int = 2):
+    def __init__(
+        self, num_classes: int = 2, task: Literal["multiclass", "binary"] = "multiclass"
+    ):
         super().__init__()
+
+        self.task = task
+        if task == "binary" and num_classes != 2:
+            raise ValueError("Binary task requires num_classes=2")
+
         self.preds_list: list[Tensor] = []
         self.target_list: list[Tensor] = []
         self.num_classes = num_classes
