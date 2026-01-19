@@ -1,86 +1,38 @@
 # File Tree: NovaNN
 
-**Generated:** 1/17/2026, 11:50:56 PM
+**Generated:** 1/19/2026, 8:25:35 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
 ├── 📁 benchmarks
 │   ├── 📁 autograd
+│   │   ├── 🐍 backward_overhead.py
+│   │   ├── 🐍 grad_accumulation.py
+│   │   ├── 🐍 grad_checking.py
+│   │   ├── 🐍 memory_footprint.py
+│   │   └── 🐍 small_graphs.py
 │   ├── 📁 ops
-│   └── 📁 training
+│   │   ├── 🐍 broadcasting_cost.py
+│   │   ├── 🐍 elementwise_cpu.py
+│   │   ├── 🐍 reduction_ops.py
+│   │   └── 🐍 small_tensor_ops.py
+│   ├── 📁 training
+│   │   ├── 🐍 end_to_end_cpu.py
+│   │   ├── 🐍 lr_scheduler_step.py
+│   │   ├── 🐍 optimizer_step.py
+│   │   └── 🐍 tiny_mlp_cpu.py
+│   ├── 📁 utils
+│   │   ├── 🐍 compare_with_torch.py
+│   │   ├── 🐍 memory.py
+│   │   ├── 🐍 report.py
+│   │   └── 🐍 timing.py
+│   ├── 📝 README.en.md
+│   └── 📝 README.es.md
 ├── 📁 examples
 │   ├── 🐍 binary_classification.py
 │   ├── 🐍 conv_example.py
 │   ├── 🐍 multiclass_classification.py
 │   └── 🐍 regresion.py
-├── 📁 htmlcov
-│   ├── ⚙️ .gitignore
-│   ├── 🌐 class_index.html
-│   ├── 📄 coverage_html_cb_bcae5fc4.js
-│   ├── 🖼️ favicon_32_cb_58284776.png
-│   ├── 🌐 function_index.html
-│   ├── 🌐 index.html
-│   ├── 🖼️ keybd_closed_cb_ce680311.png
-│   ├── ⚙️ status.json
-│   ├── 🎨 style_cb_8432e98f.css
-│   ├── 🌐 z_06b9a8cdc71dee09_engine_py.html
-│   ├── 🌐 z_11bdcc018d9891f0_manipulation_py.html
-│   ├── 🌐 z_194ccd5cee23b896_preprocessing_py.html
-│   ├── 🌐 z_267ea38647e3b2fb_comparison_py.html
-│   ├── 🌐 z_2920ecd686fee26b_processing_py.html
-│   ├── 🌐 z_2c5b1c0d4fcb0206_function_py.html
-│   ├── 🌐 z_2c5b1c0d4fcb0206_grad_mode_py.html
-│   ├── 🌐 z_2c5b1c0d4fcb0206_grad_py.html
-│   ├── 🌐 z_2fb40151e90363fa__confusion_py.html
-│   ├── 🌐 z_2fb40151e90363fa__stat_py.html
-│   ├── 🌐 z_320fd53c9361d4b3_factory_py.html
-│   ├── 🌐 z_320fd53c9361d4b3_random_py.html
-│   ├── 🌐 z_466d242d74e564da_timing_py.html
-│   ├── 🌐 z_5f18899d6860d398_reduce_py.html
-│   ├── 🌐 z_608aab99eafaafd7_adam_py.html
-│   ├── 🌐 z_608aab99eafaafd7_adamw_py.html
-│   ├── 🌐 z_608aab99eafaafd7_lr_scheduler_py.html
-│   ├── 🌐 z_608aab99eafaafd7_rmsprop_py.html
-│   ├── 🌐 z_608aab99eafaafd7_sgd_py.html
-│   ├── 🌐 z_89c4cfc337266ef3_arithmetic_py.html
-│   ├── 🌐 z_8ee3d46129bdc436__tensor_py.html
-│   ├── 🌐 z_97be772b33bcf3c4_functional_py.html
-│   ├── 🌐 z_97be772b33bcf3c4_init_py.html
-│   ├── 🌐 z_97be772b33bcf3c4_parameter_py.html
-│   ├── 🌐 z_9ef6f9c47db2de2e_getitem_py.html
-│   ├── 🌐 z_9ef6f9c47db2de2e_setitem_py.html
-│   ├── 🌐 z_aa5a4cc1b9a95984__safe_load_py.html
-│   ├── 🌐 z_aa5a4cc1b9a95984_load_py.html
-│   ├── 🌐 z_aa5a4cc1b9a95984_save_py.html
-│   ├── 🌐 z_c007443622fd8bbf_fashion_py.html
-│   ├── 🌐 z_c007443622fd8bbf_minist_py.html
-│   ├── 🌐 z_c12b3c27b7ee63d7_as_strided_py.html
-│   ├── 🌐 z_d33423cb3117853d__base_tensor_py.html
-│   ├── 🌐 z_d33423cb3117853d__lr_scheduler_py.html
-│   ├── 🌐 z_d33423cb3117853d__optimizer_py.html
-│   ├── 🌐 z_d34561c137286422__error_py.html
-│   ├── 🌐 z_d34561c137286422__r2_py.html
-│   ├── 🌐 z_da760576a79d906e_grad_checking_py.html
-│   ├── 🌐 z_da760576a79d906e_logger_py.html
-│   ├── 🌐 z_da760576a79d906e_to_tensor_py.html
-│   ├── 🌐 z_da760576a79d906e_visualization_py.html
-│   ├── 🌐 z_e22006bfabdefd4e_dot_py.html
-│   ├── 🌐 z_e22006bfabdefd4e_norm_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_activation_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_batchnorm_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_container_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_conv_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_dropout_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_flatten_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_lazy_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_linear_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_loss_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_module_py.html
-│   ├── 🌐 z_e90185f57dd6bf49_pooling_py.html
-│   ├── 🌐 z_f2842b01ebd0504c_metric_py.html
-│   ├── 🌐 z_fb42257d9739ceb4_trigonometric_py.html
-│   ├── 🌐 z_fd4e7327623cd65d_clip_grad_py.html
-│   └── 🌐 z_fd4e7327623cd65d_standardization_py.html
 ├── 📁 images
 │   ├── 🖼️ NovaNN Banners.png
 │   └── 🖼️ metrics.png
@@ -88,15 +40,21 @@
 │   └── 📄 exploration.ipynb
 ├── 📁 nova
 │   ├── 📁 _interfaces
+│   │   ├── 📝 README.en.md
+│   │   ├── 📝 README.es.md
 │   │   ├── 🐍 _base_tensor.py
 │   │   ├── 🐍 _lr_scheduler.py
 │   │   ├── 📄 _lr_scheduler.pyi
 │   │   ├── 🐍 _optimizer.py
 │   │   └── 📄 _optimizer.pyi
 │   ├── 📁 _internal
+│   │   ├── 📝 README.en.md
+│   │   ├── 📝 README.es.md
 │   │   ├── 🐍 _binding.py
 │   │   └── 🐍 _generators.py
 │   ├── 📁 _typing
+│   │   ├── 📝 README.en.md
+│   │   ├── 📝 README.es.md
 │   │   ├── 🐍 __init__.py
 │   │   └── 🐍 _typing.py
 │   ├── 📁 autograd
@@ -167,6 +125,8 @@
 │   │   ├── 📁 utils
 │   │   │   ├── 🐍 __init__.py
 │   │   │   └── 🐍 processing.py
+│   │   ├── 📝 README.en.md
+│   │   ├── 📝 README.es.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 function.py
 │   │   ├── 📄 function.pyi
@@ -174,6 +134,8 @@
 │   │   ├── 📄 grad.pyi
 │   │   └── 🐍 grad_mode.py
 │   ├── 📁 core
+│   │   ├── 📝 README.en.md
+│   │   ├── 📝 README.es.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 config.py
 │   │   └── 🐍 constants.py
@@ -187,6 +149,8 @@
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 _error.py
 │   │   │   └── 🐍 _r2.py
+│   │   ├── 📝 README.en.md
+│   │   ├── 📝 README.es.md
 │   │   ├── 🐍 __init__.py
 │   │   └── 🐍 metric.py
 │   ├── 📁 nn
@@ -209,6 +173,8 @@
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 clip_grad.py
 │   │   │   └── 🐍 standardization.py
+│   │   ├── 📝 README.en.md
+│   │   ├── 📝 README.es.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 functional.py
 │   │   ├── 📄 functional.pyi
@@ -217,6 +183,8 @@
 │   │   ├── 🐍 parameter.py
 │   │   └── 📄 parameter.pyi
 │   ├── 📁 optim
+│   │   ├── 📝 README.en.md
+│   │   ├── 📝 README.es.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 adam.py
 │   │   ├── 📄 adam.pyi
@@ -229,6 +197,8 @@
 │   │   ├── 🐍 sgd.py
 │   │   └── 📄 sgd.pyi
 │   ├── 📁 serialization
+│   │   ├── 📝 README.en.md
+│   │   ├── 📝 README.es.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 _safe_load.py
 │   │   ├── 🐍 load.py
@@ -240,12 +210,16 @@
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 registry.py
 │   │   │   └── 🐍 timing.py
+│   │   ├── 📝 README.en.md
+│   │   ├── 📝 README.es.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 grad_checking.py
 │   │   ├── 🐍 hooks.py
 │   │   ├── 🐍 logger.py
 │   │   ├── 🐍 to_tensor.py
 │   │   └── 🐍 visualization.py
+│   ├── 📝 README.en.md
+│   ├── 📝 README.es.md
 │   ├── 🐍 __init__.py
 │   ├── 🐍 _tensor.py
 │   ├── 📄 _tensor.pyi
@@ -286,10 +260,49 @@
 │   ├── 🐍 test_metrics.py
 │   └── 🐍 test_registry.py
 ├── 📁 tutorials
-│   └── 📝 philosophy.md
-├── ⚙️ .coverage
-├── ⚙️ .coveragerc
+│   ├── 📁 00_philosophy
+│   │   ├── 📝 design_goals.md
+│   │   ├── 🐍 gradients_are_graphs.py
+│   │   ├── 🐍 tensors_are_values.py
+│   │   └── 📝 why_nova.md
+│   ├── 📁 01_basics
+│   │   ├── 🐍 broadcasting.py
+│   │   ├── 🐍 common_pitfalls.py
+│   │   ├── 🐍 creation_and_dtypes.py
+│   │   ├── 🐍 indexing_and_views.py
+│   │   └── 🐍 tensors.py
+│   ├── 📁 02_autograd
+│   │   ├── 🐍 backward_basics.py
+│   │   ├── 🐍 computational_graph.py
+│   │   ├── 🐍 grad_accumulation.py
+│   │   ├── 🐍 grad_debugging.py
+│   │   ├── 🐍 no_grad_mode.py
+│   │   └── 🐍 requires_grad.py
+│   ├── 📁 03_nn
+│   │   ├── 🐍 batchnorm_and_dropout.py
+│   │   ├── 🐍 conv2d_step_by_step.py
+│   │   ├── 🐍 linear_and_activation.py
+│   │   ├── 🐍 modules_and_parameters.py
+│   │   ├── 🐍 train_vs_eval.py
+│   │   └── 🐍 weight_initialization.py
+│   ├── 📁 04_training
+│   │   ├── 🐍 gradient_clipping.py
+│   │   ├── 🐍 lr_schedulers.py
+│   │   ├── 🐍 optimizers_explained.py
+│   │   ├── 🐍 saving_and_loading.py
+│   │   └── 🐍 training_loop_from_scratch.py
+│   ├── 📁 05_advanced
+│   │   ├── 🐍 custom_autograd_function.py
+│   │   ├── 🐍 grad_checking.py
+│   │   ├── 🐍 hooks_and_profiling.py
+│   │   ├── 🐍 numerical_stability.py
+│   │   └── 📝 performance_notes.md
+│   └── 📁 06_comparison
+│       ├── 🐍 api_comparison_with_torch.py
+│       └── 📝 design_tradeoffs.md
 ├── ⚙️ .gitignore
+├── 📝 CHANGELOG.en.md
+├── 📝 CHANGELOG.md
 ├── 📝 CONTRIBUTING.en.md
 ├── 📝 CONTRIBUTING.md
 ├── 📄 LICENCE
