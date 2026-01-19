@@ -323,7 +323,7 @@ def mse_loss(
     input = ensure_tensor(input)
     target = ensure_tensor(target)
 
-    loss = (target - input) ** 2
+    loss = (input - target) ** 2
 
     if weight is not None:
         weight = ensure_tensor(weight)
@@ -370,7 +370,7 @@ def l1_loss(
     """
     logits = ensure_tensor(input)
 
-    loss = nova.abs(target - logits)
+    loss = nova.abs(logits - target)
 
     if weight is not None:
         weight = ensure_tensor(weight)
@@ -425,7 +425,7 @@ def smooth_l1_loss(
     target = ensure_tensor(target)
     beta = float(beta)
 
-    diff = nova.abs(target - logits)
+    diff = nova.abs(logits - target)
     condition = diff < beta
     loss = nova.where(condition, 0.5 * (diff**2) / beta, diff - 0.5 * beta)
 
