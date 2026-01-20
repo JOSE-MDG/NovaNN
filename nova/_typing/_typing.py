@@ -150,80 +150,10 @@ type SchedulerStateDict = dict[Literal["base_lrs", "last_epoch"], list[float] | 
 # Loss Function Types
 
 
-type LossReducton = Literal["none", "mean", "sum"] | Literal[
+type LossReduction = Literal["none", "mean", "sum"] | Literal[
     "none", "mean", "sum", "batchmean"
 ]
 """Reduction mode for loss functions."""
-
-
-# Operation Registry Types
-
-
-type OperationName = Literal[
-    "add",
-    "sub",
-    "mul",
-    "div",
-    "divint",
-    "mod",
-    "floor",
-    "pow",
-    "exp",
-    "log",
-    "sqrt",
-    "neg",
-    "sign",
-    "abs",
-    "ceil",
-    "relu",
-    "leaky_relu",
-    "gelu",
-    "prelu",
-    "sigmoid",
-    "det",
-    "diag",
-    "dot",
-    "inv",
-    "matmul",
-    "norm",
-    "trace",
-    "getitem",
-    "setitem",
-    "stride_tricks",
-    "view",
-    "extend",
-    "sum",
-    "mean",
-    "var",
-    "max",
-    "min",
-    "permute",
-    "reshape",
-    "squeeze",
-    "unsqueeze",
-    "stack",
-    "concat",
-    "split",
-    "clamp",
-    "tile",
-    "repeat",
-    "pad",
-    "clone",
-    "sin",
-    "cos",
-    "tan",
-    "tanh",
-    "cot",
-    "sec",
-    "arcsin",
-    "arccos",
-    "arctan",
-    "maximum",
-    "minimum",
-    "where",
-]
-
-"""Registered operation names for YAML binding."""
 
 
 # YAML Configuration Types
@@ -258,7 +188,7 @@ class TensorInfo(TypedDict, total=False):
 class OperationInfo(TypedDict, total=False):
     """Complete operation definition for YAML configuration."""
 
-    name: OperationName
+    name: str
     """Registered operation name."""
 
     is_unary: bool

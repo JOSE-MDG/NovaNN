@@ -5,7 +5,7 @@ from nova.nn.modules import Module
 
 if TYPE_CHECKING:
     from nova import Tensor
-    from nova._typing import LossReducton
+    from nova._typing import LossReduction
 
 
 class MSELoss(Module):
@@ -73,7 +73,7 @@ class MSELoss(Module):
     """
 
     def __init__(
-        self, reduction: LossReducton = "mean", weight: Optional[Tensor] = None
+        self, reduction: LossReduction = "mean", weight: Optional[Tensor] = None
     ):
         super().__init__()
         self.reduction = reduction
@@ -149,7 +149,7 @@ class L1Loss(Module):
     """
 
     def __init__(
-        self, reduction: LossReducton = "mean", weight: Optional[Tensor] = None
+        self, reduction: LossReduction = "mean", weight: Optional[Tensor] = None
     ):
         super().__init__()
         self.reduction = reduction
@@ -231,7 +231,7 @@ class SmoothL1Loss(Module):
 
     def __init__(
         self,
-        reduction: LossReducton = "mean",
+        reduction: LossReduction = "mean",
         beta: float = 1.0,
         weight: Optional[Tensor] = None,
     ):
@@ -318,7 +318,7 @@ class BCELoss(Module):
 
     def __init__(
         self,
-        reduction: LossReducton = "mean",
+        reduction: LossReduction = "mean",
         weight: Optional[Tensor] = None,
     ):
         super().__init__()
@@ -407,7 +407,7 @@ class BCEWithLogitsLoss(Module):
 
     def __init__(
         self,
-        reduction: LossReducton = "mean",
+        reduction: LossReduction = "mean",
         weight: Optional[Tensor] = None,
         pos_weight: Optional[Tensor] = None,
     ):
@@ -492,7 +492,7 @@ class NLLLoss(Module):
     """
 
     def __init__(
-        self, reduction: LossReducton = "mean", weight: Optional[Tensor] = None
+        self, reduction: LossReduction = "mean", weight: Optional[Tensor] = None
     ):
         super().__init__()
         self.reduction = reduction
@@ -579,7 +579,7 @@ class CrossEntropyLoss(Module):
     """
 
     def __init__(
-        self, reduction: LossReducton = "mean", weight: Optional[Tensor] = None
+        self, reduction: LossReduction = "mean", weight: Optional[Tensor] = None
     ):
         super().__init__()
         self.reduction = reduction
@@ -661,7 +661,7 @@ class KLDivLoss(Module):
         important for numerical stability.
     """
 
-    def __init__(self, reduction: LossReducton = "mean"):
+    def __init__(self, reduction: LossReduction = "mean"):
         super().__init__()
         self.reduction = reduction
 

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from nova.nn import Parameter, Buffer
     from nova._typing import (
         Dim,
-        LossReducton,
+        LossReduction,
         KernelSize,
         Stride,
         Padding,
@@ -247,7 +247,7 @@ def log_softmax(input: Tensor, dim: Dim = 1) -> Tensor:
 
 def _reduce(
     loss: Tensor,
-    reduction_mode: LossReducton = "mean",
+    reduction_mode: LossReduction = "mean",
     batch_size: Optional[int] = None,
 ) -> Tensor:
     """
@@ -291,7 +291,7 @@ def mse_loss(
     input: Tensor,
     target: Tensor,
     weight: Optional[Tensor] = None,
-    reduction: LossReducton = "mean",
+    reduction: LossReduction = "mean",
 ) -> Tensor:
     """
     Computes the Mean Squared Error loss.
@@ -342,7 +342,7 @@ def l1_loss(
     input: Tensor,
     target: Tensor,
     weight: Optional[Tensor] = None,
-    reduction: LossReducton = "mean",
+    reduction: LossReduction = "mean",
 ) -> Tensor:
     """
     Computes the Mean Absolute Error (L1) loss.
@@ -389,7 +389,7 @@ def smooth_l1_loss(
     input: Tensor,
     target: Tensor,
     beta: float = 1.0,
-    reduction: LossReducton = "mean",
+    reduction: LossReduction = "mean",
     weight: Optional[Tensor] = None,
 ) -> Tensor:
     """
@@ -446,7 +446,7 @@ def binary_cross_entropy(
     input: Tensor,
     target: Tensor,
     weight: Optional[Tensor] = None,
-    reduction: LossReducton = "mean",
+    reduction: LossReduction = "mean",
 ) -> Tensor:
     """
     Computes the Binary Cross Entropy loss.
@@ -500,7 +500,7 @@ def binary_cross_entropy_with_logits(
     input: Tensor,
     target: Tensor,
     weight: Optional[Tensor] = None,
-    reduction: LossReducton = "mean",
+    reduction: LossReduction = "mean",
     pos_weight: Optional[Tensor] = None,
 ) -> Tensor:
     """
@@ -565,7 +565,7 @@ def nll_loss(
     log_probs: Tensor,
     target: Tensor,
     weight: Optional[Tensor] = None,
-    reduction: LossReducton = "mean",
+    reduction: LossReduction = "mean",
 ) -> Tensor:
     """
     Computes the Negative Log Likelihood loss.
@@ -650,7 +650,7 @@ def kl_div(
     log_probs: Tensor,
     target: Tensor,
     log_target: bool = False,
-    reduction: LossReducton = "mean",
+    reduction: LossReduction = "mean",
 ) -> Tensor:
     """
     Computes the Kullback-Leibler divergence loss.
