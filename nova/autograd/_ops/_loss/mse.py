@@ -3,12 +3,45 @@ from typing import TYPE_CHECKING, Optional
 import numpy as np
 from numpy import ndarray
 from nova.autograd.function import Function
-from nova.nn.functional import _reduce
 from nova.autograd._ops.utils import unbroadcasting
 
 if TYPE_CHECKING:
     from nova._typing import Gradients, LossReduction
     from nova.autograd.engine import Context
+
+
+def _reduce(
+    loss: ndarray,
+    reduction_mode: LossReduction = "mean",
+    batch_size: Optional[int] = None,
+) -> ndarray:
+    """
+    Applies reduction to loss array based on specified mode.
+
+    Args:
+        loss: Unreduced loss array.
+        reduction_mode: Type of reduction to apply.
+            - 'none': No reduction, returns full loss tensor
+            - 'sum': Sums all elements
+            - 'mean': Averages all elements
+
+    Returns:
+        Reduced loss tensor.
+
+    Raises:
+        ValueError: If reduction_mode is invalid or batch_size is missing
+            for 'batchmean' mode.
+    """
+    if reduction_mode == "none":
+        return loss
+    elif reduction_mode == "sum":
+        return np.sum(loss)
+    elif reduction_mode == "mean":
+        return np.mean(loss)
+    else:
+        raise ValueError(
+            f"reduction expect ('sum','mean','none'), got '{reduction_mode}'"
+        )
 
 
 class MSELoss(Function):
@@ -56,7 +89,7 @@ class MSELoss(Function):
         if weight is not None:
             loss = loss * weight
 
-        return _reduce(loss, reduction_mode=reduction).detach().numpy()
+        return _reduce(loss, reduction_mode=reduction)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
