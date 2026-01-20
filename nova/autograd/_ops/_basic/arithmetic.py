@@ -252,15 +252,12 @@ class Pow(Function):
         input, other, result = ctx.saved_tensors
         shape_input, shape_other = ctx.saved_shapes
 
-        mask_valid = input > 0
-
-        grad_input = np.where(
-            mask_valid, grad_output * other * result / np.maximum(input, 1e-10), 0.0
-        )
+        grad_input = grad_output * other * np.power(input, other - 1)
         grad_input = unbroadcasting(grad_input, shape_input)
 
+        mask_valid = input > 0  # to avoid log(0) -> nan/inf
         grad_other = np.where(
-            mask_valid, grad_output * result * np.log(np.maximum(input, 1e-10)), 0.0
+            mask_valid, grad_output * result * np.log(np.maximum(input, 1e-15)), 0.0
         )
         grad_other = unbroadcasting(grad_other, shape_other)
 
