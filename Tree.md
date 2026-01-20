@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/19/2026, 8:25:35 PM
+**Generated:** 1/20/2026, 8:55:03 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -32,7 +32,7 @@
 │   ├── 🐍 binary_classification.py
 │   ├── 🐍 conv_example.py
 │   ├── 🐍 multiclass_classification.py
-│   └── 🐍 regresion.py
+│   └── 🐍 regression.py
 ├── 📁 images
 │   ├── 🖼️ NovaNN Banners.png
 │   └── 🖼️ metrics.png
@@ -250,7 +250,7 @@
 │   │   ├── 🐍 test_load.py
 │   │   └── 🐍 test_save.py
 │   ├── 📝 README.en.md
-│   ├── 📝 README.md
+│   ├── 📝 README.es.md
 │   ├── 🐍 test_api.py
 │   ├── 🐍 test_binding_system.py
 │   ├── 🐍 test_conversion.py
