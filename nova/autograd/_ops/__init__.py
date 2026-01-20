@@ -41,6 +41,7 @@ from ._basic import (
 
 from ._activation import *  # noqa: F403
 from ._linalg import *  # noqa: F403
+from ._loss import *  # noqa: F403
 from ._indexing import *  # noqa: F403
 from .views import *  # noqa: F403
 from ._reduction import *  # noqa: F403
@@ -75,3 +76,4 @@ __all__ += _reduction.__all__  # noqa: F405
 __all__ += _manipulation.__all__  # noqa: F405
 __all__ += _trigonometric.__all__  # noqa: F405
 __all__ += _comparison.__all__  # noqa: F405
+__all__ += _loss.__all__  # noqa: F405
