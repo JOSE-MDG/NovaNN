@@ -2,7 +2,7 @@ from __future__ import annotations
 import nova
 from typing import TYPE_CHECKING, Optional
 from nova.utils import ensure_tensor
-from nova.autograd._ops import ReLU, LeakyReLU, PReLU, GELU, Sigmoid
+from nova.autograd._ops import ReLU, LeakyReLU, PReLU, GELU, Sigmoid, MSELoss
 from nova.nn.utils.standardization import _single, _pair, _triple
 
 if TYPE_CHECKING:
@@ -320,22 +320,10 @@ def mse_loss(
         >>> F.mse_loss(predictions, targets)
         tensor(0.375, requires_grad=False, grad_fn=None, dtype=float32)
     """
-    input = ensure_tensor(input)
-    target = ensure_tensor(target)
 
-    loss = (input - target) ** 2
+    loss = MSELoss.apply(input, target, reduction, weight)
 
-    if weight is not None:
-        weight = ensure_tensor(weight)
-
-        if weight.shape != target.shape:
-            raise ValueError(
-                f"weights and targets must be have the same shape, {weight.shape} != {target.shape}"
-            )
-
-        loss = loss * weight
-
-    return _reduce(loss, reduction)
+    return loss
 
 
 def l1_loss(
