@@ -13,6 +13,28 @@ if TYPE_CHECKING:
 
 
 class BCELoss(Function):
+    """
+    Binary Cross Entropy (BCE) Loss operation.
+
+    Computes element-wise binary cross entropy:
+
+        L = -[target * log(input + eps) + (1 - target) * log(1 - input + eps)]
+
+    Supports optional element-wise weighting and reduction modes.
+
+    Forward:
+        loss_i = - (y_i * log(x_i + ε) + (1 - y_i) * log(1 - x_i + ε))
+        If weight is provided: loss_i = loss_i * weight_i
+
+    Backward:
+        ∂L/∂input = (sigmoid derivative) = [(1 - target)/(1 - input + eps)] - [target/(input + eps)]
+
+    Reduction:
+        - 'mean': Average over all elements
+        - 'sum': Sum over all elements
+        - 'none': Return element-wise loss
+    """
+
     @staticmethod
     def forward(
         ctx: Context,
@@ -27,8 +49,9 @@ class BCELoss(Function):
         ctx.saved_shapes = input.shape
 
         eps = 1e-12
-        loss = -(target * np.log(input + eps) + (1 - target) * np.log(1 - input))
-
+        loss = -(
+            target * np.log(input + eps) + (1.0 - target) * np.log(1.0 - input + eps)
+        )
         if weight is not None:
             if weight.shape != target.shape:
                 raise ValueError(
