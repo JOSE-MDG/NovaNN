@@ -1271,7 +1271,7 @@ def max_pool1d(
 
     N, C, L = input.shape
     input_padded = add_padding(input, P, "zeros")
-    L_out = calculate_out_size(L, kernel_size=K, padding=P, stride=S, dilation=None)
+    L_out = calculate_out_size(L, kernel_size=K, padding=P, stride=S, dilation=D)
 
     shape = (N, C, L_out, K)
     sN, sC, sL = input_padded.strides
@@ -1325,7 +1325,7 @@ def max_pool2d(
     N, C, H, W = input.shape
     input_padded = add_padding(input, (PH, PW), "zeros")
     H_out, W_out = calculate_out_size(
-        H, W, kernel_size=(KH, KW), padding=(PH, PW), stride=(SH, SW), dilation=None
+        H, W, kernel_size=(KH, KW), padding=(PH, PW), stride=(SH, SW), dilation=(DH, DW)
     )
 
     size = (N, C, H_out, W_out, KH, KW)
@@ -1386,7 +1386,7 @@ def max_pool3d(
         kernel_size=(KD, KH, KW),
         padding=(PD, PH, PW),
         stride=(SD, SH, SW),
-        dilation=None,
+        dilation=(DD, DH, DW),
     )
 
     size = (N, C, D_out, H_out, W_out, KD, KH, KW)
