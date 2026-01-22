@@ -106,13 +106,6 @@ class UninitializedTensorMixin:
         """Materialize the uninitialized tensor with a specific shape and optional dtype."""
         raise NotImplementedError
 
-    @property
-    def shape(self):
-        raise RuntimeError(
-            "Can't access shape of uninitialized parameter/buffer. "
-            "Call forward() first."
-        )
-
 
 @registry_class
 class UninitializedParameter(UninitializedTensorMixin, Parameter):
