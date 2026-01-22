@@ -471,7 +471,7 @@ def test_repeat_interleave():
 def test_pad():
     """Test padding."""
     x = nova.tensor([1, 2, 3])
-    y = nova.pad(x, (1, 1), mode="constant")
+    y = nova.pad(x, (1, 1), mode="zeros")
     expected = nova.tensor([0, 1, 2, 3, 0])
     assert nova.allclose(y, expected)
 
