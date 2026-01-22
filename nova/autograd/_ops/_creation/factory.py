@@ -5,7 +5,24 @@ from typing import Any, Optional, TYPE_CHECKING, Literal
 from nova.utils import ensure_tensor
 
 if TYPE_CHECKING:
-    from nova._typing import Dim, Dtype, Size
+    from nova._typing import Dim, Dtype, Size, PaddingMode
+
+
+def _resolve_mode(mode: PaddingMode) -> tuple[tuple[int, ...], ...]:
+    MODES = ("zeros", "reflect", "replicate", "circular")
+    match mode:
+        case "zeros":
+            mode = "constant"
+        case "replicate":
+            mode = "edge"
+        case "reflect":
+            mode = "reflect"
+        case "circular":
+            mode = "wrap"
+        case _:
+            raise ValueError(f"mode only accepts {MODES}, not '{mode}'")
+
+    return mode
 
 
 def sqrt(input: nova.Tensor) -> nova.Tensor:
@@ -360,7 +377,7 @@ def pad(
 
     Examples:
         >>> x = nova.tensor([[1, 2], [3, 4]])
-        >>> y = nova.pad(x, ((1, 1), (1, 1)), mode="constant")
+        >>> y = nova.pad(x, ((1, 1), (1, 1)), mode="zeros")
         >>> print(y)
         tensor([[0, 0, 0, 0],
                 [0, 1, 2, 0],
@@ -368,6 +385,9 @@ def pad(
                 [0, 0, 0, 0]])
     """
     input = ensure_tensor(input)
+
+    mode = _resolve_mode(mode)
+
     return input.pad(pad_width, mode)
 
 
