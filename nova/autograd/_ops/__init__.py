@@ -46,6 +46,7 @@ from ._indexing import *  # noqa: F403
 from .views import *  # noqa: F403
 from ._reduction import *  # noqa: F403
 from ._manipulation import *  # noqa: F403
+from ._normalization import *  # noqa: F403
 from ._trigonometric import *  # noqa: F403
 from ._comparison import *  # noqa: F403
 from ._creation import *  # noqa: F403
@@ -75,6 +76,7 @@ __all__ += _indexing.__all__  # noqa: F405
 __all__ += views.__all__  # noqa: F405
 __all__ += _reduction.__all__  # noqa: F405
 __all__ += _manipulation.__all__  # noqa: F405
+__all__ += _normalization.__all__  # noqa: F405
 __all__ += _trigonometric.__all__  # noqa: F405
 __all__ += _comparison.__all__  # noqa: F405
 __all__ += _loss.__all__  # noqa: F405

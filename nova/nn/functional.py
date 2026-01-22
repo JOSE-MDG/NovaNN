@@ -18,6 +18,7 @@ from nova.autograd._ops import (
     MSELoss,
     BCELoss,
     BCEWithLogitsLoss,
+    BatchNorm,
 )
 
 if TYPE_CHECKING:
@@ -1413,56 +1414,9 @@ def batch_norm(
     """
     input = ensure_tensor(input)
 
-    if len(input.shape) < 2:
-        raise ValueError(f"Expected at least 2D input, got {input.dim()}")
-
-    num_features = input.size(1)
-
-    if training:
-        dims_to_reduce = [0] + list(range(2, input.dim()))
-        mu = nova.mean(input, dim=dims_to_reduce, keepdims=True)
-        var_biased = nova.var(input, dim=dims_to_reduce, keepdims=True)
-
-        num_reduced = 1
-        for d in dims_to_reduce:
-            num_reduced *= input.size(d)
-
-        var_unbiased = (
-            var_biased * (num_reduced / (num_reduced - 1))
-            if num_reduced > 1
-            else var_biased
-        )
-        normalized = (input - mu) / nova.sqrt(var_biased + eps)
-
-        if running_mean is not None and running_var is not None:
-            current_mu = mu.reshape(-1)
-            current_var = var_unbiased.reshape(-1)
-            with nova.no_grad():
-                running_mean.copy_(
-                    (1 - momentum) * running_mean + momentum * current_mu
-                )
-                running_var.copy_((1 - momentum) * running_var + momentum * current_var)
-
-    else:
-        if running_mean is None or running_var is None:
-            raise ValueError(
-                "In evaluation mode, running_mean and running_var must be provided."
-            )
-
-        mean_shape = [1, num_features] + [1] * (input.dim() - 2)
-        var_shape = mean_shape
-
-        mean_broadcast = running_mean.reshape(*mean_shape)
-        var_broadcast = running_var.reshape(*var_shape)
-        normalized = (input - mean_broadcast) / nova.sqrt(var_broadcast + eps)
-
-    if weight is not None:
-        weight_shape = [1, num_features] + [1] * (input.dim() - 2)
-        normalized = normalized * ensure_tensor(weight).reshape(*weight_shape)
-
-    if bias is not None:
-        bias_shape = [1, num_features] + [1] * (input.dim() - 2)
-        normalized = normalized + ensure_tensor(bias).reshape(*bias_shape)
+    normalized = BatchNorm.apply(
+        input, running_mean, running_var, weight, bias, training, momentum, eps
+    )
 
     return normalized
 
