@@ -1,7 +1,7 @@
 from __future__ import annotations
+import numpy as np
 from typing import TYPE_CHECKING, Optional
 from numpy import ndarray
-import numpy as np
 from .utils import reduce
 from nova.autograd._ops.utils import unbroadcasting
 from nova.autograd.function import Function
@@ -15,6 +15,30 @@ sigmoid = lambda input: 1.0 / (1.0 + np.exp(-input))  # noqa: E731
 
 
 class BCEWithLogitsLoss(Function):
+    """
+    Binary Cross Entropy Loss with Logits (numerically stable).
+
+    Combines sigmoid activation and BCE in a single, stable operation:
+
+        loss_i = max(x_i, 0) - x_i * y_i + log(1 + exp(-|x_i|))
+        With pos_weight:
+            loss_i = max(x_i, 0) - x_i * y_i + (1 + (pos_weight - 1) * y_i) * log(1 + exp(-|x_i|))
+
+    Supports optional weighting, positive class weighting, and reduction.
+
+    Forward:
+        Applies numerically stable BCE computation on logits.
+
+    Backward:
+        ∂L/∂input = sigmoid(x) - target
+        Scaled by pos_weight and optional element-wise weight.
+
+    Reduction:
+        - 'mean': average over elements
+        - 'sum': sum over elements
+        - 'none': element-wise
+    """
+
     @staticmethod
     def forward(
         ctx: Context,
@@ -24,6 +48,9 @@ class BCEWithLogitsLoss(Function):
         reduction: LossReduction = "mean",
         pos_weight: Optional[ndarray] = None,
     ) -> ndarray:
+        """
+        Compute loss_i = max(x_i, 0) - x_i * y_i + log(1 + exp(-|x_i|))
+        """
         ctx.reduction = reduction
         ctx.save_for_backward(input, weight, pos_weight)
         ctx.saved_shapes = input.shape
@@ -40,8 +67,7 @@ class BCEWithLogitsLoss(Function):
         if weight is not None:
             if weight.shape != target.shape:
                 raise ValueError(
-                    f"weights and targets must have the same shape, "
-                    f"{weight.shape} != {target.shape}"
+                    f"weights and targets must be have the same shape, {weight.shape} != {target.shape}"
                 )
             loss = loss * weight
 
@@ -49,6 +75,12 @@ class BCEWithLogitsLoss(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """
+        Backward pass for binary cross entropy with logits
+
+        Gradient:
+            ∂L/∂input = sigmoid(x) - target
+        """
         input, target, weight, pos_weight = ctx.saved_tensors
         input_shape = ctx.saved_shapes
 
