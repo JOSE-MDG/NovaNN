@@ -2,7 +2,13 @@ from __future__ import annotations
 import nova
 from typing import TYPE_CHECKING, Optional
 from nova.utils import ensure_tensor
-from nova.nn.utils.standardization import _single, _pair, _triple
+from nova.nn.utils.tensor_utils import (
+    _single,
+    _pair,
+    _triple,
+    add_padding,
+    calculate_out_size,
+)
 from nova.autograd._ops import (
     ReLU,
     LeakyReLU,
@@ -781,40 +787,16 @@ def conv1d(
     P = _single(padding)
     D = _single(dilation)
 
-    def _calculate_out_size(L: int) -> int:
-        K_eff = (K - 1) * D + 1
-        L_out = (L + 2 * P - K_eff) // S + 1
-        return L_out
-
-    def _add_padding(input: Tensor) -> Tensor:
-        pad_width = ((0, 0), (0, 0), (P, P))
-        modes = ("zeros", "reflect", "replicate", "circular")
-
-        if padding_mode in modes:
-            mode = (
-                "constant"
-                if padding_mode == "zeros"
-                else (
-                    "reflect"
-                    if padding_mode == "reflect"
-                    else "edge" if padding_mode == "replicate" else "wrap"
-                )
-            )
-        else:
-            raise ValueError(f"padding_mode only accepts {modes}, not '{padding_mode}'")
-
-        return nova.pad(input, pad_width, mode=mode)
-
     def _im2col(input: Tensor, input_size: tuple[int, int, int]) -> tuple[Tensor, int]:
         N, C, L = input_size
-        input_padded = _add_padding(input)
-        L_out = _calculate_out_size(L)
+        input_padded = add_padding(input, P, padding_mode)
+        L_out = calculate_out_size(L, K, P, S, D)
 
         size = (N, C, L_out, K)
         sN, sC, sL = input_padded.strides
         strides = (sN, sC, sL * S, sL * D)
 
-        window = nova.as_strided(input_padded, size=size, strides=strides)
+        window = nova.as_strided(input_padded, size, strides)
         col = window.permute(1, 3, 0, 2).reshape(C * K, -1)
 
         return col, L_out
@@ -830,8 +812,7 @@ def conv1d(
     out = out.reshape(out_channels, N, L_out).permute(1, 0, 2)
 
     if bias is not None:
-        bias_view = bias.view(1, out_channels, 1)
-        out = out + bias_view
+        out = out + bias.view(1, out_channels, 1)
 
     return out
 
@@ -888,44 +869,18 @@ def conv2d(
     SH, SW = _pair(stride)
     DH, DW = _pair(dilation)
 
-    def _calculate_out_size(H: int, W: int) -> tuple[int, int]:
-        KH_eff = (KH - 1) * DH + 1
-        KW_eff = (KW - 1) * DW + 1
-        H_out = (H + 2 * PH - KH_eff) // SH + 1
-        W_out = (W + 2 * PW - KW_eff) // SW + 1
-        return H_out, W_out
-
-    def _add_padding(input: Tensor) -> Tensor:
-        pad_width = ((0, 0), (0, 0), (PH, PH), (PW, PW))
-        modes = ("zeros", "reflect", "replicate", "circular")
-
-        if padding_mode in modes:
-            mode = (
-                "constant"
-                if padding_mode == "zeros"
-                else (
-                    "reflect"
-                    if padding_mode == "reflect"
-                    else "edge" if padding_mode == "replicate" else "wrap"
-                )
-            )
-        else:
-            raise ValueError(f"padding_mode only accepts {modes}, not '{padding_mode}'")
-
-        return nova.pad(input, pad_width, mode=mode)
-
     def _im2col(
         input: Tensor, input_size: tuple[int, int, int, int]
     ) -> tuple[Tensor, int, int]:
         N, C, H, W = input_size
-        input_padded = _add_padding(input)
-        H_out, W_out = _calculate_out_size(H, W)
+        input_padded = add_padding(input, (PH, PW), padding_mode)
+        H_out, W_out = calculate_out_size(H, W, (KH, KW), (PH, PW), (SH, SW), (SH, SW))
 
         size = (N, C, H_out, W_out, KH, KW)
         sN, sC, sH, sW = input_padded.strides
         strides = (sN, sC, sH * SH, sW * SW, sH * DH, sW * DW)
 
-        window = nova.as_strided(input_padded, size=size, strides=strides)
+        window = nova.as_strided(input_padded, size, strides)
         col = window.permute(1, 4, 5, 0, 2, 3).reshape(C * KH * KW, -1)
 
         return col, H_out, W_out
@@ -941,8 +896,7 @@ def conv2d(
     out = out.reshape(out_channels, N, H_out, W_out).permute(1, 0, 2, 3)
 
     if bias is not None:
-        bias_view = bias.view(1, out_channels, 1, 1)
-        out = out + bias_view
+        out = out + bias.view(1, out_channels, 1, 1)
 
     return out
 
@@ -1002,46 +956,22 @@ def conv3d(
     PD, PH, PW = _triple(padding)
     DD, DH, DW = _triple(dilation)
 
-    def _calculate_out_size(D: int, H: int, W: int) -> tuple[int, int, int]:
-        KD_eff = (KD - 1) * DD + 1
-        KH_eff = (KH - 1) * DH + 1
-        KW_eff = (KW - 1) * DW + 1
-        D_out = (D + 2 * PD - KD_eff) // SD + 1
-        H_out = (H + 2 * PH - KH_eff) // SH + 1
-        W_out = (W + 2 * PW - KW_eff) // SW + 1
-        return D_out, H_out, W_out
-
-    def _add_padding(input: Tensor) -> Tensor:
-        pad_width = ((0, 0), (0, 0), (PD, PD), (PH, PH), (PW, PW))
-        modes = ("zeros", "reflect", "replicate", "circular")
-
-        if padding_mode in modes:
-            mode = (
-                "constant"
-                if padding_mode == "zeros"
-                else (
-                    "reflect"
-                    if padding_mode == "reflect"
-                    else "edge" if padding_mode == "replicate" else "wrap"
-                )
-            )
-        else:
-            raise ValueError(f"padding_mode only accepts {modes}, not '{padding_mode}'")
-
-        return nova.pad(input, pad_width, mode=mode)
-
     def _im2col(
         input: Tensor, input_size: tuple[int, int, int, int, int]
     ) -> tuple[Tensor, int, int, int]:
+        """Transform input -> (N,C,D,H,W) to (C*KD*KH*KW, D_out*H_out*W_out)"""
+
         N, C, D, H, W = input_size
-        input_padded = _add_padding(input=input)
-        D_out, H_out, W_out = _calculate_out_size(D, H, W)
+        input_padded = add_padding(input, (PD, PH, PW), padding_mode)
+        D_out, H_out, W_out = calculate_out_size(
+            D, H, W, (KD, KH, KW), (PD, PH, PW), (SD, SH, SW), (DD, DH, DW)
+        )
 
         size = (N, C, D_out, H_out, W_out, KD, KH, KW)
         sN, sC, sD, sH, sW = input_padded.strides
         strides = (sN, sC, sD * SD, sH * SH, sW * SW, sD * DD, sH * DH, sW * DW)
 
-        window = nova.as_strided(input_padded, size=size, strides=strides)
+        window = nova.as_strided(input_padded, size, strides)
         col = window.permute(1, 5, 6, 7, 0, 2, 3, 4).reshape(C * KD * KH * KW, -1)
 
         return col, D_out, H_out, W_out
@@ -1057,8 +987,7 @@ def conv3d(
     out = out.reshape(out_channels, N, D_out, H_out, W_out).permute(1, 0, 2, 3, 4)
 
     if bias is not None:
-        bias_view = bias.view(1, out_channels, 1, 1, 1)
-        out = out + bias_view
+        out = out + bias.view(1, out_channels, 1, 1, 1)
 
     return out
 
@@ -1101,21 +1030,15 @@ def avg_pool1d(
     P = _single(padding)
     S = _single(stride) if stride is not None else K
 
-    def _calculate_out_size(L: int) -> int:
-        return (L + 2 * P - K) // S + 1
-
-    def _add_padding(input: Tensor) -> Tensor:
-        return nova.pad(input, ((0, 0), (0, 0), (P, P)), mode="constant")
-
     N, C, L = input.shape
-    input_padded = _add_padding(input)
-    L_out = _calculate_out_size(L)
+    input_padded = add_padding(input, P, "zeros")
+    L_out = calculate_out_size(L, K, P, S, dilation=None)
 
     size = (N, C, L_out, K)
     sN, sC, sL = input_padded.strides
     strides = (sN, sC, sL * S, sL)
 
-    return nova.as_strided(input_padded, size=size, strides=strides).mean(dim=3)
+    return nova.as_strided(input_padded, size, strides).mean(dim=3)
 
 
 def avg_pool2d(
@@ -1155,21 +1078,15 @@ def avg_pool2d(
     if input.dim() != 4:
         raise ValueError(f"AvgPool2d expects 4D tensors, got {input.dim()}")
 
-    def _calculate_out_size(H: int, W: int) -> tuple[int, int]:
-        return (H + 2 * PH - KH) // SH + 1, (W + 2 * PW - KW) // SW + 1
-
-    def _add_padding(input: Tensor) -> Tensor:
-        return nova.pad(input, ((0, 0), (0, 0), (PH, PH), (PW, PW)), mode="constant")
-
     N, C, H, W = input.shape
-    input_padded = _add_padding(input)
-    H_out, W_out = _calculate_out_size(H, W)
+    input_padded = add_padding(input, (PH, PW), "zeros")
+    H_out, W_out = calculate_out_size(H, W, (KH, KW), (PH, PW), (SH, SW), dilation=None)
 
     size = (N, C, H_out, W_out, KH, KW)
     sN, sC, sH, sW = input_padded.strides
     strides = (sN, sC, sH * SH, sW * SW, sH, sW)
 
-    return nova.as_strided(input_padded, size=size, strides=strides).mean(dim=(4, 5))
+    return nova.as_strided(input_padded, size, strides).mean(dim=(4, 5))
 
 
 def avg_pool3d(
@@ -1210,27 +1127,17 @@ def avg_pool3d(
     PD, PH, PW = _triple(padding)
     SD, SH, SW = _triple(stride) if stride is not None else (KD, KH, KW)
 
-    def _calculate_out_size(D: int, H: int, W: int) -> tuple[int, int, int]:
-        return (
-            (D + 2 * PD - KD) // SD + 1,
-            (H + 2 * PH - KH) // SH + 1,
-            (W + 2 * PW - KW) // SW + 1,
-        )
-
-    def _add_padding(input: Tensor) -> Tensor:
-        return nova.pad(
-            input, ((0, 0), (0, 0), (PD, PD), (PH, PH), (PW, PW)), mode="constant"
-        )
-
     N, C, D, H, W = input.shape
-    input_padded = _add_padding(input)
-    D_out, H_out, W_out = _calculate_out_size(D, H, W)
+    input_padded = add_padding(input, (PD, PH, PW), "zeros")
+    D_out, H_out, W_out = calculate_out_size(
+        D, H, W, (KD, KH, KW), (PD, PH, PW), (SD, SH, SW), dilation=None
+    )
 
     size = (N, C, D_out, H_out, W_out, KD, KH, KW)
     sN, sC, sD, sH, sW = input_padded.strides
     strides = (sN, sC, sD * SD, sH * SH, sW * SW, sD, sH, sW)
 
-    return nova.as_strided(input_padded, size=size, strides=strides).mean(dim=(5, 6, 7))
+    return nova.as_strided(input_padded, size, strides).mean(dim=(5, 6, 7))
 
 
 def global_avg_pool1d(input: Tensor) -> Tensor:
@@ -1340,22 +1247,15 @@ def max_pool1d(
     D = _single(dilation)
     S = _single(stride) if stride is not None else K
 
-    def _calculate_out_size(L: int) -> int:
-        K_eff = (K - 1) * D + 1
-        return (L + 2 * P - K_eff) // S + 1
-
-    def _add_padding(input: Tensor) -> Tensor:
-        return nova.pad(input, ((0, 0), (0, 0), (P, P)), mode="constant")
-
     N, C, L = input.shape
-    input_padded = _add_padding(input)
-    L_out = _calculate_out_size(L)
+    input_padded = add_padding(input, P, "zeros")
+    L_out = calculate_out_size(L, K, P, S, dilation=None)
 
     shape = (N, C, L_out, K)
     sN, sC, sL = input_padded.strides
     strides = (sN, sC, sL * S, sL * D)
 
-    return nova.as_strided(input_padded, size=shape, strides=strides).max(dim=3)
+    return nova.as_strided(input_padded, shape, strides).max(dim=3)
 
 
 def max_pool2d(
@@ -1400,17 +1300,9 @@ def max_pool2d(
     if input.dim() != 4:
         raise ValueError(f"MaxPool2d expects 4D tensors, got {input.dim()}")
 
-    def _calculate_out_size(H: int, W: int) -> tuple[int, int]:
-        KH_eff = (KH - 1) * DH + 1
-        KW_eff = (KW - 1) * DW + 1
-        return (H + 2 * PH - KH_eff) // SH + 1, (W + 2 * PW - KW_eff) // SW + 1
-
-    def _add_padding(input: Tensor) -> Tensor:
-        return nova.pad(input, ((0, 0), (0, 0), (PH, PH), (PW, PW)), mode="constant")
-
     N, C, H, W = input.shape
-    input_padded = _add_padding(input)
-    H_out, W_out = _calculate_out_size(H, W)
+    input_padded = add_padding(input, (PH, PW), "zeros")
+    H_out, W_out = calculate_out_size(H, W, (KH, KW), (PH, PW), (SH, SW), dilation=None)
 
     size = (N, C, H_out, W_out, KH, KW)
     sN, sC, sH, sW = input_padded.strides
@@ -1461,24 +1353,11 @@ def max_pool3d(
     DD, DH, DW = _triple(dilation)
     SD, SH, SW = _triple(stride) if stride is not None else (KD, KH, KW)
 
-    def _calculate_out_size(D: int, H: int, W: int) -> tuple[int, int, int]:
-        KD_eff = (KD - 1) * DD + 1
-        KH_eff = (KH - 1) * DH + 1
-        KW_eff = (KW - 1) * DW + 1
-        return (
-            (D + 2 * PD - KD_eff) // SD + 1,
-            (H + 2 * PH - KH_eff) // SH + 1,
-            (W + 2 * PW - KW_eff) // SW + 1,
-        )
-
-    def _add_padding(input: Tensor) -> Tensor:
-        return nova.pad(
-            input, ((0, 0), (0, 0), (PD, PD), (PH, PH), (PW, PW)), mode="constant"
-        )
-
     N, C, D, H, W = input.shape
-    input_padded = _add_padding(input)
-    D_out, H_out, W_out = _calculate_out_size(D, H, W)
+    input_padded = add_padding(input, (PD, PH, PW), "zeros")
+    D_out, H_out, W_out = calculate_out_size(
+        D, H, W, (KD, KH, KW), (PD, PH, PW), (SD, SH, SW), dilation=None
+    )
 
     size = (N, C, D_out, H_out, W_out, KD, KH, KW)
     sN, sC, sD, sH, sW = input_padded.strides
