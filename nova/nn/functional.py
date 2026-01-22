@@ -791,7 +791,7 @@ def conv1d(
     def _im2col(input: Tensor, input_size: tuple[int, int, int]) -> tuple[Tensor, int]:
         N, C, L = input_size
         input_padded = add_padding(input, P, padding_mode)
-        L_out = calculate_out_size(L, K, P, S, D)
+        L_out = calculate_out_size(L, kernel_size=K, padding=P, stride=S, dilation=D)
 
         size = (N, C, L_out, K)
         sN, sC, sL = input_padded.strides
@@ -875,7 +875,14 @@ def conv2d(
     ) -> tuple[Tensor, int, int]:
         N, C, H, W = input_size
         input_padded = add_padding(input, (PH, PW), padding_mode)
-        H_out, W_out = calculate_out_size(H, W, (KH, KW), (PH, PW), (SH, SW), (SH, SW))
+        H_out, W_out = calculate_out_size(
+            H,
+            W,
+            kernel_size=(KH, KW),
+            padding=(PH, PW),
+            stride=(SH, SW),
+            dilation=(DH, DW),
+        )
 
         size = (N, C, H_out, W_out, KH, KW)
         sN, sC, sH, sW = input_padded.strides
@@ -965,7 +972,13 @@ def conv3d(
         N, C, D, H, W = input_size
         input_padded = add_padding(input, (PD, PH, PW), padding_mode)
         D_out, H_out, W_out = calculate_out_size(
-            D, H, W, (KD, KH, KW), (PD, PH, PW), (SD, SH, SW), (DD, DH, DW)
+            D,
+            H,
+            W,
+            kernel_size=(KD, KH, KW),
+            padding=(PD, PH, PW),
+            stride=(SD, SH, SW),
+            dilation=(DD, DH, DW),
         )
 
         size = (N, C, D_out, H_out, W_out, KD, KH, KW)
@@ -1033,7 +1046,7 @@ def avg_pool1d(
 
     N, C, L = input.shape
     input_padded = add_padding(input, P, "zeros")
-    L_out = calculate_out_size(L, K, P, S, dilation=None)
+    L_out = calculate_out_size(L, kernel_size=K, padding=P, stride=S, dilation=None)
 
     size = (N, C, L_out, K)
     sN, sC, sL = input_padded.strides
@@ -1081,7 +1094,9 @@ def avg_pool2d(
 
     N, C, H, W = input.shape
     input_padded = add_padding(input, (PH, PW), "zeros")
-    H_out, W_out = calculate_out_size(H, W, (KH, KW), (PH, PW), (SH, SW), dilation=None)
+    H_out, W_out = calculate_out_size(
+        H, W, kernel_size=(KH, KW), padding=(PH, PW), stride=(SH, SW), dilation=None
+    )
 
     size = (N, C, H_out, W_out, KH, KW)
     sN, sC, sH, sW = input_padded.strides
@@ -1131,7 +1146,13 @@ def avg_pool3d(
     N, C, D, H, W = input.shape
     input_padded = add_padding(input, (PD, PH, PW), "zeros")
     D_out, H_out, W_out = calculate_out_size(
-        D, H, W, (KD, KH, KW), (PD, PH, PW), (SD, SH, SW), dilation=None
+        D,
+        H,
+        W,
+        kernel_size=(KD, KH, KW),
+        padding=(PD, PH, PW),
+        stride=(SD, SH, SW),
+        dilation=None,
     )
 
     size = (N, C, D_out, H_out, W_out, KD, KH, KW)
@@ -1250,7 +1271,7 @@ def max_pool1d(
 
     N, C, L = input.shape
     input_padded = add_padding(input, P, "zeros")
-    L_out = calculate_out_size(L, K, P, S, dilation=None)
+    L_out = calculate_out_size(L, kernel_size=K, padding=P, stride=S, dilation=None)
 
     shape = (N, C, L_out, K)
     sN, sC, sL = input_padded.strides
@@ -1303,7 +1324,9 @@ def max_pool2d(
 
     N, C, H, W = input.shape
     input_padded = add_padding(input, (PH, PW), "zeros")
-    H_out, W_out = calculate_out_size(H, W, (KH, KW), (PH, PW), (SH, SW), dilation=None)
+    H_out, W_out = calculate_out_size(
+        H, W, kernel_size=(KH, KW), padding=(PH, PW), stride=(SH, SW), dilation=None
+    )
 
     size = (N, C, H_out, W_out, KH, KW)
     sN, sC, sH, sW = input_padded.strides
@@ -1357,7 +1380,13 @@ def max_pool3d(
     N, C, D, H, W = input.shape
     input_padded = add_padding(input, (PD, PH, PW), "zeros")
     D_out, H_out, W_out = calculate_out_size(
-        D, H, W, (KD, KH, KW), (PD, PH, PW), (SD, SH, SW), dilation=None
+        D,
+        H,
+        W,
+        kernel_size=(KD, KH, KW),
+        padding=(PD, PH, PW),
+        stride=(SD, SH, SW),
+        dilation=None,
     )
 
     size = (N, C, D_out, H_out, W_out, KD, KH, KW)
