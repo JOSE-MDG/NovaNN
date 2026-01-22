@@ -70,6 +70,7 @@ __all__ = [
 
 __all__ += _activation.__all__  # noqa: F405
 __all__ += _linalg.__all__  # noqa: F405
+__all__ += _loss.__all__  # noqa: F405
 __all__ += _indexing.__all__  # noqa: F405
 __all__ += views.__all__  # noqa: F405
 __all__ += _reduction.__all__  # noqa: F405
