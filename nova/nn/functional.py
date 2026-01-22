@@ -2,8 +2,17 @@ from __future__ import annotations
 import nova
 from typing import TYPE_CHECKING, Optional
 from nova.utils import ensure_tensor
-from nova.autograd._ops import ReLU, LeakyReLU, PReLU, GELU, Sigmoid, MSELoss
 from nova.nn.utils.standardization import _single, _pair, _triple
+from nova.autograd._ops import (
+    ReLU,
+    LeakyReLU,
+    PReLU,
+    GELU,
+    Sigmoid,
+    MSELoss,
+    BCELoss,
+    BCEWithLogitsLoss,
+)
 
 if TYPE_CHECKING:
     from nova import Tensor
@@ -460,28 +469,13 @@ def binary_cross_entropy(
         >>> targets = nova.tensor([1.0, 0.0, 1.0, 0.0])
         >>> F.binary_cross_entropy(probs, targets)
         tensor(0.22708064, requires_grad=False, grad_fn=None, dtype=float32)
-
-    Notes:
-        Input values are clamped to [1e-12, 1-1e-12] for numerical stability.
     """
     input = ensure_tensor(input)
     target = ensure_tensor(target)
 
-    eps = 1e-12
+    loss = BCELoss.apply(input, target, weight, reduction)
 
-    loss = -(target * nova.log(input + eps) + (1 - target) * nova.log(1 - input + eps))
-
-    if weight is not None:
-        weight = ensure_tensor(weight)
-
-        if weight.shape != target.shape:
-            raise ValueError(
-                f"weights and targets must be have the same shape, {weight.shape} != {target.shape}"
-            )
-
-        loss = loss * weight
-
-    return _reduce(loss, reduction)
+    return loss
 
 
 def binary_cross_entropy_with_logits(
@@ -523,30 +517,9 @@ def binary_cross_entropy_with_logits(
     logits = ensure_tensor(input)
     target = ensure_tensor(target)
 
-    # Numerically stable computation: max(x, 0) - x * y + log(1 + exp(-|x|))
-    max_val = nova.maximum(logits, 0.0)
+    loss = BCEWithLogitsLoss.apply(logits, target, weight, reduction, pos_weight)
 
-    if pos_weight is not None:
-        pos_weight = ensure_tensor(pos_weight)
-        # BCE with pos_weight:
-        # loss = max(x,0) - x*y + (1 + (w-1)*y) * log(1 + exp(-|x|))
-        log_term = nova.log(1.0 + nova.exp(-nova.abs(logits)))
-        log_weight = 1.0 + (pos_weight - 1.0) * target
-        loss = max_val - logits * target + log_weight * log_term
-    else:
-        # Standard BCE with logits (stable)
-        loss = max_val - logits * target + nova.log(1.0 + nova.exp(-nova.abs(logits)))
-
-    # Optional element-wise weighting
-    if weight is not None:
-        weight = ensure_tensor(weight)
-        if weight.shape != target.shape:
-            raise ValueError(
-                f"weights and targets must have the same shape, got {weight.shape} != {target.shape}"
-            )
-        loss = loss * weight
-
-    return _reduce(loss, reduction)
+    return loss
 
 
 def nll_loss(
