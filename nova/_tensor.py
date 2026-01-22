@@ -916,6 +916,7 @@ class Tensor(TensorBase):
             lines = [line for line in traceback.format_exception(e)]
             logger.error("Error during the graph creation\n\n")
             print(*lines)
+            raise
 
     # String representations
 
