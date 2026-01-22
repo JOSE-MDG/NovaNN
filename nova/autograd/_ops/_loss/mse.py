@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
-import numpy as np
+from .utils import reduce
 from numpy import ndarray
 from nova.autograd.function import Function
 from nova.autograd._ops.utils import unbroadcasting
@@ -8,40 +8,6 @@ from nova.autograd._ops.utils import unbroadcasting
 if TYPE_CHECKING:
     from nova._typing import Gradients, LossReduction
     from nova.autograd.engine import Context
-
-
-def _reduce(
-    loss: ndarray,
-    reduction_mode: LossReduction = "mean",
-    batch_size: Optional[int] = None,
-) -> ndarray:
-    """
-    Applies reduction to loss array based on specified mode.
-
-    Args:
-        loss: Unreduced loss array.
-        reduction_mode: Type of reduction to apply.
-            - 'none': No reduction, returns full loss tensor
-            - 'sum': Sums all elements
-            - 'mean': Averages all elements
-
-    Returns:
-        Reduced loss tensor.
-
-    Raises:
-        ValueError: If reduction_mode is invalid or batch_size is missing
-            for 'batchmean' mode.
-    """
-    if reduction_mode == "none":
-        return loss
-    elif reduction_mode == "sum":
-        return np.sum(loss)
-    elif reduction_mode == "mean":
-        return np.mean(loss)
-    else:
-        raise ValueError(
-            f"reduction expect ('sum','mean','none'), got '{reduction_mode}'"
-        )
 
 
 class MSELoss(Function):
@@ -59,7 +25,6 @@ class MSELoss(Function):
 
     Backward:
         ∂L/∂input  =  2 * (input - target) * grad_output
-        ∂L/∂target = -2 * (input - target) * grad_output = 2 * (target - input) * grad_output
 
     Reduction:
         - 'mean': Gradients are scaled by 1/N (N = total number of elements).
@@ -79,17 +44,19 @@ class MSELoss(Function):
         Computes (input - target) ** 2.
         """
         ctx.reduction = reduction
-        # Save weight even if it's None to maintain the tuple structure in backward
         ctx.save_for_backward(input, target, weight)
         ctx.saved_shapes = (input.shape, target.shape)
 
-        # Core calculation: (y_pred - y_true)^2
         loss = (input - target) ** 2
 
         if weight is not None:
+            if weight.shape != target.shape:
+                raise ValueError(
+                    f"weights and targets must be have the same shape, {weight.shape} != {target.shape}"
+                )
             loss = loss * weight
 
-        return _reduce(loss, reduction_mode=reduction)
+        return reduce(loss, reduction)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -98,10 +65,9 @@ class MSELoss(Function):
 
         Gradient:
             ∂L/∂input  =  2 * (input - target) * grad_output
-            ∂L/∂target = -2 * (input - target) * grad_output = 2 * (target - input) * grad_output
         """
         input, target, weight = ctx.saved_tensors
-        input_shape, target_shape = ctx.saved_shapes
+        input_shape = ctx.saved_shapes
 
         grad_input = 2.0 * (input - target)
 
@@ -112,9 +78,4 @@ class MSELoss(Function):
             grad_input /= input.size
 
         grad_input *= grad_output
-        grad_target = -grad_input
-
-        return (
-            unbroadcasting(grad_input, input_shape),
-            unbroadcasting(grad_target, target_shape),
-        )
+        return (unbroadcasting(grad_input, input_shape), None)
