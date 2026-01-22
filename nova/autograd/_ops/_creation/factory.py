@@ -1,14 +1,14 @@
 from __future__ import annotations
 import nova
 import numpy as np
-from typing import Any, Optional, TYPE_CHECKING, Literal
+from typing import Any, Optional, TYPE_CHECKING
 from nova.utils import ensure_tensor
 
 if TYPE_CHECKING:
     from nova._typing import Dim, Dtype, Size, PaddingMode
 
 
-def _resolve_mode(mode: PaddingMode) -> tuple[tuple[int, ...], ...]:
+def _resolve_padding_mode(mode: PaddingMode) -> str:
     MODES = ("zeros", "reflect", "replicate", "circular")
     match mode:
         case "zeros":
@@ -362,7 +362,7 @@ def repeat_interleave(input: nova.Tensor, repeats: int, dim: Optional[Dim] = Non
 def pad(
     input: nova.Tensor,
     pad_width: tuple[tuple[int, ...], ...] | tuple[int, ...],
-    mode: Literal["constant", "reflect", "wrap", "edge"] = "constant",
+    mode: PaddingMode = "zeros",
 ):
     """
     Pads the tensor with a specified mode and width.
@@ -370,7 +370,7 @@ def pad(
     Args:
         input (Tensor): Input tensor.
         pad_width (tuple): Tuple specifying padding widths per dimension.
-        mode (str, optional): Padding mode ('constant', 'reflect', 'wrap', 'edge').
+        mode (str, optional): Padding mode ("zeros", "reflect", "replicate", "circular").
 
     Returns:
         Tensor: Padded tensor.
@@ -386,7 +386,7 @@ def pad(
     """
     input = ensure_tensor(input)
 
-    mode = _resolve_mode(mode)
+    mode = _resolve_padding_mode(mode)
 
     return input.pad(pad_width, mode)
 
