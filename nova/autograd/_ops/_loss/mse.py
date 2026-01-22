@@ -41,7 +41,7 @@ class MSELoss(Function):
         weight: Optional[ndarray] = None,
     ) -> ndarray:
         """
-        Computes (input - target) ** 2.
+        Compute (input - target) ** 2.
         """
         ctx.reduction = reduction
         ctx.save_for_backward(input, target, weight)
