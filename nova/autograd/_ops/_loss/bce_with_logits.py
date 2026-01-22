@@ -52,7 +52,7 @@ class BCEWithLogitsLoss(Function):
         Compute loss_i = max(x_i, 0) - x_i * y_i + log(1 + exp(-|x_i|))
         """
         ctx.reduction = reduction
-        ctx.save_for_backward(input, weight, pos_weight)
+        ctx.save_for_backward(input, target, weight, pos_weight)
         ctx.saved_shapes = input.shape
 
         max_val = np.maximum(input, 0.0)

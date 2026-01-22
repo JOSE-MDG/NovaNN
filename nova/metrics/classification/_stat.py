@@ -1,4 +1,5 @@
 from __future__ import annotations
+import numpy as np
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Literal
 from ..metric import Metric
@@ -28,6 +29,10 @@ class ClassificationStat(Metric):
 
     Raises:
         ValueError: If `average` is not one of the allowed values.
+
+    Note:
+        For binary classification, predictions are automatically thresholded
+        at 0.5 before updating the confusion matrix.
     """
 
     def __init__(
@@ -54,6 +59,15 @@ class ClassificationStat(Metric):
 
     def update(self, preds: Tensor, target: Tensor) -> None:
         """Updates the internal confusion matrix with new predictions."""
+        if preds.ndim == 2 and preds.shape[1] == 1:
+            preds = preds.squeeze(1)
+
+        if preds.dim() > 1:
+            preds = preds.argmax(dim=1)
+        else:
+            if np.issubdtype(preds.data.dtype, np.floating):
+                preds = (preds > 0.5).to(preds.dtype)
+
         self.cm.update(preds, target)
 
     @abstractmethod
