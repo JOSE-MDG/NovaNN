@@ -80,6 +80,8 @@ import nova.autograd as autograd
 from .autograd.grad_mode import is_grad_enabled, enable_grad, no_grad
 from .autograd._ops._creation import *  # noqa: F403
 from .autograd._ops._creation import __all__ as creation_all
+from .autograd._ops._random import *  # noqa: F403
+from .autograd._ops._random import __all__ as random_all
 from .serialization import save, load
 
 if TYPE_CHECKING:
@@ -120,6 +122,7 @@ __all__ = [
 ]
 
 __all__.extend(creation_all)
+__all__.extend(random_all)
 
 __version__ = "4.0.0"
 
