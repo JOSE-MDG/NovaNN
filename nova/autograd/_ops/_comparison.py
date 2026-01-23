@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from nova.autograd.engine import Context
     from nova._typing import Gradients
 
+__all__ = ["Maximum", "Minimum", "Where", "Sign"]
+
 
 @registry_op("maximum")
 class Maximum(Function):
@@ -137,3 +139,23 @@ class Where(Function):
             unbroadcasting(grad_input, shape_input),
             unbroadcasting(grad_other, shape_other),
         )
+
+
+@registry_op("sign")
+class Sign(Function):
+    """
+    Element-wise sign function.
+
+    Forward: out = sign(a) = {-1 if a<0, 0 if a=0, 1 if a>0}
+    Backward: Not differentiable (returns None)
+    """
+
+    @staticmethod
+    def forward(ctx: Context, input: ndarray) -> ndarray:
+        """Computes sign(a)."""
+        return np.sign(input)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """Sign function is not differentiable."""
+        return (None,)

@@ -4,6 +4,8 @@ from numpy import ndarray
 if TYPE_CHECKING:
     from nova._typing import Size
 
+__all__ = ["unbroadcasting"]
+
 
 def unbroadcasting(grad: ndarray, shape: Size) -> ndarray:
     """

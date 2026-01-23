@@ -8,6 +8,8 @@ if TYPE_CHECKING:
     from nova.autograd.engine import Context
     from nova._typing import Gradients
 
+__all__ = ["BatchNorm"]
+
 
 class BatchNorm(Function):
     """

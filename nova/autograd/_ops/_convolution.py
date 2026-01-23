@@ -8,6 +8,8 @@ if TYPE_CHECKING:
     from nova._typing import Gradients, Size
     from nova.autograd.engine import Context
 
+__all__ = ["ConvMatMul1d", "ConvMatMul2d", "ConvMatMul3d"]
+
 
 class ConvMatMul1d(Function):
     """

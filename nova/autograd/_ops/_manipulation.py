@@ -9,6 +9,20 @@ if TYPE_CHECKING:
     from nova.autograd.engine import Context
     from nova._typing import Gradients, Dim
 
+__all__ = [
+    "Permute",
+    "Reshape",
+    "Squeeze",
+    "UnSqueeze",
+    "Stack",
+    "Concat",
+    "Split",
+    "Clone",
+    "Tile",
+    "Repeat",
+    "Pad",
+]
+
 
 @registry_op("permute")
 class Permute(Function):
@@ -204,38 +218,6 @@ class Split(Function):
         return (grad_input,)
 
 
-@registry_op("clamp")
-class Clamp(Function):
-    """
-    Clamp tensor values to a range [min, max].
-
-    Forward: out = clamp(input, min, max)
-    Backward: ∂L/∂input = ∂L/∂out * (min <= input <= max)
-    """
-
-    @staticmethod
-    def forward(
-        ctx: Context, input: ndarray, min_val: float, max_val: float
-    ) -> ndarray:
-        """Clamp values to range [min_val, max_val]"""
-        ctx.save_for_backward(input)
-        ctx.min_val = min_val
-        ctx.max_val = max_val
-        return np.clip(input, min_val, max_val)
-
-    @staticmethod
-    def backward(ctx: Context, grad_output) -> Gradients:
-        """
-        Backward pass for clamp
-
-        The gradient is: ∂L/∂input = ∂L/∂out * mask where mask = (min <= input <= max)
-        """
-        (input,) = ctx.saved_tensors
-        mask = (input >= ctx.min_val) & (input <= ctx.max_val)
-        grad_input = grad_output * mask
-        return (grad_input,)
-
-
 @registry_op("tile")
 class Tile(Function):
     """
@@ -342,3 +324,27 @@ class Pad(Function):
             slices.append(slice(before, end))
         grad_input = grad_output[tuple(slices)]
         return (grad_input,)
+
+
+@registry_op("clone")
+class Clone(Function):
+    """
+    Clone a tensor.
+
+    Forward: out = copy(input)
+    Backward: ∂L/∂input = grad_output
+    """
+
+    @staticmethod
+    def forward(ctx: Context, input: ndarray) -> ndarray:
+        """Return a copy of the input tensor."""
+        return input.copy()
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: ndarray) -> Gradients:
+        """
+        Backward pass for clone.
+
+        The gradient is: grad_output
+        """
+        return (grad_output,)

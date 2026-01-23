@@ -10,6 +10,24 @@ if TYPE_CHECKING:
     from nova.autograd.engine import Context
     from nova._typing import Gradients
 
+__all__ = [
+    "Add",
+    "Sub",
+    "Mul",
+    "Div",
+    "DivInt",
+    "Mod",
+    "Floor",
+    "Pow",
+    "Exp",
+    "Log",
+    "Sqrt",
+    "Neg",
+    "Abs",
+    "Ceil",
+    "Clamp",
+]
+
 
 @registry_op("add")
 class Add(Function):
@@ -379,26 +397,6 @@ class Neg(Function):
         return (-grad_output,)
 
 
-@registry_op("sign")
-class Sign(Function):
-    """
-    Element-wise sign function.
-
-    Forward: out = sign(a) = {-1 if a<0, 0 if a=0, 1 if a>0}
-    Backward: Not differentiable (returns None)
-    """
-
-    @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
-        """Computes sign(a)."""
-        return np.sign(input)
-
-    @staticmethod
-    def backward(ctx: Context, grad_output: ndarray) -> Gradients:
-        """Sign function is not differentiable."""
-        return (None,)
-
-
 @registry_op("abs")
 class Abs(Function):
     """
@@ -445,3 +443,35 @@ class Ceil(Function):
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
         """Ceiling operation is not differentiable."""
         return (None,)
+
+
+@registry_op("clamp")
+class Clamp(Function):
+    """
+    Clamp tensor values to a range [min, max].
+
+    Forward: out = clamp(input, min, max)
+    Backward: ∂L/∂input = ∂L/∂out * (min <= input <= max)
+    """
+
+    @staticmethod
+    def forward(
+        ctx: Context, input: ndarray, min_val: float, max_val: float
+    ) -> ndarray:
+        """Clamp values to range [min_val, max_val]"""
+        ctx.save_for_backward(input)
+        ctx.min_val = min_val
+        ctx.max_val = max_val
+        return np.clip(input, min_val, max_val)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output) -> Gradients:
+        """
+        Backward pass for clamp
+
+        The gradient is: ∂L/∂input = ∂L/∂out * mask where mask = (min <= input <= max)
+        """
+        (input,) = ctx.saved_tensors
+        mask = (input >= ctx.min_val) & (input <= ctx.max_val)
+        grad_input = grad_output * mask
+        return (grad_input,)
