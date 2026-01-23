@@ -19,6 +19,9 @@ from nova.autograd._ops import (
     BCELoss,
     BCEWithLogitsLoss,
     BatchNorm,
+    ConvMatMul1d,
+    ConvMatMul2d,
+    ConvMatMul3d,
 )
 
 if TYPE_CHECKING:
@@ -739,7 +742,7 @@ def flatten(input: Tensor, start_dim: int = 1, end_dim: int = -1) -> Tensor:
 
 def conv1d(
     input: Tensor,
-    weight: Tensor | Parameter,
+    weight: Tensor,
     kernel_size: KernelSize,
     stride: Stride = 1,
     padding: Padding = 0,
@@ -802,25 +805,17 @@ def conv1d(
 
         return col, L_out
 
-    out_channels = weight.size(0)
-    input_size = input.shape
-    N = input_size[0]
-
+    input_size = input.size()
     col, L_out = _im2col(input, input_size)
-    w_col = weight.reshape(out_channels, -1)
 
-    out = w_col @ col
-    out = out.reshape(out_channels, N, L_out).permute(1, 0, 2)
-
-    if bias is not None:
-        out = out + bias.view(1, out_channels, 1)
+    out = ConvMatMul1d.apply(weight, bias, col, L_out, input_size)
 
     return out
 
 
 def conv2d(
     input: Tensor,
-    weight: Tensor | Parameter,
+    weight: Tensor,
     kernel_size: KernelSize,
     stride: Stride = 1,
     padding: Padding = 0,
@@ -893,25 +888,18 @@ def conv2d(
 
         return col, H_out, W_out
 
-    out_channels = weight.size(0)
-    input_size = input.shape
-    N = input_size[0]
+    input_size = input.size()
 
-    w_col = weight.reshape(out_channels, -1)
     col, H_out, W_out = _im2col(input, input_size)
 
-    out = w_col @ col
-    out = out.reshape(out_channels, N, H_out, W_out).permute(1, 0, 2, 3)
-
-    if bias is not None:
-        out = out + bias.view(1, out_channels, 1, 1)
+    out = ConvMatMul2d.apply(weight, bias, col, H_out, W_out, input_size)
 
     return out
 
 
 def conv3d(
     input: Tensor,
-    weight: Tensor | Parameter,
+    weight: Tensor,
     kernel_size: KernelSize,
     stride: Stride = 1,
     padding: Padding = 0,
@@ -990,19 +978,11 @@ def conv3d(
 
         return col, D_out, H_out, W_out
 
-    out_channels = weight.size(0)
     input_size = input.shape
-    N = input_size[0]
 
-    col, D_out, H_out, W_out = _im2col(input=input, input_size=input_size)
-    w_col = weight.reshape(out_channels, -1)
+    col, D_out, H_out, W_out = _im2col(input, input_size)
 
-    out = w_col @ col
-    out = out.reshape(out_channels, N, D_out, H_out, W_out).permute(1, 0, 2, 3, 4)
-
-    if bias is not None:
-        out = out + bias.view(1, out_channels, 1, 1, 1)
-
+    out = ConvMatMul3d.apply(weight, bias, col, D_out, H_out, W_out, input_size)
     return out
 
 
