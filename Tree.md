@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/20/2026, 8:55:03 PM
+**Generated:** 1/23/2026, 1:09:27 AM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -72,6 +72,9 @@
 │   │   │   ├── 📁 _comparison
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   └── 🐍 comparison.py
+│   │   │   ├── 📁 _conv
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   └── 🐍 conv_matmul.py
 │   │   │   ├── 📁 _creation
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   ├── 🐍 factory.py
@@ -89,10 +92,19 @@
 │   │   │   │   ├── 🐍 matmul.py
 │   │   │   │   ├── 🐍 norm.py
 │   │   │   │   └── 🐍 trace.py
+│   │   │   ├── 📁 _loss
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   ├── 🐍 bce.py
+│   │   │   │   ├── 🐍 bce_with_logits.py
+│   │   │   │   ├── 🐍 mse.py
+│   │   │   │   └── 🐍 utils.py
 │   │   │   ├── 📁 _manipulation
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   ├── 🐍 clone.py
 │   │   │   │   └── 🐍 manipulation.py
+│   │   │   ├── 📁 _normalization
+│   │   │   │   ├── 🐍 __init__.py
+│   │   │   │   └── 🐍 batchnorm.py
 │   │   │   ├── 📁 _reduction
 │   │   │   │   ├── 🐍 __init__.py
 │   │   │   │   └── 🐍 reduce.py
@@ -172,7 +184,7 @@
 │   │   ├── 📁 utils
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 clip_grad.py
-│   │   │   └── 🐍 standardization.py
+│   │   │   └── 🐍 tensor_utils.py
 │   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
 │   │   ├── 🐍 __init__.py
@@ -309,6 +321,7 @@
 ├── 📝 README.en.md
 ├── 📝 README.md
 ├── 📝 Tree.md
+├── 📄 best_binary_model.pth
 ├── 🐍 main.py
 ├── 📄 poetry.lock
 └── ⚙️ pyproject.toml
