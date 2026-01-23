@@ -58,6 +58,9 @@ class SimpleCNN(nn.Module):
         self.bn3 = nn.BatchNorm2d(64)
         self.global_pool = nn.GlobalAvgPool2d()
 
+        # Flatten
+        self.flatten = nn.Flatten()
+
         # Classifier
         self.classifier = nn.Linear(64, 10)
 
@@ -92,6 +95,8 @@ class SimpleCNN(nn.Module):
         x = self.bn3(x)
         x = F.relu(x)
         x = self.global_pool(x)
+
+        x = self.flatten(x)
 
         # Classifier
         x = self.classifier(x)
