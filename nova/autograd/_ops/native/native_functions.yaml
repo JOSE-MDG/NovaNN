@@ -295,12 +295,26 @@ ops:
       inplace:
         method: sin_
 
+  - name: sinh
+    is_unary: true
+    tensor:
+      method: sinh
+      inplace:
+        method: sinh_
+
   - name: cos
     is_unary: true
     tensor:
       method: cos
       inplace:
         method: cos_
+
+  - name: cosh
+    is_unary: true
+    tensor:
+      method: cosh
+      inplace:
+        method: cosh_
 
   - name: tan
     is_unary: true
@@ -322,6 +336,13 @@ ops:
       method: cot
       inplace:
         method: cot_
+
+  - name: csc
+    is_unary: true
+    tensor:
+      method: csc
+      inplace:
+        method: csc_
 
   - name: sec
     is_unary: true
@@ -350,6 +371,52 @@ ops:
       method: arctan
       inplace:
         method: arctan_
+
+  - name: atan2
+    tensor:
+      method: atan2
+
+  - name: asinh
+    is_unary: true
+    tensor:
+      method: asinh
+      inplace:
+        method: asinh_
+
+  - name: acosh
+    is_unary: true
+    tensor:
+      method: acosh
+      inplace:
+        method: acosh_
+
+  - name: atanh
+    is_unary: true
+    tensor:
+      method: atanh
+      inplace:
+        method: atanh_
+
+  - name: arccot
+    is_unary: true
+    tensor:
+      method: arccot
+      inplace:
+        method: arccot_
+
+  - name: arcsec
+    is_unary: true
+    tensor:
+      method: arcsec
+      inplace:
+        method: arcsec_
+
+  - name: arccsc
+    is_unary: true
+    tensor:
+      method: arccsc
+      inplace:
+        method: arccsc_
 
   # Comparison operations
 

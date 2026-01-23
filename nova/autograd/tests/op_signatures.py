@@ -34,6 +34,17 @@ OPERATIONS = {
         "tan",
         "tanh",
         "clone",
+        "sinh",
+        "cosh",
+        "asinh",
+        "acosh",
+        "atanh",
+        "cot",
+        "sec",
+        "csc",
+        "arccot",
+        "arcsec",
+        "arccsc",
     ],
     # Binarys - f(x, y)
     OpCategory.BINARY.value: [
@@ -46,6 +57,7 @@ OPERATIONS = {
         "dot",
         "maximum",
         "minimum",
+        "atan2",
     ],
     # Reductions - f(x, dim=None, keepdims=False)
     OpCategory.REDUCTION.value: [
@@ -105,31 +117,33 @@ SKIP_GRAD_CHECK = {
 }
 
 
-def make_test_input(op_name: str, shape: Size = (4, 4), requires_grad: bool = True):
+def make_test_input(op_name: str, shape: Size, requires_grad: bool = False) -> Tensor:
     """
-    Generates appropriate input for an operation.
-
-    Args:
-        op_name: Name of the operation
-        shape: Shape of the input tensor
-        requires_grad: Whether to track gradients
-
-    Returns:
-        Appropriate tensor to test the operation
+    Generates appropriate input data for a given operation,
+    ensuring values stay within valid mathematical domains.
     """
+    if op_name in ["acosh", "arcsec", "arccsc"]:
+        data = np.random.uniform(1.5, 11.5, size=shape)
+        return nova.tensor(data.astype(np.float32), requires_grad=requires_grad)
 
-    # Operations that need positive inputs
-    if op_name in ["log", "sqrt"]:
+    elif op_name in ["atanh", "arcsin", "arccos"]:
+        data = np.random.uniform(-0.9, 0.9, size=shape)
+        return nova.tensor(data.astype(np.float32), requires_grad=requires_grad)
+
+    elif op_name == "asinh":
+        data = np.random.uniform(0.1, 10.0, size=shape)
+        return nova.tensor(data.astype(np.float32), requires_grad=requires_grad)
+
+    elif op_name in ["log", "sqrt"]:
         data = np.random.rand(*shape) + 0.5
-        return nova.tensor(data, requires_grad=requires_grad)
+        return nova.tensor(data.astype(np.float32), requires_grad=requires_grad)
 
-    # Operations that require square matrices
-    if op_name in ["det", "inv", "trace"]:
+    elif op_name in ["det", "inv", "trace"]:
         n = min(shape) if len(shape) > 1 else shape[0]
-        return nova.randn(n, n, requires_grad=requires_grad)
+        return nova.randn(n, n, requires_grad=requires_grad, dtype=nova.float32)
 
-    # General case: random values ​​centered at 0
-    return nova.randn(*shape, requires_grad=requires_grad)
+    # Default
+    return nova.randn(*shape, requires_grad=requires_grad, dtype=nova.float32)
 
 
 def create_op_wrapper(op_name: str) -> Callable[[Tensor], Tensor]:
