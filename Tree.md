@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/23/2026, 1:09:27 AM
+**Generated:** 1/23/2026, 9:35:00 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -59,69 +59,24 @@
 │   │   └── 🐍 _typing.py
 │   ├── 📁 autograd
 │   │   ├── 📁 _ops
-│   │   │   ├── 📁 _activation
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   ├── 🐍 gelu.py
-│   │   │   │   ├── 🐍 leaky_relu.py
-│   │   │   │   ├── 🐍 prelu.py
-│   │   │   │   ├── 🐍 relu.py
-│   │   │   │   └── 🐍 sigmoid.py
-│   │   │   ├── 📁 _basic
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   └── 🐍 arithmetic.py
-│   │   │   ├── 📁 _comparison
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   └── 🐍 comparison.py
-│   │   │   ├── 📁 _conv
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   └── 🐍 conv_matmul.py
-│   │   │   ├── 📁 _creation
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   ├── 🐍 factory.py
-│   │   │   │   └── 🐍 random.py
-│   │   │   ├── 📁 _indexing
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   ├── 🐍 getitem.py
-│   │   │   │   └── 🐍 setitem.py
-│   │   │   ├── 📁 _linalg
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   ├── 🐍 det.py
-│   │   │   │   ├── 🐍 diag.py
-│   │   │   │   ├── 🐍 dot.py
-│   │   │   │   ├── 🐍 inv.py
-│   │   │   │   ├── 🐍 matmul.py
-│   │   │   │   ├── 🐍 norm.py
-│   │   │   │   └── 🐍 trace.py
-│   │   │   ├── 📁 _loss
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   ├── 🐍 bce.py
-│   │   │   │   ├── 🐍 bce_with_logits.py
-│   │   │   │   ├── 🐍 mse.py
-│   │   │   │   └── 🐍 utils.py
-│   │   │   ├── 📁 _manipulation
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   ├── 🐍 clone.py
-│   │   │   │   └── 🐍 manipulation.py
-│   │   │   ├── 📁 _normalization
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   └── 🐍 batchnorm.py
-│   │   │   ├── 📁 _reduction
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   └── 🐍 reduce.py
-│   │   │   ├── 📁 _trigonometric
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   └── 🐍 trigonometric.py
 │   │   │   ├── 📁 native
 │   │   │   │   └── ⚙️ native_functions.yaml
-│   │   │   ├── 📁 utils
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   └── 🐍 unbroadcasting.py
-│   │   │   ├── 📁 views
-│   │   │   │   ├── 🐍 __init__.py
-│   │   │   │   ├── 🐍 as_strided.py
-│   │   │   │   ├── 🐍 extend.py
-│   │   │   │   └── 🐍 view.py
-│   │   │   └── 🐍 __init__.py
+│   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 🐍 _activation.py
+│   │   │   ├── 🐍 _arithmetic.py
+│   │   │   ├── 🐍 _comparison.py
+│   │   │   ├── 🐍 _convolution.py
+│   │   │   ├── 🐍 _creation.py
+│   │   │   ├── 🐍 _indexing.py
+│   │   │   ├── 🐍 _linalg.py
+│   │   │   ├── 🐍 _loss.py
+│   │   │   ├── 🐍 _manipulation.py
+│   │   │   ├── 🐍 _normalization.py
+│   │   │   ├── 🐍 _random.py
+│   │   │   ├── 🐍 _reduction.py
+│   │   │   ├── 🐍 _trigonometric.py
+│   │   │   ├── 🐍 _view.py
+│   │   │   └── 🐍 utils.py
 │   │   ├── 📁 engine
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 context.py
@@ -321,7 +276,6 @@
 ├── 📝 README.en.md
 ├── 📝 README.md
 ├── 📝 Tree.md
-├── 📄 best_binary_model.pth
 ├── 🐍 main.py
 ├── 📄 poetry.lock
 └── ⚙️ pyproject.toml
