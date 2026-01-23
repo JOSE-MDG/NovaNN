@@ -1,7 +1,6 @@
 import nova
 import math
 import pytest
-import numpy as np
 import nova.nn as nn
 from nova.utils import grad_check_wrt_inputs
 

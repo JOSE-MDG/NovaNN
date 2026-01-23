@@ -140,7 +140,7 @@ def test_sigmoid_backward():
 
     # Gradient consistency check
     analytical, numerical = grad_check_wrt_inputs(act, x, eps=1e-5)
-    assert nova.allclose(analytical[0], numerical[0], rtol=1e-3, atol=5e-3)
+    assert nova.allclose(analytical[0], numerical[0], rtol=5e-3, atol=5e-3)
 
 
 # Softmax

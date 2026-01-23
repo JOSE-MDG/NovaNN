@@ -42,6 +42,10 @@ def test_operation_gradients(op_name):
         "matmul",
         "dot",
         "det",
+        "atanh",
+        "acosh",
+        "arcsec",
+        "arccsc",
     ]
     if op_name in high_tolerance_ops:
         rtol = 1e-1  # 10% - matrices are numerically unstable

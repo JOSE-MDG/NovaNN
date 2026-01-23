@@ -1,9 +1,7 @@
 import nova
 import pytest
 import numpy as np
-from nova.autograd.grad import grad
 from nova.autograd.engine.engine import _build_topo, _backward
-from nova.utils import grad_check_wrt_inputs
 
 
 def test_topo_order():
@@ -139,9 +137,6 @@ def test_shared_computation_graph():
     y2 = (shared**2).sum()
 
     y1.backward(retain_graph=True)
-    x1_grad_first = x1.grad.copy()
-    x2_grad_first = x2.grad.copy()
-
     y2.backward()
 
     # y1: d/dx1 = 1, d/dx2 = 1
