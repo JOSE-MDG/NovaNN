@@ -1,6 +1,7 @@
 from __future__ import annotations
 import nova
 import numpy as np
+import warnings
 from typing import Any, Optional, TYPE_CHECKING
 from nova.utils import ensure_tensor
 
@@ -208,7 +209,10 @@ def empty(
         (2, 3)
     """
     dtype = dtype if dtype is not None else nova.float32
-    data = np.zeros(size, dtype=dtype)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        data = np.empty(size, dtype=dtype)
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
