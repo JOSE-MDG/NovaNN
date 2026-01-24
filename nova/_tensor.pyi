@@ -1,47 +1,13 @@
 from __future__ import annotations
 from numpy import ndarray
-from typing import Optional, Self, TYPE_CHECKING, Any
+from typing import Optional, Self, Any
 from nova._interfaces._base_tensor import TensorBase
-
-if TYPE_CHECKING:
-    from nova._typing import Dim, Size, Dtype, Hook
-    from nova.utils.hooks import HooksHandle
-    from nova.autograd.function import Function
-    from nova.autograd.engine import Context
+from nova._typing import Dim, Size, Dtype, Hook
+from nova.utils.hooks import HooksHandle
+from nova.autograd.function import Function
+from nova.autograd.engine import Context
 
 class Tensor(TensorBase):
-    """
-    Main tensor class with automatic differentiation support.
-
-    Tensor is the core data structure in Nova, similar to PyTorch's torch.Tensor.
-    It wraps a numpy array and provides:
-    - Automatic differentiation via the autograd system
-    - Rich set of operations (arithmetic, linear algebra, etc.)
-    - GPU-like API (though currently CPU-only)
-    - Gradient tracking and backpropagation
-
-    Attributes:
-        data: Underlying numpy array containing the tensor's values.
-        dtype: Data type of tensor elements.
-        requires_grad: If True, operations are tracked for gradient computation.
-        grad: Accumulated gradients (None until backward is called).
-        grad_fn: Function that created this tensor (None for leaf tensors).
-        shape: Dimensions of the tensor.
-        device: Always 'cpu' (GPU support planned).
-
-    Examples:
-        >>> # Create tensors
-        >>> x = nova.tensor([1.0, 2.0, 3.0], requires_grad=True)
-        >>> w = nova.tensor([0.5, -0.5, 1.0], requires_grad=True)
-
-        >>> # Forward pass
-        >>> y = (x * w).sum()
-
-        >>> # Backward pass
-        >>> y.backward()
-        >>> print(x.grad)  # [0.5, -0.5, 1.0]
-        >>> print(w.grad)  # [1.0, 2.0, 3.0]
-    """
 
     _data_internal: ndarray
     _dtype_internal: Dtype
@@ -52,7 +18,7 @@ class Tensor(TensorBase):
     _is_leaf: bool
     _backward_hooks: list[Hook]
     _retain_grad: bool
-    _inputs: list[Tensor | Any]
+    _inputs: list[Tensor]
     _ctx: Context
     # Constructor
 
@@ -261,7 +227,7 @@ class Tensor(TensorBase):
     def sec_(self) -> Tensor: ...
     def csc(self) -> Tensor: ...
     def csc_(self) -> Tensor: ...
-    def atan2(self, other: Tensor | ndarray | float | int) -> Tensor: ...
+    def atan2(self, other: Tensor | float | int) -> Tensor: ...
 
     # Inverse Trigonometric methods
     def arcsin(self) -> Tensor: ...
