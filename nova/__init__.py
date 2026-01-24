@@ -8,7 +8,7 @@ It acts as the main entry point of the framework, exposing the core abstractions
 and utilities required for building, training, and analyzing neural networks.
 The goal of this module is to provide a **clean, minimal, and explicit user-facing
 interface**, while hiding the internal complexity of the framework.
-s
+
 At a high level, this module is responsible for:
 
 - Exposing the `Tensor` type, which represents both data and differentiable values.
@@ -66,22 +66,29 @@ The `__version__` attribute reflects the current framework version and follows
 semantic versioning.
 
 This module is intentionally lightweight in logic and heavy in orchestration,
-serving as the connective layer between NovaNN’s internal systems and its users.
+serving as the connective layer between NovaNN internal systems and its users.
 """
 
 from __future__ import annotations
 import builtins
 from typing import Any, TYPE_CHECKING, Optional
 from .dtypes import *  # noqa: F403
-from .utils import registry_class, ensure_tensor, registry_op
+from .dtypes import __all__ as dtypes_all
+from .exceptions import *  # noqa: F403, F401
+from . import core
+from .utils import registry_class, registry_op, ensure_tensor
 from ._internal._binding import bootstrap_to
 from ._tensor import Tensor
-import nova.autograd as autograd
+from . import autograd
 from .autograd.grad_mode import is_grad_enabled, enable_grad, no_grad
 from .autograd._ops._creation import *  # noqa: F403
 from .autograd._ops._creation import __all__ as creation_all
 from .autograd._ops._random import *  # noqa: F403
 from .autograd._ops._random import __all__ as random_all
+from . import nn
+from . import optim
+from . import metrics
+from . import utils
 from .serialization import save, load
 
 if TYPE_CHECKING:
@@ -89,44 +96,45 @@ if TYPE_CHECKING:
     from nova.autograd.function import Function
 
 __all__ = [
-    # Dtypes
-    "uint8",
-    "int8",
-    "short",
-    "int",
-    "long",
-    "half",
-    "float32",
-    "double",
-    "float128",
-    "bool",
-    # Tensor
-    "Tensor",
-    # autograd
+    # ---- Core Modules ----
     "autograd",
-    # grad_state
+    "core",
+    "nn",
+    "optim",
+    "metrics",
+    "utils",
+    # ---- Tensor Class ----
+    "Tensor",
+    # ---- Autograd State Management ----
     "is_grad_enabled",
-    # registers
+    "enable_grad",
+    "no_grad",
+    # ---- Registry Functions ----
     "registry_class",
     "registry_op",
-    # ensure_tensor
+    # ---- Utilities ----
     "ensure_tensor",
-    # bootstrap
+    # ---- Internal Systems ----
     "bootstrap_to",
-    # grad handling
-    "no_grad",
-    "enable_grad",
-    # serialization
+    # ---- Serialization ----
     "save",
     "load",
 ]
 
+# Extend with dtype names
+__all__.extend(dtypes_all)
+
+# Extend with creation function names
 __all__.extend(creation_all)
+
+# Extend with random function names
 __all__.extend(random_all)
 
+# VERSION
 __version__ = "4.0.0"
 
 
+# TENSOR FACTORY FUNCTION
 def tensor(
     data: Any,
     dtype: Optional[Dtype] = None,
@@ -188,4 +196,5 @@ def tensor(
 
 # Bootstrap all operations from YAML to Tensor class
 # This dynamically binds methods like __add__, relu, matmul, etc.
+# MUST be called AFTER all imports are complete
 bootstrap_to(Tensor)
