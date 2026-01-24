@@ -6,7 +6,7 @@ from nova.utils import ensure_tensor
 
 if TYPE_CHECKING:
     from nova._typing import Dim, Dtype, Size, PaddingMode
-
+[]
 __all__ = [
     "sqrt",
     "mean",
@@ -28,13 +28,24 @@ __all__ = [
     "floor",
     "exp",
     "sin",
+    "sinh",
     "cos",
+    "cosh",
+    "sec",
+    "cot",
+    "csc",
     "tan",
     "tanh",
-    "sec",
+    "atan2",
     "arcsin",
     "arccos",
     "arctan",
+    "asinh",
+    "acosh",
+    "atanh",
+    "arccot",
+    "arcsec",
+    "arccsc",
     "log",
     "isnan",
     "isinf",
@@ -537,6 +548,26 @@ def sin(input: nova.Tensor) -> nova.Tensor:
     return input.sin()
 
 
+def sinh(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise hyperbolic sine of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        Tensor: Tensor containing the hyperbolic sine of each element.
+
+    Examples:
+        >>> x = nova.tensor([0.0, 1.0, -1.0])
+        >>> y = nova.sinh(x)
+        >>> print(y)
+        tensor([0.0, 1.1752, -1.1752])
+    """
+    input = ensure_tensor(input)
+    return input.sinh()
+
+
 def cos(input: nova.Tensor) -> nova.Tensor:
     """
     Computes the element-wise cosine of the input tensor.
@@ -555,6 +586,26 @@ def cos(input: nova.Tensor) -> nova.Tensor:
     """
     input = ensure_tensor(input)
     return input.cos()
+
+
+def cosh(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise hyperbolic cosine of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        Tensor: Tensor containing the hyperbolic cosine of each element.
+
+    Examples:
+        >>> x = nova.tensor([0.0, 1.0, -1.0])
+        >>> y = nova.cosh(x)
+        >>> print(y)
+        tensor([1.0, 1.5431, 1.5431])
+    """
+    input = ensure_tensor(input)
+    return input.cosh()
 
 
 def tan(input: nova.Tensor) -> nova.Tensor:
@@ -635,6 +686,229 @@ def cot(input: nova.Tensor) -> nova.Tensor:
     """
     input = ensure_tensor(input)
     return input.cot()
+
+
+def csc(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise cosecant (1 / sin) of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        Tensor: Tensor containing cosecant of each element.
+
+    Examples:
+        >>> x = nova.tensor([np.pi / 2, np.pi / 6])
+        >>> y = nova.csc(x)
+        >>> print(y)
+        tensor([1.0, 2.0])
+    """
+    input = ensure_tensor(input)
+    return input.csc()
+
+
+def atan2(input: nova.Tensor, other: nova.Tensor | float | int) -> nova.Tensor:
+    """
+    Computes the element-wise arctangent of input/other, choosing the quadrant correctly.
+
+    Args:
+        input (Tensor): Y-coordinates (numerator).
+        other (Tensor | float | int): X-coordinates (denominator).
+
+    Returns:
+        Tensor: Tensor containing arctangent values in radians, range [-π, π].
+
+    Examples:
+        >>> y = nova.tensor([1.0, -1.0, 1.0])
+        >>> x = nova.tensor([1.0, 1.0, -1.0])
+        >>> z = nova.atan2(y, x)
+        >>> print(z)
+        tensor([0.7854, -0.7854, 2.3562])
+    """
+    input = ensure_tensor(input)
+    other = ensure_tensor(other)  # This method handles it correctly
+    return input.atan2(other)
+
+
+def arcsin(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the inverse sine of each element (in radians).
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        Tensor: Tensor with arcsin values.
+
+    Examples:
+        >>> x = nova.tensor([0.0, 1.0])
+        >>> y = nova.arcsin(x)
+        >>> print(y)
+        tensor([0.0, 1.5708])
+    """
+    input = ensure_tensor(input)
+    return input.arcsin()
+
+
+def arccos(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the inverse cosine of each element (in radians).
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        Tensor: Tensor with arccos values.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 0.0])
+        >>> y = nova.arccos(x)
+        >>> print(y)
+        tensor([0.0, 1.5708])
+    """
+    input = ensure_tensor(input)
+    return input.arccos()
+
+
+def arctan(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the inverse tangent of each element (in radians).
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        Tensor: Tensor with arctangent values.
+
+    Examples:
+        >>> x = nova.tensor([0.0, 1.0])
+        >>> y = nova.arctan(x)
+        >>> print(y)
+        tensor([0.0, 0.7854])
+    """
+    input = ensure_tensor(input)
+    return input.arctan()
+
+
+def asinh(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise inverse hyperbolic sine of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        Tensor: Tensor containing inverse hyperbolic sine of each element.
+
+    Examples:
+        >>> x = nova.tensor([0.0, 1.0, -1.0])
+        >>> y = nova.asinh(x)
+        >>> print(y)
+        tensor([0.0, 0.8814, -0.8814])
+    """
+    input = ensure_tensor(input)
+    return input.asinh()
+
+
+def acosh(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise inverse hyperbolic cosine of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor (values must be >= 1).
+
+    Returns:
+        Tensor: Tensor containing inverse hyperbolic cosine of each element.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 2.0, 3.0])
+        >>> y = nova.acosh(x)
+        >>> print(y)
+        tensor([0.0, 1.3170, 1.7627])
+    """
+    input = ensure_tensor(input)
+    return input.acosh()
+
+
+def atanh(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise inverse hyperbolic tangent of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor (values must be in range (-1, 1)).
+
+    Returns:
+        Tensor: Tensor containing inverse hyperbolic tangent of each element.
+
+    Examples:
+        >>> x = nova.tensor([0.0, 0.5, -0.5])
+        >>> y = nova.atanh(x)
+        >>> print(y)
+        tensor([0.0, 0.5493, -0.5493])
+    """
+    input = ensure_tensor(input)
+    return input.atanh()
+
+
+def arccot(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise inverse cotangent of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor.
+
+    Returns:
+        Tensor: Tensor containing inverse cotangent of each element.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 2.0, -1.0])
+        >>> y = nova.arccot(x)
+        >>> print(y)
+        tensor([0.7854, 0.4636, -0.7854])
+    """
+    input = ensure_tensor(input)
+    return input.arccot()
+
+
+def arcsec(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise inverse secant of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor (|values| must be >= 1).
+
+    Returns:
+        Tensor: Tensor containing inverse secant of each element.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 2.0, -2.0])
+        >>> y = nova.arcsec(x)
+        >>> print(y)
+        tensor([0.0, 1.0472, 2.0944])
+    """
+    input = ensure_tensor(input)
+    return input.arcsec()
+
+
+def arccsc(input: nova.Tensor) -> nova.Tensor:
+    """
+    Computes the element-wise inverse cosecant of the input tensor.
+
+    Args:
+        input (Tensor): Input tensor (|values| must be >= 1).
+
+    Returns:
+        Tensor: Tensor containing inverse cosecant of each element.
+
+    Examples:
+        >>> x = nova.tensor([1.0, 2.0, -2.0])
+        >>> y = nova.arccsc(x)
+        >>> print(y)
+        tensor([1.5708, 0.5236, -0.5236])
+    """
+    input = ensure_tensor(input)
+    return input.arccsc()
 
 
 def log(input: nova.Tensor) -> nova.Tensor:
@@ -866,66 +1140,6 @@ def sign(input: nova.Tensor) -> nova.Tensor:
     """
     input = ensure_tensor(input)
     return input.sign()
-
-
-def arcsin(input: nova.Tensor) -> nova.Tensor:
-    """
-    Computes the inverse sine of each element (in radians).
-
-    Args:
-        input (Tensor): Input tensor.
-
-    Returns:
-        Tensor: Tensor with arcsin values.
-
-    Examples:
-        >>> x = nova.tensor([0.0, 1.0])
-        >>> y = nova.arcsin(x)
-        >>> print(y)
-        tensor([0.0, 1.5708])
-    """
-    input = ensure_tensor(input)
-    return input.arcsin()
-
-
-def arccos(input: nova.Tensor) -> nova.Tensor:
-    """
-    Computes the inverse cosine of each element (in radians).
-
-    Args:
-        input (Tensor): Input tensor.
-
-    Returns:
-        Tensor: Tensor with arccos values.
-
-    Examples:
-        >>> x = nova.tensor([1.0, 0.0])
-        >>> y = nova.arccos(x)
-        >>> print(y)
-        tensor([0.0, 1.5708])
-    """
-    input = ensure_tensor(input)
-    return input.arccos()
-
-
-def arctan(input: nova.Tensor) -> nova.Tensor:
-    """
-    Computes the inverse tangent of each element (in radians).
-
-    Args:
-        input (Tensor): Input tensor.
-
-    Returns:
-        Tensor: Tensor with arctangent values.
-
-    Examples:
-        >>> x = nova.tensor([0.0, 1.0])
-        >>> y = nova.arctan(x)
-        >>> print(y)
-        tensor([0.0, 0.7854])
-    """
-    input = ensure_tensor(input)
-    return input.arctan()
 
 
 def where(condition: nova.Tensor, x: nova.Tensor, y: nova.Tensor):
