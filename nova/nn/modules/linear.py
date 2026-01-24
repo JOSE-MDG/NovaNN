@@ -96,9 +96,9 @@ class Linear(Module):
         self.out_features = out_features
         self.use_bias = bias
 
-        self.weight = Parameter(nova.empty((out_features, in_features), dtype=dtype))
+        self.weight = Parameter(nova.empty((out_features, in_features)), dtype=dtype)
         if bias:
-            self.bias = Parameter(nova.empty((1, out_features), dtype=dtype))
+            self.bias = Parameter(nova.empty((1, out_features)), dtype=dtype)
         else:
             self.register_parameter("bias", None)
 
