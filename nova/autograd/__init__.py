@@ -11,7 +11,7 @@ infrastructure of Nova, including:
 This module exposes the public autograd API.
 """
 
+from . import _ops, function
 from .grad import grad
-from nova.autograd import _ops
 
-__all__ = ["grad", "_ops"]
+__all__ = ["grad", "_ops", "function"]
