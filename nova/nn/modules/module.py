@@ -509,6 +509,51 @@ class Module(metaclass=ModuleMeta):
 
         setattr(self, name, module)
 
+    def zero_grad(self, set_to_none: bool = True):
+        """Zero out the gradients of all parameters in the module.
+
+        This method is typically called before the backward pass to clear
+        gradients from the previous iteration. Setting gradients to None
+        instead of zero can be more memory efficient.
+
+        Args:
+            set_to_none: If True, sets gradients to None instead of zero.
+                This is more memory-efficient as it avoids allocation.
+                Defaults to True.
+
+        Examples:
+            Basic usage in training loop:
+
+            >>> model = MyModel()
+            >>> optimizer = SGD(model.parameters(), lr=0.01)
+            >>> for inputs, targets in dataloader:
+            ...     model.zero_grad()  # Clear previous gradients
+            ...     outputs = model(inputs)
+            ...     loss = criterion(outputs, targets)
+            ...     loss.backward()
+            ...     optimizer.step()
+
+            Using set_to_none=False for debugging:
+
+            >>> model.zero_grad(set_to_none=False)
+            >>> # Gradients are now zero tensors instead of None
+            >>> # Useful when you need to inspect gradient values
+
+            Manual gradient accumulation:
+
+            >>> accumulation_steps = 4
+            >>> model.zero_grad()
+            >>> for i, (inputs, targets) in enumerate(dataloader):
+            ...     outputs = model(inputs)
+            ...     loss = criterion(outputs, targets) / accumulation_steps
+            ...     loss.backward()
+            ...     if (i + 1) % accumulation_steps == 0:
+            ...         optimizer.step()
+            ...         model.zero_grad()
+        """
+        for param in self.parameters():
+            param.zero_grad(set_to_none=set_to_none)
+
     def __setattr__(
         self,
         name: str,
