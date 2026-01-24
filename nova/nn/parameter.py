@@ -26,7 +26,6 @@ from __future__ import annotations
 import nova
 from abc import abstractmethod
 from typing import Any, TYPE_CHECKING, Optional
-from nova import Tensor
 from nova.utils import registry_class
 
 if TYPE_CHECKING:
@@ -34,7 +33,7 @@ if TYPE_CHECKING:
 
 
 @registry_class
-class Parameter(Tensor):
+class Parameter(nova.Tensor):
     """
     A Tensor that is intended to be a learnable model parameter.
 
@@ -64,7 +63,7 @@ class Parameter(Tensor):
 
 
 @registry_class
-class Buffer(Tensor):
+class Buffer(nova.Tensor):
     """
     A Tensor that does not require gradients but can be saved in the model's state.
 
