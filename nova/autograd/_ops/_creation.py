@@ -190,7 +190,7 @@ def std(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Ten
 
 
 def empty(
-    size: tuple[int, ...], *, dtype: Dtype | None = None, requires_grad: bool = False
+    size: Size, *, dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
     """
     Returns a new tensor filled with uninitialized values (zeros by default).
@@ -212,7 +212,7 @@ def empty(
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
-        data = np.empty(size, dtype=dtype)
+        data = np.empty(shape=size, dtype=dtype)
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
@@ -1335,7 +1335,7 @@ def one_hot(labels: nova.Tensor, num_classes: int) -> nova.Tensor:
 
 
 def full(
-    size: tuple[int, ...] | list,
+    size: Size,
     fill_value: Any,
     *,
     dtype: Dtype | None = None,
@@ -1345,7 +1345,7 @@ def full(
     Creates a tensor filled with the specified value.
 
     Args:
-        size (tuple[int, ...] | list): Shape of the output tensor.
+        size (Size | list): Shape of the output tensor.
         fill_value (Any): Value to fill the tensor with.
         dtype (Optional[Dtype]): Data type of the tensor.
         requires_grad (bool): Whether to track gradients.
@@ -1606,13 +1606,13 @@ def stack(inputs: list[nova.Tensor], dim: Dim = 0):
 
 
 def zeros(
-    size: tuple[int, ...], dtype: Dtype | None = None, requires_grad: bool = False
+    size: Size, dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
     """
     Returns a tensor filled with zeros.
 
     Args:
-        size (tuple[int, ...]): Shape of the tensor.
+        size (Size): Shape of the tensor.
         dtype (Optional[Dtype]): Data type.
         requires_grad (bool): Whether to track gradients.
 
@@ -1660,13 +1660,13 @@ def zeros_like(
 
 
 def ones(
-    size: tuple[int, ...], dtype: Dtype | None = None, requires_grad: bool = False
+    size: Size, dtype: Dtype | None = None, requires_grad: bool = False
 ) -> nova.Tensor:
     """
     Returns a tensor filled with ones.
 
     Args:
-        size (tuple[int, ...]): Shape of the tensor.
+        size (Size): Shape of the tensor.
         dtype (Optional[Dtype]): Data type.
         requires_grad (bool): Whether to track gradients.
 
