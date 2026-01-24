@@ -11,9 +11,9 @@ from .parameter import (
 
 __all__ = [
     "modules",
+    "parameter",
     "functional",
     "init",
-    "parameter",
     "Parameter",
     "Buffer",
     "is_lazy",
