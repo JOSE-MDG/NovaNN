@@ -1,8 +1,12 @@
 from __future__ import annotations
 from typing import Iterable, Optional, TypeVar
 from collections import OrderedDict
-from nova.nn import Parameter, Buffer
-from nova.nn.parameter import UninitializedParameter, UninitializedBuffer
+from nova.nn.parameter import (
+    UninitializedParameter,
+    UninitializedBuffer,
+    Parameter,
+    Buffer,
+)
 from nova import Tensor
 
 TModule = TypeVar("TModule", bound="Module")

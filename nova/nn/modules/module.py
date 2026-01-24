@@ -1,9 +1,14 @@
 from __future__ import annotations
 from typing import Iterable, Self, Optional, TYPE_CHECKING
 from collections import OrderedDict
-from nova.nn import Parameter, Buffer
-from nova.nn.parameter import UninitializedParameter, UninitializedBuffer, is_lazy
 from nova.utils import registry_class
+from nova.nn.parameter import (
+    UninitializedParameter,
+    UninitializedBuffer,
+    is_lazy,
+    Parameter,
+    Buffer,
+)
 
 if TYPE_CHECKING:
     from nova import Tensor
