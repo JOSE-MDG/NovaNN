@@ -123,5 +123,6 @@ def load_fashion_mnist_data(
     # Handle exceptions during data loading
     except Exception as e:
         lines = [line for line in traceback.format_exception(e)]
-        logger.error(f"Error loading MNIST data \n")
+        logger.error("Error loading MNIST data \n")
         print(*lines)
+        raise
