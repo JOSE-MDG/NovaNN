@@ -87,4 +87,4 @@ def clip_grad_value_(parameters: Iterable[Parameter], clip_value: float):
     params = list(parameters)
     for param in params:
         if param.grad is not None:
-            np.clip(param.grad, a_min=-clip_value, a_max=clip_value)
+            np.clip(param.grad, a_min=-clip_value, a_max=clip_value, out=param.grad)
