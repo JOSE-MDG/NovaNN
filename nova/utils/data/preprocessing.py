@@ -2,10 +2,11 @@ from __future__ import annotations
 import pandas as pd
 import numpy as np
 from numpy import ndarray
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from nova import Tensor
+    from nova._typing import Dtype
 
 
 def normalize(
@@ -32,7 +33,7 @@ def normalize(
 
 
 def split_features_and_labels(
-    df: pd.DataFrame, label_column: str = "label"
+    df: pd.DataFrame, label_column: str = "label", dtype: Optional[Dtype] = None
 ) -> tuple[ndarray, ndarray]:
     """
     Split a tabular dataset into feature and label arrays.
@@ -58,10 +59,13 @@ def split_features_and_labels(
         >>> y
         array([0, 1], dtype=int32)
     """
+    if dtype is None:
+        dtype = np.float32
+
     if label_column in df.columns:
-        y = df[label_column].to_numpy(dtype=np.int32)
-        x = df.drop(columns=[label_column]).to_numpy(dtype=np.float32)
+        y = df[label_column].to_numpy(dtype=np.int64)
+        x = df.drop(columns=[label_column]).to_numpy(dtype=dtype)
     else:
-        y = df.iloc[:, 0].to_numpy(dtype=np.int32)
-        x = df.iloc[:, 1:].to_numpy(dtype=np.float32)
+        y = df.iloc[:, 0].to_numpy(dtype=np.int64)
+        x = df.iloc[:, 1:].to_numpy(dtype=dtype)
     return x, y

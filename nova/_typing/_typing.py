@@ -32,14 +32,28 @@ type Size = tuple[int, ...]
 
 type Dtype = Union[
     dtypes.uint8,
+    dtypes.uint16,
+    dtypes.uint32,
+    dtypes.uint64,
     dtypes.int8,
+    dtypes.byte,
+    dtypes.int16,
     dtypes.short,
+    dtypes.int32,
     dtypes.int,
+    dtypes.int64,
     dtypes.long,
+    dtypes.float16,
+    dtypes.half,
+    dtypes.float,
     dtypes.float32,
     dtypes.double,
-    dtypes.float128,
-    dtypes.half,
+    dtypes.float128,  # type: ignore
+    dtypes.longdouble,  # type: ignore
+    dtypes.complex256,  # type: ignore
+    dtypes.clongdouble,  # type: ignore
+    dtypes.complex64,
+    dtypes.complex128,
     dtypes.bool,  # type: ignore
 ]
 """Supported data types for tensor elements."""

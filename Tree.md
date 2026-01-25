@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/25/2026, 4:00:20 PM
+**Generated:** 1/25/2026, 8:05:50 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -13,16 +13,12 @@
 │   │   ├── 🐍 elementwise_cpu.py
 │   │   └── 🐍 reduction_ops.py
 │   ├── 📁 training
-│   │   ├── 🐍 end_to_end_cpu.py
-│   │   ├── 🐍 lr_scheduler_step.py
-│   │   ├── 🐍 optimizer_step.py
-│   │   └── 🐍 tiny_mlp_cpu.py
+│   │   └── 🐍 end_to_end_cpu.py
 │   ├── 📁 utils
 │   │   ├── 🐍 memory.py
-│   │   ├── 🐍 report.py
 │   │   └── 🐍 timing.py
-│   ├── 📝 README.en.md
-│   └── 📝 README.es.md
+│   ├── 📝 README.es.md
+│   └── 📝 README.md
 ├── 📁 examples
 │   ├── 🐍 binary_classification.py
 │   ├── 🐍 conv_example.py
@@ -57,15 +53,18 @@
 │   │   │   ├── 🖼️ std_performance.png
 │   │   │   ├── 🖼️ sum_performance.png
 │   │   │   └── 🖼️ var_performance.png
-│   │   └── 📁 trainig
-│   ├── 🖼️ NovaNN Banners.png
-│   └── 🖼️ metrics.png
+│   │   └── 📁 training
+│   │       ├── 🖼️ convnet_training_performance.png
+│   │       ├── 🖼️ mlp_training_performance.png
+│   │       ├── 🖼️ mlp_training_speedup.png
+│   │       └── 🖼️ optimizer_comparison.png
+│   └── 🖼️ NovaNN Banners.png
 ├── 📁 notebooks
 │   └── 📄 exploration.ipynb
 ├── 📁 nova
 │   ├── 📁 _interfaces
-│   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
+│   │   ├── 📝 README.md
 │   │   ├── 🐍 _base_tensor.py
 │   │   ├── 🐍 _lr_scheduler.py
 │   │   ├── 📄 _lr_scheduler.pyi
@@ -77,8 +76,8 @@
 │   │   ├── 🐍 _binding.py
 │   │   └── 🐍 _generators.py
 │   ├── 📁 _typing
-│   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
+│   │   ├── 📝 README.md
 │   │   ├── 🐍 __init__.py
 │   │   └── 🐍 _typing.py
 │   ├── 📁 autograd
@@ -116,8 +115,8 @@
 │   │   ├── 📁 utils
 │   │   │   ├── 🐍 __init__.py
 │   │   │   └── 🐍 processing.py
-│   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
+│   │   ├── 📝 README.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 function.py
 │   │   ├── 📄 function.pyi
@@ -125,8 +124,8 @@
 │   │   ├── 📄 grad.pyi
 │   │   └── 🐍 grad_mode.py
 │   ├── 📁 core
-│   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
+│   │   ├── 📝 README.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 config.py
 │   │   └── 🐍 constants.py
@@ -140,8 +139,8 @@
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 _error.py
 │   │   │   └── 🐍 _r2.py
-│   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
+│   │   ├── 📝 README.md
 │   │   ├── 🐍 __init__.py
 │   │   └── 🐍 metric.py
 │   ├── 📁 nn
@@ -164,8 +163,8 @@
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 clip_grad.py
 │   │   │   └── 🐍 tensor_utils.py
-│   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
+│   │   ├── 📝 README.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 functional.py
 │   │   ├── 📄 functional.pyi
@@ -174,8 +173,8 @@
 │   │   ├── 🐍 parameter.py
 │   │   └── 📄 parameter.pyi
 │   ├── 📁 optim
-│   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
+│   │   ├── 📝 README.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 adam.py
 │   │   ├── 📄 adam.pyi
@@ -188,8 +187,8 @@
 │   │   ├── 🐍 sgd.py
 │   │   └── 📄 sgd.pyi
 │   ├── 📁 serialization
-│   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
+│   │   ├── 📝 README.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 _safe_load.py
 │   │   ├── 🐍 load.py
@@ -202,16 +201,16 @@
 │   │   │   ├── 🐍 memory_usage.py
 │   │   │   ├── 🐍 registry.py
 │   │   │   └── 🐍 timing.py
-│   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
+│   │   ├── 📝 README.md
 │   │   ├── 🐍 __init__.py
 │   │   ├── 🐍 grad_checking.py
 │   │   ├── 🐍 hooks.py
 │   │   ├── 🐍 logger.py
 │   │   ├── 🐍 memory.py
 │   │   └── 🐍 to_tensor.py
-│   ├── 📝 README.en.md
 │   ├── 📝 README.es.md
+│   ├── 📝 README.md
 │   ├── 🐍 __init__.py
 │   ├── 🐍 _tensor.py
 │   ├── 📄 _tensor.pyi
@@ -298,7 +297,7 @@
 │       ├── 🐍 api_comparison_with_torch.py
 │       └── 📝 design_tradeoffs.md
 ├── ⚙️ .gitignore
-├── 📝 CHANGELOG.en.md
+├── 📝 CHANGELOG.es.md
 ├── 📝 CHANGELOG.md
 ├── 📝 CONTRIBUTING.en.md
 ├── 📝 CONTRIBUTING.md
