@@ -18,7 +18,7 @@ from typing import (
 if TYPE_CHECKING:
     from nova import Tensor
     from nova.nn import Module, Parameter, Buffer
-    from nova.utils.datasets.minist import MnistData
+    from nova.utils.datasets.mnist import MnistData
     from nova.utils.datasets.fashion import FashionData
     from nova._interfaces._optimizer import Optimizer
     from nova._interfaces._base_tensor import TensorBase
