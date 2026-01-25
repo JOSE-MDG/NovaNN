@@ -307,23 +307,23 @@ def compare_memory(
     """
     # Measure NovaNN
     gc.collect()
-    with MemoryTracker() as nova_mem:
+    with MemoryTracker() as input_mem:
         input_func(*args, **kwargs)
 
     # Measure PyTorch
     gc.collect()
-    with MemoryTracker() as torch_mem:
+    with MemoryTracker() as other_mem:
         other_func(*args, **kwargs)
 
-    ratio = nova_mem.peak_mb / torch_mem.peak_mb if torch_mem.peak_mb > 0 else 0
+    ratio = input_mem.peak_mb / other_mem.peak_mb if other_mem.peak_mb > 0 else 0
 
     if verbose:
         print(f"\n{'='*50}")
         print("Memory Comparison: NovaNN vs PyTorch")
         print(f"{'='*50}")
-        print(f"NovaNN peak:  {nova_mem.peak_mb:>10.2f} MB")
-        print(f"PyTorch peak: {torch_mem.peak_mb:>10.2f} MB")
+        print(f"NovaNN peak:  {input_mem.peak_mb:>10.2f} MB")
+        print(f"PyTorch peak: {other_mem.peak_mb:>10.2f} MB")
         print(f"Ratio:        {ratio:>10.2f}x")
         print(f"{'='*50}\n")
 
-    return nova_mem.peak_mb, torch_mem.peak_mb, ratio
+    return input_mem.peak_mb, other_mem.peak_mb, ratio
