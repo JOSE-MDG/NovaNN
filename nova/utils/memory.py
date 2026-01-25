@@ -278,14 +278,14 @@ def quick_memory_check(func: Callable[[_T], _T], *args, **kwargs) -> dict:
 
 
 def compare_memory(
-    nova_func: Callable[[_T], _T],
-    torch_func: Callable[[_T], _T],
+    input_func: Callable[[_T], _T],
+    other_func: Callable[[_T], _T],
     *args: Any,
     verbose: bool = True,
     **kwargs: Any,
 ) -> tuple[float, float, float]:
     """
-    Compare memory usage between NovaNN and PyTorch implementations.
+    Compare memory usage between implementations.
 
     Examples:
         >>> from nova.utils.memory import compare_memory
@@ -308,12 +308,12 @@ def compare_memory(
     # Measure NovaNN
     gc.collect()
     with MemoryTracker() as nova_mem:
-        nova_func(*args, **kwargs)
+        input_func(*args, **kwargs)
 
     # Measure PyTorch
     gc.collect()
     with MemoryTracker() as torch_mem:
-        torch_func(*args, **kwargs)
+        other_func(*args, **kwargs)
 
     ratio = nova_mem.peak_mb / torch_mem.peak_mb if torch_mem.peak_mb > 0 else 0
 
