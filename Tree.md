@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/25/2026, 2:26:12 AM
+**Generated:** 1/25/2026, 3:09:13 AM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
