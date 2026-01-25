@@ -1,7 +1,7 @@
 from __future__ import annotations
 import nova
-import numpy as np
 import traceback
+import numpy as np
 from numpy import ndarray
 from typing import TYPE_CHECKING, Any, Optional, Self
 from nova._interfaces._base_tensor import TensorBase
@@ -901,14 +901,22 @@ class Tensor(TensorBase):
                 raise RuntimeError(
                     "grad can be implicitly created only for scalar outputs"
                 )
-            gradient = np.ones_like(self.data, dtype=nova.float32)
+            gradient = np.ones_like(self.data)
         else:
-            # Convert Tensor gradient to numpy array
-            gradient = (
-                gradient.data.astype(nova.float32)
-                if isinstance(gradient, Tensor)
-                else np.asarray(gradient, dtype=nova.float32)
-            )
+            if isinstance(gradient, Tensor):
+                gradient = (
+                    gradient.data
+                    if gradient.dtype == self.dtype
+                    else gradient.data.astype(self.dtype)
+                )
+            elif isinstance(gradient, ndarray):
+                gradient = (
+                    gradient
+                    if gradient.dtype == self.dtype
+                    else gradient.astype(self.dtype)
+                )
+            else:
+                gradient = np.asarray(gradient, copy=True)
 
         try:
             _backward(self, gradient=gradient, retain_graph=retain_graph)
@@ -929,17 +937,7 @@ class Tensor(TensorBase):
             >>> repr(x)
             'tensor([1., 2.], requires_grad=True, grad_fn=None, dtype=float32)'
         """
-        prefix = "tensor("
-        tensor_str = np.array2string(self.data, separator=", ", prefix=prefix)
-
-        result = f"{prefix}{tensor_str}"
-        result += f", requires_grad={self.requires_grad}"
-        result += f", grad_fn={repr(self.grad_fn)}"
-
-        dtype_str = np.dtype(self.dtype).name
-        result += f", dtype={dtype_str}"
-        result += ")"
-        return result
+        return self._format_tensor(detailed=True)
 
     def __str__(self) -> str:
         """
@@ -950,16 +948,65 @@ class Tensor(TensorBase):
             >>> print(x)
             tensor([1., 2.])
 
-            >>> y = nova.tensor([1.0, 2.0], requires_grad=True)
+            >>> y = nova.tensor(2.0, requires_grad=True)
             >>> print(y)
-            tensor([1., 2.], requires_grad=True)
+            tensor(2., requires_grad=True)
         """
-        prefix = "tensor("
+        return self._format_tensor(detailed=False)
 
-        array_str = np.array2string(self.data, separator=", ", prefix=prefix)
+    def _format_tensor(self, detailed: bool = False) -> str:
+        """
+        Internal method to format tensor representation.
 
-        result = f"{prefix}{array_str}"
+        Args:
+            detailed: If True, includes all metadata (for repr), otherwise concise (for str)
+        """
+        if self.data.ndim == 0:
+            if np.issubdtype(self.dtype, np.floating):
+                value_str = f"{float(self.data):.4f}".rstrip("0").rstrip(".") + "."
+            else:
+                value_str = str(self.data.item())
+        else:
+            formatter = {
+                "float_kind": lambda x: (
+                    f"{x:.4f}".rstrip("0").rstrip(".") + "."
+                    if self.data.ndim == 1
+                    else f"{x: .4f}"
+                ),
+                "int": lambda x: str(x),
+            }
+
+            with np.printoptions(
+                precision=4,
+                suppress=True,
+                threshold=1000,
+                edgeitems=3,
+                linewidth=75,
+                formatter=formatter,
+            ):
+                value_str = np.array2string(
+                    self.data, separator=", ", prefix=" " * len("tensor(")
+                )
+
+            if self.data.ndim > 1:
+                import re
+
+                value_str = re.sub(r"(?<=\d)\s+(?=-?\d)", " ", value_str)
+
+        result = f"tensor({value_str}"
+
+        if self.grad_fn is not None:
+            grad_fn_name = type(self.grad_fn).__name__ if self.grad_fn else None
+            if grad_fn_name:
+                result += f", grad_fn=<{grad_fn_name}>"
+
         if self.requires_grad:
-            result += f", requires_grad={self.requires_grad}"
+            result += ", requires_grad=True"
+
+        if detailed:
+            dtype_str = np.dtype(self.dtype).name
+            if dtype_str != "float32":
+                result += f", dtype={dtype_str}"
+
         result += ")"
         return result

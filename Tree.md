@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/25/2026, 3:09:13 AM
+**Generated:** 1/25/2026, 4:00:20 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -223,6 +223,7 @@
 │   │   └── 🐍 test_loss.py
 │   ├── 📁 nn
 │   │   ├── 🐍 test_batchnorm.py
+│   │   ├── 🐍 test_clip_grad.py
 │   │   ├── 🐍 test_container.py
 │   │   ├── 🐍 test_conv.py
 │   │   ├── 🐍 test_dropout.py
@@ -247,10 +248,14 @@
 │   ├── 🐍 test_binding_system.py
 │   ├── 🐍 test_conversion.py
 │   ├── 🐍 test_creation_and_casting.py
+│   ├── 🐍 test_fashion_loader.py
 │   ├── 🐍 test_hooks.py
 │   ├── 🐍 test_loader.py
+│   ├── 🐍 test_memory_utils.py
 │   ├── 🐍 test_metrics.py
-│   └── 🐍 test_registry.py
+│   ├── 🐍 test_mnist_loader.py
+│   ├── 🐍 test_registry.py
+│   └── 🐍 test_timing_decorators.py
 ├── 📁 tutorials
 │   ├── 📁 00_philosophy
 │   │   ├── 📝 design_goals.md
