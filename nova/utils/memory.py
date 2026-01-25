@@ -280,9 +280,9 @@ def quick_memory_check(func: Callable[[_T], _T], *args, **kwargs) -> dict:
 def compare_memory(
     input_func: Callable[[_T], _T],
     other_func: Callable[[_T], _T],
-    *args: Any,
+    args: Optional[tuple[tuple[Any, ...], tuple[Any, ...]]] = None,
+    kwargs: Optional[dict[dict[str, Any], dict[str, Any]]] = None,
     verbose: bool = True,
-    **kwargs: Any,
 ) -> tuple[float, float, float]:
     """
     Compare memory usage between implementations.
@@ -292,15 +292,15 @@ def compare_memory(
         >>> nova_peak, torch_peak, ratio = compare_memory(
         ...    nova_forward,
         ...    torch_forward,
-        ...    x_nova, x_torch
+        ...    ((x_nova,), (x_torch,))
         ... )
 
     Args:
         nova_func: NovaNN function to benchmark
         torch_func: PyTorch function to benchmark
-        *args: Arguments to pass to functions
+        args: Arguments to pass to functions
         verbose: If True, print comparison
-        **kwargs: Keyword arguments to pass to functions
+        kwargs: Keyword arguments to pass to functions
 
     Returns:
         Tuple of (nova_peak_mb, torch_peak_mb, ratio)
@@ -308,12 +308,18 @@ def compare_memory(
     # Measure NovaNN
     gc.collect()
     with MemoryTracker() as input_mem:
-        input_func(*args, **kwargs)
+        if kwargs is not None:
+            input_func(*args[0], **kwargs[0])
+        elif args is None and kwargs is None:
+            input_func()
 
     # Measure PyTorch
     gc.collect()
     with MemoryTracker() as other_mem:
-        other_func(*args, **kwargs)
+        if kwargs is not None:
+            other_func(*args[1], **kwargs[1])
+        elif args is None and kwargs is None:
+            other_func()
 
     ratio = input_mem.peak_mb / other_mem.peak_mb if other_mem.peak_mb > 0 else 0
 
