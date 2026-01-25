@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/23/2026, 9:35:00 PM
+**Generated:** 1/25/2026, 2:26:12 AM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -8,21 +8,16 @@
 │   ├── 📁 autograd
 │   │   ├── 🐍 backward_overhead.py
 │   │   ├── 🐍 grad_accumulation.py
-│   │   ├── 🐍 grad_checking.py
-│   │   ├── 🐍 memory_footprint.py
-│   │   └── 🐍 small_graphs.py
-│   ├── 📁 ops
-│   │   ├── 🐍 broadcasting_cost.py
+│   │   └── 🐍 memory_footprint.py
+│   ├── 📁 operations
 │   │   ├── 🐍 elementwise_cpu.py
-│   │   ├── 🐍 reduction_ops.py
-│   │   └── 🐍 small_tensor_ops.py
+│   │   └── 🐍 reduction_ops.py
 │   ├── 📁 training
 │   │   ├── 🐍 end_to_end_cpu.py
 │   │   ├── 🐍 lr_scheduler_step.py
 │   │   ├── 🐍 optimizer_step.py
 │   │   └── 🐍 tiny_mlp_cpu.py
 │   ├── 📁 utils
-│   │   ├── 🐍 compare_with_torch.py
 │   │   ├── 🐍 memory.py
 │   │   ├── 🐍 report.py
 │   │   └── 🐍 timing.py
@@ -34,6 +29,35 @@
 │   ├── 🐍 multiclass_classification.py
 │   └── 🐍 regression.py
 ├── 📁 images
+│   ├── 📁 benchmarks
+│   │   ├── 📁 autograd
+│   │   │   ├── 🖼️ accumulation_framework_comparison.png
+│   │   │   ├── 🖼️ accumulation_overhead.png
+│   │   │   ├── 🖼️ accumulation_vs_microbatch.png
+│   │   │   ├── 🖼️ memory_overhead.png
+│   │   │   ├── 🖼️ memory_vs_batch.png
+│   │   │   ├── 🖼️ memory_vs_depth.png
+│   │   │   ├── 🖼️ nova_accumulation_comparison.png
+│   │   │   ├── 🖼️ nova_fwd_vs_bwd.png
+│   │   │   ├── 🖼️ nova_memory_fwd_vs_bwd.png
+│   │   │   ├── 🖼️ overhead_vs_batch.png
+│   │   │   ├── 🖼️ overhead_vs_depth.png
+│   │   │   └── 🖼️ relative_overhead.png
+│   │   ├── 📁 operations
+│   │   │   ├── 🖼️ activation_comparison.png
+│   │   │   ├── 🖼️ addition_performance.png
+│   │   │   ├── 🖼️ arithmetic_speedup.png
+│   │   │   ├── 🖼️ basic_reductions_comparison.png
+│   │   │   ├── 🖼️ mean_performance.png
+│   │   │   ├── 🖼️ minmax_performance.png
+│   │   │   ├── 🖼️ multiplication_performance.png
+│   │   │   ├── 🖼️ relu_performance.png
+│   │   │   ├── 🖼️ sigmoid_performance.png
+│   │   │   ├── 🖼️ statistical_reductions_comparison.png
+│   │   │   ├── 🖼️ std_performance.png
+│   │   │   ├── 🖼️ sum_performance.png
+│   │   │   └── 🖼️ var_performance.png
+│   │   └── 📁 trainig
 │   ├── 🖼️ NovaNN Banners.png
 │   └── 🖼️ metrics.png
 ├── 📁 notebooks
@@ -175,6 +199,7 @@
 │   ├── 📁 utils
 │   │   ├── 📁 decorators
 │   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 🐍 memory_usage.py
 │   │   │   ├── 🐍 registry.py
 │   │   │   └── 🐍 timing.py
 │   │   ├── 📝 README.en.md
@@ -183,8 +208,8 @@
 │   │   ├── 🐍 grad_checking.py
 │   │   ├── 🐍 hooks.py
 │   │   ├── 🐍 logger.py
-│   │   ├── 🐍 to_tensor.py
-│   │   └── 🐍 visualization.py
+│   │   ├── 🐍 memory.py
+│   │   └── 🐍 to_tensor.py
 │   ├── 📝 README.en.md
 │   ├── 📝 README.es.md
 │   ├── 🐍 __init__.py
