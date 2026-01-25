@@ -321,8 +321,8 @@ def compare_memory(
         print(f"\n{'='*50}")
         print("Memory Comparison: NovaNN vs PyTorch")
         print(f"{'='*50}")
-        print(f"NovaNN peak:  {input_mem.peak_mb:>10.2f} MB")
-        print(f"PyTorch peak: {other_mem.peak_mb:>10.2f} MB")
+        print(f"{input_func.__name__} peak:  {input_mem.peak_mb:>10.2f} MB")
+        print(f"{other_func.__name__} peak: {other_mem.peak_mb:>10.2f} MB")
         print(f"Ratio:        {ratio:>10.2f}x")
         print(f"{'='*50}\n")
 
