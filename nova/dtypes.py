@@ -40,6 +40,7 @@ Examples:
     'nova.complex64'
 """
 
+import sys
 from numpy import (
     # Unsigned integers
     uint8 as _uint8,
@@ -124,11 +125,36 @@ float64 = _float64
 double = _float64
 """Alias for float64. Double precision floating point."""
 
-float128 = _float128
-"""Quadruple precision (128-bit) floating point number (extended precision)."""
+# Select appropriate dtypes based on OS support
+if not sys.platform.startswith("win32"):
+    float128 = _float128
+    """Quadruple precision (128-bit) floating point number (extended precision)."""
 
-longdouble = _float128
-"""Alias for float128. Extended precision floating point."""
+    longdouble = _float128
+    """Alias for float128. Extended precision floating point."""
+
+    complex256 = _complex256
+    """Complex number with two 128-bit floats (real and imaginary parts)."""
+
+    clongdouble = _complex256
+    """Alias for complex256. Complex number with float128 components."""
+else:
+    # Fallback for Windows where 128-bit types are not supported
+    float128 = _float64
+    """Quadruple precision (128-bit) floating point number (extended precision). 
+    Note: On Windows, this falls back to 64-bit float."""
+
+    longdouble = _float64
+    """Alias for float128. Extended precision floating point.
+    Note: On Windows, this falls back to 64-bit float."""
+
+    complex256 = _complex128
+    """Complex number with two 128-bit floats (real and imaginary parts).
+    Note: On Windows, this falls back to complex128."""
+
+    clongdouble = _complex128
+    """Alias for complex256. Complex number with float128 components.
+    Note: On Windows, this falls back to complex128."""
 
 # Complex Types
 
@@ -143,12 +169,6 @@ complex128 = _complex128
 
 cdouble = _complex128
 """Alias for complex128. Complex number with float64 components."""
-
-complex256 = _complex256
-"""Complex number with two 128-bit floats (real and imaginary parts)."""
-
-clongdouble = _complex256
-"""Alias for complex256. Complex number with float128 components."""
 
 # Boolean Type
 
