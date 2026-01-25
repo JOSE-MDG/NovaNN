@@ -5,15 +5,27 @@ the NovaNN framework for common tasks such as data processing, logging,
 gradient checking, and training workflows.
 """
 
-from . import data, datasets, decorators, grad_checking, hooks, logger, to_tensor
+from . import (
+    data,
+    datasets,
+    decorators,
+    grad_checking,
+    hooks,
+    logger,
+    to_tensor,
+    memory,
+)
+from .decorators import benchmark
 from .grad_checking import grad_check_wrt_inputs
 from .decorators import registry_class, registry_op, get_registered_classes
 from .to_tensor import ensure_tensor
 
 __all__ = [
     "data",
+    "memory",
     "datasets",
     "hooks",
+    "benchmark",
     "to_tensor",
     "grad_checking",
     "decorators",
