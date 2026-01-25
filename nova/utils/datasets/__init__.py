@@ -1,6 +1,8 @@
 """Dataset loading functions for common machine learning datasets."""
 
-from .fashion import load_fashion_mnist_data
-from .minist import load_mnist_data
+from . import fashion, mnist
 
-__all__ = ["load_fashion_mnist_data", "load_mnist_data"]
+from .fashion import load_fashion_mnist_data
+from .mnist import load_mnist_data
+
+__all__ = ["load_fashion_mnist_data", "load_mnist_data", "fashion", "mnist"]
