@@ -75,9 +75,9 @@ def load_mnist_data(
         logger.debug("MNIST data loaded successfully.")
 
         # Separate features and labels (support both headered and headerless CSVs)
-        x_train, y_train = split_features_and_labels(mnist_train)
-        x_test, y_test = split_features_and_labels(mnist_test)
-        x_val, y_val = split_features_and_labels(mnist_val)
+        x_train, y_train = split_features_and_labels(mnist_train, dtype=dtype)
+        x_test, y_test = split_features_and_labels(mnist_test, dtype=dtype)
+        x_val, y_val = split_features_and_labels(mnist_val, dtype=dtype)
 
         if tensor4d:
             # Get the number of samples
@@ -123,5 +123,6 @@ def load_mnist_data(
     # Handle exceptions during data loading
     except Exception as e:
         lines = [line for line in traceback.format_exception(e)]
-        logger.error(f"Error loading MNIST data \n")
+        logger.error("Error loading MNIST data \n")
         print(*lines)
+        raise
