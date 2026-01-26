@@ -41,6 +41,14 @@ def native_yaml(path: str = YAML_FILE_PATH) -> YAMLFile:
         >>> print(ops_config['ops'][0]['name'])
         'add'
     """
+
+    if path is None:
+        logger.error(
+            "No system configuration file was found."
+            "Please verify that you have all the correct paths in your .env file."
+        )
+        raise ValueError(f"Expect path for yaml file, got {path}")
+
     try:
         with open(path, "r") as file:
             yml = yaml.safe_load(file)
