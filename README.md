@@ -272,6 +272,9 @@ setx PYTHONPATH "C:\path\to\your\project"
 ### 4. Install Project Dependencies
 
 ```bash
+# Write lock file
+poetry lock
+
 # Install all dependencies (including development ones)
 poetry install
 ```

@@ -272,6 +272,9 @@ setx PYTHONPATH "C:\ruta\a\tu\proyecto"
 ### 4. Instalar dependencias del proyecto
 
 ```bash
+# Escribir el archvo lock
+poetry lock
+
 # Instalar todas las dependencias (incluyendo las de desarrollo)
 poetry install
 ```
