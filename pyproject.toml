@@ -6,13 +6,13 @@ authors = ["JOSE-MDG <josepemlengineer@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 
-python = ">=3.13,<4.0"
 
 # Real package
 packages = [{ include = "nova" }]
 
 
 [tool.poetry.dependencies]
+python = ">=3.14,<3.15"
 numpy = ">=2.3.5,<3.0.0"
 pandas = ">=2.3.3,<3.0.0"
 matplotlib = ">=3.10.7,<4.0.0"
