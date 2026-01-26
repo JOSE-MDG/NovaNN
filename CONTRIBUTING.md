@@ -259,7 +259,7 @@ start htmlcov/index.html  # Windows
 
 ### Minimum Coverage
 
-- Maintain coverage **≥ 80%** in new code
+- Maintain coverage **>= 85%** in new code
 - Excluded files: `__init__.py`, `.pyi`, `_internal/`, `_typing/`, `examples/`, `benchmarks/`
 
 ## Pull Request Process
@@ -408,7 +408,3 @@ Usually 1-3 days. If it takes longer, feel free to ping the PR.
 ---
 
 Thank you for contributing to NovaNN! 🚀 Your contribution helps this educational project continue to grow.
-
-```
-
-```
