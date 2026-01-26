@@ -1,3 +1,8 @@
+"""Core configuration constants
+
+Exposes environment-configured paths and logger settings
+"""
+
 import os
 from typing import Optional
 
@@ -5,10 +10,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-"""Core configuration constants and default initialization maps.
-
-Exposes environment-configured paths and logger settings  
-"""
 
 # Dataset paths
 FASHION_TRAIN_DATA_PATH: Optional[str] = os.getenv("FASHION_TRAIN_DATA_PATH")
