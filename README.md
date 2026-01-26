@@ -4,7 +4,7 @@
 ![python](https://img.shields.io/badge/python-v3.14-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![tests](https://img.shields.io/badge/tests-pytest-orange)
-![coverage](https://img.shields.io/badge/coverage-86.78%25-success)
+![coverage](https://img.shields.io/badge/coverage-87%25-success)
 
 ## 🌐 Available Languages
 
@@ -141,6 +141,10 @@ To correctly run examples and experiments, it is necessary to create a **`.env`*
 - `LOGGER_DATE_FORMAT`  
   Default value:  
   `%Y-%m-%d %H:%M:%S`
+
+#### YAML (operations)
+
+- `NATIVE_YAML`
 
 These variables allow decoupling configuration from code, facilitating portability and framework use in different environments.
 
@@ -306,6 +310,9 @@ MNIST_TEST_DATA_PATH=<YOUR_PATH>/data/Mnist/mnist_test.csv
 LOG_FILE=<YOUR_PATH>/logs/nova_nn.log
 LOGGER_DEFAULT_FORMAT=%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s - %(message)s # Can be whatever you want
 LOGGER_DATE_FORMAT=%Y-%m-%d %H:%M:%S
+
+# YAML operations
+NATIVE_YAML=<YOUR_PATH>/nova/autograd/_ops/native/native_functions.yaml
 ```
 
 ### 7. Run Examples
@@ -326,7 +333,7 @@ poetry run python examples/regresion.py
 
 ## 🧪 Testing
 
-The framework includes a complete unit test suite in the [`tests/`](./tests/) directory that verifies correct implementation of all components covering **82%** of the module. For more information go to [Unit Tests](./tests/README.md)
+The framework includes a complete unit test suite in the [`tests/`](./tests/) directory that verifies correct implementation of all components covering **87%** of the module. For more information go to [Unit Tests](./tests/README.md)
 
 ### Run All Tests
 

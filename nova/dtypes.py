@@ -56,11 +56,9 @@ from numpy import (
     float16 as _float16,
     float32 as _float32,
     float64 as _float64,
-    float128 as _float128,
     # Complex
     complex64 as _complex64,
     complex128 as _complex128,
-    complex256 as _complex256,
     # Boolean
     bool_ as _bool,
 )
@@ -127,6 +125,8 @@ double = _float64
 
 # Select appropriate dtypes based on OS support
 if not sys.platform.startswith("win32"):
+    from numpy import float128 as _float128, complex256 as _complex256
+
     float128 = _float128
     """Quadruple precision (128-bit) floating point number (extended precision)."""
 

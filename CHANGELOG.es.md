@@ -22,13 +22,13 @@ La versión 4.0.0 representa una **reescritura completa** de NovaNN, transformá
   - Backpropagation automática con `tensor.backward()`
   - Gestión de gradientes con `grad_fn` y tracking automático
   - Modos `no_grad()` y `enable_grad()` para control de gradientes
-- **200+ operaciones diferenciables** organizadas por categorías:
+- **80+ operaciones diferenciables** organizadas por categorías:
   - Operaciones básicas (aritmética, exponenciación, logaritmos)
   - Activaciones (ReLU, LeakyReLU, PReLU, GELU, Sigmoid)
   - Álgebra lineal (matmul, dot, det, inv, norm, trace)
   - Manipulación de tensores (reshape, permute, stack, concat, split)
   - Reducción (sum, mean, var, min, max)
-  - Trigonométricas (sin, cos, tan, arcsin, arccos, arctan)
+  - Trigonométricas (sin, cos, tan, arcsin, arccos, arctan etc)
   - Comparación (maximum, minimum, where)
   - Indexing avanzado (getitem, setitem con fancy indexing)
   - Vistas y strides (as_strided, view, extend)
@@ -215,7 +215,7 @@ La versión 4.0.0 representa una **reescritura completa** de NovaNN, transformá
 
 #### Testing
 
-- **Cobertura reducida de 95% → 82%** debido a:
+- **Cobertura reducida de 95% → 87%** debido a:
   - Expansión masiva del código (3.0.0: ~2000 líneas docs, 4.0.0: código modular)
   - Nuevos módulos aún sin tests completos (schedulers, algunas ops autograd)
   - Enfoque en arquitectura y funcionalidad sobre cobertura exhaustiva
@@ -462,7 +462,7 @@ class Parameter(Tensor):
    model.load_state_dict(nova.load('model.pth'))
 ```
 
-## [3.0.0] - 2025-12-12
+## [3.0.0] - 2025-12-06
 
 ### Añadido
 
