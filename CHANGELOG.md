@@ -22,7 +22,7 @@ Version 4.0.0 represents a **complete rewrite** of NovaNN, transforming it from 
   - Automatic backpropagation with `tensor.backward()`
   - Gradient management with `grad_fn` and automatic tracking
   - `no_grad()` and `enable_grad()` modes for gradient control
-- **200+ differentiable operations** organized by categories:
+- **80+ differentiable operations** organized by categories:
   - Basic operations (arithmetic, exponentiation, logarithms)
   - Activations (ReLU, LeakyReLU, PReLU, GELU, Sigmoid)
   - Linear algebra (matmul, dot, det, inv, norm, trace)
@@ -215,7 +215,7 @@ Version 4.0.0 represents a **complete rewrite** of NovaNN, transforming it from 
 
 #### Testing
 
-- **Coverage reduced from 95% → 82%** due to:
+- **Coverage reduced from 95% → 87%** due to:
   - Massive code expansion (3.0.0: ~2000 lines docs, 4.0.0: modular code)
   - New modules without complete tests (schedulers, some autograd ops)
   - Focus on architecture and functionality over exhaustive coverage

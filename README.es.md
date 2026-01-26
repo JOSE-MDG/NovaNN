@@ -142,6 +142,10 @@ Para ejecutar correctamente los ejemplos y experimentos, es necesario crear un a
   Valor por defecto:  
   `%Y-%m-%d %H:%M:%S`
 
+#### YAML (operaciones)
+
+- `NATIVE_YAML`
+
 Estas variables permiten desacoplar la configuración del código, facilitando la portabilidad y el uso del framework en distintos entornos.
 
 ## 🛠️ Tecnologías utilizadas
@@ -306,6 +310,9 @@ MNIST_TEST_DATA_PATH=<SU RUTA>/data/Mnist/mnist_test.csv
 LOG_FILE=<SU RUTA>/logs/nova_nn.log
 LOGGER_DEFAULT_FORMAT=%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s - %(message)s # Puede ser el que usted quiera
 LOGGER_DATE_FORMAT=%Y-%m-%d %H:%M:%S
+
+# YAML operaciones
+NATIVE_YAML=<SU RUTA>/nova/autograd/_ops/native/native_functions.yaml
 ```
 
 ### 7. Ejecutar ejemplos
@@ -342,7 +349,7 @@ poetry run pytest --cov --cov-report=html
 
 ## 🧪 Testing
 
-El framework incluye una suite completa de tests unitarios en el directorio [`tests/`](./tests/) que verifican la correcta implementación de todos los componentes cubriendo un **82%** del modulo. Para más información vaya a [Tests unitarios](./tests/README.md)
+El framework incluye una suite completa de tests unitarios en el directorio [`tests/`](./tests/) que verifican la correcta implementación de todos los componentes cubriendo un **87%** del modulo. Para más información vaya a [Tests unitarios](./tests/README.md)
 
 ## 🤝 Contribución
 

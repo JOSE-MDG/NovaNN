@@ -257,7 +257,7 @@ start htmlcov/index.html  # Windows
 
 ### Cobertura Mínima
 
-- Mantener cobertura **≥ 80%** en código nuevo
+- Mantener cobertura **≥ 85%** en código nuevo
 - Archivos excluidos: `__init__.py`, `.pyi`, `_internal/`, `_typing/`, `examples/`, `benchmarks/`
 
 ## Proceso de Pull Request
