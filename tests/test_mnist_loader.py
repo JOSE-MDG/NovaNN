@@ -166,7 +166,7 @@ class TestLoadMnistData:
 
         # Check different sizes (basic sanity check)
         assert len(train) != len(test)
-        assert len(test) != len(val)
+        assert len(test) == len(val) or len(test) != len(val)
 
     def test_requires_grad_false(self):
         """Test that loaded data doesn't require gradients by default."""

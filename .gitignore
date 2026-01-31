@@ -1,16 +1,3 @@
-# virtual enviroment
-.venv/
-
-# Ignore data content
-data/*
-
-# keep subfolderls
-!data/.gitkeep
-!data/FashionMnist/
-!data/FashionMnist/.gitkeep
-!data/Mnist/
-!data/Mnist/.gitkeep
-
 # tests
 .pytest_cache/
 
@@ -26,11 +13,11 @@ __pycache__/
 .DS_Store
 .ipynb_checkpoints/
 
-# enviroments variables
+# environments variables
 .env
 
 # experimentation
-checking.ipynb
+notebooks/
 
 # Coverage
 .coverage
