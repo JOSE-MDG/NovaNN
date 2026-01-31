@@ -29,3 +29,27 @@ class FileNotFoundError(LoadError):
     """Raised when file path doesn't exist."""
 
     pass
+
+
+class DatasetCorruptionError(Exception):
+    """Raised when dataset files are corrupted or invalid."""
+
+    pass
+
+
+class DatasetDownloadError(Exception):
+    """Raised when dataset download fails."""
+
+    pass
+
+
+class DatasetValidationError(Exception):
+    """Raised when dataset validation fails."""
+
+    pass
+
+
+class PathConfigurationError(Exception):
+    """Raised when path configuration fails."""
+
+    pass
