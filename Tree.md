@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/25/2026, 8:05:50 PM
+**Generated:** 1/31/2026, 2:38:34 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -59,8 +59,6 @@
 │   │       ├── 🖼️ mlp_training_speedup.png
 │   │       └── 🖼️ optimizer_comparison.png
 │   └── 🖼️ NovaNN Banners.png
-├── 📁 notebooks
-│   └── 📄 exploration.ipynb
 ├── 📁 nova
 │   ├── 📁 _interfaces
 │   │   ├── 📝 README.es.md
@@ -71,8 +69,8 @@
 │   │   ├── 🐍 _optimizer.py
 │   │   └── 📄 _optimizer.pyi
 │   ├── 📁 _internal
-│   │   ├── 📝 README.en.md
 │   │   ├── 📝 README.es.md
+│   │   ├── 📝 README.md
 │   │   ├── 🐍 _binding.py
 │   │   └── 🐍 _generators.py
 │   ├── 📁 _typing
@@ -241,8 +239,8 @@
 │   ├── 📁 serialization
 │   │   ├── 🐍 test_load.py
 │   │   └── 🐍 test_save.py
-│   ├── 📝 README.en.md
 │   ├── 📝 README.es.md
+│   ├── 📝 README.md
 │   ├── 🐍 test_api.py
 │   ├── 🐍 test_binding_system.py
 │   ├── 🐍 test_conversion.py
@@ -255,54 +253,13 @@
 │   ├── 🐍 test_mnist_loader.py
 │   ├── 🐍 test_registry.py
 │   └── 🐍 test_timing_decorators.py
-├── 📁 tutorials
-│   ├── 📁 00_philosophy
-│   │   ├── 📝 design_goals.md
-│   │   ├── 🐍 gradients_are_graphs.py
-│   │   ├── 🐍 tensors_are_values.py
-│   │   └── 📝 why_nova.md
-│   ├── 📁 01_basics
-│   │   ├── 🐍 broadcasting.py
-│   │   ├── 🐍 common_pitfalls.py
-│   │   ├── 🐍 creation_and_dtypes.py
-│   │   ├── 🐍 indexing_and_views.py
-│   │   └── 🐍 tensors.py
-│   ├── 📁 02_autograd
-│   │   ├── 🐍 backward_basics.py
-│   │   ├── 🐍 computational_graph.py
-│   │   ├── 🐍 grad_accumulation.py
-│   │   ├── 🐍 grad_debugging.py
-│   │   ├── 🐍 no_grad_mode.py
-│   │   └── 🐍 requires_grad.py
-│   ├── 📁 03_nn
-│   │   ├── 🐍 batchnorm_and_dropout.py
-│   │   ├── 🐍 conv2d_step_by_step.py
-│   │   ├── 🐍 linear_and_activation.py
-│   │   ├── 🐍 modules_and_parameters.py
-│   │   ├── 🐍 train_vs_eval.py
-│   │   └── 🐍 weight_initialization.py
-│   ├── 📁 04_training
-│   │   ├── 🐍 gradient_clipping.py
-│   │   ├── 🐍 lr_schedulers.py
-│   │   ├── 🐍 optimizers_explained.py
-│   │   ├── 🐍 saving_and_loading.py
-│   │   └── 🐍 training_loop_from_scratch.py
-│   ├── 📁 05_advanced
-│   │   ├── 🐍 custom_autograd_function.py
-│   │   ├── 🐍 grad_checking.py
-│   │   ├── 🐍 hooks_and_profiling.py
-│   │   ├── 🐍 numerical_stability.py
-│   │   └── 📝 performance_notes.md
-│   └── 📁 06_comparison
-│       ├── 🐍 api_comparison_with_torch.py
-│       └── 📝 design_tradeoffs.md
 ├── ⚙️ .gitignore
 ├── 📝 CHANGELOG.es.md
 ├── 📝 CHANGELOG.md
-├── 📝 CONTRIBUTING.en.md
+├── 📝 CONTRIBUTING.es.md
 ├── 📝 CONTRIBUTING.md
 ├── 📄 LICENCE
-├── 📝 README.en.md
+├── 📝 README.es.md
 ├── 📝 README.md
 ├── 📝 Tree.md
 ├── 🐍 main.py
