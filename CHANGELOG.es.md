@@ -147,17 +147,6 @@ La versión 4.0.0 representa una **reescritura completa** de NovaNN, transformá
   - Análisis de memoria y overhead computacional
   - Scripts de reporte y visualización
 
-#### Tutoriales
-
-- **Directorio `tutorials/`** con ruta de aprendizaje progresiva:
-  - `00_philosophy/`: Filosofía y diseño del framework
-  - `01_basics/`: Tensors, broadcasting, indexing, dtypes
-  - `02_autograd/`: Autograd, backward, computational graph
-  - `03_nn/`: Módulos, capas, parámetros, inicialización
-  - `04_training/`: Optimizadores, schedulers, training loops
-  - `05_advanced/`: Custom autograd functions, hooks, profiling
-  - `06_comparison/`: Comparaciones con PyTorch
-
 #### Documentación
 
 - **READMEs modulares** para cada submódulo con:
@@ -340,7 +329,7 @@ class Parameter(Tensor):
 #### Utilidades Removidas
 
 - ❌ `utils/gradient_checking/numerical.py` → movido a `utils/grad_checking.py` con mejor API
-- ❌ `utils/visualizations/visualization.py` → reemplazado por `utils/visualization.py` más general
+- ❌ `utils/visualizations/visualization.py` → Eliminado. imagenes generadas por `benchmarks/`
 - ❌ `utils/log_config/logger.py` → reemplazado por `utils/logger.py` con mejor configuración
 
 #### Dependencias
@@ -494,7 +483,7 @@ class Parameter(Tensor):
 | **Autograd**        | ❌ Manual       | ✅ Automático dinámico |
 | **API**             | Custom          | PyTorch-style          |
 | **Tensors**         | Simple wrapper  | Clase completa con ops |
-| **Operaciones**     | ~20             | 200+                   |
+| **Operaciones**     | ~20             | 80+                    |
 | **Módulos**         | Básicos         | Completos + Lazy       |
 | **Schedulers**      | ❌              | ✅ 3 tipos             |
 | **Métricas**        | 3 básicas       | 8 + averaging          |
@@ -502,4 +491,3 @@ class Parameter(Tensor):
 | **Documentación**   | 1 README enorme | READMEs modulares      |
 | **Cobertura tests** | 95%             | 87% (código 5x mayor)  |
 | **Benchmarks**      | ❌              | ✅ vs PyTorch          |
-| **Tutoriales**      | ❌              | ✅ 6 niveles           |
