@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 1/31/2026, 2:38:34 PM
+**Generated:** 2/1/2026, 12:50:09 AM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -194,6 +194,15 @@
 │   │   ├── 🐍 save.py
 │   │   └── 📄 save.pyi
 │   ├── 📁 utils
+│   │   ├── 📁 data
+│   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 🐍 dataloader.py
+│   │   │   ├── 🐍 dataset.py
+│   │   │   └── 🐍 preprocessing.py
+│   │   ├── 📁 datasets
+│   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 🐍 fashion.py
+│   │   │   └── 🐍 mnist.py
 │   │   ├── 📁 decorators
 │   │   │   ├── 🐍 __init__.py
 │   │   │   ├── 🐍 memory_usage.py
@@ -245,12 +254,14 @@
 │   ├── 🐍 test_binding_system.py
 │   ├── 🐍 test_conversion.py
 │   ├── 🐍 test_creation_and_casting.py
+│   ├── 🐍 test_dataset.py
 │   ├── 🐍 test_fashion_loader.py
 │   ├── 🐍 test_hooks.py
 │   ├── 🐍 test_loader.py
 │   ├── 🐍 test_memory_utils.py
 │   ├── 🐍 test_metrics.py
 │   ├── 🐍 test_mnist_loader.py
+│   ├── 🐍 test_preprocessing.py
 │   ├── 🐍 test_registry.py
 │   └── 🐍 test_timing_decorators.py
 ├── ⚙️ .gitignore
