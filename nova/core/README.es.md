@@ -1,91 +1,85 @@
 # Módulo `core`
 
-El módulo **`core/`** contiene la configuración central y constantes del framework NovaNN. Gestiona variables de entorno, rutas de datasets y configuración del sistema de logging.
+El módulo **`core/`** contiene la configuración central y las constantes del framework NovaNN. Gestiona las rutas de datasets, URLs de descarga y la configuración del sistema de logging.
 
 ## Estructura
 
 ```
 core/
-├── __init__.py      # Exporta todas las constantes y configuración
-└── constants.py     # Define constantes y carga variables de entorno
+├── __init__.py      # Exporta todas las constantes y la configuración
+└── constants.py     # Define las constantes usando pathlib
 ```
 
 ## Archivos
 
 ### `constants.py`
 
-Carga variables de entorno usando `dotenv` y expone constantes configurables para el framework.
+Define todas las constantes del framework usando `pathlib.Path`. Todas las rutas de datasets se resuelven en `~/.novann/datasets/`, garantizando una ubicación consistente independientemente del entorno.
 
-**Variables de entorno - Datasets:**
+**Estructura del proyecto:**
 
-- **Fashion-MNIST:**
-  - `FASHION_TRAIN_DATA_PATH`: Ruta al conjunto de entrenamiento
-  - `EXPORTATION_FASHION_TRAIN_DATA_PATH`: Ruta para exportación de datos procesados
-  - `FASHION_TEST_DATA_PATH`: Ruta al conjunto de prueba
-  - `FASHION_VALIDATION_DATA_PATH`: Ruta al conjunto de validación
+- `PROJECT_ROOT`: Ruta absoluta a la raíz del proyecto NovaNN, resuelta relativa a la ubicación de `constants.py`.
+- `DATA_ROOT`: Directorio base para todos los datasets (`~/.novann/datasets/`).
 
-- **MNIST:**
-  - `MNIST_TRAIN_DATA_PATH`: Ruta al conjunto de entrenamiento
-  - `EXPORTATION_MNIST_TRAIN_DATA_PATH`: Ruta para exportación de datos procesados
-  - `MNIST_TEST_DATA_PATH`: Ruta al conjunto de prueba
-  - `MNIST_VALIDATION_DATA_PATH`: Ruta al conjunto de validación
+**Rutas de datasets — MNIST:**
 
-**Variables de entorno - Logging:**
+- `MNIST_DIR`: `~/.novann/datasets/Mnist/`
+- `MNIST_TRAIN_DATA_PATH`: Ruta al conjunto de entrenamiento completo (`mnist_train.parquet`)
+- `EXPORTATION_MNIST_TRAIN_DATA_PATH`: Ruta al conjunto de entrenamiento tras el split de validación (`mnist_train_e.parquet`)
+- `MNIST_TEST_DATA_PATH`: Ruta al conjunto de prueba (`mnist_test.parquet`)
+- `MNIST_VALIDATION_DATA_PATH`: Ruta al conjunto de validación (`mnist_validation.parquet`)
 
-- `LOG_FILE`: Ruta al archivo de logs
+**Rutas de datasets — Fashion-MNIST:**
+
+- `FASHION_DIR`: `~/.novann/datasets/FashionMnist/`
+- `FASHION_TRAIN_DATA_PATH`: Ruta al conjunto de entrenamiento completo (`fashion-mnist_train.parquet`)
+- `EXPORTATION_FASHION_TRAIN_DATA_PATH`: Ruta al conjunto de entrenamiento tras el split de validación (`fashion-mnist_train_e.parquet`)
+- `FASHION_TEST_DATA_PATH`: Ruta al conjunto de prueba (`fashion-mnist_test.parquet`)
+- `FASHION_VALIDATION_DATA_PATH`: Ruta al conjunto de validación (`fashion-mnist_validation.parquet`)
+
+**URLs de datasets:**
+
+- `MNIST_URLS`: URLs de descarga para los archivos IDX oficiales de MNIST (imágenes y etiquetas de entrenamiento y prueba).
+- `FASHION_URLS`: URLs de descarga para los archivos IDX oficiales de Fashion-MNIST (imágenes y etiquetas de entrenamiento y prueba).
+
+**Configuración del Logger:**
+
+- `LOG_FILE`: Ruta al archivo de logs (`PROJECT_ROOT/logs/logs.log`)
 - `LOGGER_DEFAULT_FORMAT`: Formato de los mensajes de log
-- `LOGGER_DEFAULT_LEVEL`: Nivel de logging por defecto (DEBUG, INFO, WARNING, ERROR)
-- `LOGGER_DATE_FORMAT`: Formato de las fechas en los logs
+- `LOGGER_DATE_FORMAT`: Formato de fecha usado en los logs
 
-**Variables de entorno - Sistema:**
+**Otros:**
 
-- `NATIVE_YAML`: Ruta al archivo `native_functions.yaml` para el sistema de binding
+- `YAML_FILE_PATH`: Ruta a `native_functions.yaml`, utilizado por el sistema de bindings.
 
 ### `__init__.py`
 
-Exporta todas las constantes definidas en `constants.py`, proporcionando una API limpia para acceder a la configuración desde cualquier parte del framework.
+Exporta todas las constantes definidas en `constants.py`, proporcionando una API limpia de importación desde cualquier parte del framework.
 
 ## Uso
 
-### Configuración con archivo `.env`
-
-Crea un archivo `.env` en la raíz del proyecto:
-
-```bash
-# Datasets
-FASHION_TRAIN_DATA_PATH=/path/to/fashion_mnist/train
-FASHION_TEST_DATA_PATH=/path/to/fashion_mnist/test
-MNIST_TRAIN_DATA_PATH=/path/to/mnist/train
-MNIST_TEST_DATA_PATH=/path/to/mnist/test
-
-# Logging
-LOG_FILE=logs/nova.log
-LOGGER_DEFAULT_FORMAT=%(asctime)s - %(name)s - %(levelname)s - %(message)s
-LOGGER_DEFAULT_LEVEL=INFO
-LOGGER_DATE_FORMAT=%Y-%m-%d %H:%M:%S
-
-# Sistema
-NATIVE_YAML=nova/autograd/_ops/native/native_functions.yaml
-```
-
-### Acceso a constantes
+### Acceder a las rutas de datasets
 
 ```python
-from nova.core import (
-    MNIST_TRAIN_DATA_PATH,
-    LOG_FILE,
-    LOGGER_DEFAULT_LEVEL
-)
+from nova.core import MNIST_TRAIN_DATA_PATH, MNIST_TEST_DATA_PATH
 
-# Usar rutas de datasets
-train_path = MNIST_TRAIN_DATA_PATH
+print(MNIST_TRAIN_DATA_PATH)
+# ~/.novann/datasets/Mnist/mnist_train.parquet
 
-# Configurar logging
+print(MNIST_TEST_DATA_PATH)
+# ~/.novann/datasets/Mnist/mnist_test.parquet
+```
+
+### Acceder a la configuración del logger
+
+```python
+from nova.core import LOG_FILE, LOGGER_DEFAULT_FORMAT, LOGGER_DATE_FORMAT
 import logging
+
 logging.basicConfig(
     filename=LOG_FILE,
-    level=LOGGER_DEFAULT_LEVEL,
-    format=LOGGER_DEFAULT_FORMAT
+    format=LOGGER_DEFAULT_FORMAT,
+    datefmt=LOGGER_DATE_FORMAT,
 )
 ```
 
@@ -93,39 +87,24 @@ logging.basicConfig(
 
 El módulo `core` es utilizado internamente por:
 
-- **`utils.logger`**: Lee configuración de logging
-- **`_internal._binding`**: Lee `YAML_FILE_PATH` para cargar `native_functions.yaml`
-- **Scripts de entrenamiento**: Acceden a rutas de datasets
+- **`utils.logger`**: Lee las constantes de configuración del logging.
+- **`utils.datasets.mnist`**: Lee las constantes de rutas de MNIST para cargar o disparar descargas.
+- **`utils.datasets.fashion_mnist`**: Lee las constantes de rutas de Fashion-MNIST de la misma manera.
+- **`_internal._binding`**: Lee `YAML_FILE_PATH` para cargar `native_functions.yaml`.
 
 ## Diseño
 
-El módulo `core` sigue estos principios:
+- **Centralización**: Todas las rutas y la configuración viven en un solo archivo.
+- **Predecibilidad**: Las rutas siempre se resuelven en `~/.novann/datasets/`, independientemente de dónde se instale el framework.
+- **Sin dependencias externas**: La configuración se define directamente usando `pathlib.Path`. No se requieren archivos `.env` ni variables de entorno.
+- **Separación de responsabilidades**: `constants.py` define, `__init__.py` exporta.
 
-- **Centralización**: Todas las constantes y configuración en un solo lugar
-- **Flexibilidad**: Variables configurables vía `.env` sin modificar código
-- **Type hints**: Todas las constantes tipadas como `Optional[str]`
-- **Separación de concerns**: `constants.py` define, `__init__.py` exporta
-- **Defaults seguros**: Variables pueden ser `None` si no están definidas
+## Best practices
 
-## Variables opcionales
-
-Todas las constantes son `Optional[str]`, lo que permite:
-
-```python
-from nova.core import MNIST_TRAIN_DATA_PATH
-
-if MNIST_TRAIN_DATA_PATH is None:
-    print("⚠️ MNIST path not configured. Using default.")
-    MNIST_TRAIN_DATA_PATH = "./data/mnist/train"
-```
-
-## Buenas prácticas
-
-1. **No hardcodear rutas**: Siempre usar constantes de `core`
-2. **Validar antes de usar**: Verificar que las rutas existan
-3. **Documentar variables nuevas**: Añadir comentarios en `constants.py`
-4. **Mantener `.env` local**: Nunca commitear `.env` al repositorio
+1. **No hardcodear rutas**: Siempre importar desde `nova.core`.
+2. **Validar antes de usar**: Verificar que las rutas existan antes de leer archivos.
+3. **Exportar nuevas constantes**: Cualquier constante añadida a `constants.py` debe exportarse también en `__init__.py`.
 
 ---
 
-> El módulo `core` es la base de configuración de NovaNN. Para añadir nuevas constantes, editarlas en `constants.py` y exportarlas en `__init__.py`.
+> El módulo `core` es la fundación de configuración de NovaNN. Para añadir nuevas constantes, defínelas en `constants.py` y exórtaelas en `__init__.py`.
