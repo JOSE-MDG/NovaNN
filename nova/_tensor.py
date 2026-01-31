@@ -917,7 +917,6 @@ class Tensor(TensorBase):
                 )
             else:
                 gradient = np.asarray(gradient, copy=True)
-
         try:
             _backward(self, gradient=gradient, retain_graph=retain_graph)
         except Exception as e:
@@ -993,12 +992,12 @@ class Tensor(TensorBase):
 
                 value_str = re.sub(r"(?<=\d)\s+(?=-?\d)", " ", value_str)
 
-        result = f"tensor({value_str}"
+        result = f"tensor({value_str}" if self.numel() != 1 else f"tensor({value_str}"
 
         if self.grad_fn is not None:
-            grad_fn_name = type(self.grad_fn).__name__ if self.grad_fn else None
+            grad_fn_name = repr(self.grad_fn) if self.grad_fn else None
             if grad_fn_name:
-                result += f", grad_fn=<{grad_fn_name}>"
+                result += f", grad_fn={grad_fn_name}"
 
         if self.requires_grad:
             result += ", requires_grad=True"
