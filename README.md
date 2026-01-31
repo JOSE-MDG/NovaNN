@@ -8,8 +8,8 @@
 
 ## 🌐 Available Languages
 
-- 🇬🇧 [English](README.en.md)
-- 🇪🇸 [Español](README.md)
+- 🇬🇧 [English](README.md)
+- 🇪🇸 [Español](README.es.md)
 
 ## What is NovaNN?
 
