@@ -103,6 +103,9 @@ The **NovaNN** framework is built using the following main technologies and libr
   - `seaborn`: Aesthetic enhancement of statistical visualizations
   - `scikit-learn`: Classical Machine Learning tools and utilities
   - `pyarrow`: Efficient backend for pandas DataFrames (reduces memory usage)
+  - `pyyaml`: to manipulate YAML files
+  - `requests`: To make web queries
+  - `tqdm`: To show progress bar
 - **Development Tools**:
   - `pytest`: Unit testing framework
   - `pytest-cov`: Code coverage in tests

@@ -75,9 +75,6 @@ Esta estructura favorece tanto la extensibilidad como la claridad del flujo de t
   - Regresión
   - Redes convolucionales
 
-- **`notebooks/`**  
-  Incluye notebooks de Jupyter utilizados para el preprocesamiento de datos y la generación de conjuntos de entrenamiento, validación y test a partir de los datasets originales.
-
 - **[`nova/`](./nova/README.es.md)**
   Contiene el **núcleo completo del framework NovaNN**.  
   Aquí se implementan los tensores, el motor de autograd, las operaciones matemáticas, los módulos de redes neuronales, optimizadores, métricas, serialización y utilidades internas.  
@@ -106,6 +103,9 @@ El framework **NovaNN** está construido utilizando las siguientes tecnologías 
   - `seaborn`: Mejora estética de visualizaciones estadísticas
   - `scikit-learn`: Herramientas de Machine Learning clásico y utilidades
   - `pyarrow`: Backend eficiente para DataFrames de pandas (reduce uso de memoria)
+  - `pyyaml`: Para manipular archivos YAML
+  - `requests`: Para hacer consultas web
+  - `tqdm`: Para mostar barras de progreso
 - **Herramientas de desarrollo**:
   - `pytest`: Framework de testing unitario
   - `pytest-cov`: Cobertura de código en tests
