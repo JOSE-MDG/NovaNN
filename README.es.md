@@ -252,7 +252,11 @@ poetry run python examples/conv_example.py
 poetry run python examples/regresion.py
 ```
 
-### 8. Ejecutar todos los tests
+## 🧪 Testing
+
+El framework incluye una suite completa de tests unitarios en el directorio [`tests/`](./tests/) que verifican la correcta implementación de todos los componentes cubriendo un **87%** del modulo. Para más información vaya a [Tests unitarios](./tests/README.es.md)
+
+### Ejecutar todos los tests
 
 ```bash
 # Todos los tests
@@ -268,13 +272,9 @@ poetry run pytest --cov
 poetry run pytest --cov --cov-report=html
 ```
 
-## 🧪 Testing
-
-El framework incluye una suite completa de tests unitarios en el directorio [`tests/`](./tests/) que verifican la correcta implementación de todos los componentes cubriendo un **87%** del modulo. Para más información vaya a [Tests unitarios](./tests/README.md)
-
 ## 🤝 Contribución
 
-Para saber como contribuir a **NovaNN** puede a [contribuciones](./CONTRIBUTING.md)
+Para saber como contribuir a **NovaNN** puede a [contribuciones](./CONTRIBUTING.es.md)
 
 ## 📄 Licencia
 
