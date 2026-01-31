@@ -4,7 +4,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen?style=flat-square)]()
 [![Pytest](https://img.shields.io/badge/framework-pytest-orange?style=flat-square)]()
 
-Suite completa de tests para validar todos los componentes de NovaNN, desde operaciones de autograd hasta capas de redes neuronales y optimizadores.
+Suite completa de tests para validar todos los componentes de NovaNN, desde operaciones de autograd hasta capas de redes neuronales y optimizadores. Estas suite cuenta con +700 tests unitarios
 
 ## Estructura de Tests
 
@@ -673,6 +673,97 @@ Tests completos del cargador de Fashion-MNIST:
 - Overhead de cargar 3 splits (<1000MB)
 - Múltiples cargas sin memory leaks (varianza <30%)
 
+### `test_preprocessing.py`
+
+Tests del pipeline de preprocesamiento y descarga de datos:
+
+**Normalización (`TestNormalize`):**
+
+- Normalización estándar con arrays de numpy y tensores de Nova
+- Valores de entrada/salida conocidos
+- Guarda epsilon contra std cero (sin NaN/Inf)
+- Arrays 2D (normalización por feature)
+- Media y std escalares
+
+**Split de features y labels (`TestSplitFeaturesAndLabels`):**
+
+- Split básico con columna `label` por defecto
+- Exclusión de la columna de labels de las features
+- Nombre personalizado de columna de labels
+- Fallback a la primera columna cuando la columna de labels no existe
+- Dtype personalizado para features
+- DataFrame grande (100 muestras, 784 features)
+
+**Split de subconjunto train/validación (`TestSplitValidationSubset`):**
+
+- Split básico con arrays de numpy y tensores de Nova
+- Sin filtración de datos entre conjuntos train y val
+- Reproducibilidad con `random_state`
+- La estratificación preserva la distribución de clases en datos desbalanceados
+- Factores inválidos (0, 1, negativos) lanzan `ValueError`
+- Dimensiones de features preservadas tras el split
+
+**Validación de DataFrame (`TestValidateDataframe`):**
+
+- DataFrame válido pasa sin error
+- `None` y DataFrames vacíos lanzan `ValueError`
+- Aplicación de restricción de mínimo de filas
+- Detección de columnas con todos los valores nulos
+
+**Funciones de guardado (`TestSaveFunctions`):**
+
+- Guardado en CSV, Parquet y Excel con verificación de contenido (roundtrip)
+- Creación automática de directorios anidados
+- DataFrame vacío lanza `SaveError`
+- Límite de filas de Excel (1,048,576) lanza `SaveError`
+- Limpieza de archivos parciales en caso de fallo
+
+**Despachador de guardado (`TestSaveDataframe`):**
+
+- Enrutamiento correcto para los formatos `csv`, `parquet` y `xlsx`
+- Formato no soportado lanza `ValueError`
+
+**Split de dataset train/validación + guardado (`TestSplitValidationDataset`):**
+
+- Split y guardado en CSV, Parquet y Excel
+- La estratificación preserva la distribución de clases
+- Factor inválido, columna de labels inexistente y método de guardado inválido lanzan `ValueError`
+- DataFrame vacío lanza `ValueError`
+- Reproducibilidad con `random_state`
+
+**Helper de directorio raíz (`TestCheckRoot`):**
+
+- Creación automática de directorios padre
+- Sin error en directorios ya existentes
+
+**Validación de archivos IDX (`TestValidateIdxFile`):**
+
+- Archivos válidos de imágenes (magic `2051`) y labels (magic `2049`)
+- Magic number incorrecto retorna `False`
+- Archivos inexistentes y corruptos retornan `False`
+
+**Lectores de archivos IDX binarios (`TestReadIdxFiles`):**
+
+- Shape y dtype correctos para imágenes `(N, 28, 28)` y labels `(N,)`
+- Magic number incorrecto lanza `ValueError`
+- Dimensiones no 28x28 lanzan `ValueError`
+- Datos de píxeles y labels truncados lanzan `ValueError`
+- Archivo gzip corrupto lanza `ValueError`
+- Valores de píxeles preservados en el ciclo de escritura/lectura
+
+**Lógica de reintentos de descarga (`TestDownloadWithRetry`):**
+
+- Descarga exitosa guarda el archivo correctamente
+- Todos los reintentos agotados lanza `DatasetDownloadError`
+- Descarga vacía activa un reintento
+
+**Orquestración de descarga (`TestDownloadDataset`):**
+
+- Dataset y formato no soportados lanzan `ValueError`
+- Archivos existentes se omiten (sin descarga)
+- `force_redownload=True` re-descarga a pesar de archivos existentes
+- Estructura de directorio correcta para Fashion-MNIST
+
 ### `test_hooks.py`
 
 Tests del sistema de hooks:
@@ -839,6 +930,10 @@ Adaptadas según estabilidad numérica:
 @pytest.mark.parametrize("optimizer", [SGD, Adam, AdamW, RMSprop])
 def test_with_all_optimizers(optimizer):
     # Test que se ejecuta con cada optimizador
+
+@pytest.fixture
+def sample_dataframe():
+    # preparan un entorno consistente, reutilizable y automatizado
 ```
 
 ### Reproducibilidad

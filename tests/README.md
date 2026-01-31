@@ -4,7 +4,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen?style=flat-square)]()
 [![Pytest](https://img.shields.io/badge/framework-pytest-orange?style=flat-square)]()
 
-Complete test suite to validate all NovaNN components, from autograd operations to neural network layers and optimizers.
+Complete test suite to validate all NovaNN components, from autograd operations to neural network layers and optimizers. This suite include +700 unit tests
 
 ## Test Structure
 
@@ -673,6 +673,97 @@ Complete tests of the Fashion-MNIST loader:
 - Overhead of loading 3 splits (<1000MB)
 - Multiple loads without memory leaks (variance <30%)
 
+### `test_preprocessing.py`
+
+Tests of the data preprocessing and download pipeline:
+
+**Normalization (`TestNormalize`):**
+
+- Standard normalization with numpy arrays and Nova tensors
+- Known input/output values
+- Epsilon guard against zero std (no NaN/Inf)
+- 2D arrays (per-feature normalization)
+- Scalar mean and std
+
+**Feature/label split (`TestSplitFeaturesAndLabels`):**
+
+- Basic split with default `label` column
+- Exclusion of label column from features
+- Custom label column name
+- Fallback to first column when label column is missing
+- Custom dtype for features
+- Large DataFrame (100 samples, 784 features)
+
+**Train/validation subset split (`TestSplitValidationSubset`):**
+
+- Basic split with numpy arrays and Nova tensors
+- No data leakage between train and val sets
+- Reproducibility with `random_state`
+- Stratification preserves class distribution on imbalanced data
+- Invalid factors (0, 1, negative) raise `ValueError`
+- Feature dimensions preserved after split
+
+**DataFrame validation (`TestValidateDataframe`):**
+
+- Valid DataFrame passes without error
+- `None` and empty DataFrames raise `ValueError`
+- Minimum row constraint enforcement
+- Detection of all-null columns
+
+**Save functions (`TestSaveFunctions`):**
+
+- CSV, Parquet, and Excel save with content verification (roundtrip)
+- Automatic creation of nested directories
+- Empty DataFrame raises `SaveError`
+- Excel row limit (1,048,576) raises `SaveError`
+- Partial file cleanup on failure
+
+**Save dispatcher (`TestSaveDataframe`):**
+
+- Correct routing for `csv`, `parquet`, and `xlsx` formats
+- Unsupported format raises `ValueError`
+
+**Train/validation dataset split + save (`TestSplitValidationDataset`):**
+
+- Split and save in CSV, Parquet, and Excel
+- Stratification preserves class distribution
+- Invalid factor, missing label column, and invalid save method raise `ValueError`
+- Empty DataFrame raises `ValueError`
+- Reproducibility with `random_state`
+
+**Root directory helper (`TestCheckRoot`):**
+
+- Automatic creation of parent directories
+- No error on already existing directories
+
+**IDX file validation (`TestValidateIdxFile`):**
+
+- Valid image (magic `2051`) and label (magic `2049`) files
+- Wrong magic number returns `False`
+- Nonexistent and corrupted files return `False`
+
+**IDX binary readers (`TestReadIdxFiles`):**
+
+- Correct shape and dtype for images `(N, 28, 28)` and labels `(N,)`
+- Wrong magic number raises `ValueError`
+- Non-28x28 dimensions raise `ValueError`
+- Truncated pixel and label data raise `ValueError`
+- Corrupted gzip file raises `ValueError`
+- Pixel values preserved through write/read cycle
+
+**Download retry logic (`TestDownloadWithRetry`):**
+
+- Successful download saves file correctly
+- All retries exhausted raises `DatasetDownloadError`
+- Empty download triggers retry
+
+**Download orchestration (`TestDownloadDataset`):**
+
+- Unsupported dataset and format raise `ValueError`
+- Existing files are skipped (no download)
+- `force_redownload=True` re-downloads despite existing files
+- Correct directory structure for Fashion-MNIST
+
 ### `test_hooks.py`
 
 Tests of the hook system:
@@ -839,6 +930,10 @@ Adapted according to numerical stability:
 @pytest.mark.parametrize("optimizer", [SGD, Adam, AdamW, RMSprop])
 def test_with_all_optimizers(optimizer):
     # Test runs with each optimizer
+
+@pytest.fixture
+def sample_dataframe():
+    # prepare a consistent, reusable and automated environment
 ```
 
 ### Reproducibility
