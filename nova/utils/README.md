@@ -10,8 +10,8 @@ The module is organized into:
 
 - **Main files** with general-purpose utilities
 - **[`decorators/`](#decorators-submodule)**: Decorators for registration, timing, and other functionalities
-- **`datasets/`**: Loaders and utilities for common datasets (MNIST, Fashion-MNIST)
-- **`data/`**: Base classes and utilities for data handling (Dataset, DataLoader, preprocessing)
+- **[`datasets/`](#datasets-submodule)**: Loaders and utilities for common datasets (MNIST, Fashion-MNIST)
+- **[`data/`](#data-submodule)**: Base classes and utilities for data handling (Dataset, DataLoader, preprocessing)
 
 ## Main Files
 
@@ -68,14 +68,6 @@ logger.info("Epoch completed", epoch=10, loss=0.123, acc=0.95)
 
 # Change level dynamically
 logger.set_level(LoggerLevel.WARNING)  # Only shows WARNING and ERROR
-```
-
-**Configuration from `.env`:**
-
-```env
-LOG_FILE=/path/to/logs/nova_nn.log
-LOGGER_DEFAULT_FORMAT=%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s - %(message)s
-LOGGER_DATE_FORMAT=%Y-%m-%d %H:%M:%S
 ```
 
 **When to use:**
@@ -895,65 +887,108 @@ for epoch in range(5):
 
 ### `preprocessing.py`
 
-Utilities for data preprocessing.
+Preprocessing utilities for data normalization, splitting, saving, and downloading datasets.
 
-**Functions:**
+**Functions**:
 
-#### `normalize(x_data, x_mean, x_std)`
+- `normalize(x_data, x_mean, x_std)`: Normalizes data using mean and standard deviation. Supports NumPy arrays and Nova Tensors. Includes an epsilon guard (`1e-8`) to avoid division by zero.
 
-Normalizes data using mean and standard deviation.
+- `split_features_and_labels(df, label_column, dtype)`: Splits a DataFrame into feature and label arrays. If `label_column` doesn't exist, the first column is used as labels. Features default to `float32`, labels are always `int64`.
 
-**Formula:**
+- `split_validation_subset(x, y, factor, shuffle, stratify, random_state)`:
+  Splits arrays or Tensors into train and validation subsets. If inputs are Nova Tensors, they are converted internally and returned as Tensors. Raises `ValueError` if `factor` is not in `(0, 1)`.
 
-```text
-x_normalized = (x - mean) / std
-```
+- `split_validation_dataset(dataset, label, factor, root, save_method, ...)`: Splits a DataFrame into train and validation sets and saves them to disk. Supports `csv`, `parquet`, and `excel` formats.
 
-**Example:**
+- `save_to_csv(df, root)` / `save_to_parquet(df, root)` / `save_to_excel(df, root)`: Save a DataFrame to the specified format. Validates the DataFrame before writing, creates directories if needed, and cleans up partial files on failure.
+
+- `download_dataset(dataset, root, format, force_redownload, validate)`: Downloads MNIST or Fashion-MNIST from their official servers and converts them to a tabular format. Each image is flattened to 784 pixel columns. Already converted files are skipped unless `force_redownload=True`.
+
+**Usage examples:**
+
+**Example 1: normalize data**
 
 ```python
 from nova.utils.data import normalize
+import numpy as np
 
-x_train = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
-
-# Calculate training set statistics
-mean = x_train.mean(axis=0)
-std = x_train.std(axis=0)
-
-# Normalize train and test with same statistics
-x_train_norm = normalize(x_train, mean, std)
-x_test_norm = normalize(x_test, mean, std)
+x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+x_normalized = normalize(x, x_mean=np.mean(x), x_std=np.std(x))
 ```
 
-#### `split_features_and_labels(df, label_column='label')`
-
-Separates features and labels from a DataFrame.
-
-**Features:**
-
-- Automatically detects label column
-- Converts features to float32, labels to int32
-- Fallback: assumes first column as labels if "label" column doesn't exist
-
-**Example:**
+**Example 2: split features and labels**
 
 ```python
-import pandas as pd
 from nova.utils.data import split_features_and_labels
+import pandas as pd
 
-df = pd.read_csv("data.csv")
-# Columns: label, feature1, feature2, ...
-
+df = pd.DataFrame({'label': [0, 1], 'pixel0': [128, 255], 'pixel1': [64, 32]})
 x, y = split_features_and_labels(df)
-# x: (N, num_features) float32
-# y: (N,) int32
+# x.shape -> (2, 2), dtype float32
+# y.shape -> (2,),   dtype int64
 ```
 
-**When to use:**
+**Example 3: Split validation subset**
 
-- When loading tabular datasets (CSV)
-- For consistent normalization between train/test
-- Data pre-processing in pipelines
+```python
+from nova.utils.data import split_validation_subset
+import numpy as np
+
+x = np.random.rand(1000, 784)
+y = np.random.randint(0, 10, 1000)
+
+x_train, y_train, x_val, y_val = split_validation_subset(
+    x, y, factor=0.2, stratify=True, random_state=8
+)
+# x_train.shape -> (800, 784)
+# x_val.shape   -> (200, 784)
+```
+
+**Example 1: Split and save validation dataset**
+
+```python
+from nova.utils.data import split_validation_dataset
+import pandas as pd
+
+df = pd.read_parquet("data/mnist_train.parquet")
+
+train, val = split_validation_dataset(
+    df,
+    label="label",
+    factor=0.16,
+    root="data/Mnist",
+    save_method="parquet",
+    set_name="mnist_train_e",
+    val_name="mnist_validation",
+    random_state=8,
+    stratify=True,
+)
+```
+
+**Example 1: Save DtaFrame**
+
+```python
+from nova.utils.data import save_to_csv, save_to_parquet, save_to_excel
+import pandas as pd
+
+df = pd.DataFrame({'label': [0, 1], 'pixel0': [128, 255]})
+
+save_to_csv(df, root="output/data.csv")
+save_to_parquet(df, root="output/data.parquet")
+save_to_excel(df, root="output/data.xlsx")
+```
+
+**Example 1: Download datasets from web-sites**
+
+```python
+from nova.utils.data import download_dataset
+
+# Download as parquet (recommended)
+download_dataset("mnist", root="~/.novann/datasets", format="parquet")
+
+# Force redownload
+download_dataset("fashion-mnist", root="~/.novann/datasets", format="parquet", force_redownload=True)
+```
 
 ## `datasets/` Submodule
 
@@ -961,12 +996,14 @@ Pre-configured loaders for common datasets.
 
 ### `mnist.py` and `fashion.py`
 
-Provide functions to load **MNIST** and **Fashion-MNIST** from CSVs.
+Provide functions to load **MNIST** and **Fashion-MNIST** from `.parquet`.
 
 **Functions:**
 
 - `load_mnist_data(...)`: Loads MNIST
+- `load_mnist_defatul()`: Loads MNIST with default arguments
 - `load_fashion_mnist_data(...)`: Loads Fashion-MNIST
+- `load_fashion_mnist_data()`: Loads Fashion-MNIST with default arguments
 
 **Common parameters:**
 
@@ -974,7 +1011,7 @@ Provide functions to load **MNIST** and **Fashion-MNIST** from CSVs.
 - `as_tensor`: If True, converts to nova.Tensor
 - `do_normalize`: If True, normalizes using training set statistics
 - `dtype`: Data type for features
-- `train_path`, `test_path`, `val_path`: Paths to CSVs
+- `train_path`, `test_path`, `val_path`: Paths to save. Defaults `~/.novann/datasets`.
 
 **Returns:**
 
@@ -1035,22 +1072,6 @@ for epoch in range(10):
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-```
-
-**Required configuration in `.env`:**
-
-```env
-# MNIST
-MNIST_TRAIN_DATA_PATH=/path/to/mnist_train.csv
-EXPORTATION_MNIST_TRAIN_DATA_PATH=/path/to/mnist_train_ready.csv
-MNIST_VALIDATION_DATA_PATH=/path/to/mnist_validation_ready.csv
-MNIST_TEST_DATA_PATH=/path/to/mnist_test.csv
-
-# Fashion-MNIST
-FASHION_TRAIN_DATA_PATH=/path/to/fashion_train.csv
-EXPORTATION_FASHION_TRAIN_DATA_PATH=/path/to/fashion_train_ready.csv
-FASHION_VALIDATION_DATA_PATH=/path/to/fashion_validation_ready.csv
-FASHION_TEST_DATA_PATH=/path/to/fashion_test.csv
 ```
 
 ## Integration with other modules
