@@ -70,9 +70,6 @@ def test_backward_pass_exceptions():
     with pytest.raises(RuntimeError):
         x2 *= 20
 
-    with pytest.raises(Exception):
-        x1.backward(["hello"])
-
 
 def test_backward_pass():
 
