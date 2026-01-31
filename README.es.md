@@ -68,14 +68,6 @@ Esta estructura favorece tanto la extensibilidad como la claridad del flujo de t
 
 ### Organización del proyecto
 
-- **`data/`**  
-  Directorio destinado a los datasets utilizados en los ejemplos y experimentos, como **MNIST** y **Fashion-MNIST**.  
-  Debido a su tamaño, los archivos originales no se incluyen en el repositorio y deben descargarse manualmente desde Kaggle:
-  - [Fashion-MNIST (train)](https://www.kaggle.com/datasets/zalando-research/fashionmnist?select=fashion-mnist_train.csv)
-  - [Fashion-MNIST (test)](https://www.kaggle.com/datasets/zalando-research/fashionmnist?select=fashion-mnist_test.csv)
-  - [MNIST (train)](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv?select=mnist_train.csv)
-  - [MNIST (test)](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv?select=mnist_test.csv)
-
 - **`examples/`**  
   Contiene scripts funcionales que muestran el uso del framework en distintos escenarios:
   - Clasificación binaria
@@ -101,53 +93,6 @@ Esta estructura favorece tanto la extensibilidad como la claridad del flujo de t
   - uso de memoria y overhead computacional  
     Este directorio no forma parte del runtime del framework y está pensado exclusivamente para **análisis de rendimiento, validación técnica y estudios comparativos**.
 
-- **[`tutorials/`](./tutorials/)**
-  Contiene una **ruta de aprendizaje progresiva** para comprender NovaNN desde sus fundamentos hasta conceptos avanzados.  
-  Los tutoriales están organizados por niveles y cubren:
-  - filosofía y diseño del framework
-  - uso básico de tensores
-  - funcionamiento interno del autograd
-  - construcción de redes neuronales
-  - entrenamiento, optimización y guardado de modelos
-  - temas avanzados y comparaciones con otros frameworks  
-    Este directorio está orientado tanto a **usuarios del framework** como a **desarrolladores interesados en entender su arquitectura interna**.
-
-  > **Nota**: Es importante verificar la estructura de los datos descargados antes de ejecutar los notebooks, ya que variaciones en el formato pueden provocar errores durante el preprocesamiento.
-
-### Configuración del entorno
-
-Para ejecutar correctamente los ejemplos y experimentos, es necesario crear un archivo **`.env`** en la raíz del proyecto con las siguientes variables de entorno:
-
-#### Fashion-MNIST
-
-- `FASHION_TRAIN_DATA_PATH`
-- `EXPORTATION_FASHION_TRAIN_DATA_PATH`
-- `FASHION_VALIDATION_DATA_PATH`
-- `FASHION_TEST_DATA_PATH`
-
-#### MNIST
-
-- `MNIST_TRAIN_DATA_PATH`
-- `EXPORTATION_MNIST_TRAIN_DATA_PATH`
-- `MNIST_VALIDATION_DATA_PATH`
-- `MNIST_TEST_DATA_PATH`
-
-#### Logging
-
-- `LOG_FILE`
-- `LOGGER_DEFAULT_FORMAT`  
-  Valor por defecto:  
-  `%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s - %(message)s`
-- `LOGGER_DATE_FORMAT`  
-  Valor por defecto:  
-  `%Y-%m-%d %H:%M:%S`
-
-#### YAML (operaciones)
-
-- `NATIVE_YAML`
-
-Estas variables permiten desacoplar la configuración del código, facilitando la portabilidad y el uso del framework en distintos entornos.
-
 ## 🛠️ Tecnologías utilizadas
 
 El framework **NovaNN** está construido utilizando las siguientes tecnologías y librerías principales:
@@ -164,7 +109,6 @@ El framework **NovaNN** está construido utilizando las siguientes tecnologías 
 - **Herramientas de desarrollo**:
   - `pytest`: Framework de testing unitario
   - `pytest-cov`: Cobertura de código en tests
-  - `python-dotenv`: Manejo de variables de entorno desde archivos `.env`
   - `ipykernel`: Kernel de Jupyter para notebooks
   - `black`: Formateador de código para mantener estilo consistente
 - **Herramientas para benchmarks**
@@ -292,33 +236,7 @@ poetry shell
 poetry run python examples/binary_classification.py
 ```
 
-### 6. Configurar variables de entorno
-
-Crea un archivo .env en la raíz del proyecto con las siguientes variables (ajusta las rutas según tu configuración):
-
-```env
-# Rutas para Fashion-MNIST
-FASHION_TRAIN_DATA_PATH=<SU RUTA>/NovaNN/data/FashionMnist/fashion-mnist_train.csv
-EXPORTATION_FASHION_TRAIN_DATA_PATH=<SU RUTA>/data/FashionMnist/fashion_train_ready.csv
-FASHION_VALIDATION_DATA_PATH=<SU RUTA>/data/FashionMnist/fashion_validation_ready.csv
-FASHION_TEST_DATA_PATH=<SU RUTA>/data/FashionMnist/fashion-mnist_test.csv
-
-# Rutas para MNIST
-MNIST_TRAIN_DATA_PATH=<SU RUTA>/data/Mnist/mnist_train.csv
-EXPORTATION_MNIST_TRAIN_DATA_PATH=<SU RUTA>/data/Mnist/mnist_train_ready.csv
-MNIST_VALIDATION_DATA_PATH=<SU RUTA>/data/Mnist/mnist_validation_ready.csv
-MNIST_TEST_DATA_PATH=<SU RUTA>/data/Mnist/mnist_test.csv
-
-# Configuración de logging
-LOG_FILE=<SU RUTA>/logs/nova_nn.log
-LOGGER_DEFAULT_FORMAT=%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s - %(message)s # Puede ser el que usted quiera
-LOGGER_DATE_FORMAT=%Y-%m-%d %H:%M:%S
-
-# YAML operaciones
-NATIVE_YAML=<SU RUTA>/nova/autograd/_ops/native/native_functions.yaml
-```
-
-### 7. Ejecutar ejemplos
+### 6. Ejecutar ejemplos
 
 ```bash
 # Clasificación binaria
