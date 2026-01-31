@@ -284,7 +284,7 @@ Defines the base class **`Module`**, which is the fundamental abstraction for al
 - Doesn't require explicit `@registry_class` decorators
 
 **Iteration API:**
-
+- `modules(recurse=True)`: iterates over all modules in the network
 - `parameters(recurse=True)`: iterates over learnable parameters
 - `buffers(recurse=True)`: iterates over non-learnable buffers
 - `named_parameters()` / `named_buffers()`: named versions
