@@ -4,7 +4,7 @@
 ![python](https://img.shields.io/badge/python-v3.14-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![tests](https://img.shields.io/badge/tests-pytest-orange)
-![coverage](https://img.shields.io/badge/coverage-86.78%25-success)
+![coverage](https://img.shields.io/badge/coverage-87%25-success)
 
 ## 🌐 Idiomas disponibles
 
