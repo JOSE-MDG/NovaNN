@@ -172,7 +172,7 @@ for epoch in range(50):
     optimizer.step()
 
     if (epoch + 1) % 10 == 0:
-        print(f"Epoch {epoch+1}/50, Loss: {loss.data[0]:.4f}")
+        print(f"Epoch {epoch+1}/50, Loss: {loss.item():.4f}")
 ```
 
 ### 3. **CNN Architectures for Computer Vision**
@@ -357,7 +357,7 @@ for epoch in range(100):
     optimizer.step()
 
     if (epoch + 1) % 20 == 0:
-        print(f"Epoch {epoch+1}: Loss = {loss.data[0]:.4f}")
+        print(f"Epoch {epoch+1}: Loss = {loss.item():.4f}")
 ```
 
 ### 6. **Model Saving and Loading**
