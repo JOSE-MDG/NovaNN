@@ -90,6 +90,309 @@ Esta estructura favorece tanto la extensibilidad como la claridad del flujo de t
   - uso de memoria y overhead computacional  
     Este directorio no forma parte del runtime del framework y está pensado exclusivamente para **análisis de rendimiento, validación técnica y estudios comparativos**.
 
+## 🚀 Inicio rápido
+
+Construye y entrena modelos con una sintaxis que ya conoces. NovaNN se parece a PyTorch, pero se ejecuta en tu propio motor personalizado.
+
+### 1. **Autograd y Grafos Computacionales**
+
+Experimenta con el motor de diferenciación automática de NovaNN. Crea tensores, realiza operaciones y observa cómo fluyen los gradientes.
+
+```python
+import nova
+import nova.nn as nn
+
+# Crear tensores con seguimiento de gradientes
+x = nova.tensor([[0.5, -0.2]], requires_grad=True)
+w = nova.tensor([[1.0], [0.5]], requires_grad=True)
+b = nova.tensor([0.1], requires_grad=True)
+
+# Forward pass manual
+y = x @ w + b
+loss = (y ** 2).sum()
+
+# Backward pass automático
+loss.backward()
+
+print(f"Loss: {loss.item()}")           # Loss: 0.25
+print(f"Gradiente de x: {x.grad}")    # Gradientes calculados automáticamente
+print(f"Gradiente de w: {w.grad}")
+print(f"Gradiente de b: {b.grad}")
+
+# O usando capas nn.Module
+model = nn.Linear(2, 1)
+output = model(x)
+output.backward()
+```
+
+### 2. **Entrenamiento Completo de una Red Neuronal**
+
+Entrena un clasificador binario simple con todas las funcionalidades del framework.
+
+```python
+import nova
+import nova.nn as nn
+import nova.optim as optim
+from nova.nn import functional as F
+
+# Definir el modelo
+class BinaryClassifier(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(10, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        self.dropout = nn.Dropout(0.3)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = F.relu(self.fc2(x))
+        x = F.sigmoid(self.fc3(x))
+        return x
+
+# Crear modelo y optimizador
+model = BinaryClassifier()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+criterion = nn.BCELoss()
+
+# Datos de ejemplo
+X_train = nova.randn(100, 10)  # 100 muestras, 10 características
+y_train = nova.randint(0, 2, (100, 1), dtype=nova.float)
+
+# Loop de entrenamiento
+for epoch in range(50):
+    # Forward pass
+    predictions = model(X_train)
+    loss = criterion(predictions, y_train)
+
+    # Backward pass
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    if (epoch + 1) % 10 == 0:
+        print(f"Época {epoch+1}/50, Loss: {loss.item():.4f}")
+```
+
+### 3. **Arquitecturas CNN para Visión Computacional**
+
+NovaNN admite módulos complejos como convoluciones 2D, normalización por lotes y capas diferidas (lazy).
+
+```python
+import nova
+import nova.nn as nn
+import nova.nn.functional as F
+
+class ConvNet(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+
+        # Bloque convolucional 1
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(32, momentum=0.1)
+
+        # Bloque convolucional 2
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(64, momentum=0.1)
+
+        # Bloque convolucional 3
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm2d(128, momentum=0.1)
+
+        self.pool = nn.MaxPool2d(2, 2)
+
+        # Capas fully connected (lazy para inferir dimensiones automáticamente)
+        self.fc1 = nn.LazyLinear(256, bias=False)
+        self.bn4 = nn.BatchNorm1d(256)
+        self.fc2 = nn.Linear(256, num_classes)
+
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        # Feature extraction
+        x = self.pool(F.relu(self.bn1(self.conv1(x))))  # 32x32 -> 16x16
+        x = self.pool(F.relu(self.bn2(self.conv2(x))))  # 16x16 -> 8x8
+        x = self.pool(F.relu(self.bn3(self.conv3(x))))  # 8x8 -> 4x4
+
+        # Flatten
+        x = x.view(x.size(0), -1)
+
+        # Classification head
+        x = F.relu(self.bn4(self.fc1(x)))
+        x = self.dropout(x)
+        x = self.fc2(x)
+
+        return x
+
+# Crear modelo y procesar imágenes
+model = ConvNet(num_classes=10)
+batch_images = nova.rand(8, 3, 32, 32)  # Batch de 8 imágenes RGB 32x32
+logits = model(batch_images)
+
+print(f"Salida: {logits.shape}")  # Shape: (8, 10)
+```
+
+### 4. **Transfer Learning - Congelar Capas**
+
+Aprovecha modelos pre-entrenados congelando capas para usarlas como extractores de características fijos.
+
+```python
+import nova
+import nova.nn as nn
+import nova.optim as optim
+from nova.nn import functional as F
+
+# Supongamos que tenemos un modelo pre-entrenado
+class PretrainedFeatureExtractor(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, 64, 3, padding=1)
+        self.conv2 = nn.Conv2d(64, 128, 3, padding=1)
+        self.pool = nn.MaxPool2d(2, 2)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = self.pool(x)
+        x = F.relu(self.conv2(x))
+        x = self.pool(x)
+        return x
+
+# Modelo completo con transfer learning
+class TransferLearningModel(nn.Module):
+    def __init__(self, num_classes=5):
+        super().__init__()
+        # Backbone pre-entrenado (congelado)
+        self.backbone = PretrainedFeatureExtractor()
+
+        # Nueva cabeza de clasificación (entrenable)
+        self.classifier = nn.Sequential(
+            nn.LazyLinear(512),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(512, num_classes)
+        )
+
+    def forward(self, x):
+        x = self.backbone(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+
+# Crear modelo
+model = TransferLearningModel(num_classes=5)
+
+# Congelar las capas del backbone
+for param in model.backbone.parameters():
+    param.requires_grad = False
+
+# Solo entrenar el clasificador
+optimizer = optim.AdamW(
+    filter(lambda p: p.requires_grad, model.parameters()),
+    lr=0.001
+)
+
+# Verificar qué parámetros son entrenables
+trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+total = sum(p.numel() for p in model.parameters())
+print(f"Parámetros entrenables: {trainable}/{total}")
+```
+
+### 5. **Fine-Tuning con Learning Rates Diferenciados**
+
+Entrena diferentes partes de la red con velocidades de aprendizaje distintas para un ajuste fino óptimo.
+
+```python
+import nova
+import nova.nn as nn
+import nova.optim as optim
+from nova.nn import functional as F
+
+class FineTuneModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Capas base (pre-entrenadas)
+        self.base_layers = nn.Sequential(
+            nn.Linear(100, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU()
+        )
+
+        # Capas intermedias
+        self.mid_layers = nn.Sequential(
+            nn.Linear(128, 64),
+            nn.ReLU()
+        )
+
+        # Cabeza de clasificación (nueva)
+        self.head = nn.Linear(64, 10)
+
+    def forward(self, x):
+        x = self.base_layers(x)
+        x = self.mid_layers(x)
+        x = self.head(x)
+        return x
+
+model = FineTuneModel()
+
+# Configurar learning rates diferenciados por grupo de capas
+optimizer = optim.Adam([
+    {'params': model.base_layers.parameters(), 'lr': 1e-5},  # Muy bajo para capas base
+    {'params': model.mid_layers.parameters(), 'lr': 1e-4},   # Intermedio
+    {'params': model.head.parameters()}
+], lr=1e-3) # Alto para nueva cabeza
+
+# Datos de ejemplo
+X = nova.randn(32, 100)
+y = nova.randint(0, 10, (32,))
+
+# Entrenamiento
+for epoch in range(100):
+    logits = model(X)
+    loss = F.cross_entropy(logits, y)
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    if (epoch + 1) % 20 == 0:
+        print(f"Época {epoch+1}: Loss = {loss.data[0]:.4f}")
+```
+
+### 6. **Guardado y Carga de Modelos**
+
+Serializa tus modelos entrenados para reutilizarlos más tarde.
+
+```python
+import nova
+import nova.nn as nn
+
+# Entrenar modelo
+model = nn.Sequential(
+    nn.Linear(10, 64),
+    nn.ReLU(),
+    nn.Linear(64, 10)
+)
+
+# Guardar modelo completo
+nova.save(model, 'model.pt')
+
+# Guardar solo los parámetros (state_dict)
+nova.save(model.state_dict(), 'model_weights.pt')
+
+# Cargar modelo completo
+loaded_model = nova.load('model.pt')
+
+# Cargar solo parámetros en un modelo nuevo
+new_model = nn.Sequential(
+    nn.Linear(10, 64),
+    nn.ReLU(),
+    nn.Linear(64, 10)
+)
+new_model.load_state_dict(nova.load('model_weights.pt'))
+```
+
 ## 🛠️ Tecnologías utilizadas
 
 El framework **NovaNN** está construido utilizando las siguientes tecnologías y librerías principales:
