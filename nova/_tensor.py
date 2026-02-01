@@ -6,7 +6,7 @@ from numpy import ndarray
 from typing import TYPE_CHECKING, Any, Optional, Self
 from nova._interfaces._base_tensor import TensorBase
 from nova.utils import registry_class, ensure_tensor
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
 from nova.autograd.engine import _backward
 from nova.utils.hooks import HooksHandle
 
@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from nova.autograd.function import Function
     from nova._typing import Dtype, Hook, Dim
     from nova.autograd.engine import Context
+
+logger = get_logger()
 
 
 @registry_class

@@ -23,7 +23,9 @@ from nova.optim.lr_scheduler import CosineAnnealingLR
 from nova.metrics import Accuracy
 from nova.utils.datasets import load_mnist_data
 from nova.utils.data import DataLoader
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
+
+logger = get_logger()
 
 
 # Model Definition

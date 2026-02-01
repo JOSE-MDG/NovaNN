@@ -6,7 +6,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Optional, TYPE_CHECKING
 from nova.exceptions import LoadError, DatasetCorruptionError
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
 from nova.utils.data import (
     Dataset,
     normalize,
@@ -26,6 +26,8 @@ from nova.core import (
 if TYPE_CHECKING:
     from nova._typing import Dtype
     from nova import Tensor
+
+logger = get_logger()
 
 
 class FashionData(Dataset):

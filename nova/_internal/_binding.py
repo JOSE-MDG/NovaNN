@@ -2,7 +2,7 @@ from __future__ import annotations
 import yaml
 import traceback
 from nova.core import YAML_FILE_PATH
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
 from typing import TYPE_CHECKING
 from nova.utils.decorators.registry import _OPS_REGISTERED
 from ._generators import (
@@ -12,6 +12,7 @@ from ._generators import (
     make_method,
 )
 
+logger = get_logger()
 
 if TYPE_CHECKING:
     from nova import Tensor

@@ -8,8 +8,10 @@ import pickle
 import io
 from pathlib import Path
 from typing import Any
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
 from nova.exceptions import SaveError
+
+logger = get_logger()
 
 
 def save(

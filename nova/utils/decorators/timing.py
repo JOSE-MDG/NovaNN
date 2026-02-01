@@ -2,9 +2,11 @@ import time
 import numpy as np
 from functools import wraps
 from typing import TypeVar, Callable, Any, Optional
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
 
 _T = TypeVar("_T")
+
+logger = get_logger()
 
 
 def benchmark(

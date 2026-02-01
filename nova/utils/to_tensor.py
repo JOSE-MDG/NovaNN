@@ -2,7 +2,7 @@ from __future__ import annotations
 import traceback
 import nova
 from typing import Any, Optional
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
 from numpy import ndarray
 
 from typing import TYPE_CHECKING
@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from nova import Tensor
     from nova._typing import Dtype
+
+logger = get_logger()
 
 
 def ensure_tensor(

@@ -26,7 +26,9 @@ from nova.optim import AdamW
 from nova.optim.lr_scheduler import CosineAnnealingLR
 from nova.metrics import Accuracy, Precision, Recall, F1Score
 from nova.utils.data import Dataset, DataLoader, normalize
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
+
+logger = get_logger()
 
 
 class BinaryDataset(Dataset):

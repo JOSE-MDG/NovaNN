@@ -10,12 +10,14 @@ import pickle
 import io
 from pathlib import Path
 from typing import Any
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
 from nova.exceptions import (
     LoadError,
     UnsafeLoadError,
     FileNotFoundError as NovaFileNotFoundError,
 )
+
+logger = get_logger()
 
 
 def load(f: str | Path | io.BufferedIOBase, *, weights_only: bool = True) -> Any:

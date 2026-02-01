@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from numpy import ndarray
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
 from nova.core import MNIST_URLS, FASHION_URLS
 from typing import TYPE_CHECKING, Optional, Literal, Callable
 from nova.exceptions import (
@@ -22,6 +22,8 @@ from sklearn.model_selection import train_test_split
 if TYPE_CHECKING:
     from nova import Tensor
     from nova._typing import Dtype
+
+logger = get_logger()
 
 type SubSets = tuple[
     ndarray | Tensor, ndarray | Tensor, ndarray | Tensor, ndarray | Tensor

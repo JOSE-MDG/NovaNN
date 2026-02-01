@@ -25,8 +25,9 @@ from nova.optim import AdamW
 from nova.nn.utils import clip_grad_norm_
 from nova.metrics import MSE, MAE, R2Score
 from nova.utils.data import Dataset, DataLoader, normalize
-from nova.utils.logger import logger
+from nova.utils.logger import get_logger
 
+logger = get_logger()
 
 # Dataset
 
