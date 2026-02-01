@@ -7,7 +7,6 @@ the foundation for consistent initialization and logging across the framework.
 
 # Import constants from constants.py
 from .constants import (
-    LOG_FILE,
     LOGGER_DATE_FORMAT,
     LOGGER_DEFAULT_FORMAT,
     EXPORTATION_FASHION_TRAIN_DATA_PATH,
@@ -24,7 +23,6 @@ from .constants import (
 )
 
 __all__ = [
-    "LOG_FILE",
     "LOGGER_DATE_FORMAT",
     "LOGGER_DEFAULT_FORMAT",
     "EXPORTATION_FASHION_TRAIN_DATA_PATH",
