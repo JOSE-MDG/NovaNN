@@ -54,7 +54,7 @@ FASHION_URLS = {
 # Logger Configuration
 
 
-LOG_FILE = PROJECT_ROOT / "logs" / "logs.log"
+LOG_FILE = None
 LOGGER_DEFAULT_FORMAT = (
     "%(asctime)s | %(levelname)-8s| %(name)s : %(funcName)s - %(message)s"
 )
