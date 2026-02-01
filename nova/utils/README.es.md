@@ -17,12 +17,12 @@ El módulo está organizado en:
 
 ### `logger.py`
 
-Implementa un **sistema de logging** singleton para NovaNN con soporte multi-nivel y múltiples outputs.
+Implementa un **sistema de logging** singleton para NovaNN con soporte multi-nivel. Todos los logs se escriben simultáneamente en consola y en `~/.novann/logs/nova.log`.
 
 **Características:**
 
 - **Patrón Singleton**: Una única instancia de logger en toda la aplicación
-- **Multi-output**: Log a consola y archivo simultáneamente
+- **Multi-output**: Log a consola y archivo simultáneamente. El archivo siempre es `~/.novann/logs/nova.log`
 - **Niveles configurables**: DEBUG, INFO, WARNING, ERROR
 - **Formato personalizable**: Timestamps, niveles, nombres de función
 - **Thread-safe**: Seguro para uso concurrente
@@ -49,12 +49,23 @@ Logger singleton con métodos para cada nivel:
 - `debug(msg, **kwargs)`: Log nivel DEBUG
 - `warning(msg, **kwargs)`: Log nivel WARNING
 - `error(msg, **kwargs)`: Log nivel ERROR con traceback automático
-- `set_level(level)`: Cambiar nivel dinámicamente
+- `set_level(level)`: Cambiar nivel dinámicamente para el logger y todos sus handlers
+- `flush()`: Fuerza la escritura de todos los handlers. Se ejecuta automáticamente después de cada log, pero puede llamarse manualmente si es necesario.
+
+**Función `get_logger()`:**
+
+Retorna la única instancia del logger singleton. Si no existe aún, la crea automáticamente con nivel DEBUG y con los handlers de consola y archivo ya configurados. Esta es la función principal para obtener acceso al logger en cualquier parte del código.
+
+**Retorna:**
+
+- `Logger`: La instancia singleton del logger
 
 **Ejemplos de uso:**
 
 ```python
-from nova.utils.logger import logger, LoggerLevel
+from nova.utils.logger import get_logger, LoggerLevel
+
+logger = get_logger()
 
 # Logging básico
 logger.info("Model training started")
@@ -70,107 +81,12 @@ logger.info("Epoch completed", epoch=10, loss=0.123, acc=0.95)
 logger.set_level(LoggerLevel.WARNING)  # Solo muestra WARNING y ERROR
 ```
 
-**Función `enable_file_logging()`:**
-
-Función global para habilitar el logging a archivo después de la inicialización del logger:
-
-**Parámetros:**
-
-- `path` (Optional[Path | str]): Ruta donde se guardará el archivo de log. Si es None, usa `~/.novann/logs/nova.log`
-- `level` (LoggerLevel): Nivel de logging para el file handler (por defecto: DEBUG)
-- `replace_existing` (bool): Si es True, remueve los file handlers existentes antes de añadir uno nuevo (por defecto: True)
-
-**Retorna:**
-
-- `logging.Logger`: La instancia del logger configurada
-
-**Excepciones:**
-
-- `PermissionError`: Si el directorio de logs no tiene permisos de escritura
-- `OSError`: Si falla la creación del directorio
-
-**Características:**
-
-- **Validación de directorio**: Verifica que el directorio de logs tenga permisos de escritura antes de crear el handler
-- **Prevención de duplicados**: Puede reemplazar file handlers existentes para evitar logs duplicados
-- **Auto-creación**: Crea directorios padres si no existen
-- **Manejo de errores**: Excepciones claras para errores de permisos e IO
-
-**Ejemplos de uso:**
-
-```python
-from nova.utils.logger import enable_file_logging, LoggerLevel
-
-# Habilitar con ruta por defecto (~/.novann/logs/nova.log)
-enable_file_logging()
-
-# Habilitar con ruta personalizada
-enable_file_logging(path="logs/training.log", level=LoggerLevel.INFO)
-
-# Añadir file handler adicional sin reemplazar los existentes
-enable_file_logging(path="logs/debug.log", replace_existing=False)
-
-# Lanzará PermissionError si el directorio no es escribible
-try:
-    enable_file_logging(path="/root/cannot_write.log")
-except PermissionError as e:
-    print(f"No se puede habilitar file logging: {e}")
-```
-
-**Función `is_file_logging_enabled()`:**
-
-Verifica si el file logging está actualmente activo:
-
-**Retorna:**
-
-- `bool`: True si hay algún FileHandler adjunto al logger
-
-**Ejemplos de uso:**
-
-```python
-from nova.utils.logger import enable_file_logging, is_file_logging_enabled
-
-# Verificar antes de habilitar
-if not is_file_logging_enabled():
-    enable_file_logging()
-
-# Verificar después de habilitar
-enable_file_logging()
-assert is_file_logging_enabled() == True
-```
-
-**Función `get_log_file_path()`:**
-
-Obtiene la ruta del archivo de log actual si el file logging está habilitado:
-
-**Retorna:**
-
-- `Optional[Path]`: Ruta al archivo de log, o None si no existe ningún file handler
-
-**Ejemplos de uso:**
-
-```python
-from nova.utils.logger import enable_file_logging, get_log_file_path
-
-# Obtener ruta del archivo de log actual
-enable_file_logging("logs/app.log")
-log_path = get_log_file_path()
-print(f"Logging a: {log_path}")  # Logging a: logs/app.log
-
-# Retorna None si no hay file handler
-from nova.utils.logger import logger
-# Solo console logging por defecto
-assert get_log_file_path() is None
-```
-
 **Cuándo usar:**
 
 - Tracking de progreso de entrenamiento
 - Debugging de operaciones del framework
 - Registro de errores y advertencias
 - Auditoría de operaciones críticas
-- Cuando necesitas añadir file logging después de la inicialización del logger
-- Cuando necesitas verificar la configuración de logging programáticamente
 
 ### `memory.py`
 
