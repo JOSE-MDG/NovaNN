@@ -226,7 +226,7 @@ poetry install
 ### 5. Activar el entorno virtual
 
 ```bash
-# instalaer el plugin de shell
+# instalar el plugin de shell
 poetry self add poetry-plugin-shell
 
 # # Activar el shell con el entorno virtual
