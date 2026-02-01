@@ -727,6 +727,22 @@ class LazyConv1d(_LazyConvXdMixin, Conv1d):
         """Returns 1 for 1D convolution."""
         return 1
 
+    def extra_repr(self) -> str:
+        if not hasattr(self, "in_channels"):
+            s = f"in_channels=?, out_channels={self.out_channels}, kernel_size={self.kernel_size}"
+        else:
+            s = f"in_channels={self.in_channels}, out_channels={self.out_channels}, kernel_size={self.kernel_size}"
+        s += f", stride={self.stride}"
+        if self.padding != (0,) * len(self.padding):
+            s += f", padding={self.padding}"
+        if self.dilation != (1,) * len(self.dilation):
+            s += f", dilation={self.dilation}"
+        if not self.use_bias:
+            s += ", bias=False"
+        if self.padding_mode != "zeros":
+            s += f", padding_mode={self.padding_mode}"
+        return s
+
 
 class LazyConv2d(_LazyConvXdMixin, Conv2d):
     """A Conv2d layer with lazy initialization of the ``in_channels`` argument.
@@ -823,6 +839,22 @@ class LazyConv2d(_LazyConvXdMixin, Conv2d):
     def _get_num_spatial_dims(self) -> int:
         """Returns 2 for 2D convolution."""
         return 2
+
+    def extra_repr(self) -> str:
+        if not hasattr(self, "in_channels"):
+            s = f"in_channels=?, out_channels={self.out_channels}, kernel_size={self.kernel_size}"
+        else:
+            s = f"in_channels={self.in_channels}, out_channels={self.out_channels}, kernel_size={self.kernel_size}"
+        s += f", stride={self.stride}"
+        if self.padding != (0,) * len(self.padding):
+            s += f", padding={self.padding}"
+        if self.dilation != (1,) * len(self.dilation):
+            s += f", dilation={self.dilation}"
+        if not self.use_bias:
+            s += ", bias=False"
+        if self.padding_mode != "zeros":
+            s += f", padding_mode={self.padding_mode}"
+        return s
 
 
 class LazyConv3d(_LazyConvXdMixin, Conv3d):
@@ -937,3 +969,19 @@ class LazyConv3d(_LazyConvXdMixin, Conv3d):
     def _get_num_spatial_dims(self) -> int:
         """Returns 3 for 3D convolution."""
         return 3
+
+    def extra_repr(self) -> str:
+        if not hasattr(self, "in_channels"):
+            s = f"in_channels=?, out_channels={self.out_channels}, kernel_size={self.kernel_size}"
+        else:
+            s = f"in_channels={self.in_channels}, out_channels={self.out_channels}, kernel_size={self.kernel_size}"
+        s += f", stride={self.stride}"
+        if self.padding != (0,) * len(self.padding):
+            s += f", padding={self.padding}"
+        if self.dilation != (1,) * len(self.dilation):
+            s += f", dilation={self.dilation}"
+        if not self.use_bias:
+            s += ", bias=False"
+        if self.padding_mode != "zeros":
+            s += f", padding_mode={self.padding_mode}"
+        return s

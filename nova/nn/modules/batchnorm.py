@@ -301,6 +301,11 @@ class _LayzyNormBase(LazyModuleMixin, _BatchNorm):
 
                 self.reset_parameters()
 
+    def extra_repr(self) -> str:
+        if not hasattr(self, "num_features"):
+            return f"num_features=?, momentum={self.momentum}, eps={self.eps}, affine={self.affine}, track_running_stats={self.track_running_stats}"
+        return f"num_features={self.num_features}, momentum={self.momentum}, eps={self.eps}, affine={self.affine}, track_running_stats={self.track_running_stats}"
+
 
 class BatchNorm1d(_BatchNorm):
     """Applies Batch Normalization over a 2D or 3D input.

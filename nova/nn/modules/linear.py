@@ -283,3 +283,10 @@ class LazyLinear(LazyModuleMixin, Linear):
                         (1, self.out_features), dtype=self.dtype
                     )
                 self.reset_parameters()
+
+    def extra_repr(self) -> str:
+        if not hasattr(self, "in_features"):
+            return (
+                f"in_features=?, out_features={self.out_features}, bias={self.use_bias}"
+            )
+        return f"in_features={self.in_features}, out_features={self.out_features}, bias={self.use_bias}"
