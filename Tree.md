@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 2/1/2026, 12:50:09 AM
+**Generated:** 2/1/2026, 5:24:26 PM
 **Root Path:** `/home/juancho_col/Documents/NovaNN`
 
 ```
@@ -273,7 +273,6 @@
 ├── 📝 README.es.md
 ├── 📝 README.md
 ├── 📝 Tree.md
-├── 🐍 main.py
 ├── 📄 poetry.lock
 └── ⚙️ pyproject.toml
 ```
