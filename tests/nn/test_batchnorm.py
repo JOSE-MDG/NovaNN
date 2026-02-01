@@ -7,9 +7,6 @@ from nova.nn import (
     BatchNorm1d,
     BatchNorm2d,
     BatchNorm3d,
-    LazyBatchNorm1d,
-    LazyBatchNorm2d,
-    LazyBatchNorm3d,
 )
 
 nova.manual_seed(8)

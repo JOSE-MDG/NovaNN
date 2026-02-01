@@ -1,5 +1,4 @@
 import time
-import re
 import pytest
 from nova.utils import benchmark
 from nova.utils.decorators import chronometer
