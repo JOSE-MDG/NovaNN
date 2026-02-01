@@ -52,7 +52,7 @@ class TensorBase:
     @property
     def dtype(self) -> Dtype:
         """Returns the data type of the tensor elements."""
-        return self._dtype_internal
+        return self._data_internal.dtype
 
     @property
     def strides(self) -> tuple[int, ...]:
