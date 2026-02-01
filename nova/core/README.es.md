@@ -44,7 +44,6 @@ Define todas las constantes del framework usando `pathlib.Path`. Todas las rutas
 
 **Configuración del Logger:**
 
-- `LOG_FILE`: Ruta al archivo de logs. Por defecto `None`
 - `LOGGER_DEFAULT_FORMAT`: Formato de los mensajes de log
 - `LOGGER_DATE_FORMAT`: Formato de fecha usado en los logs
 

@@ -44,7 +44,6 @@ Defines all framework-wide constants using `pathlib.Path`. All dataset paths res
 
 **Logger Configuration:**
 
-- `LOG_FILE`: Path to the log file.. Default `None`
 - `LOGGER_DEFAULT_FORMAT`: Log message format string
 - `LOGGER_DATE_FORMAT`: Date format used in log entries
 
