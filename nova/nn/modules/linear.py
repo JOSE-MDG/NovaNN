@@ -17,9 +17,6 @@ if TYPE_CHECKING:
 class Linear(Module):
     """Applies a linear transformation to the incoming data: :math:`y = xA^T + b`.
 
-    This module supports TensorFloat32 (TF32) on Ampere and later CUDA devices.
-    On Ampere and later CUDA devices, this module will use TF32 by default.
-
     Args:
         in_features: Size of each input sample
         out_features: Size of each output sample
