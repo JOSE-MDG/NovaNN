@@ -70,12 +70,107 @@ logger.info("Epoch completed", epoch=10, loss=0.123, acc=0.95)
 logger.set_level(LoggerLevel.WARNING)  # Solo muestra WARNING y ERROR
 ```
 
+**Función `enable_file_logging()`:**
+
+Función global para habilitar el logging a archivo después de la inicialización del logger:
+
+**Parámetros:**
+
+- `path` (Optional[Path | str]): Ruta donde se guardará el archivo de log. Si es None, usa `~/.novann/logs/nova.log`
+- `level` (LoggerLevel): Nivel de logging para el file handler (por defecto: DEBUG)
+- `replace_existing` (bool): Si es True, remueve los file handlers existentes antes de añadir uno nuevo (por defecto: True)
+
+**Retorna:**
+
+- `logging.Logger`: La instancia del logger configurada
+
+**Excepciones:**
+
+- `PermissionError`: Si el directorio de logs no tiene permisos de escritura
+- `OSError`: Si falla la creación del directorio
+
+**Características:**
+
+- **Validación de directorio**: Verifica que el directorio de logs tenga permisos de escritura antes de crear el handler
+- **Prevención de duplicados**: Puede reemplazar file handlers existentes para evitar logs duplicados
+- **Auto-creación**: Crea directorios padres si no existen
+- **Manejo de errores**: Excepciones claras para errores de permisos e IO
+
+**Ejemplos de uso:**
+
+```python
+from nova.utils.logger import enable_file_logging, LoggerLevel
+
+# Habilitar con ruta por defecto (~/.novann/logs/nova.log)
+enable_file_logging()
+
+# Habilitar con ruta personalizada
+enable_file_logging(path="logs/training.log", level=LoggerLevel.INFO)
+
+# Añadir file handler adicional sin reemplazar los existentes
+enable_file_logging(path="logs/debug.log", replace_existing=False)
+
+# Lanzará PermissionError si el directorio no es escribible
+try:
+    enable_file_logging(path="/root/cannot_write.log")
+except PermissionError as e:
+    print(f"No se puede habilitar file logging: {e}")
+```
+
+**Función `is_file_logging_enabled()`:**
+
+Verifica si el file logging está actualmente activo:
+
+**Retorna:**
+
+- `bool`: True si hay algún FileHandler adjunto al logger
+
+**Ejemplos de uso:**
+
+```python
+from nova.utils.logger import enable_file_logging, is_file_logging_enabled
+
+# Verificar antes de habilitar
+if not is_file_logging_enabled():
+    enable_file_logging()
+
+# Verificar después de habilitar
+enable_file_logging()
+assert is_file_logging_enabled() == True
+```
+
+**Función `get_log_file_path()`:**
+
+Obtiene la ruta del archivo de log actual si el file logging está habilitado:
+
+**Retorna:**
+
+- `Optional[Path]`: Ruta al archivo de log, o None si no existe ningún file handler
+
+**Ejemplos de uso:**
+
+```python
+from nova.utils.logger import enable_file_logging, get_log_file_path
+
+# Obtener ruta del archivo de log actual
+enable_file_logging("logs/app.log")
+log_path = get_log_file_path()
+print(f"Logging a: {log_path}")  # Logging a: logs/app.log
+
+# Retorna None si no hay file handler
+from nova.utils.logger import logger
+# Solo console logging por defecto
+assert get_log_file_path() is None
+```
+
 **Cuándo usar:**
 
 - Tracking de progreso de entrenamiento
 - Debugging de operaciones del framework
 - Registro de errores y advertencias
 - Auditoría de operaciones críticas
+- Cuando necesitas añadir file logging después de la inicialización del logger
+- Cuando necesitas verificar la configuración de logging programáticamente
 
 ### `memory.py`
 

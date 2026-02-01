@@ -44,7 +44,7 @@ Defines all framework-wide constants using `pathlib.Path`. All dataset paths res
 
 **Logger Configuration:**
 
-- `LOG_FILE`: Path to the log file (`PROJECT_ROOT/logs/logs.log`)
+- `LOG_FILE`: Path to the log file.. Default `None`
 - `LOGGER_DEFAULT_FORMAT`: Log message format string
 - `LOGGER_DATE_FORMAT`: Date format used in log entries
 
@@ -73,11 +73,11 @@ print(MNIST_TEST_DATA_PATH)
 ### Accessing logging configuration
 
 ```python
-from nova.core import LOG_FILE, LOGGER_DEFAULT_FORMAT, LOGGER_DATE_FORMAT
+from nova.core import LOGGER_DEFAULT_FORMAT, LOGGER_DATE_FORMAT
 import logging
 
 logging.basicConfig(
-    filename=LOG_FILE,
+    filename="/path/to/logger_file.log",
     format=LOGGER_DEFAULT_FORMAT,
     datefmt=LOGGER_DATE_FORMAT,
 )
