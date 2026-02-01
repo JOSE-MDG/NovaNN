@@ -4,7 +4,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 from logging import Formatter
-from nova.core import LOG_FILE, LOGGER_DEFAULT_FORMAT, LOGGER_DATE_FORMAT
+from nova.core import LOGGER_DEFAULT_FORMAT, LOGGER_DATE_FORMAT
+
+LOG_FILE: Optional[Path] = None
 
 
 class LoggerLevel(Enum):
@@ -151,8 +153,6 @@ def enable_file_logging(
     else:
         path = Path(path)
 
-    LOG_FILE = path
-
     # Validate that parent directory exists or can be created
     log_dir = path.parent
     if not log_dir.exists():
@@ -174,6 +174,9 @@ def enable_file_logging(
     # Create file handler on the singleton instance
     formatter = Formatter(LOGGER_DEFAULT_FORMAT, datefmt=LOGGER_DATE_FORMAT)
     logger._create_file_handler(path, level, formatter)
+
+    # Update the tracked log file path
+    LOG_FILE = path
 
     # Adjust level
     logger.set_level(level)
@@ -203,6 +206,9 @@ def is_file_logging_enabled() -> bool:
 def get_log_file_path() -> Optional[Path]:
     """Get the path of the current log file if file logging is enabled.
 
+    Note: If multiple file handlers were added with replace_existing=False,
+    this returns the path of the most recently configured file handler.
+
     Returns:
         Optional[Path]: Path to the log file, or None if no file handler exists
 
@@ -214,4 +220,13 @@ def get_log_file_path() -> Optional[Path]:
         >>> get_log_file_path()
         None
     """
-    return LOG_FILE
+    # Return the tracked path if available
+    if LOG_FILE is not None:
+        return LOG_FILE
+
+    # Otherwise, try to get it from the actual file handler (fallback)
+    for handler in logger._logger.handlers:
+        if isinstance(handler, logging.FileHandler):
+            return Path(handler.baseFilename)
+
+    return None

@@ -52,9 +52,6 @@ FASHION_URLS = {
 
 
 # Logger Configuration
-
-
-LOG_FILE = None
 LOGGER_DEFAULT_FORMAT = (
     "%(asctime)s | %(levelname)-8s| %(name)s : %(funcName)s - %(message)s"
 )
