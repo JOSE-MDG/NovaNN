@@ -128,3 +128,10 @@ def get_logger() -> Logger:
         _logger_instance = Logger(name="NovaNN")
 
     return _logger_instance
+
+
+def clean_log_file() -> None:
+    """
+    Clean the log file
+    """
+    _DEFAULT_LOG_FILE.write_text("")
