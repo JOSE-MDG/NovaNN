@@ -357,7 +357,7 @@ for epoch in range(100):
     optimizer.step()
 
     if (epoch + 1) % 20 == 0:
-        print(f"Época {epoch+1}: Loss = {loss.data[0]:.4f}")
+        print(f"Época {epoch+1}: Loss = {loss.item().4f}")
 ```
 
 ### 6. **Guardado y Carga de Modelos**
