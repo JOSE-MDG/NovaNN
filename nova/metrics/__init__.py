@@ -9,8 +9,6 @@ from .classification import (
 )
 
 from .regression._error import (
-    MeanSquaredError,
-    MeanAbsoluteError,
     MeanSquaredError as MSE,
     MeanAbsoluteError as MAE,
 )
