@@ -420,16 +420,44 @@ The **NovaNN** framework is built using the following main technologies and libr
 
 ## 📦 Installation
 
-NovaNN uses **Poetry** for dependency management and packaging. Follow these steps to set up the environment:
+NovaNN is available on **PyPI** and can be easily installed using `pip` or `poetry`. You can also install it from source if you want to contribute or explore the framework in depth.
 
-### 1. Clone the Repository
+### Option 1: Install from PyPI (Recommended)
+
+The easiest way to install NovaNN is via pip or poetry:
+
+```bash
+# With pip
+pip install novann
+
+# With poetry
+poetry add novann
+```
+
+#### Verify installation
+
+```python
+import nova
+print(nova.__version__)  # Should display: 4.0.0
+```
+
+#### System requirements
+
+- **Python**: >= 3.14, < 3.15
+- **Operating system**: Windows, Linux, macOS
+
+### Option 2: Install from source
+
+If you want to contribute to the project or explore the source code, you can clone the repository and install using Poetry.
+
+#### 1. Clone the repository
 
 ```bash
 git clone git@github.com:JOSE-MDG/NovaNN.git
 cd NovaNN
 ```
 
-### 2. Install Poetry (if not installed)
+#### 2. Install Poetry (if you don't have it)
 
 - Windows (PowerShell):
 
@@ -449,7 +477,7 @@ pipx install poetry
 
 #### Add Poetry to PATH:
 
-- Linux/macOS:
+- On Linux/macOS:
 
 ```bash
 # Bash/Zsh (temporary)
@@ -464,7 +492,7 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-- Windows
+- On Windows
 
 ```powershell
 # PowerShell (temporary for current session)
@@ -485,48 +513,23 @@ set PATH=%PATH%;%APPDATA%\Python\Scripts
 setx PATH "%PATH%;%APPDATA%\Python\Scripts"
 ```
 
-### 3. Add Project to Python Path
-
-- Linux/macOS
-
-```bash
-# Temporary
-export PYTHONPATH="/path/to/your/project:$PYTHONPATH"
-
-# Permanent (add to ~/.bashrc or ~/.zshrc)
-echo 'export PYTHONPATH="/path/to/your/project:$PYTHONPATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-- Windows:
-
-```powershell
-# PowerShell (temporary)
-$env:PYTHONPATH = "C:\path\to\your\project"
-
-# PowerShell (permanent)
-[System.Environment]::SetEnvironmentVariable("PYTHONPATH", "C:\path\to\your\project", "User")
-```
-
-```cmd
-# Command Prompt (temporary)
-set PYTHONPATH=C:\path\to\your\project
-
-# Command Prompt (permanent)
-setx PYTHONPATH "C:\path\to\your\project"
-```
-
-### 4. Install Project Dependencies
+#### 3. Install project dependencies
 
 ```bash
 # Write lock file
 poetry lock
 
-# Install all dependencies (including development ones)
+# Install all dependencies (including development)
 poetry install
+
+# Production dependencies only
+poetry install --without dev,benchmark
+
+# With benchmarking tools
+poetry install --with benchmark
 ```
 
-### 5. Activate Virtual Environment
+#### 4. Activate virtual environment
 
 ```bash
 # Install shell plugin
@@ -539,20 +542,68 @@ poetry shell
 poetry run python examples/binary_classification.py
 ```
 
-### 6. Run Examples
+### Run examples
+
+Once NovaNN is installed (from PyPI or source), you can run the included examples:
 
 ```bash
-# Binary classification
+# If installed from source
 poetry run python examples/binary_classification.py
-
-# Multiclass classification
 poetry run python examples/multiclass_classification.py
-
-# Convolutional networks
 poetry run python examples/conv_example.py
+poetry run python examples/regression.py
 
-# Regression
-poetry run python examples/regresion.py
+# If installed from PyPI, create your own scripts
+python my_neural_network.py
+```
+
+### Uninstallation
+
+```bash
+# If installed from PyPI with pip
+pip uninstall novann
+
+# If installed with poetry
+poetry remove novann
+
+# If installed from source
+# Simply remove Poetry's virtual environment
+poetry env remove python
+```
+
+### Troubleshooting
+
+#### Error: "Python version not compatible"
+
+NovaNN requires Python 3.14. Check your version:
+
+```bash
+python --version
+```
+
+If you have multiple Python versions, use:
+
+```bash
+poetry env use python3.14
+```
+
+#### Error: "Module nova not found"
+
+If installed from source, make sure you're in Poetry's virtual environment:
+
+```bash
+poetry shell
+```
+
+Or use `poetry run` before your commands.
+
+#### Problems with NumPy or dependencies
+
+If you have dependency conflicts, try:
+
+```bash
+pip install --upgrade pip
+pip install novann --no-cache-dir
 ```
 
 ## 🧪 Testing

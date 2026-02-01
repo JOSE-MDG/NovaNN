@@ -420,16 +420,44 @@ El framework **NovaNN** está construido utilizando las siguientes tecnologías 
 
 ## 📦 Instalación
 
-NovaNN utiliza **Poetry** para la gestión de dependencias y empaquetado. Sigue estos pasos para configurar el entorno:
+NovaNN está disponible en **[PyPI](https://pypi.org/)** y puede instalarse fácilmente usando `pip` o `poetry`. También puedes instalarlo desde el código fuente si quieres contribuir o explorar el framework en profundidad.
 
-### 1. Clonar el repositorio
+### Opción 1: Instalación desde PyPI (Recomendado)
+
+La forma más sencilla de instalar NovaNN es mediante pip o poetry:
+
+```bash
+# Con pip
+pip install novann
+
+# Con poetry
+poetry add novann
+```
+
+#### Verificar la instalación
+
+```python
+import nova
+print(nova.__version__)  # Debería mostrar: 4.0.0
+```
+
+#### Requisitos del sistema
+
+- **Python**: >= 3.14, < 3.15
+- **Sistema operativo**: Windows, Linux, macOS
+
+### Opción 2: Instalación desde el código fuente
+
+Si deseas contribuir al proyecto o explorar el código fuente, puedes clonar el repositorio e instalar usando Poetry.
+
+#### 1. Clonar el repositorio
 
 ```bash
 git clone git@github.com:JOSE-MDG/NovaNN.git
 cd NovaNN
 ```
 
-### 2. Instalar Poetry (si no lo tienes instalado)
+#### 2. Instalar Poetry (si no lo tienes instalado)
 
 - Windows (PowerShell):
 
@@ -485,74 +513,97 @@ set PATH=%PATH%;%APPDATA%\Python\Scripts
 setx PATH "%PATH%;%APPDATA%\Python\Scripts"
 ```
 
-### 3. Añadir el proyecto al python path
-
-- En Linux/macOS
+#### 3. Instalar dependencias del proyecto
 
 ```bash
-# Temporal
-export PYTHONPATH="/ruta/a/tu/proyecto:$PYTHONPATH"
-
-# Permanente (añadir al ~/.bashrc o ~/.zshrc)
-echo 'export PYTHONPATH="/ruta/a/tu/proyecto:$PYTHONPATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-- En Windows:
-
-```powershell
-# PowerShell (temporal)
-$env:PYTHONPATH = "C:\ruta\a\tu\proyecto"
-
-# PowerShell (permanente)
-[System.Environment]::SetEnvironmentVariable("PYTHONPATH", "C:\ruta\a\tu\proyecto", "User")
-```
-
-```cmd
-# Command Prompt (temporal)
-set PYTHONPATH=C:\ruta\a\tu\proyecto
-
-# Command Prompt (permanente)
-setx PYTHONPATH "C:\ruta\a\tu\proyecto"
-```
-
-### 4. Instalar dependencias del proyecto
-
-```bash
-# Escribir el archvo lock
+# Escribir el archivo lock
 poetry lock
 
 # Instalar todas las dependencias (incluyendo las de desarrollo)
 poetry install
+
+# Solo dependencias de producción
+poetry install --without dev,benchmark
+
+# Con herramientas de benchmarking
+poetry install --with benchmark
 ```
 
-### 5. Activar el entorno virtual
+#### 4. Activar el entorno virtual
 
 ```bash
-# instalar el plugin de shell
+# Instalar el plugin de shell
 poetry self add poetry-plugin-shell
 
-# # Activar el shell con el entorno virtual
+# Activar el shell con el entorno virtual
 poetry shell
 
 # Alternativamente, ejecutar comandos directamente sin activar el shell:
 poetry run python examples/binary_classification.py
 ```
 
-### 6. Ejecutar ejemplos
+### Ejecutar ejemplos
+
+Una vez instalado NovaNN (desde PyPI o código fuente), puedes ejecutar los ejemplos incluidos:
 
 ```bash
-# Clasificación binaria
+# Si instalaste desde código fuente
 poetry run python examples/binary_classification.py
-
-# Clasificación multiclase
 poetry run python examples/multiclass_classification.py
-
-# Redes convolucionales
 poetry run python examples/conv_example.py
-
-# Regresión
 poetry run python examples/regresion.py
+
+# Si instalaste desde PyPI, crea tus propios scripts
+python mi_red_neuronal.py
+```
+
+### Desinstalación
+
+```bash
+# Si instalaste desde PyPI con pip
+pip uninstall novann
+
+# Si instalaste con poetry
+poetry remove novann
+
+# Si instalaste desde código fuente
+# Simplemente elimina el entorno virtual de Poetry
+poetry env remove python
+```
+
+### Solución de problemas
+
+#### Error: "Python version not compatible"
+
+NovaNN requiere Python 3.14. Verifica tu versión:
+
+```bash
+python --version
+```
+
+Si tienes múltiples versiones de Python, usa:
+
+```bash
+poetry env use python3.14
+```
+
+#### Error: "Module nova not found"
+
+Si instalaste desde el código fuente, asegúrate de estar en el entorno virtual de Poetry:
+
+```bash
+poetry shell
+```
+
+O usa `poetry run` antes de tus comandos.
+
+#### Problemas con NumPy o dependencias
+
+Si tienes conflictos de dependencias, intenta:
+
+```bash
+pip install --upgrade pip
+pip install novann --no-cache-dir
 ```
 
 ## 🧪 Testing
