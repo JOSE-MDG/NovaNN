@@ -1,20 +1,11 @@
 # tests
 .pytest_cache/
 
-# log file
-logs/*
-
-# keep log folder
-!logs/.gitkeep
-
 training_history.json
 pytorch_training_history.json
 __pycache__/
 .DS_Store
 .ipynb_checkpoints/
-
-# environments variables
-.env
 
 # experimentation
 notebooks/
