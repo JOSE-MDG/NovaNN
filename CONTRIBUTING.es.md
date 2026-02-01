@@ -102,7 +102,6 @@ NovaNN/
 │   └── ...
 ├── tests/             # Tests unitarios
 ├── examples/          # Scripts de ejemplo
-├── tutorials/         # Tutoriales paso a paso
 └── benchmarks/        # Benchmarks de rendimiento
 ```
 
@@ -225,7 +224,7 @@ class TestLinear:
     def test_backward_updates_grad(self):
         """Test that backward pass computes gradients."""
         layer = nn.Linear(10, 5)
-        x = nova.randn(3, 10, requires_grad=True)
+        x = nova.randn(3, 10)
         output = layer(x)
         loss = output.sum()
         loss.backward()
