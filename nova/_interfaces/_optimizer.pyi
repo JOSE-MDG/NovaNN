@@ -1,20 +1,16 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Iterable, Optional, TypeVar
+from typing import Iterable, Optional
 from nova.utils.hooks import HooksHandle
-
-if TYPE_CHECKING:
-    from nova.nn import Parameter
-    from nova._typing import (
-        StepHook,
-        Closure,
-        ParamGroups,
-        State,
-        Defaults,
-        OptimizerStateDict,
-        Group,
-    )
-
-TOptimizer = TypeVar("TOptimizer", bound="Optimizer")
+from nova.nn import Parameter
+from nova._typing import (
+    StepHook,
+    Closure,
+    ParamGroups,
+    State,
+    Defaults,
+    OptimizerStateDict,
+    Group,
+)
 
 class Optimizer:
     param_groups: ParamGroups
@@ -24,6 +20,8 @@ class Optimizer:
     _step_post_hook: list[StepHook]
 
     def __init__(self, params: Iterable[Parameter], defaults: Defaults) -> None: ...
+    def __getstate__(self): ...
+    def __setstate__(self, state: OptimizerStateDict): ...
     def add_param_group(self, group: Group) -> None: ...
     def register_step_prev_hook(self, hook: StepHook) -> HooksHandle: ...
     def register_step_post_hook(self, hook: StepHook) -> HooksHandle: ...

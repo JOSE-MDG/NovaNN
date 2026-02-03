@@ -1,11 +1,6 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, TypeVar
 from ._optimizer import Optimizer
-
-if TYPE_CHECKING:
-    from nova._typing import SchedulerStateDict
-
-TScheduler = TypeVar("TScheduler", bound="_LRScheduler")
+from nova._typing import SchedulerStateDict
 
 class _LRScheduler:
     optimizer: Optimizer
@@ -13,6 +8,8 @@ class _LRScheduler:
     base_lrs: list[float]
 
     def __init__(self, optimizer: Optimizer, last_epoch: int = -1) -> None: ...
+    def __getstate__(self) -> SchedulerStateDict: ...
+    def __setstate__(self, state: SchedulerStateDict) -> None: ...
     def get_lr(self) -> list[float]: ...
     def step(self) -> None: ...
     def get_last_lr(self) -> list[float]: ...
