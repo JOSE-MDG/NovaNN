@@ -44,7 +44,17 @@ class SGD(Optimizer):
         lr: float,
         momentum: float = 0.0,
         weight_decay: float = 0.0,
-    ):
+    ) -> None:
+        """
+        Initialize SGD optimizer.
+
+        Args:
+            parameters (Iterable[Parameter]): Iterable of parameters to optimize.
+            lr (float): Learning rate.
+            momentum (float, optional): Momentum factor. Defaults to 0.0.
+            weight_decay (float, optional): Weight decay (L2 penalty). Defaults to 0.0.
+        """
+
         super().__init__(
             params=parameters,
             defaults={"lr": lr, "weight_decay": weight_decay, "momentum": momentum},

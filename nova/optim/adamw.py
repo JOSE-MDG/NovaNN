@@ -47,7 +47,20 @@ class AdamW(Optimizer):
         betas: tuple[float, float] = (0.9, 0.999),
         weight_decay: float = 0.0,
         eps: float = 1e-8,
-    ):
+    ) -> None:
+        """
+        Initialize AdamW optimizer with decoupled weight decay.
+
+        Args:
+            parameters (Iterable[Parameter]): Iterable of parameters to optimize.
+            lr (float): Learning rate.
+            betas (tuple[float, float], optional): Coefficients used for computing running averages
+                of gradient and squared gradient. Defaults to (0.9, 0.999).
+            weight_decay (float, optional): Weight decay coefficient (decoupled from gradient).
+                Defaults to 0.0.
+            eps (float, optional): Term added to denominator to improve numerical stability.
+                Defaults to 1e-8.
+        """
         super().__init__(
             params=parameters,
             defaults={"lr": lr, "betas": betas, "weight_decay": weight_decay},

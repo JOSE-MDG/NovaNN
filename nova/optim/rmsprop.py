@@ -50,7 +50,23 @@ class RMSprop(Optimizer):
         momentum: float = 0.0,
         centered: bool = True,
         eps: float = 1e-8,
-    ):
+    ) -> None:
+        """
+        Initialize RMSprop optimizer.
+
+        Args:
+            parameters (Iterable[Parameter]): Iterable of parameters to optimize.
+            lr (float): Learning rate.
+            alpha (float, optional): Smoothing constant for the moving average of squared gradients.
+                Defaults to 0.99.
+            weight_decay (float, optional): Weight decay (L2 penalty). Defaults to 0.0.
+            momentum (float, optional): Momentum factor. Defaults to 0.0.
+            centered (bool, optional): If True, computes the centered RMSprop by normalizing
+                gradients by an estimate of their variance. Defaults to True.
+            eps (float, optional): Term added to the denominator to improve numerical stability.
+                Defaults to 1e-8.
+        """
+
         super().__init__(
             parameters,
             {

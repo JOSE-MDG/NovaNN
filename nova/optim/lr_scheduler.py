@@ -49,7 +49,16 @@ class StepLR(_LRScheduler):
         step_size: int,
         gamma: float = 1.0,
         last_epoch: int = -1,
-    ):
+    ) -> None:
+        """
+        Initialize StepLR scheduler.
+
+        Args:
+            optimizer (Optimizer): Wrapped optimizer.
+            step_size (int): Period of learning rate decay.
+            gamma (float, optional): Multiplicative factor of learning rate decay. Defaults to 1.0.
+            last_epoch (int, optional): The index of last epoch. Defaults to -1.
+        """
         self.step_size: int = step_size
         self.gamma = gamma
         super().__init__(optimizer, last_epoch)
@@ -93,7 +102,16 @@ class CosineAnnealingLR(_LRScheduler):
         T_max: int,
         eta_min: float = 0.0,
         last_epoch: int = -1,
-    ):
+    ) -> None:
+        """
+        Initialize CosineAnnealingLR scheduler.
+
+        Args:
+            optimizer (Optimizer): Wrapped optimizer.
+            T_max (int): Maximum number of iterations/steps.
+            eta_min (float, optional): Minimum learning rate. Defaults to 0.0.
+            last_epoch (int, optional): The index of last epoch. Defaults to -1.
+        """
         self.T_max: int = T_max
         self.eta_min: float = eta_min
         super().__init__(optimizer, last_epoch)
@@ -153,7 +171,24 @@ class OneCycleLR(_LRScheduler):
         max_momentum: float = 0.95,
         last_epoch: int = -1,
     ) -> None:
+        """
+        Initialize OneCycleLR scheduler.
 
+        Args:
+            optimizer (Optimizer): Wrapped optimizer.
+            max_lr (float): Upper learning rate boundary in the cycle.
+            total_steps (int): Total number of steps in the cycle.
+            pct_start (float, optional): Percentage of the cycle spent increasing the learning rate.
+                Defaults to 0.3.
+            div_factor (float, optional): Determines the initial learning rate via
+                initial_lr = max_lr / div_factor. Defaults to 25.0.
+            final_div_factor (float, optional): Determines the minimum learning rate via
+                min_lr = max_lr / final_div_factor. Defaults to 1e4.
+            cycle_momentum (bool, optional): If True, momentum is cycled inversely to learning rate.
+                Defaults to True.
+            max_momentum (float, optional): Upper momentum boundary in the cycle. Defaults to 0.95.
+            last_epoch (int, optional): The index of the last epoch. Defaults to -1.
+        """
         self.max_lr = max_lr
         self.total_steps = total_steps
         self.pct_start = pct_start
