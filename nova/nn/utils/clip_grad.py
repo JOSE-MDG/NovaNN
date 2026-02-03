@@ -42,22 +42,23 @@ def clip_grad_norm_(
         >>> p1.grad = np.array([3.0, 4.0])
         >>> norm = clip_grad_norm_([p1], max_norm=5.0)
     """
-    parameters = list(parameters)
+
+    if parameters is None:
+        return None
+
     params = [param for param in parameters if param.grad is not None]
+    if not params:
+        return 0.0 if get_norm else None
+
     total_norm = 0.0
-
     for param in params:
-        if max_norm is None:
-            return 1.0
-        p_norm = np.linalg.norm(param.grad, ord=2)
-        total_norm += np.sum(p_norm**2)
+        total_norm += np.sqrt(np.sum(np.linalg.norm(param.grad, ord=2) ** 2))
 
-    total_norm = np.sqrt(total_norm)
-    clip_coeff = max_norm / (total_norm + 1e-10)
-
-    if clip_coeff < 1.0:
-        for param in params:
-            param.grad *= clip_coeff  # scales gradients in-place
+    if max_norm is not None:
+        clip_coeff = max_norm / (total_norm + 1e-8)
+        if clip_coeff < 1.0:
+            for param in params:
+                param.grad *= clip_coeff  # scales gradients in-place
 
     if get_norm:
         return total_norm
