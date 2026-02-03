@@ -33,21 +33,32 @@ class Optimizer:
         Initialize the optimizer.
 
         Args:
-            params (Iterable[Parameter]): Iterable of parameters or parameter groups.
-                Can be:
-                - an iterable of Parameters
-                - an iterable of dicts with a "params" key
-            defaults (Defaults): Dictionary of default hyperparameters (e.g., lr, betas).
+            params (Iterable[Parameter]): Iterable of parameters to optimize or dicts defining
+                parameter groups. Each dict should contain a 'params' key with parameters and
+                optional hyperparameter overrides.
+            defaults (Defaults): Dictionary of default hyperparameters (e.g., {'lr': 0.01,
+                'momentum': 0.9}). These values are used unless overridden in parameter groups.
 
         Raises:
-            ValueError: If `params` is empty.
+            ValueError: If the parameter list is empty.
+            KeyError: If a parameter group dict is missing the 'params' key.
+
+        Examples:
+            >>> # Single parameter group
+            >>> optimizer = Optimizer([{'params': list(model.parameters()}], lr=0.01)
+            >>>
+            >>> # Multiple parameter groups with different learning rates
+            >>> optimizer = Optimizer([
+            ...     {'params': model.layer1.parameters(), 'lr': 0.01},
+            ...     {'params': model.layer2.parameters()}], lr=0.001)
         """
 
         param_group: ParamGroups
         defaults: Defaults
+        state: State
 
         self.param_groups = []
-        self.state: State = {}
+        self.state = {}
         self.defaults = defaults
         self._step_pre_hook: list[StepHook] = []
         self._step_post_hook: list[StepHook] = []
@@ -64,6 +75,52 @@ class Optimizer:
 
         for group in param_group:
             self.add_param_group(group=group)
+
+    def __getstate__(self) -> OptimizerStateDict:
+        """
+        Prepare optimizer state for pickling.
+
+        Returns:
+            OptimizerStateDict: Dictionary containing the optimizer's complete state,
+                including parameter groups and optimizer state (momentum buffers, etc.).
+
+        Note:
+            Returns the same structure as state_dict() for consistency. Parameter
+            references are preserved but should be restored carefully when unpickling.
+
+        Example:
+            >>> import pickle
+            >>> state = pickle.dumps(optimizer)
+            >>> optimizer = pickle.loads(state)
+        """
+        return self.state_dict()
+
+    def __setstate__(self, state: OptimizerStateDict) -> None:
+        """
+        Restore optimizer state after unpickling.
+
+        Args:
+            state (OptimizerStateDict): Dictionary containing the optimizer's state,
+                typically obtained from __getstate__() or state_dict().
+
+        Note:
+            Restores hyperparameters and optimizer state (e.g., momentum buffers).
+            Parameter references must be valid in the current context.
+
+        Warning:
+            Ensure that the model parameters match the state being loaded to avoid
+            inconsistencies.
+
+        Example:
+            >>> import pickle
+            >>> # Save
+            >>> with open('optimizer.pkl', 'wb') as f:
+            ...     pickle.dump(optimizer, f)
+            >>> # Load
+            >>> with open('optimizer.pkl', 'rb') as f:
+            ...     optimizer = pickle.load(f)
+        """
+        self.load_state_dict(state)
 
     def add_param_group(self, group: Group) -> None:
         """

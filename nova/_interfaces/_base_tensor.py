@@ -20,7 +20,7 @@ class TensorBase:
 
     @property
     def data(self) -> ndarray:
-        """Returns the underlying numpy array containing tensor data."""
+        """Returns the underlying numpy array containing tensor data"""
         return self._data_internal
 
     @data.setter
@@ -32,7 +32,7 @@ class TensorBase:
         Args:
             value (ndarray): NumPy array that will act as the .data file of the Tensor wrapper class
         """
-        if hasattr(value, "data") and isinstance(value, nova.Tensor):
+        if isinstance(value, nova.Tensor):
             self._data_internal = value.data
         elif isinstance(value, np.ndarray):
             self._data_internal = value
@@ -41,52 +41,52 @@ class TensorBase:
 
     @property
     def T(self) -> Self:
-        """Returns the transposed tensor (convenience alias for permute())."""
+        """Returns the transposed tensor (convenience alias for permute())"""
         return self.permute()
 
     @property
     def shape(self) -> Size:
-        """Returns the shape of the tensor as a tuple of dimensions."""
+        """Returns the shape of the tensor as a tuple of dimensions"""
         return self._data_internal.shape
 
     @property
     def dtype(self) -> Dtype:
-        """Returns the data type of the tensor elements."""
+        """Returns the data type of the tensor elements"""
         return self._data_internal.dtype
 
     @property
     def strides(self) -> tuple[int, ...]:
-        """Returns the stride of each dimension in bytes."""
+        """Returns the stride of each dimension in bytes"""
         return self._data_internal.strides
 
     @property
     def itemsize(self) -> int:
-        """Returns the size in bytes of each element."""
+        """Returns the size in bytes of each element"""
         return self._data_internal.itemsize
 
     @property
     def ndim(self) -> int:
-        """Returns the number of dimensions."""
+        """Returns the number of dimensions"""
         return self._data_internal.ndim
 
     @property
     def nbytes(self) -> int:
-        """Returns the total bytes consumed by the tensor's elements."""
+        """Returns the total bytes consumed by the tensor's elements"""
         return self._data_internal.nbytes
 
     @property
     def is_leaf(self) -> bool:
-        """Returns True if this tensor is a leaf node in the computational graph."""
+        """Returns True if this tensor is a leaf node in the computational graph"""
         return self._is_leaf
 
     @property
     def is_cuda(self) -> bool:
-        """Returns False (NovaNN doesn't support CUDA yet)."""
+        """Returns False (NovaNN doesn't support CUDA yet)"""
         return False
 
     @property
     def device(self) -> str:
-        """Returns 'cpu' (NovaNN only supports CPU currently)."""
+        """Returns 'cpu' (NovaNN only supports CPU currently)"""
         return "cpu"
 
     def numel(self) -> int:
@@ -101,7 +101,7 @@ class TensorBase:
         return self._data_internal.size
 
     def dim(self) -> int:
-        """Returns the number of dimensions (same as ndim)."""
+        """Returns the number of dimensions (same as ndim)"""
         return self.ndim
 
     def size(self, dim: Optional[Dim] = None) -> Dim:

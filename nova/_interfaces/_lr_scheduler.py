@@ -21,13 +21,55 @@ class _LRScheduler:
         Initialize the learning rate scheduler.
 
         Args:
-            optimizer (Optimizer): Optimizer whose learning rate will be scheduled.
-            last_epoch (int): Index of the last epoch. Use -1 for initial state.
+            optimizer (Optimizer): Wrapped optimizer whose learning rate will be scheduled.
+            last_epoch (int, optional): The index of the last epoch. Use -1 to start from
+                the beginning. Defaults to -1.
+
+        Note:
+            Automatically calls step() once during initialization to set the initial
+            learning rate.
         """
         self.optimizer: Optimizer = optimizer
         self.last_epoch: int = last_epoch
         self.base_lrs: list[float] = [group["lr"] for group in optimizer.param_groups]
         self.step()
+
+    def __getstate__(self) -> SchedulerStateDict:
+        """
+        Prepare scheduler state for pickling.
+
+        Returns:
+            SchedulerStateDict: Dictionary containing the scheduler's state, excluding
+                the optimizer reference to avoid circular dependencies during serialization.
+
+        Note:
+            The optimizer reference is excluded and must be restored manually after
+            unpickling using load_state_dict().
+        """
+        state = self.__dict__.copy()
+        state.pop("optimizer", None)
+        return state
+
+    def __setstate__(self, state: SchedulerStateDict) -> None:
+        """
+        Restore scheduler state after unpickling.
+
+        Args:
+            state (SchedulerStateDict): Dictionary containing the scheduler's state.
+
+        Note:
+            The optimizer must be set manually after unpickling. The scheduler will not
+            be functional until an optimizer is assigned.
+
+        Example:
+            >>> import pickle
+            >>> # Save
+            >>> state = pickle.dumps(scheduler)
+            >>> # Load
+            >>> scheduler = pickle.loads(state)
+            >>> scheduler.optimizer = optimizer  # Must restore optimizer reference
+        """
+        self.__dict__.update(state)
 
     def get_lr(self) -> list[float]:
         """
