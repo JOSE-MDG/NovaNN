@@ -21,11 +21,8 @@ Only the symbols listed in `__all__` are considered part of the
 public autograd API.
 """
 
-from ._activation import GELU, LeakyReLU, ReLU, PReLU, Sigmoid
-
-__all__ = ["ReLU", "LeakyReLU", "PReLU", "Sigmoid", "GELU"]
-
 from . import (
+    _activation,
     _arithmetic,
     _comparison,
     _convolution,
@@ -41,6 +38,7 @@ from . import (
     _view,
 )
 
+from ._activation import *  # noqa: F403
 from ._arithmetic import *  # noqa: F403
 from ._comparison import *  # noqa: F403
 from ._convolution import *  # noqa: F403
@@ -55,7 +53,9 @@ from ._reduction import *  # noqa: F403
 from ._trigonometric import *  # noqa: F403
 from ._view import *  # noqa: F403
 
+
 modules = [
+    _activation,
     _arithmetic,
     _comparison,
     _convolution,
@@ -70,6 +70,8 @@ modules = [
     _trigonometric,
     _view,
 ]
+
+__all__ = []
 
 for m in modules:
     __all__.extend(m.__all__)

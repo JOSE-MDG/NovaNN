@@ -80,6 +80,7 @@ __all__ = [
     "ones",
     "ones_like",
     "linspace",
+    "logspace",
     "any",
     "all",
     "allclose",
@@ -1739,7 +1740,9 @@ def linspace(
     start: int | float,
     stop: int | float,
     num: int | float,
+    endpoint: Optional[bool] = True,
     dtype: Optional[Dtype] = None,
+    dim: Optional[Dim] = None,
     requires_grad: bool = False,
 ):
     """
@@ -1749,7 +1752,9 @@ def linspace(
         start (int | float): Start value.
         stop (int | float): End value.
         num (int | float): Number of points.
+        endpoint (bool): If true, stop is the last sample. Otherwise, it is not included.
         dtype (Optional[Dtype]): Data type.
+        dim (Optional[Dim]):  The axis in the result to store the samples.
         requires_grad (bool): Whether to track gradients.
 
     Returns:
@@ -1757,11 +1762,49 @@ def linspace(
 
     Examples:
         >>> nova.linspace(0, 1, 5)
-        [0.0, 0.25, 0.5, 0.75, 1.0]
+        tensor([0.0, 0.25, 0.5, 0.75, 1.0])
     """
     if dtype is None:
         dtype = nova.float32
-    data = np.linspace(start=start, stop=stop, num=num, dtype=dtype)
+    data = np.linspace(
+        start=start, stop=stop, num=num, endpoint=endpoint, dtype=dtype, axis=dim
+    )
+    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
+
+
+def logspace(
+    start: int | float,
+    stop: int | float,
+    num: int | float,
+    endpoint: Optional[bool] = True,
+    dtype: Optional[Dtype] = None,
+    dim: Optional[Dim] = None,
+    requires_grad: bool = False,
+):
+    """
+    Returns a 1-D tensor of `num` evenly log spaced points between `start` and `stop`.
+
+    Args:
+        start (int | float): Start value.
+        stop (int | float): End value.
+        num (int | float): Number of points.
+        endpoint (bool): If true, stop is the last sample. Otherwise, it is not included.
+        dtype (Optional[Dtype]): Data type.
+        dim (Optional[Dim]):  The axis in the result to store the samples.
+        requires_grad (bool): Whether to track gradients.
+
+    Returns:
+        Tensor: Tensor of evenly log spaced values.
+
+    Examples:
+        >>> nova.logspace(1e-6, 1.0, 5)
+        tensor([1.0, 1.78, 3.26, 5.62, 10.0])
+    """
+    if dtype is None:
+        dtype = nova.float32
+    data = np.logspace(
+        start=start, stop=stop, num=num, endpoint=endpoint, dtype=dtype, axis=dim
+    )
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
