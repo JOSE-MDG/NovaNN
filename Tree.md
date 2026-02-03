@@ -1,7 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 2/1/2026, 5:24:26 PM
-**Root Path:** `/home/juancho_col/Documents/NovaNN`
+**Generated:** 2/3/2026, 11:45:30 PM
 
 ```
 ├── 📁 benchmarks
@@ -125,7 +124,6 @@
 │   │   ├── 📝 README.es.md
 │   │   ├── 📝 README.md
 │   │   ├── 🐍 __init__.py
-│   │   ├── 🐍 config.py
 │   │   └── 🐍 constants.py
 │   ├── 📁 metrics
 │   │   ├── 📁 classification
@@ -261,6 +259,7 @@
 │   ├── 🐍 test_memory_utils.py
 │   ├── 🐍 test_metrics.py
 │   ├── 🐍 test_mnist_loader.py
+│   ├── 🐍 test_normal_use.py
 │   ├── 🐍 test_preprocessing.py
 │   ├── 🐍 test_registry.py
 │   └── 🐍 test_timing_decorators.py
