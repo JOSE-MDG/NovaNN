@@ -31,6 +31,11 @@ class Tensor(TensorBase):
         copy: bool = True,
     ) -> None: ...
 
+    # State for serialization
+
+    def __getstate__(self): ...
+    def __setstate__(self, state: dict): ...
+
     # Autograd Operations
 
     def backward(

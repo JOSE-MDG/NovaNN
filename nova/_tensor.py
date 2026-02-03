@@ -86,7 +86,7 @@ class Tensor(TensorBase):
         requires_grad: bool = False,
         grad_fn: Optional[Function] = None,
         copy: bool = True,
-    ):
+    ) -> None:
         """
         Constructs a new Tensor.
 
