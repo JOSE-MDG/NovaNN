@@ -41,7 +41,24 @@ class ClassificationStat(Metric):
         average: Average = "macro",
         task: Literal["multiclass", "binary"] = "multiclass",
     ) -> None:
+        """
+        Initialize classification statistic metric.
 
+        Args:
+            num_classes (int): Number of classes in the classification problem.
+            average (Average, optional): Strategy for averaging across classes:
+                - 'micro': Calculate globally by counting total TP, FN, FP.
+                - 'macro': Calculate per class and find unweighted mean.
+                - 'weighted': Calculate per class and find weighted mean by support.
+                - None: Return score for each class separately.
+                Defaults to "macro".
+            task (Literal["multiclass", "binary"], optional): Type of classification task.
+                Defaults to "multiclass".
+
+        Raises:
+            ValueError: If task is 'binary' and num_classes is not 2, or if average
+                is not one of the allowed values.
+        """
         self.task = task
 
         if task == "binary" and num_classes != 2:
@@ -135,7 +152,16 @@ class Accuracy(ClassificationStat):
         num_classes,
         average="micro",
         task: Literal["multiclass", "binary"] = "multiclass",
-    ):
+    ) -> None:
+        """
+        Initialize Accuracy metric.
+
+        Args:
+            num_classes (int): Number of classes in the classification problem.
+            average (str, optional): Averaging strategy. Defaults to "micro".
+            task (Literal["multiclass", "binary"], optional): Type of classification task.
+                Defaults to "multiclass".
+        """
         super().__init__(num_classes, average, task)
 
     def _calculate(self, tp, fp, fn, tn, support) -> Tensor:

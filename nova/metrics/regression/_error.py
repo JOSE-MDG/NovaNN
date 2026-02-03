@@ -59,6 +59,13 @@ class MeanSquaredError(Metric):
     """
 
     def __init__(self, squared: bool = True) -> None:
+        """
+        Initialize Mean Squared Error (MSE) or Root Mean Squared Error (RMSE) metric.
+
+        Args:
+            squared (bool, optional): If True, returns MSE. If False, returns RMSE
+                (square root of MSE). Defaults to True.
+        """
         super().__init__()
         self.squared = squared
         self.sum_squared_error = 0.0
@@ -147,6 +154,12 @@ class MeanAbsoluteError(Metric):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize Mean Absolute Error (MAE) metric.
+
+        Note:
+            MAE is more robust to outliers than MSE as it doesn't square the errors.
+        """
         super().__init__()
         self.sum_abs_error = 0.0
         self.total = 0

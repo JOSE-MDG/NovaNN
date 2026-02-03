@@ -60,7 +60,13 @@ class Metric(ABC):
     """
 
     def __init__(self):
-        """Initializes the metric and calls reset() to initialize internal state."""
+        """
+        Initialize the metric and reset internal state.
+
+        Note:
+            Automatically calls reset() to initialize accumulation variables.
+            Subclasses should implement reset(), update(), and compute() methods.
+        """
         self.reset()
 
     @abstractmethod

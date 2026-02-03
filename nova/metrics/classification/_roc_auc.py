@@ -45,7 +45,22 @@ class ROCAUC(Metric):
 
     def __init__(
         self, num_classes: int = 2, task: Literal["multiclass", "binary"] = "multiclass"
-    ):
+    ) -> None:
+        """
+            Initialize ROC AUC metric.
+
+        Args:
+            num_classes (int, optional): Number of classes. Defaults to 2.
+            task (Literal["multiclass", "binary"], optional): Type of classification task.
+                For 'binary', num_classes must be 2. Defaults to "multiclass".
+
+        Raises:
+            ValueError: If task is 'binary' and num_classes is not 2.
+
+        Note:
+            This metric stores all predictions and targets in memory for final computation,
+            which may consume significant RAM on large datasets.
+        """
         super().__init__()
 
         self.task = task

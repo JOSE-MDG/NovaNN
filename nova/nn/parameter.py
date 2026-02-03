@@ -56,6 +56,16 @@ class Parameter(nova.Tensor):
     def __init__(
         self, data: Any, requires_grad: bool = True, dtype: Optional[Dtype] = None
     ) -> None:
+        """
+        Initialize a Parameter tensor.
+
+        Args:
+            data (Any): Initial data for the parameter. Can be a Tensor, array, or scalar.
+            requires_grad (bool, optional): If True, gradients will be computed for this parameter.
+                Defaults to True.
+            dtype (Optional[Dtype], optional): Data type of the parameter. If None, infers from data.
+                Defaults to None.
+        """
         super().__init__(
             data=data, requires_grad=requires_grad, dtype=dtype, copy=False
         )
@@ -85,7 +95,17 @@ class Buffer(nova.Tensor):
 
     def __init__(
         self, data: Any, *, dtype: Optional[Dtype] = None, persistent: bool = True
-    ):
+    ) -> None:
+        """
+        Initialize a Buffer tensor.
+
+        Args:
+            data (Any): Initial data for the buffer. Can be a Tensor, array, or scalar.
+            dtype (Optional[Dtype], optional): Data type of the buffer. If None, infers from data.
+                Defaults to None.
+            persistent (bool, optional): If True, this buffer will be saved in the model's state_dict.
+                Defaults to True.
+        """
         super().__init__(data=data, dtype=dtype, requires_grad=False)
         self.persistent = persistent
 
@@ -123,6 +143,14 @@ class UninitializedParameter(UninitializedTensorMixin, Parameter):
     __slots__ = []
 
     def __init__(self, requires_grad: bool = True) -> None:
+        """
+        Initialize an uninitialized (lazy) parameter.
+
+        Args:
+            requires_grad (bool, optional): If True, gradients will be computed when materialized.
+                Defaults to True.
+        """
+
         dummy_tensor = nova.empty(0)
         Parameter.__init__(self, data=dummy_tensor, requires_grad=requires_grad)
 
@@ -151,6 +179,14 @@ class UninitializedBuffer(UninitializedTensorMixin, Buffer):
     __slots__ = []
 
     def __init__(self, persistent: bool = True) -> None:
+        """
+        Initialize an uninitialized (lazy) buffer.
+
+        Args:
+            persistent (bool, optional): If True, this buffer will be saved in the model's state_dict
+                when materialized. Defaults to True.
+        """
+
         dummy_tensor = nova.empty(0)
         Buffer.__init__(self, data=dummy_tensor, persistent=persistent)
 

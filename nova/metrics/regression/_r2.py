@@ -81,6 +81,15 @@ class R2Score(Metric):
     """
 
     def __init__(self) -> None:
+        """
+        Initialize R² (coefficient of determination) score metric.
+
+        Note:
+            R² measures the proportion of variance in the target that is predictable
+            from the model. Values range from -∞ to 1.0, where 1.0 indicates perfect
+            predictions and values below 0.0 indicate the model performs worse than
+            predicting the mean.
+        """
         super().__init__()
         self.sum_squared_error = 0.0
         self.sum_target = 0.0

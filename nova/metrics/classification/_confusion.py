@@ -53,6 +53,12 @@ class ConfusionMatrix(Metric):
     """
 
     def __init__(self, num_classes: int) -> None:
+        """
+        Initialize ConfusionMatrix metric.
+
+        Args:
+            num_classes (int): Number of classes in the classification problem.
+        """
         self.num_classes = num_classes
         self.matrix = None
         super().__init__()
