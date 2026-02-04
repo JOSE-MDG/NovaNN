@@ -1,6 +1,6 @@
 ![Banner](./images/NovaNN%20Banners.png)
 
-![version](https://img.shields.io/badge/version-4.0.0-blue)
+![version](https://img.shields.io/badge/version-4.0.1-blue)
 ![python](https://img.shields.io/badge/python-v3.14-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![tests](https://img.shields.io/badge/tests-pytest-orange)
@@ -438,12 +438,12 @@ poetry add novann
 
 ```python
 import nova
-print(nova.__version__)  # Debería mostrar: 4.0.0
+print(nova.__version__)  # Debería mostrar: 4.0.1
 ```
 
 #### Requisitos del sistema
 
-- **Python**: >= 3.14, < 3.15
+- **Python**: >= 3.12, < 4.0.0
 - **Sistema operativo**: Windows, Linux, macOS
 
 ### Opción 2: Instalación desde el código fuente
@@ -575,7 +575,7 @@ poetry env remove python
 
 #### Error: "Python version not compatible"
 
-NovaNN requiere Python 3.14. Verifica tu versión:
+NovaNN requiere Python `>=3.12, <4.0.0` Verifica tu versión:
 
 ```bash
 python --version
@@ -584,7 +584,7 @@ python --version
 Si tienes múltiples versiones de Python, usa:
 
 ```bash
-poetry env use python3.14
+poetry env use python3.14 # o python3.12/13
 ```
 
 #### Error: "Module nova not found"
