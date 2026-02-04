@@ -529,13 +529,46 @@ Operaciones de vistas sin copia de datos:
 
 ### `utils.py`
 
-Utilidades internas para operaciones de autograd:
+Utilidades internas para operaciones de autograd que permiten la propagación correcta de gradientes y computación eficiente en memoria:
 
-- **`unbroadcasting(grad, shape)`**: revierte broadcasting de gradientes
+- **`unbroadcasting(grad, shape)`**: revierte broadcasting de gradientes a forma original
   - Remueve dimensiones leading extra (cuando `grad.ndim > len(shape)`)
-  - Suma sobre ejes donde broadcasting ocurrió (size 1 en original)
-  - Crucial para garantizar que gradientes tengan la forma correcta
-  - Usado extensivamente en operaciones binarias (Add, Mul, etc.)
+  - Suma sobre ejes donde ocurrió broadcasting (size 1 en original)
+  - Crucial para garantizar que gradientes tengan la forma correcta después de operaciones con broadcasting
+  - Usado extensivamente en operaciones binarias (Add, Mul, Div, etc.)
+  - Maneja tanto expansión de dimensiones como broadcasting de tamaño-1
+
+- **`ensure_casting(dest, src)`**: asegura casting seguro de dtype para operaciones in-place
+  - Verifica si arrays origen y destino tienen dtypes compatibles
+  - Convierte automáticamente el array origen para coincidir con dtype del destino si es necesario
+  - Crítico para prevenir errores de tipo en operaciones in-place
+  - Retorna tupla `(dest, src)` donde `src` puede ser una nueva copia convertida
+  - Usado internamente por `write_to_buffer()`
+
+- **`write_to_buffer(dest, src)`**: realiza copia de memoria in-place
+  - Maneja operación de copia de memoria de bajo nivel usando `np.copyto()`
+  - Asegura que datos del origen se escriban físicamente en memoria del destino
+  - Maneja automáticamente casting de dtype vía `ensure_casting()`
+  - El array destino debe ser mutable (no read-only)
+  - Retorna el array destino actualizado
+  - Fundamento de todas las operaciones in-place (`add_()`, `mul_()`, etc.)
+
+- **`dispatch_output(destination, src)`**: enruta resultados de computación a salida correcta
+  - Actúa como dispatcher para operaciones con parámetro `out` opcional
+  - Si `destination` se proporciona: copia resultado in-place vía `write_to_buffer()`
+  - Si `destination` es None: retorna array origen directamente (sin copia)
+  - Permite reutilización eficiente de memoria en operaciones como `torch.add(x, y, out=z)`
+  - Usado en todas las operaciones de autograd para soportar buffers de salida opcionales
+
+- **`accelerated_conv_backward(weight_shape, grad_output, col, w_col, dims)`**: backward pass optimizado para convoluciones
+  - Computa gradientes tanto para pesos como para columnas im2col en un solo paso
+  - Usa buffers pre-asignados para minimizar asignaciones de memoria
+  - Asegura contigüidad de memoria con `np.ascontiguousarray()` para optimización BLAS
+  - Aprovecha multiplicación matricial eficiente para cómputo de gradientes
+  - Retorna tupla `(grad_weight, grad_col)` con formas correctas
+  - Optimización de rendimiento crítica para capas convolucionales
+  - Usado por operaciones ConvMatMul1d, ConvMatMul2d y ConvMatMul3d
+  - Alcanza rendimiento cercano a BLAS mediante disposición cuidadosa de memoria
 
 ### `native/`
 
@@ -574,7 +607,6 @@ Contiene utilidades internas para el procesamiento de argumentos y determinació
 
 - **`ArgumentProcessor`**: convierte argumentos mixtos (Tensors, scalars, arrays) a numpy arrays
 - **`determine_base_dtype()`**: determina el dtype base para consistencia numérica
-- **`unbroadcast()`**: revierte broadcasting para ajustar gradientes a la forma original
 
 Estas utilidades aseguran que las operaciones manejen correctamente:
 
