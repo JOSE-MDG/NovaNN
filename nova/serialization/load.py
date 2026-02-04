@@ -6,6 +6,7 @@ By default, loading is restricted to weights-only checkpoints to
 prevent unsafe code execution.
 """
 
+from __future__ import annotations
 import pickle
 import io
 from pathlib import Path

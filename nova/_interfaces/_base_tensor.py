@@ -1,6 +1,7 @@
+from __future__ import annotations
 from typing import TYPE_CHECKING, Optional, Self
-import numpy as np
 import nova
+import numpy as np
 from numpy import ndarray
 
 if TYPE_CHECKING:

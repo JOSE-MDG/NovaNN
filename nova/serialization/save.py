@@ -4,6 +4,7 @@ Serialization saving utilities.
 Provides helpers for serializing NovaNN objects using pickle.
 """
 
+from __future__ import annotations
 import pickle
 import io
 from pathlib import Path

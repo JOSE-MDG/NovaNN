@@ -9,6 +9,7 @@ It is used internally by `nova.serialization.load` when loading
 weights-only checkpoints.
 """
 
+from __future__ import annotations
 import pickle
 from nova.utils.decorators.registry import _MODULES
 from nova.utils import get_registered_classes

@@ -126,7 +126,7 @@ __all__.extend(creation_all)
 __all__.extend(random_all)
 
 # VERSION
-__version__ = "4.0.1"
+__version__ = "4.0.2"
 
 
 # TENSOR FACTORY FUNCTION
