@@ -1,9 +1,11 @@
 import nova
 import numpy as np
 import pytest
+from nova.utils.decorators import no_inplace_op
 from nova.autograd.function import Function
 
 
+@no_inplace_op
 class MockAdd(Function):
     @staticmethod
     def forward(ctx, input, other):
