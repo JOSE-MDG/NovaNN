@@ -5,47 +5,6 @@ These definitions help **correctly type tensors, operations, optimizers, schedul
 
 ## Main Types
 
-- **Core Tensor Types**: `Size`, `Dtype`, `Dim`, `TensorOrArray`, `Inputs`.  
-  Represent shapes, data types, and flexible inputs for tensor operations.
-
-- **Autograd Types**: `Hook`, `StepHook`, `HooksList`, `Closure`.  
-  Facilitate typing of gradients, backward hooks, and optimizer closures.
-
-- **Dataset Types**: `Mnist`, `Fashion`.  
-  Types to represent datasets loaded by NovaNN utilities.
-
-- **Module and Parameter Types**: `Modules`, `ModuleTypes`.  
-  Represent any module-like object, parameter, or buffer within the framework.
-
-- **Convolution and Pooling Types**: `KernelSize`, `Stride`, `Dilation`, `Padding`, `PaddingMode`.  
-  Types for convolution and pooling operations in 1D, 2D, or 3D.
-
-- **Optimizer Types**: `Defaults`, `Group`, `ParamGroups`, `State`, `OptimizerStateDict`.  
-  Types that type optimizers, parameter groups, and serializable states.
-
-- **Scheduler Types**: `SchedulerStateDict`.  
-  Types for serializing learning rate scheduler states.
-
-- **Loss Function Types**: `LossReduction`.  
-  Types that define loss function reduction modes.
-
-- **YAML Configuration Types**: `InplaceInfo`, `TensorInfo`, `OperationInfo`, `YAMLFile`.  
-  Types describing the structure of the native operations YAML file, including in-place and dunder methods.
-
-- **Binding Types**: `UnaryMethod`, `BinaryMethod`, `ReverseBinaryMethod`, `VariadicMethod`, `InplaceUnaryMethod`, `InplaceBinaryMethod`, `InplaceVariadicMethod`.  
-  Protocols defining the signature of dynamically generated methods for tensors, whether unary, binary, reverse, or in-place.
-
----
-
-> `_typing/` provides the **typing infrastructure and contracts** that ensure consistency between operations, Tensor methods, optimizers, modules, and datasets, without affecting the public API.
-
-# `_typing` Module
-
-The **`_typing/`** directory contains definitions of **types, protocols, and data structures** used throughout NovaNN.  
-These definitions help **correctly type tensors, operations, optimizers, schedulers, datasets, and modules**, improving type safety and autocompletion in editors.
-
-## Main Types
-
 - **Core Tensor Types**: `Size`, `Dtype`, `Dim`, `TensorOrArray`, `Inputs`, `Gradients`.  
   Represent shapes, data types, flexible inputs for tensor operations, and gradient tuples.
 
@@ -145,13 +104,13 @@ These definitions help **correctly type tensors, operations, optimizers, schedul
 
 ### Binding Types
 
-- `UnaryMethod`: Protocol for unary tensor methods (**neg**, **abs**, relu())
-- `BinaryMethod`: Protocol for binary tensor methods (**add**, **mul**)
-- `ReverseBinaryMethod`: Protocol for reverse binary methods (**radd**, **rmul**)
-- `VariadicMethod`: Protocol for variadic methods (sum(dim=...), reshape(...))
-- `InplaceUnaryMethod`: Protocol for in-place unary methods (abs*(), relu*())
-- `InplaceBinaryMethod`: Protocol for in-place binary methods (add*(), mul*())
-- `InplaceVariadicMethod`: Protocol for in-place variadic methods (clamp\_())
+- `UnaryMethod`: Protocol for unary tensor methods (`__neg__`, `__abs__`, `relu()`)
+- `BinaryMethod`: Protocol for binary tensor methods (`__add__`, `__mul__`)
+- `ReverseBinaryMethod`: Protocol for reverse binary methods (`__radd__`, `__rmul__`)
+- `VariadicMethod`: Protocol for variadic methods (`sum(dim=...)`, `reshape(...)`)
+- `InplaceUnaryMethod`: Protocol for in-place unary methods (`abs_()`, `relu_()`)
+- `InplaceBinaryMethod`: Protocol for in-place binary methods (`add_()`, `mul_()`)
+- `InplaceVariadicMethod`: Protocol for in-place variadic methods (`clamp_()`)
 
 ---
 
