@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 2/3/2026, 11:45:30 PM
+**Generated:** 2/4/2026, 9:16:13 PM
 
 ```
 ├── 📁 benchmarks
@@ -89,6 +89,7 @@
 │   │   │   ├── 🐍 _creation.py
 │   │   │   ├── 🐍 _indexing.py
 │   │   │   ├── 🐍 _linalg.py
+│   │   │   ├── 🐍 _linear.py
 │   │   │   ├── 🐍 _loss.py
 │   │   │   ├── 🐍 _manipulation.py
 │   │   │   ├── 🐍 _normalization.py
