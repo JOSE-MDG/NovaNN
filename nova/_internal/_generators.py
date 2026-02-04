@@ -258,7 +258,6 @@ def make_inplace_func(
                     f"that requires gradients. Use the out-of-place version instead."
                 )
 
-            print("Computing in-place unary op")
             func.apply(self, _out=self.data)
 
             return self
@@ -279,7 +278,6 @@ def make_inplace_func(
             if not raw and not isinstance(other, Tensor):
                 other = ensure_tensor(other)
 
-            print("Making in-place binary op")
             func.apply(self, other, _out=self.data)
 
             return self
