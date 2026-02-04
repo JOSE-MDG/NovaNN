@@ -5,11 +5,11 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.1] - 2026-02-04
+## [4.0.2] - 2026-02-04
 
 ### 🎉 Lanzamiento Mayor - Refactorización Completa del Framework
 
-La versión 4.0.1 representa una **reescritura completa** de NovaNN, transformándolo de un proyecto educativo básico a un framework de deep learning modular, extensible y profesional. Esta versión introduce cambios fundamentales en la arquitectura, API y filosofía del proyecto.
+La versión 4.0.2 representa una **reescritura completa** de NovaNN, transformándolo de un proyecto educativo básico a un framework de deep learning modular, extensible y profesional. Esta versión introduce cambios fundamentales en la arquitectura, API y filosofía del proyecto.
 
 ### ✨ Añadido
 
@@ -225,7 +225,7 @@ from novann.model import Sequential
 from novann.losses import CrossEntropyLoss
 from novann.optim import Adam
 
-# v4.0.1
+# v4.0.2
 import nova.nn as nn
 from nova.optim import Adam
 
@@ -248,7 +248,7 @@ class MyModel:
     def parameters(self):
         return self.linear.parameters()  # manual
 
-# v4.0.1 - auto-registro con Module
+# v4.0.2 - auto-registro con Module
 class MyModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -267,7 +267,7 @@ class MyModel(nn.Module):
 layer = Linear(10, 5)
 layer.reset_parameters(init_fn)
 
-# v4.0.1 - inicialización en nn.init
+# v4.0.2 - inicialización en nn.init
 from nova.nn import init
 weight = nn.Parameter(nova.empty((10, 5)))
 init.kaiming_normal_(weight, nonlinearity='relu')
@@ -279,7 +279,7 @@ init.kaiming_normal_(weight, nonlinearity='relu')
 # v3.0.0 - cálculo directo
 acc = accuracy(model, dataloader)
 
-# v4.0.1 - API acumulativa
+# v4.0.2 - API acumulativa
 from nova.metrics import Accuracy
 metric = Accuracy(num_classes=10)
 for input, target in dataloader:
@@ -296,7 +296,7 @@ output = model(x)
 loss, grad = loss_fn(output, y)
 model.backward(grad)
 
-# v4.0.1 - con autograd automático
+# v4.0.2 - con autograd automático
 output = model(x)
 loss = criterion(output, y)
 loss.backward()  # calcula gradientes automáticamente
@@ -312,7 +312,7 @@ class Parameter:
         self.data = data
         self.grad = np.zeros_like(data)
 
-# v4.0.1 - Parameter con tracking completo
+# v4.0.2 - Parameter con tracking completo
 class Parameter(Tensor):
     def __init__(self, data, requires_grad=True):
         super().__init__(data, requires_grad=requires_grad)
@@ -491,7 +491,7 @@ class Parameter(Tensor):
 
 ## Comparación de Versiones
 
-| Característica      | v3.0.0          | v4.0.1                 |
+| Característica      | v3.0.0          | v4.0.2                 |
 | ------------------- | --------------- | ---------------------- |
 | **Autograd**        | ❌ Manual       | ✅ Automático dinámico |
 | **API**             | Custom          | PyTorch-style          |
