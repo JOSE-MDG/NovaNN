@@ -3,7 +3,6 @@ import pytest
 import nova.nn as nn
 from nova.utils import grad_check_wrt_inputs
 
-# activations: relu, leaky_rely, gelu, prelu, tanh, sigmoid, softmax, log_softmax
 
 nova.manual_seed(8)
 

@@ -406,7 +406,7 @@ class TestCrossEntropy:
 
         assert (
             abs(ce_loss.item() - nll_loss.item()) < 1e-6
-        ), f"There isn't equivalence from cross entropy to nllloss"
+        ), "There isn't equivalence from cross entropy to nllloss"
 
     def test_cross_entropy_with_weights(self):
         """Test cross entropy with class weights"""
