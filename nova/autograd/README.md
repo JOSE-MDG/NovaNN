@@ -98,6 +98,7 @@ _ops/
 ├── _creation.py          # Tensor creation functions
 ├── _indexing.py          # Indexing operations
 ├── _linalg.py            # Linear algebra
+├── _linear.py            # Linear layer
 ├── _loss.py              # Loss functions
 ├── _manipulation.py      # Shape and structure manipulation
 ├── _normalization.py     # Normalization operations
@@ -305,9 +306,24 @@ Linear algebra operations:
   - If input is 2D: extracts diagonal
   - Supports `diagonal` parameter for offset diagonals
 
+#### `_linear.py`
+
+Optimized linear (fully connected) layer:
+
+- **Dense**: Linear transformation with optional bias
+  - Forward: `Y = X @ W.T + b`
+    - Pre-allocates output buffer for efficiency
+    - Supports optional bias term
+  - Backward:
+    - Gradient w.r.t. input: `grad_output @ weight`
+    - Gradient w.r.t. weight: `grad_output.T @ input`
+    - Gradient w.r.t. bias: `Σ(grad_output)` (sum over batch dimension)
+  - Uses efficient matrix multiplication with pre-allocated buffers
+  - Foundation for `nn.Linear` layer
+
 #### `_loss.py`
 
-Loss functions implemented as atomic operations for numerical stability and computational efficiency:
+Optimized loss functions implemented as atomic operations for numerical stability and computational efficiency:
 
 - **MSELoss**: Mean Squared Error / L2 Loss
   - Computes `(input - target)²` as atomic operation
@@ -381,6 +397,23 @@ Normalization operations to stabilize training:
     - `∂L/∂input = (1/(m*σ)) * [m*dout - Σ(dout) - x_hat*Σ(dout*x_hat)]`
   - Supports inputs of dimension ≥2D with normalization over (N, H, W, ...) maintaining (C,)
   - Running statistics updated with: `running_stat = (1 - momentum) * running_stat + momentum * batch_stat`
+
+- **LayerNorm**: Layer Normalization
+  - Normalizes over last N dimensions (batch-independent)
+  - Forward: `(x - μ) / √(σ² + ε) * weight + bias`
+    - Statistics computed over `normalized_shape` dimensions
+    - Commonly used in Transformers for batch-size independence
+  - Backward: uses same efficient formulation as BatchNorm
+    - `∂L/∂input = (1/(m*σ)) * [m*dout - Σ(dout) - x_hat*Σ(dout*x_hat)]`
+  - Pre-allocates buffers for mean, variance, and intermediate computations
+  - Supports optional affine transformation (weight and bias)
+
+Both normalization operations:
+
+- Use pre-allocated buffers to minimize memory allocations
+- Implement numerically stable gradient computation
+- Support optional learnable affine parameters
+- Are foundational for `nn.BatchNorm1d`, `nn.BatchNorm2d`, and `nn.LayerNorm`
 
 #### `_random.py`
 

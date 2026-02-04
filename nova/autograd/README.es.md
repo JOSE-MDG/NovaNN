@@ -98,6 +98,7 @@ _ops/
 ├── _creation.py          # Funciones de creación de tensores
 ├── _indexing.py          # Operaciones de indexing
 ├── _linalg.py            # Álgebra lineal
+├── _linear.py            # Capa lineal
 ├── _loss.py              # Funciones de pérdida
 ├── _manipulation.py      # Manipulación de forma y estructura
 ├── _normalization.py     # Operaciones de normalización
@@ -305,6 +306,21 @@ Operaciones de álgebra lineal:
   - Si input es 2D: extrae diagonal
   - Soporta parámetro `diagonal` para diagonales offset
 
+#### `_linear.py`
+
+Capa lineal (fully connected) optimizada:
+
+- **Dense**: Transformación lineal con bias opcional
+  - Forward: `Y = X @ W.T + b`
+    - Pre-asigna buffer de salida para eficiencia
+    - Soporta término de bias opcional
+  - Backward:
+    - Gradiente respecto a input: `grad_output @ weight`
+    - Gradiente respecto a weight: `grad_output.T @ input`
+    - Gradiente respecto a bias: `Σ(grad_output)` (suma sobre dimensión de batch)
+  - Usa multiplicación matricial eficiente con buffers pre-asignados
+  - Base para la capa `nn.Linear`
+
 #### `_loss.py`
 
 Funciones de pérdida implementadas como operaciones atómicas para mayor estabilidad numérica y eficiencia computacional:
@@ -369,18 +385,36 @@ Operaciones de manipulación de forma y estructura:
 
 #### `_normalization.py`
 
-Operaciones de normalización para estabilizar entrenamiento:
+Operaciones de normalización para estabilidad en entrenamiento:
 
-- **BatchNorm**: Batch Normalization con transformación afín
-  - Normaliza sobre dimensiones batch y espaciales: `(x - μ) / √(σ² + ε)`
-  - Aplica parámetros aprendibles de escala (`weight`) y desplazamiento (`bias`)
-  - **Modo training**: usa estadísticas del batch actual y actualiza running statistics con momentum exponencial
-  - **Modo evaluación**: usa running statistics acumuladas
-  - Implementa corrección de Bessel para varianza insesgada
-  - Gradiente eficiente considerando dependencia de μ y σ² del input:
+- **BatchNorm**: Normalización por lotes con transformación afín
+  - Normaliza sobre dimensiones de batch y espaciales
+  - Forward: `(x - μ) / √(σ² + ε) * weight + bias`
+    - Modo entrenamiento: usa estadísticas del batch (μ, σ²) y actualiza promedios corrientes con momentum
+    - Modo evaluación: usa estadísticas corrientes pre-computadas
+    - Aplica corrección de Bessel para estimación insesgada de varianza
+  - Backward: `∂L/∂input = (1/(m*σ)) * [m*dout - Σ(dout) - x_hat*Σ(dout*x_hat)]`
+    - Formulación eficiente que considera dependencia de μ y σ² en el input
+    - Computa gradientes para weight, bias e input simultáneamente
+  - Estadísticas corrientes actualizadas mediante promedio móvil exponencial:
+    - `running_mean = (1 - momentum) * running_mean + momentum * batch_mean`
+    - `running_var = (1 - momentum) * running_var + momentum * batch_var`
+- **LayerNorm**: Normalización de capa
+  - Normaliza sobre las últimas N dimensiones (independiente del batch)
+  - Forward: `(x - μ) / √(σ² + ε) * weight + bias`
+    - Estadísticas computadas sobre dimensiones de `normalized_shape`
+    - Comúnmente usado en Transformers por independencia del tamaño de batch
+  - Backward: usa la misma formulación eficiente que BatchNorm
     - `∂L/∂input = (1/(m*σ)) * [m*dout - Σ(dout) - x_hat*Σ(dout*x_hat)]`
-  - Soporta inputs de dimensión ≥2D con normalización sobre (N, H, W, ...) manteniendo (C,)
-  - Running statistics se actualizan con: `running_stat = (1 - momentum) * running_stat + momentum * batch_stat`
+  - Pre-asigna buffers para media, varianza y cómputos intermedios
+  - Soporta transformación afín opcional (weight y bias)
+
+Ambas operaciones de normalización:
+
+- Usan buffers pre-asignados para minimizar asignaciones de memoria
+- Implementan cómputo de gradientes numéricamente estable
+- Soportan parámetros afines aprendibles opcionales
+- Son base para `nn.BatchNorm1d`, `nn.BatchNorm2d` y `nn.LayerNorm`
 
 #### `_random.py`
 
