@@ -48,37 +48,23 @@ Este proyecto busca ser un espacio acogedor y educativo. Se espera:
 
 ### 1. Requisitos Previos
 
-- Python >= 3.14, < 3.15
+- Python >= 3.12, < 4.0.0
 - Poetry (gestor de dependencias)
 - Git
 
 ### 2. Instalación
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/JOSE-MDG/NovaNN.git
-cd NovaNN
+# With pip
+pip install novann
 
-# Instalar dependencias con Poetry
-poetry install
-
-# Activar el entorno virtual
-poetry shell
-
-# Añadir el proyecto al PYTHONPATH (Linux/macOS)
-export PYTHONPATH="$(pwd):$PYTHONPATH"
-
-# Añadir el proyecto al PYTHONPATH (Windows PowerShell)
-$env:PYTHONPATH = "$(pwd);$env:PYTHONPATH"
+# With poetry
+poetry add novann
 ```
 
 **[Mas detalles](README.md#📦-instalación)**
 
-### 3. Configurar Variables de Entorno
-
-Crea un archivo `.env` en la raíz con las rutas necesarias (ver `README.md` para detalles).
-
-### 4. Verificar Instalación
+### 3. Verificar Instalación
 
 ```bash
 # Correr tests
@@ -110,10 +96,9 @@ NovaNN/
 - **Nueva capa**: `nova/nn/modules/`
 - **Nuevo optimizador**: `nova/optim/`
 - **Nueva métrica**: `nova/metrics/`
-- **Nueva operación autograd**: `nova/autograd/_ops/` (Y definir como se incorpora en el [YAML](nova/autograd/_ops/native/native_functions.yaml))
+- **Nueva operación autograd**: `nova/autograd/_ops/`
 - **Tests**: `tests/` (espejando la estructura de `nova/`)
 - **Ejemplos**: `examples/` (scripts standalone)
-- **Tutoriales**: `tutorials/` (código educativo comentado)
 
 ## Estándares de Código
 
@@ -195,6 +180,7 @@ feat(nn): add GroupNorm layer
 fix(optim): correct AdamW weight decay calculation
 docs(tutorials): add transformer example
 test(autograd): increase coverage for backward ops
+perf(autograd._ops._loss): improve backward performance in loss functions
 ```
 
 ## Testing

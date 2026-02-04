@@ -48,37 +48,23 @@ This project aims to be a welcoming and educational space. It is expected:
 
 ### 1. Prerequisites
 
-- Python >= 3.14, < 3.15
+- Python >= 3.12, < 4.0.0
 - Poetry (dependency manager)
 - Git
 
 ### 2. Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/JOSE-MDG/NovaNN.git
-cd NovaNN
+# With pip
+pip install novann
 
-# Install dependencies with Poetry
-poetry install
-
-# Activate virtual environment
-poetry shell
-
-# Add project to PYTHONPATH (Linux/macOS)
-export PYTHONPATH="$(pwd):$PYTHONPATH"
-
-# Add project to PYTHONPATH (Windows PowerShell)
-$env:PYTHONPATH = "$(pwd);$env:PYTHONPATH"
+# With poetry
+poetry add novann
 ```
 
 [More details](README.md#📦-installation)
 
-### 3. Configure Environment Variables
-
-Create a `.env` file in the root with necessary paths (see `README.md` for details).
-
-### 4. Verify Installation
+### 3. Verify Installation
 
 ```bash
 # Run tests
@@ -110,10 +96,9 @@ NovaNN/
 - **New layer**: `nova/nn/modules/`
 - **New optimizer**: `nova/optim/`
 - **New metric**: `nova/metrics/`
-- **New autograd operation**: `nova/autograd/_ops/` (And define how it's incorporated in the [YAML](nova/autograd/_ops/native/native_functions.yaml))
+- **New autograd operation**: `nova/autograd/_ops/`
 - **Tests**: `tests/` (mirroring `nova/` structure)
 - **Examples**: `examples/` (standalone scripts)
-- **Tutorials**: `tutorials/` (commented educational code)
 
 ## Code Standards
 
@@ -197,6 +182,7 @@ feat(nn): add GroupNorm layer
 fix(optim): correct AdamW weight decay calculation
 docs(tutorials): add transformer example
 test(autograd): increase coverage for backward ops
+perf(autograd._ops._loss): improve backward performance in loss functions
 ```
 
 ## Testing
