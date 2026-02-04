@@ -158,7 +158,7 @@ criterion = nn.BCELoss()
 
 # Datos de ejemplo
 X_train = nova.randn(100, 10)  # 100 muestras, 10 características
-y_train = nova.randint(0, 2, (100, 1), dtype=nova.float)
+y_train = nova.randint(0, 2, (100, 1))
 
 # Loop de entrenamiento
 for epoch in range(50):
@@ -338,9 +338,9 @@ model = FineTuneModel()
 
 # Configurar learning rates diferenciados por grupo de capas
 optimizer = optim.Adam([
-    {'params': model.base_layers.parameters(), 'lr': 1e-5},  # Muy bajo para capas base
-    {'params': model.mid_layers.parameters(), 'lr': 1e-4},   # Intermedio
-    {'params': model.head.parameters()}
+    {'params': list(model.base_layers.parameters()), 'lr': 1e-5},  # Muy bajo para capas base
+    {'params': list(model.mid_layers.parameters()), 'lr': 1e-4},   # Intermedio
+    {'params': list(model.head.parameters())}
 ], lr=1e-3) # Alto para nueva cabeza
 
 # Datos de ejemplo
