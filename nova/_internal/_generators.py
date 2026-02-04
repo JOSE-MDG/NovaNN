@@ -1,5 +1,6 @@
 from __future__ import annotations
-import numpy as np
+from nova.utils import ensure_tensor
+
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -7,7 +8,6 @@ from typing import (
     overload,
     Union,
 )
-from nova.utils import ensure_tensor
 
 if TYPE_CHECKING:
     from nova.autograd.function import Function
@@ -55,11 +55,7 @@ def make_reverse_func(
             other = ensure_tensor(other)
         return func.apply(other, self)
 
-    return method  # type: ignore[return-value]
-
-
-@overload
-def make_method(func: Type[Function]) -> VariadicMethod: ...
+    return method
 
 
 def make_method(func: Type[Function]) -> VariadicMethod:
@@ -93,7 +89,7 @@ def make_method(func: Type[Function]) -> VariadicMethod:
     def method(self: Tensor, /, *args: Any, **kwargs: Any) -> Tensor:
         return func.apply(self, *args, **kwargs)
 
-    return method  # type: ignore[return-value]
+    return method
 
 
 @overload
@@ -162,7 +158,7 @@ def make_forward_func(
         def unary_method(self: Tensor, /) -> Tensor:
             return func.apply(self)
 
-        return unary_method  # type: ignore[return-value]
+        return unary_method
 
     else:
 
@@ -173,7 +169,7 @@ def make_forward_func(
 
             return func.apply(self, other)
 
-        return binary_method  # type: ignore[return-value]
+        return binary_method
 
 
 @overload
@@ -262,18 +258,12 @@ def make_inplace_func(
                     f"that requires gradients. Use the out-of-place version instead."
                 )
 
-            result = func.apply(self).data
-
-            # Preserve original dtype through casting if needed
-            if result.dtype != self.data.dtype:
-                result = result.astype(self.data.dtype)
-
-            # Copy result into original tensor's data buffer
-            np.copyto(dst=self.data, src=result)
+            print("Computing in-place unary op")
+            func.apply(self, _out=self.data)
 
             return self
 
-        return inplace_unary_method  # type: ignore[return-value]
+        return inplace_unary_method
 
     else:
 
@@ -289,15 +279,9 @@ def make_inplace_func(
             if not raw and not isinstance(other, Tensor):
                 other = ensure_tensor(other)
 
-            result = func.apply(self, other).data
-
-            # Preserve original dtype through casting if needed
-            if result.dtype != self.data.dtype:
-                result = result.astype(self.data.dtype)
-
-            # Copy result into original tensor's data buffer
-            np.copyto(dst=self.data, src=result)
+            print("Making in-place binary op")
+            func.apply(self, other, _out=self.data)
 
             return self
 
-        return inplace_binary_method  # type: ignore[return-value]
+        return inplace_binary_method
