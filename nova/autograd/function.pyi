@@ -9,6 +9,8 @@ from .engine import Context
 TFunction = TypeVar("TFunction", bound="Function")
 
 class FunctionMeta(ABCMeta):
+    @property
+    def support_inplace(cls): ...
     def __repr__(cls) -> str: ...
 
 class Function(metaclass=FunctionMeta):

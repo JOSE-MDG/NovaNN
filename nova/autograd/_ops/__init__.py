@@ -29,6 +29,7 @@ from . import (
     _creation,
     _indexing,
     _linalg,
+    _linear,
     _loss,
     _manipulation,
     _normalization,
@@ -45,6 +46,7 @@ from ._convolution import *  # noqa: F403
 from ._creation import *  # noqa: F403
 from ._indexing import *  # noqa: F403
 from ._linalg import *  # noqa: F403
+from ._linear import *  # noqa: F403
 from ._loss import *  # noqa: F403
 from ._manipulation import *  # noqa: F403
 from ._normalization import *  # noqa: F403
@@ -62,6 +64,7 @@ modules = [
     _creation,
     _indexing,
     _linalg,
+    _linear,
     _loss,
     _manipulation,
     _normalization,

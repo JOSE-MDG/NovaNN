@@ -3,7 +3,8 @@ import nova
 import numpy as np
 from .engine import Context
 from .utils import ArgumentProcessor, determine_base_dtype
-from typing import Any, TYPE_CHECKING, Type, TypeVar
+from typing import Any, TYPE_CHECKING, Optional, Type, TypeVar
+from nova.utils.decorators.registry import _NO_INPLACE_OPS
 from abc import ABC, ABCMeta
 
 if TYPE_CHECKING:
@@ -21,6 +22,10 @@ class FunctionMeta(ABCMeta):
     showing them as "<FunctionNameBackward>" to indicate their role
     in the backward pass.
     """
+
+    @property
+    def support_inplace(cls) -> bool:
+        return cls.__name__ not in _NO_INPLACE_OPS
 
     def __repr__(cls) -> str:
         return f"<{cls.__name__}Backward>"
@@ -118,7 +123,9 @@ class Function(ABC, metaclass=FunctionMeta):
         raise NotImplementedError
 
     @classmethod
-    def apply(cls: Type[TFunction], *args: Any, **kwargs: Any) -> Tensor:
+    def apply(
+        cls: Type[TFunction], *args: Any, _out: Optional[Any] = None, **kwargs: Any
+    ) -> Tensor:
         """
         Applies the operation and builds the computational graph.
 
@@ -136,6 +143,7 @@ class Function(ABC, metaclass=FunctionMeta):
 
         Args:
             *args: Operation inputs (Tensors, scalars, arrays, etc.)
+            out: Optional output buffer for in-place operations (NumPy array)s
             **kwargs: Additional keyword arguments for the operation.
 
         Returns:
@@ -154,7 +162,6 @@ class Function(ABC, metaclass=FunctionMeta):
             >>> y = Add.apply(x, 3.0)  # Creates node in computation graph
             >>> print(y.grad_fn)  # <AddBackward>
         """
-        from nova import Tensor
 
         # Create context for saving intermediate values
         ctx = Context()
@@ -167,8 +174,11 @@ class Function(ABC, metaclass=FunctionMeta):
         raw_args, raw_kwargs = processor.process_args(args, kwargs)
         tensors_in_graph = processor.get_tracked_tensors()
 
-        # Execute forward pass with raw numpy arrays
-        output = cls.forward(ctx, *raw_args, **raw_kwargs)
+        # Execute forward pass
+        if cls.support_inplace:
+            output = cls.forward(ctx, *raw_args, **raw_kwargs, _out=_out)
+        else:
+            output = cls.forward(ctx, *raw_args, **raw_kwargs)
 
         # Ensure output is numpy array
         if not isinstance(output, np.ndarray):
@@ -192,7 +202,7 @@ class Function(ABC, metaclass=FunctionMeta):
         )
 
         # Create output tensor
-        result = Tensor(
+        result = nova.Tensor(
             output,
             requires_grad=requires_grad,
             dtype=output_dtype,

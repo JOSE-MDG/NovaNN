@@ -3,6 +3,7 @@ import numpy as np
 from numpy import ndarray
 from nova.autograd.function import Function
 from nova.utils import registry_op
+from nova.utils.decorators import no_inplace_op
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ __all__ = [
 ]
 
 
+@no_inplace_op
 @registry_op("permute")
 class Permute(Function):
     """
@@ -56,6 +58,7 @@ class Permute(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("reshape")
 class Reshape(Function):
     """
@@ -82,6 +85,7 @@ class Reshape(Function):
         return (grad_output.reshape(input_shape),)
 
 
+@no_inplace_op
 @registry_op("squeeze")
 class Squeeze(Function):
     """
@@ -108,6 +112,7 @@ class Squeeze(Function):
         return (grad_output.reshape(input_shape),)
 
 
+@no_inplace_op
 @registry_op("unsqueeze")
 class UnSqueeze(Function):
     """
@@ -134,6 +139,7 @@ class UnSqueeze(Function):
         return (grad_output.reshape(input_shape),)
 
 
+@no_inplace_op
 @registry_op("stack")
 class Stack(Function):
     """
@@ -144,7 +150,11 @@ class Stack(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, inputs: list[ndarray], dim: Dim = 0) -> ndarray:
+    def forward(
+        ctx: Context,
+        inputs: list[ndarray],
+        dim: Dim = 0,
+    ) -> ndarray:
         """Stack list of tensors along new dimension"""
         ctx.dim = dim
         ctx.N = len(inputs)
@@ -162,6 +172,7 @@ class Stack(Function):
         return (*grad_inputs, None)
 
 
+@no_inplace_op
 @registry_op("concat")
 class Concat(Function):
     """
@@ -192,6 +203,7 @@ class Concat(Function):
         return (*grad_inputs, None)
 
 
+@no_inplace_op
 @registry_op("split")
 class Split(Function):
     """
@@ -218,6 +230,7 @@ class Split(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("tile")
 class Tile(Function):
     """
@@ -250,6 +263,7 @@ class Tile(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("repeat")
 class Repeat(Function):
     """
@@ -290,6 +304,7 @@ class Repeat(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("pad")
 class Pad(Function):
     """
@@ -326,6 +341,7 @@ class Pad(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("clone")
 class Clone(Function):
     """

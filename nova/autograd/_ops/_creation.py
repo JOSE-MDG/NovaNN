@@ -1713,7 +1713,7 @@ def ones_like(
     )
 
 
-def as_strided(input: nova.Tensor, size: Size, strides: Size):
+def as_strided(input: nova.Tensor, size: Size, strides: Size) -> nova.Tensor:
     """
     Returns a view of the input tensor with the given shape and strides.
 
@@ -1742,9 +1742,9 @@ def linspace(
     num: int | float,
     endpoint: Optional[bool] = True,
     dtype: Optional[Dtype] = None,
-    dim: Optional[Dim] = None,
+    dim: Optional[Dim] = 0,
     requires_grad: bool = False,
-):
+) -> nova.Tensor:
     """
     Returns a 1-D tensor of `num` evenly spaced points between `start` and `stop`.
 
@@ -1778,9 +1778,9 @@ def logspace(
     num: int | float,
     endpoint: Optional[bool] = True,
     dtype: Optional[Dtype] = None,
-    dim: Optional[Dim] = None,
+    dim: Optional[Dim] = 0,
     requires_grad: bool = False,
-):
+) -> nova.Tensor:
     """
     Returns a 1-D tensor of `num` evenly log spaced points between `start` and `stop`.
 
@@ -1808,7 +1808,7 @@ def logspace(
     return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
-def any(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
+def any(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.bool:
     """
     Returns True if any element is non-zero along a given dimension.
 
@@ -1829,7 +1829,7 @@ def any(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
     return input.any(dim, keepdims=keepdims)
 
 
-def all(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
+def all(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.bool:
     """
     Returns True if all elements are non-zero along a given dimension.
 

@@ -3,7 +3,7 @@ import numpy as np
 from numpy import ndarray
 from nova.autograd.function import Function
 from nova.utils import registry_op
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from nova.autograd.engine import Context
@@ -42,10 +42,12 @@ class Sin(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the sine of the input."""
         ctx.save_for_backward(input)
-        return np.sin(input)
+        return np.sin(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -69,10 +71,12 @@ class Sinh(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the hyperbolic sine of the input."""
         ctx.save_for_backward(input)
-        return np.sinh(input)
+        return np.sinh(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -96,10 +100,12 @@ class Cos(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the cosine of the input."""
         ctx.save_for_backward(input)
-        return np.cos(input)
+        return np.cos(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -123,10 +129,12 @@ class Cosh(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the hyperbolic cosine of the input."""
         ctx.save_for_backward(input)
-        return np.cosh(input)
+        return np.cosh(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -150,10 +158,12 @@ class Tan(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the tangent of the input."""
         ctx.save_for_backward(input)
-        return np.tan(input)
+        return np.tan(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -177,10 +187,12 @@ class Tanh(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the hyperbolic tangent of the input."""
         ctx.save_for_backward(input)
-        return np.tanh(input)
+        return np.tanh(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -204,10 +216,12 @@ class Cot(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the cotangent of the input."""
         ctx.save_for_backward(input)
-        return 1 / np.tan(input)
+        return np.divide(1, np.tan(input), out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -231,12 +245,13 @@ class Csc(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the cosecant of the input."""
-        out = 1 / np.sin(input)
         ctx.save_for_backward(input)
-        ctx.out = out
-        return out
+        ctx.out = np.divide(1, np.sin(input), out=_out)
+        return ctx.out
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -261,12 +276,13 @@ class Sec(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the secant of the input."""
-        out = 1 / np.cos(input)
         ctx.save_for_backward(input)
-        ctx.out = out
-        return out
+        ctx.out = np.divide(1, np.cos(input), out=_out)
+        return ctx.out
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -291,11 +307,13 @@ class Arcsin(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the inverse sine of the input."""
         input_clamped = np.clip(input, -1.0, 1.0)
         ctx.save_for_backward(input_clamped)
-        return np.arcsin(input_clamped)
+        return np.arcsin(input_clamped, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -319,11 +337,13 @@ class Arccos(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the inverse cosine of the input."""
         input_clamped = np.clip(input, -1.0, 1.0)
         ctx.save_for_backward(input_clamped)
-        return np.arccos(input_clamped)
+        return np.arccos(input_clamped, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -347,10 +367,12 @@ class Arctan(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the inverse tangent of the input."""
         ctx.save_for_backward(input)
-        return np.arctan(input)
+        return np.arctan(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -375,10 +397,12 @@ class Atan2(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, y: ndarray, x: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, y: ndarray, x: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the arctan2 of y and x."""
         ctx.save_for_backward(y, x)
-        return np.arctan2(y, x)
+        return np.arctan2(y, x, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -406,10 +430,12 @@ class Asinh(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the inverse hyperbolic sine of the input."""
         ctx.save_for_backward(input)
-        return np.arcsinh(input)
+        return np.arcsinh(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -431,12 +457,14 @@ class Acosh(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the inverse hyperbolic cosine of the input."""
         # Dominio: x >= 1
         input_clamped = np.maximum(input, 1.0 + 1e-7)
         ctx.save_for_backward(input_clamped)
-        return np.arccosh(input_clamped)
+        return np.arccosh(input_clamped, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -458,12 +486,14 @@ class Atanh(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the inverse hyperbolic tangent of the input."""
         # Dominio: -1 < x < 1
         input_clamped = np.clip(input, -1.0 + 1e-7, 1.0 - 1e-7)
         ctx.save_for_backward(input_clamped)
-        return np.arctanh(input_clamped)
+        return np.arctanh(input_clamped, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -485,10 +515,13 @@ class Arccot(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the inverse cotangent of the input."""
         ctx.save_for_backward(input)
-        return np.arctan(1 / input)
+        div = 1 / input
+        return np.arctan(div, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -510,11 +543,14 @@ class Arcsec(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the inverse secant of the input."""
         # Dominio: |input| >= 1
         ctx.save_for_backward(input)
-        return np.arccos(1 / input)
+        div = 1 / input
+        return np.arccos(div, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -537,11 +573,14 @@ class Arccsc(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute the inverse cosecant of the input."""
         # Dominio: |input| >= 1
         ctx.save_for_backward(input)
-        return np.arcsin(1 / input)
+        div = 1 / input
+        return np.arcsin(div, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -550,5 +589,5 @@ class Arccsc(Function):
         """
         (input,) = ctx.saved_tensors
         abs_input = np.abs(input)
-        grad_input = -grad_output / (abs_input * np.sqrt(input**2 - 1))
-        return (grad_input,)
+        np.divide(-grad_output, (abs_input * np.sqrt(input**2 - 1)), out=abs_input)
+        return (abs_input,)

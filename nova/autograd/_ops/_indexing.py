@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 from numpy import ndarray
 from nova.autograd.function import Function
+from nova.utils.decorators import no_inplace_op
 from nova.utils import registry_op
 from typing import TYPE_CHECKING, Any
 
@@ -29,6 +30,7 @@ def _sanitize_index(index):
     return arr
 
 
+@no_inplace_op
 @registry_op("getitem")
 class GetItem(Function):
     """
@@ -69,6 +71,7 @@ class GetItem(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("setitem")
 class SetItem(Function):
     """

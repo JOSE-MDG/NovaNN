@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 from numpy import ndarray
 from nova.utils import registry_op
+from nova.utils.decorators import no_inplace_op
 from nova.autograd.function import Function
 from nova.autograd._ops.utils import unbroadcasting
 from typing import TYPE_CHECKING
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
 __all__ = ["AsStrided", "View", "Extend"]
 
 
+@no_inplace_op
 @registry_op("stride_tricks")
 class AsStrided(Function):
     """
@@ -71,6 +73,7 @@ class AsStrided(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("extend")
 class Extend(Function):
     """
@@ -97,6 +100,7 @@ class Extend(Function):
         return (grad_output,)
 
 
+@no_inplace_op
 @registry_op("view")
 class View(Function):
     """

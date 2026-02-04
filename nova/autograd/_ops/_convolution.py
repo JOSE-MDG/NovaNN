@@ -1,6 +1,8 @@
 from __future__ import annotations
+import numpy as np
 from nova.autograd.function import Function
-from nova.autograd._ops.utils import unbroadcasting
+from nova.autograd._ops.utils import unbroadcasting, accelerated_conv_backward
+from nova.utils.decorators import no_inplace_op
 from typing import TYPE_CHECKING, Optional
 from numpy import ndarray
 
@@ -11,6 +13,7 @@ if TYPE_CHECKING:
 __all__ = ["ConvMatMul1d", "ConvMatMul2d", "ConvMatMul3d"]
 
 
+@no_inplace_op
 class ConvMatMul1d(Function):
     """
     Optimized convolution matrix multiplication operation for 1D convolutions.
@@ -51,18 +54,19 @@ class ConvMatMul1d(Function):
 
         w_col = weight.reshape(out_channels, -1)
 
-        out = w_col @ col
-        out = out.reshape(out_channels, N, L_out).transpose(1, 0, 2)
+        out_buffer = np.empty((out_channels, N * L_out), dtype=weight.dtype)
+
+        w_col.dot(col, out=out_buffer)
+        out = out_buffer.reshape(out_channels, N, L_out).transpose(1, 0, 2)
 
         if bias is not None:
             bias_view = bias.view().reshape(1, out_channels, 1)
-            out += bias_view
+            np.add(out, bias_view, out=out)
             ctx.bias_shape = bias_view.shape
 
         ctx.save_for_backward(w_col, col)
         ctx.saved_shapes = weight.shape
         ctx.use_bias = bias is not None
-        ctx.out_channels = out_channels
 
         return out
 
@@ -83,24 +87,20 @@ class ConvMatMul1d(Function):
         w_col, col = ctx.saved_tensors
         weight_shape = ctx.saved_shapes
 
-        # 1. Gradient w.r.t. bias
+        #  Gradient w.r.t. bias
         grad_bias = None
         if ctx.use_bias:
             grad_bias = unbroadcasting(grad_output.sum(axis=(0, 2)), ctx.bias_shape)
 
-        grad_matmul = grad_output.transpose(1, 0, 2).reshape(ctx.out_channels, -1)
-
-        grad_w_col = grad_matmul @ col.T
-
-        # 2. Gradient w.r.t col
-        grad_col = w_col.T @ grad_matmul
-
-        # 3. Gradient w.r.t weight
-        grad_weight = grad_w_col.reshape(*weight_shape)
+        # Gradients w.r.t weight and col
+        grad_weight, grad_col = accelerated_conv_backward(
+            weight_shape, grad_output, col, w_col, dims=(1, 0, 2)
+        )
 
         return (grad_weight, grad_bias, grad_col)
 
 
+@no_inplace_op
 class ConvMatMul2d(Function):
     """
     Optimized convolution matrix multiplication operation for 2D convolutions.
@@ -142,18 +142,18 @@ class ConvMatMul2d(Function):
 
         w_col = weight.reshape(out_channels, -1)
 
-        out = w_col @ col
-        out = out.reshape(out_channels, N, H_out, W_out).transpose(1, 0, 2, 3)
+        out_buffer = np.empty((out_channels, N * H_out * W_out), dtype=weight.dtype)
+        w_col.dot(col, out=out_buffer)
+        out = out_buffer.reshape(out_channels, N, H_out, W_out).transpose(1, 0, 2, 3)
 
         if bias is not None:
             bias_view = bias.view().reshape(1, out_channels, 1, 1)
-            out += bias_view
+            np.add(out, bias_view, out=out)
             ctx.bias_shape = bias_view.shape
 
         ctx.save_for_backward(w_col, col)
         ctx.saved_shapes = weight.shape
         ctx.use_bias = bias is not None
-        ctx.out_channels = out_channels
 
         return out
 
@@ -179,19 +179,15 @@ class ConvMatMul2d(Function):
         if ctx.use_bias:
             grad_bias = unbroadcasting(grad_output.sum(axis=(0, 2, 3)), ctx.bias_shape)
 
-        grad_matmul = grad_output.transpose(1, 0, 2, 3).reshape(ctx.out_channels, -1)
-
-        grad_w_col = grad_matmul @ col.T
-
-        # 2. Gradient w.r.t col
-        grad_col = w_col.T @ grad_matmul
-
-        # 3. Gradient w.r.t weight
-        grad_weight = grad_w_col.reshape(*weight_shape)
+        # Gradients w.r.t weight and col
+        grad_weight, grad_col = accelerated_conv_backward(
+            weight_shape, grad_output, col, w_col, dims=(1, 0, 2, 3)
+        )
 
         return (grad_weight, grad_bias, grad_col)
 
 
+@no_inplace_op
 class ConvMatMul3d(Function):
     """
     Optimized convolution matrix multiplication operation for 3D convolutions.
@@ -234,18 +230,22 @@ class ConvMatMul3d(Function):
 
         w_col = weight.reshape(out_channels, -1)
 
-        out = w_col @ col
-        out = out.reshape(out_channels, N, D_out, H_out, W_out).transpose(1, 0, 2, 3, 4)
+        out_buffer = np.empty(
+            (out_channels, N * D_out * H_out * W_out), dtype=weight.dtype
+        )
+        w_col.dot(col, out=out_buffer)
+        out = out_buffer.reshape(out_channels, N, D_out, H_out, W_out).transpose(
+            1, 0, 2, 3, 4
+        )
 
         if bias is not None:
             bias_view = bias.view().reshape(1, out_channels, 1, 1, 1)
-            out += bias_view
+            np.add(out, bias_view, out=out)
             ctx.bias_shape = bias_view.shape
 
         ctx.save_for_backward(w_col, col)
         ctx.saved_shapes = weight.shape
         ctx.use_bias = bias is not None
-        ctx.out_channels = out_channels
 
         return out
 
@@ -273,14 +273,9 @@ class ConvMatMul3d(Function):
                 grad_output.sum(axis=(0, 2, 3, 4)), ctx.bias_shape
             )
 
-        grad_matmul = grad_output.transpose(1, 0, 2, 3, 4).reshape(ctx.out_channels, -1)
-
-        grad_w_col = grad_matmul @ col.T
-
-        # 2. Gradient w.r.t col
-        grad_col = w_col.T @ grad_matmul
-
-        # 3. Gradient w.r.t weight
-        grad_weight = grad_w_col.reshape(*weight_shape)
+        # Gradients w.r.t weight and col
+        grad_weight, grad_col = accelerated_conv_backward(
+            weight_shape, grad_output, col, w_col, dims=(1, 0, 2, 3, 4)
+        )
 
         return (grad_weight, grad_bias, grad_col)

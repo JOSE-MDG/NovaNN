@@ -3,6 +3,7 @@ import numpy as np
 from numpy import ndarray
 from nova.autograd.function import Function
 from nova.utils import registry_op
+from nova.utils.decorators import no_inplace_op
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -23,6 +24,7 @@ def _normalize_dim(dim: Optional[Dim] = None) -> Optional[tuple[int, ...]]:
         raise TypeError(f"Invalid dim type {type(dim)}")
 
 
+@no_inplace_op
 @registry_op("sum")
 class Sum(Function):
     """
@@ -62,6 +64,7 @@ class Sum(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("mean")
 class Mean(Function):
     """
@@ -108,6 +111,7 @@ class Mean(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("var")
 class Var(Function):
     """
@@ -160,6 +164,7 @@ class Var(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("max")
 class Max(Function):
     """
@@ -207,6 +212,7 @@ class Max(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("min")
 class Min(Function):
     """

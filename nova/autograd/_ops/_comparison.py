@@ -1,10 +1,10 @@
 from __future__ import annotations
 import numpy as np
 from numpy import ndarray
-from nova.autograd._ops.utils import unbroadcasting
+from nova.autograd._ops.utils import unbroadcasting, dispatch_output
 from nova.autograd.function import Function
 from nova.utils import registry_op
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from nova.autograd.engine import Context
@@ -27,11 +27,13 @@ class Maximum(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, other: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute element-wise maximum."""
         ctx.save_for_backward(input, other)
         ctx.saved_shapes = (input.shape, other.shape)
-        return np.maximum(input, other)
+        return np.maximum(input, other, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -70,11 +72,13 @@ class Minimum(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, other: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Compute element-wise minimum."""
         ctx.save_for_backward(input, other)
         ctx.saved_shapes = (input.shape, other.shape)
-        return np.minimum(input, other)
+        return np.minimum(input, other, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -114,12 +118,16 @@ class Where(Function):
 
     @staticmethod
     def forward(
-        ctx: Context, condition: ndarray, input: ndarray, other: ndarray
+        ctx: Context,
+        condition: ndarray,
+        input: ndarray,
+        other: ndarray,
+        _out: Optional[ndarray] = None,
     ) -> ndarray:
         """Select elements based on condition."""
         ctx.save_for_backward(condition)
         ctx.saved_shapes = (input.shape, other.shape)
-        return np.where(condition, input, other)
+        return dispatch_output(_out, np.where(condition, input, other))
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -151,9 +159,11 @@ class Sign(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, _out: Optional[ndarray] = None
+    ) -> ndarray:
         """Computes sign(a)."""
-        return np.sign(input)
+        return np.sign(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:

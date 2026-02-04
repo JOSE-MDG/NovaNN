@@ -3,8 +3,9 @@ import numpy as np
 from numpy import ndarray
 from nova.autograd.function import Function
 from nova.utils import registry_op
+from nova.utils.decorators import no_inplace_op
 from nova.autograd._ops.utils import unbroadcasting
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from nova.autograd.engine import Context
@@ -39,12 +40,14 @@ class Add(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, other: ndarray, _out: Optional[ndarray]
+    ) -> ndarray:
         """Computes a + b."""
         other_array = np.asarray(other)
         ctx.saved_shapes = (input.shape, other_array.shape)
         ctx.save_for_backward(input, other_array)
-        return input + other_array
+        return np.add(input, other, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -70,12 +73,14 @@ class Sub(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, other: ndarray, _out: Optional[ndarray]
+    ) -> ndarray:
         """Computes a - b."""
         other_array = np.asarray(other)
         ctx.saved_shapes = (input.shape, other_array.shape)
         ctx.save_for_backward(input, other_array)
-        return input - other_array
+        return np.subtract(input, other_array, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -101,12 +106,14 @@ class Mul(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, other: ndarray, _out: Optional[ndarray]
+    ) -> ndarray:
         """Computes a * b."""
         other_array = np.asarray(other)
         ctx.saved_shapes = (input.shape, other_array.shape)
         ctx.save_for_backward(input, other_array)
-        return input * other_array
+        return np.multiply(input, other_array, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -135,12 +142,14 @@ class Div(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, other: ndarray, _out: Optional[ndarray]
+    ) -> ndarray:
         """Computes a / b."""
         other_array = np.asarray(other)
         ctx.saved_shapes = (input.shape, other_array.shape)
         ctx.save_for_backward(input, other_array)
-        return input / other_array
+        return np.divide(input, other_array, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -172,10 +181,12 @@ class DivInt(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, other: ndarray, _out: Optional[ndarray]
+    ) -> ndarray:
         """Computes a // b."""
         other_array = np.asarray(other)
-        return input // other_array
+        return np.floor_divide(input, other_array, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -193,11 +204,13 @@ class Mod(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray, other: ndarray) -> ndarray:
+    def forward(
+        ctx: Context, input: ndarray, other: ndarray, _out: Optional[ndarray]
+    ) -> ndarray:
         """Computes a % b."""
         other_array = np.asarray(other)
         ctx.saved_shapes = (input.shape, other_array.shape)
-        return input % other_array
+        return np.mod(input, other_array, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -226,9 +239,9 @@ class Floor(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, _out: Optional[ndarray]) -> ndarray:
         """Computes floor(a)."""
-        return np.floor(input)
+        return np.floor(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -249,10 +262,15 @@ class Pow(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray | int, other: ndarray | int) -> ndarray:
+    def forward(
+        ctx: Context,
+        input: ndarray | int,
+        other: ndarray | int,
+        _out: Optional[ndarray],
+    ) -> ndarray:
         """Computes a^b."""
         other_array = np.asarray(other)
-        result = np.power(input, other_array)
+        result = np.power(input, other_array, out=_out)
         ctx.save_for_backward(input, other, result)
         ctx.saved_shapes = (input.shape, other_array.shape)
         return result
@@ -270,13 +288,19 @@ class Pow(Function):
         input, other, result = ctx.saved_tensors
         shape_input, shape_other = ctx.saved_shapes
 
-        grad_input = grad_output * other * np.power(input, other - 1)
+        # ∂L/∂a = b * a^(b-1)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            # Compute safe a^(b-1)
+            grad_a = other * np.power(input, other - 1.0)
+            grad_a = np.where(np.isfinite(grad_a), grad_a, 0.0)
+
+        grad_input = grad_output * grad_a
         grad_input = unbroadcasting(grad_input, shape_input)
 
-        mask_valid = input > 0  # to avoid log(0) -> nan/inf
-        grad_other = np.where(
-            mask_valid, grad_output * result * np.log(np.maximum(input, 1e-15)), 0.0
-        )
+        # ∂L/∂b = a^b * ln(a)
+        mask_valid = input > 0
+        grad_b = grad_output * result * np.log(np.where(mask_valid, input, 1.0))
+        grad_other = np.where(mask_valid, grad_b, 0.0)
         grad_other = unbroadcasting(grad_other, shape_other)
 
         return (grad_input, grad_other)
@@ -294,9 +318,9 @@ class Exp(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray | int) -> ndarray:
+    def forward(ctx: Context, input: ndarray | int, _out: Optional[ndarray]) -> ndarray:
         """Computes e^a."""
-        result = np.exp(input)
+        result = np.exp(input, out=_out)
         ctx.save_for_backward(result)
         return result
 
@@ -323,10 +347,10 @@ class Log(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray | int) -> ndarray:
+    def forward(ctx: Context, input: ndarray | int, _out: Optional[ndarray]) -> ndarray:
         """Computes ln(a)."""
         ctx.save_for_backward(input)
-        return np.log(input)
+        return np.log(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -352,9 +376,9 @@ class Sqrt(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, _out: Optional[ndarray]) -> ndarray:
         """Computes √a."""
-        result = np.sqrt(input)
+        result = np.sqrt(input, out=_out)
         ctx.save_for_backward(result)
         return result
 
@@ -372,6 +396,7 @@ class Sqrt(Function):
         return (grad_input,)
 
 
+@no_inplace_op
 @registry_op("neg")
 class Neg(Function):
     """
@@ -407,10 +432,10 @@ class Abs(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, _out: Optional[ndarray]) -> ndarray:
         """Computes |a|."""
         ctx.save_for_backward(input)
-        return np.abs(input)
+        return np.abs(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -435,9 +460,9 @@ class Ceil(Function):
     """
 
     @staticmethod
-    def forward(ctx: Context, input: ndarray) -> ndarray:
+    def forward(ctx: Context, input: ndarray, _out: Optional[ndarray]) -> ndarray:
         """Computes ceil(a)."""
-        return np.ceil(input)
+        return np.ceil(input, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output: ndarray) -> Gradients:
@@ -456,13 +481,17 @@ class Clamp(Function):
 
     @staticmethod
     def forward(
-        ctx: Context, input: ndarray, min_val: float, max_val: float
+        ctx: Context,
+        input: ndarray,
+        min_val: float,
+        max_val: float,
+        _out: Optional[ndarray],
     ) -> ndarray:
         """Clamp values to range [min_val, max_val]"""
         ctx.save_for_backward(input)
         ctx.min_val = min_val
         ctx.max_val = max_val
-        return np.clip(input, min_val, max_val)
+        return np.clip(input, min_val, max_val, out=_out)
 
     @staticmethod
     def backward(ctx: Context, grad_output) -> Gradients:
