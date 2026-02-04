@@ -60,11 +60,6 @@ This design enables:
 - Easier extensibility
 - Fine-grained control over operator registration
 
-Versioning
-----------
-The `__version__` attribute reflects the current framework version and follows
-semantic versioning.
-
 This module is intentionally lightweight in logic and heavy in orchestration,
 serving as the connective layer between NovaNN internal systems and its users.
 """
@@ -131,7 +126,7 @@ __all__.extend(creation_all)
 __all__.extend(random_all)
 
 # VERSION
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 
 
 # TENSOR FACTORY FUNCTION
