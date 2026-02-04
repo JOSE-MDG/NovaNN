@@ -19,9 +19,11 @@ from nova.autograd._ops import (
     BCELoss,
     BCEWithLogitsLoss,
     BatchNorm,
+    LayerNorm,
     ConvMatMul1d,
     ConvMatMul2d,
     ConvMatMul3d,
+    Dense,
 )
 
 if TYPE_CHECKING:
@@ -678,9 +680,7 @@ def kl_div(
 # Linear and Convolutional Layers
 
 
-def linear(
-    input: Tensor, weight: Tensor | Parameter, bias: Optional[Tensor | Parameter] = None
-) -> Tensor:
+def linear(input: Tensor, weight: Tensor, bias: Optional[Tensor] = None) -> Tensor:
     """
     Applies a linear transformation to the incoming data: y = xWᵀ + b.
 
@@ -705,12 +705,8 @@ def linear(
         (2, 4)
     """
     input = ensure_tensor(input)
-    output = input @ weight.T
 
-    if bias is not None:
-        output = output + bias.view(1, -1)
-
-    return output
+    return Dense.apply(input, weight, bias)
 
 
 def flatten(input: Tensor, start_dim: int = 1, end_dim: int = -1) -> Tensor:
@@ -1465,44 +1461,8 @@ def layer_norm(
         (2, 4, 8)
     """
     input = ensure_tensor(input)
-    dtype = input.dtype
-    input_shape = input.shape
 
-    if not isinstance(normalized_shape, tuple):
-        normalized_shape = (normalized_shape,)
-
-    if len(normalized_shape) > len(input_shape):
-        raise ValueError(
-            f"normalized_shape {normalized_shape} has more dimensions than input {input_shape}"
-        )
-
-    for i, dim_size in enumerate(normalized_shape):
-        input_dim = input_shape[-(len(normalized_shape) - i)]
-        if dim_size != input_dim:
-            raise ValueError(
-                f"normalized_shape {normalized_shape} does not match the last dimensions of input {input_shape}"
-            )
-
-    dims_to_normalize = tuple(range(-len(normalized_shape), 0))
-    mean = nova.mean(input, dim=dims_to_normalize, keepdims=True)
-    variance = nova.mean((input - mean) ** 2, dim=dims_to_normalize, keepdims=True)
-
-    eps = nova.tensor(eps, dtype=dtype)
-    normalized = (input - mean) / nova.sqrt(variance + eps)
-
-    if weight is not None:
-        weight = ensure_tensor(weight)
-        for _ in range(len(input_shape) - len(normalized_shape)):
-            weight = weight.unsqueeze(0)
-        normalized = normalized * weight
-
-    if bias is not None:
-        bias = ensure_tensor(bias)
-        for _ in range(len(input_shape) - len(normalized_shape)):
-            bias = bias.unsqueeze(0)
-        normalized = normalized + bias
-
-    return normalized
+    return LayerNorm.apply(input, normalized_shape, weight, bias, eps)
 
 
 def normalize(input: Tensor, p: int = 2, dim: Dim = 1) -> Tensor:
