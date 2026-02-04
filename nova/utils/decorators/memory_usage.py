@@ -14,20 +14,6 @@ def measure_memory(
     """
     Decorator to measure memory usage of a function.
 
-    Usage:
-        @measure_memory
-        def my_function():
-            # Your code here
-            pass
-
-        # Or with parameters
-        @measure_memory(verbose=True, return_memory=True)
-        def my_function():
-            # Your code here
-            pass
-
-        result, (peak_mem, current_mem) = my_function()
-
     Args:
         func: Function to decorate (automatically provided)
         verbose: If True, print memory stats
@@ -35,6 +21,21 @@ def measure_memory(
 
     Returns:
         Decorated function
+
+    Examples:
+
+        >>> @measure_memory
+        >>> def my_function():
+        >>>     # Your code here
+        >>>     pass
+        >>>
+        >>> # Or with parameters
+        >>> @measure_memory(verbose=True, return_memory=True)
+        >>> def my_function():
+        >>>     # Your code here
+        >>>     pass
+        >>>
+        >>> result, (peak_mem, current_mem) = my_function()
     """
 
     def decorator(f: Callable[[_T], _T]) -> Callable[[_T], tuple[_T, (int, int)]]:

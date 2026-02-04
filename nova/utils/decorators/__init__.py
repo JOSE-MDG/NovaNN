@@ -2,7 +2,7 @@
 
 from .timing import chronometer, benchmark
 from .memory_usage import measure_memory
-from .registry import get_registered_classes, registry_class, registry_op
+from .registry import get_registered_classes, registry_class, registry_op, no_inplace_op
 
 __all__ = [
     "measure_memory",
@@ -11,4 +11,5 @@ __all__ = [
     "get_registered_classes",
     "registry_class",
     "registry_op",
+    "no_inplace_op",
 ]
