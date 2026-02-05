@@ -2,7 +2,7 @@ from __future__ import annotations
 import nova
 import numpy as np
 from typing import TYPE_CHECKING, Literal
-from ..metric import Metric
+from nova.metrics.metric import Metric
 
 if TYPE_CHECKING:
     from nova import Tensor

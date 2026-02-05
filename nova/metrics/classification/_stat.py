@@ -2,8 +2,8 @@ from __future__ import annotations
 import numpy as np
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Literal
-from ..metric import Metric
-from ._confusion import ConfusionMatrix
+from nova.metrics.metric import Metric
+from nova.metrics.classification._confusion import ConfusionMatrix
 
 if TYPE_CHECKING:
     from nova import Tensor

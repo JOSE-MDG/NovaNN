@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Any, Type, TypeVar
 from abc import ABCMeta
 from numpy import ndarray

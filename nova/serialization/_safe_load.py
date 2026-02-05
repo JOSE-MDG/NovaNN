@@ -9,8 +9,8 @@ It is used internally by `nova.serialization.load` when loading
 weights-only checkpoints.
 """
 
-from __future__ import annotations
 import pickle
+from typing import TypeVar
 from nova.utils.decorators.registry import _MODULES
 from nova.utils import get_registered_classes
 from nova.exceptions import UnsafeLoadError
@@ -46,6 +46,8 @@ ALLOWED_BUILTINS: set[str] = {
     "NoneType",
 }
 
+_T = TypeVar("_T")
+
 
 class SafeUnpickler(pickle.Unpickler):
     """
@@ -73,7 +75,7 @@ class SafeUnpickler(pickle.Unpickler):
         >>> # unpickler.load()  # UnsafeLoadError if unsafe
     """
 
-    def find_class(self, module_name: str, global_name: str):
+    def find_class(self, module_name: str, global_name: str) -> _T:
         """
         Resolve a class during unpickling with strict safety checks.
 

@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Any, Literal, Optional, Union
 from nova.nn import Parameter, Buffer
 from nova import Tensor

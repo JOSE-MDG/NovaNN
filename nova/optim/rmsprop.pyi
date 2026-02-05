@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Iterable, Optional
 from nova._interfaces._optimizer import Optimizer
 from nova.nn import Parameter

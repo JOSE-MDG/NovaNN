@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Iterable, Optional, TypeVar
 from collections import OrderedDict
 from nova.nn.parameter import (

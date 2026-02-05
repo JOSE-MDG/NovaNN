@@ -1,4 +1,3 @@
-from __future__ import annotations
 from ._optimizer import Optimizer
 from nova._typing import SchedulerStateDict
 

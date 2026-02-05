@@ -1,3 +1,4 @@
+from __future__ import annotations
 import nova
 import numpy as np
 from enum import Enum

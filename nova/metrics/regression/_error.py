@@ -1,7 +1,7 @@
 from __future__ import annotations
 import nova
 from typing import TYPE_CHECKING
-from ..metric import Metric
+from nova.metrics.metric import Metric
 
 if TYPE_CHECKING:
     from nova import Tensor

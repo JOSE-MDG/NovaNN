@@ -10,7 +10,7 @@ from pathlib import Path
 # Project Structure
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # ~/NovaNN/
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 # Dataset Storage - All datasets go to ~/.novann/datasets/

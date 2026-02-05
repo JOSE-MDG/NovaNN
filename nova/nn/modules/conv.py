@@ -1,7 +1,7 @@
 from __future__ import annotations
 import nova
 import math
-import nova.nn.init as init
+from nova.nn import init
 import nova.nn.functional as F
 from typing import TYPE_CHECKING, Optional
 from nova.nn.modules import Module, LazyModuleMixin

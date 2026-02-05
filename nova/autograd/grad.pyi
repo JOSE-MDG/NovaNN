@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Optional, overload
 from numpy import ndarray
 from nova import Tensor

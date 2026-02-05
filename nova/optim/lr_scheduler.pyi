@@ -1,4 +1,3 @@
-from __future__ import annotations
 from nova._interfaces._lr_scheduler import _LRScheduler
 from nova._interfaces._optimizer import Optimizer
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import nova
 import math
-import nova.nn.init as init
+from nova.nn import init
 import nova.nn.functional as F
 from nova.nn.parameter import UninitializedParameter
 from nova.nn.modules.lazy import LazyModuleMixin

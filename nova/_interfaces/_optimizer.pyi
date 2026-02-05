@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Iterable, Optional
 from nova.utils.hooks import HooksHandle
 from nova.nn import Parameter
