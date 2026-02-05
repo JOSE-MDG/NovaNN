@@ -1,6 +1,6 @@
 [project]
 name = "novann"
-version = "4.0.2"
+version = "4.0.3"
 description = "NovaNN deep learning framework"
 authors = [{ name = "JOSE-MDG", email = "josepemlengineer@gmail.com" }]
 license = "MIT"
