@@ -5,6 +5,12 @@ This is the engine that enables automatic gradient computation during training, 
 
 NovaNN's autograd follows a design similar to **PyTorch**: each operation builds a node in the computational graph, and when calling `.backward()`, gradients flow in reverse order to the graph's leaf nodes.
 
+**Dynamic Construction of the Computational Graph**
+
+<p align="center">
+  <img src="/home/juancho_col/Documents/NovaNN/images/graph.png" width="970" height="500" alt="Computatinoal graph">
+</p>
+
 ## Overall Structure
 
 The module is organized into:

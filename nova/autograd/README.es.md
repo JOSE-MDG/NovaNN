@@ -5,6 +5,12 @@ Este es el motor que permite calcular gradientes automáticamente durante el ent
 
 El autograd de NovaNN sigue un diseño similar al de **PyTorch**: cada operación construye un nodo en el grafo de cómputo, y al llamar `.backward()` los gradientes fluyen en orden inverso hasta las hojas del grafo.
 
+**Construcción Dinámica del Grafo Computacional**
+
+<p align="center">
+  <img src="/home/juancho_col/Documents/NovaNN/images/graph.png" width="970" height="500" alt="Computatinoal graph">
+</p>
+
 ## Estructura general
 
 El módulo está organizado en:
