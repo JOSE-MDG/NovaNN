@@ -8,7 +8,7 @@ El autograd de NovaNN sigue un diseño similar al de **PyTorch**: cada operació
 **Construcción Dinámica del Grafo Computacional**
 
 <p align="center">
-  <img src="/NovaNN/images/graph.png" width="970" height="500" alt="Computatinoal graph">
+  <img src="../../images/graph.png" width="970" height="500" alt="Computatinoal graph">
 </p>
 
 ## Estructura general
