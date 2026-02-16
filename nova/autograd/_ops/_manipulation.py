@@ -82,7 +82,7 @@ class Reshape(Function):
         The gradient is: ∂L/∂input = reshape(∂L/∂out, original_shape)
         """
         input_shape = ctx.saved_shapes
-        return (grad_output.reshape(input_shape),)
+        return (grad_output.reshape(*input_shape),)
 
 
 @no_inplace_op
@@ -109,7 +109,7 @@ class Squeeze(Function):
         The gradient is: ∂L/∂input = reshape(∂L/∂out, original_shape)
         """
         input_shape = ctx.saved_shapes
-        return (grad_output.reshape(input_shape),)
+        return (grad_output.reshape(*input_shape),)
 
 
 @no_inplace_op
@@ -136,7 +136,7 @@ class UnSqueeze(Function):
         The gradient is: ∂L/∂input = reshape(∂L/∂out, original_shape)
         """
         input_shape = ctx.saved_shapes
-        return (grad_output.reshape(input_shape),)
+        return (grad_output.reshape(*input_shape),)
 
 
 @no_inplace_op
@@ -292,7 +292,7 @@ class Repeat(Function):
 
         if ctx.dim is None:
             grad_input = grad_output.reshape(-1, ctx.repeats).sum(axis=1)
-            grad_input = grad_input.reshape(shape_input)
+            grad_input = grad_input.reshape(*shape_input)
         else:
             grad_input = grad_output.reshape(
                 *shape_input[: ctx.dim],

@@ -122,4 +122,4 @@ class View(Function):
         The gradient is reshaped back to the original input shape.
         """
         org_shape = ctx.saved_shapes
-        return (grad_output.reshape(org_shape),)
+        return (grad_output.reshape(*org_shape),)

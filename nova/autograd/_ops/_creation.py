@@ -994,6 +994,7 @@ def reshape(input: nova.Tensor, dims: Dim) -> nova.Tensor:
                 [5, 6]])
     """
     input = ensure_tensor(input)
+    dims = (dims,) if isinstance(dims, int) else tuple(dims)
     return input.reshape(*dims)
 
 

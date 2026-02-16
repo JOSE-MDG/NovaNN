@@ -220,8 +220,8 @@ class Norm(Function):
             else:
                 target_shape = [1] * input.ndim
 
-            actual_out = out.reshape(target_shape)
-            actual_grad = grad_output.reshape(target_shape)
+            actual_out = out.reshape(*target_shape)
+            actual_grad = grad_output.reshape(*target_shape)
 
         safe_out = np.where(actual_out > 0, actual_out, 1.0)
 
