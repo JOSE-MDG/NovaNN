@@ -65,9 +65,19 @@ class BatchNorm(Function):
         dims_to_reduce = tuple([0] + list(range(2, input.ndim)))
 
         if training:
+
+            # Pre-allocate statistics
+            stat_dims = list(input.shape)
+            for dim in dims_to_reduce:
+                stat_dims[dim] = 1
+            stat_dims = tuple(stat_dims)
+
+            mu = np.empty(stat_dims, dtype=input.dtype)
+            var = np.empty(stat_dims, dtype=input.dtype)
+
             # Compute batch statistics
-            mu = np.mean(input, axis=dims_to_reduce, keepdims=True)
-            var_biased = np.var(input, axis=dims_to_reduce, keepdims=True)
+            np.mean(input, axis=dims_to_reduce, keepdims=True, out=mu)
+            np.var(input, axis=dims_to_reduce, keepdims=True, out=var)
 
             # Calculate number of elements for Bessel's correction
             num_reduced = input.shape[0]
@@ -75,23 +85,43 @@ class BatchNorm(Function):
                 num_reduced *= input.shape[d]
 
             # Unbiased variance estimate
-            var_unbiased = (
-                var_biased * (num_reduced / (num_reduced - 1))
-                if num_reduced > 1
-                else var_biased
-            )
+            if num_reduced > 1:
+                factor = num_reduced / (num_reduced - 1)
+                np.multiply(var, factor, out=var)
 
             # Normalize using batch statistics
-            std = np.sqrt(var_biased + eps)
-            normalized = (input - mu) / std
+            std = np.empty_like(var)
+            normalized = np.empty_like(input)
+
+            # Compute std = sqrt(var_biased + eps)
+            np.add(var, eps, out=std)
+            np.sqrt(std, out=std)
+
+            # Compute normalized = (input - mu) / std
+            np.subtract(input, mu, out=normalized)
+            np.divide(normalized, std, out=normalized)
 
             # Update running statistics with exponential moving average
             if running_mean is not None and running_var is not None:
                 current_mu = mu.reshape(num_features)
-                current_var = var_unbiased.reshape(num_features)
+                current_var = var.reshape(num_features)
 
-                running_mean[:] = (1 - momentum) * running_mean + momentum * current_mu
-                running_var[:] = (1 - momentum) * running_var + momentum * current_var
+                running_mean_buf = np.empty_like(running_mean)
+                running_var_buf = np.empty_like(running_var)
+                temp1 = np.empty_like(current_mu)
+                temp2 = np.empty_like(current_var)
+
+                np.subtract(1, momentum, out=running_mean_buf)
+                np.subtract(1, momentum, out=running_var_buf)
+
+                np.multiply(running_mean_buf, running_mean, out=running_mean_buf)
+                np.multiply(running_var_buf, running_var, out=running_var_buf)
+
+                np.multiply(momentum, current_mu, out=temp1)
+                np.multiply(momentum, current_var, out=temp2)
+
+                np.add(running_mean_buf, temp1, out=running_mean)
+                np.add(running_var_buf, temp2, out=running_var)
 
             # Save for backward
             ctx.std = std
@@ -104,17 +134,29 @@ class BatchNorm(Function):
                     "In evaluation mode, running_mean and running_var must be provided."
                 )
 
-            mean_shape = [1, num_features] + [1] * (input.ndim - 2)
+            mean_shape = tuple([1, num_features] + [1] * (input.ndim - 2))
 
-            mean_broadcast = running_mean.reshape(mean_shape)
-            var_broadcast = running_var.reshape(mean_shape)
-            std = np.sqrt(var_broadcast + eps)
+            mean_broadcast = running_mean.reshape(*mean_shape)
+            var_broadcast = running_var.reshape(*mean_shape)
 
-            normalized = (input - mean_broadcast) / std
+            std = np.empty_like(var_broadcast)
+            normalized = np.empty_like(input)
+
+            # Compute std = sqrt(var_broadcast + eps)
+            np.add(var_broadcast, eps, out=std)
+            np.sqrt(std, out=std)
+
+            # Compute normalized = (input - mean_broadcast) / std
+            np.subtract(input, mean_broadcast, out=normalized)
+            np.divide(normalized, std, out=normalized)
+
             ctx.training = False
 
-        # Apply affine transformation
-        output = normalized
+        # Apply affine transformation (use copy so normalized is preserved for backward)
+        if weight is not None or bias is not None:
+            output = normalized.copy()
+        else:
+            output = normalized
 
         if weight is not None:
             weight_shape = [1, num_features] + [1] * (input.ndim - 2)
@@ -173,14 +215,18 @@ class BatchNorm(Function):
             np.sum(grad_output, axis=dims, keepdims=True, out=grad_bias)
             grad_bias = grad_bias.reshape(-1)
 
-        weight_shape = [1, grad_output.shape[1]] + [1] * (grad_output.ndim - 2)
+        if weight is not None:
+            weight_shape = tuple(
+                [1, grad_output.shape[1]] + [1] * (grad_output.ndim - 2)
+            )
 
         # Gradient w.r.t. weight
         grad_weight = None
         if weight is not None:
-            # weight_shape already has the correct keepdims shape
+            grad_weight_buf = np.empty_like(grad_output)
+            np.multiply(grad_output, normalized, out=grad_weight_buf)
             grad_weight = np.empty(weight_shape, dtype=weight.dtype)
-            np.sum(grad_output * normalized, axis=dims, keepdims=True, out=grad_weight)
+            np.sum(grad_weight_buf, axis=dims, keepdims=True, out=grad_weight)
             grad_weight = grad_weight.reshape(-1)
 
             # Backprop through weight multiplication
@@ -192,22 +238,28 @@ class BatchNorm(Function):
         keepdims_shape = [1, grad_output.shape[1]] + [1] * (grad_output.ndim - 2)
         sum_grad = np.empty(keepdims_shape, dtype=grad_output.dtype)
         sum_grad_normalized = np.empty(keepdims_shape, dtype=grad_output.dtype)
+        x_hat_sum_term = np.empty_like(grad_output)
+        grad_input = np.empty_like(grad_output)
+        scale1 = np.empty_like(num_reduced, dtype=grad_output.dtype)
+        scale2 = np.empty_like(std)
+        scales = np.empty_like(grad_input)
 
         # Compute sums
         np.sum(grad_output, axis=dims, keepdims=True, out=sum_grad)
-        np.sum(
-            grad_output * normalized, axis=dims, keepdims=True, out=sum_grad_normalized
-        )
+        np.multiply(grad_output, normalized, out=x_hat_sum_term)
+        np.sum(x_hat_sum_term, axis=dims, keepdims=True, out=sum_grad_normalized)
 
         # Compute grad_input efficiently
         # grad_input = (1/(m*σ)) * [m*dout - Σ(dout) - x_hat*Σ(dout*x_hat)]
-        grad_input = np.empty_like(grad_output)
         np.multiply(grad_output, num_reduced, out=grad_input)  # m*dout
         grad_input -= sum_grad  # m*dout - Σ(dout)
-        grad_input -= (
-            normalized * sum_grad_normalized
-        )  # m*dout - Σ(dout) - x_hat*Σ(dout*x_hat)
-        grad_input *= (1.0 / num_reduced) * (1.0 / std)  # Scale by 1/(m*σ)
+        np.multiply(normalized, sum_grad_normalized, out=x_hat_sum_term)
+        grad_input -= x_hat_sum_term  # m*dout - Σ(dout) - x_hat*Σ(dout*x_hat)
+
+        np.divide(1.0, num_reduced, out=scale1)
+        np.divide(1.0, std, out=scale2)
+        np.multiply(scale1, scale2, out=scales)
+        np.multiply(grad_input, scales, out=grad_input)
 
         return (
             grad_input,
@@ -253,6 +305,12 @@ class LayerNorm(Function):
         """
         Compute (x - μ) / sqrt(σ² + eps) * weight + bias
         """
+        # Normalize shape to tuple so it can be unpacked/iterated consistently
+        normalized_shape = (
+            (normalized_shape,)
+            if isinstance(normalized_shape, int)
+            else tuple(normalized_shape)
+        )
         # Compute dimensions to normalize over (last N dimensions)
         ndim = len(normalized_shape)
         dims_to_normalize = tuple(range(-ndim, 0))
@@ -307,20 +365,23 @@ class LayerNorm(Function):
             ctx.normalized_shape = normalized_shape
             return normalized
 
-        # Apply affine transformation
-        output = normalized
+        # Apply affine transformation (use copy so normalized is preserved for backward)
+        if weight is not None or bias is not None:
+            output = normalized.copy()
+        else:
+            output = normalized
 
         if weight is not None:
             # Reshape weight to broadcast correctly
             weight_shape = [1] * (input.ndim - ndim) + list(normalized_shape)
-            weight_broadcast = weight.reshape(weight_shape)
-            output = output * weight_broadcast
+            weight_broadcast = weight.reshape(*weight_shape)
+            output *= weight_broadcast
 
         if bias is not None:
             # Reshape bias to broadcast correctly
             bias_shape = [1] * (input.ndim - ndim) + list(normalized_shape)
-            bias_broadcast = bias.reshape(bias_shape)
-            output = output + bias_broadcast
+            bias_broadcast = bias.reshape(*bias_shape)
+            output += bias_broadcast
 
         # Save for backward
         ctx.normalized = normalized
@@ -361,47 +422,62 @@ class LayerNorm(Function):
             keepdims_shape[dim] = 1
         keepdims_shape = tuple(keepdims_shape)
 
-        # Determine reduction axes for parameter gradients (batch + normalized dims)
-        reduce_axes = (0,) + dims
+        # Reduction axes for parameter gradients: sum over batch dims only (not normalized dims)
+        # so grad_bias and grad_weight have shape normalized_shape
+        n_batch_dims = len(input_shape) - ndim
+        reduce_axes = tuple(range(0, n_batch_dims))
 
         # Gradient w.r.t. bias
         grad_bias = None
         if bias is not None:
-            grad_bias = np.sum(grad_output, axis=reduce_axes)
-            # Shape: normalized_shape
+            grad_bias = np.empty(normalized_shape, dtype=bias.dtype)
+            np.sum(grad_output, axis=reduce_axes, out=grad_bias)
 
-        # Gradient w.r.t. weight
+        # Weight/broadcast shape (for later backprop through weight)
+        if weight is not None:
+            weight_shape = tuple(
+                [1] * (len(input_shape) - ndim) + list(normalized_shape)
+            )
+
+        # Gradient w.r.t. weight: Σ(grad_output * normalized) over batch axes
         grad_weight = None
         if weight is not None:
-            grad_weight = np.sum(grad_output * normalized, axis=reduce_axes)
-            # Shape: normalized_shape
+            grad_weight_buf = np.empty_like(grad_output)
+            np.multiply(grad_output, normalized, out=grad_weight_buf)
+            grad_weight = np.empty(normalized_shape, dtype=weight.dtype)
+            np.sum(grad_weight_buf, axis=reduce_axes, out=grad_weight)
 
         # Backprop through weight multiplication
         if weight is not None:
-            weight_shape = [1] * (input_shape.__len__() - ndim) + list(normalized_shape)
-            weight_broadcast = weight.reshape(weight_shape)
+            weight_broadcast = weight.reshape(*weight_shape)
             grad_output *= weight_broadcast
 
         # Gradient w.r.t. input using efficient LayerNorm formula
         # Pre-allocate intermediate arrays
         sum_grad = np.empty(keepdims_shape, dtype=grad_output.dtype)
         sum_grad_normalized = np.empty(keepdims_shape, dtype=grad_output.dtype)
+        x_hat_sum_term = np.empty_like(grad_output)
+        grad_input = np.empty_like(grad_output)
+        scale1 = np.empty_like(num_normalized, dtype=grad_output.dtype)
+        scale2 = np.empty_like(std)
+        scales = np.empty_like(grad_input)
 
         # Compute sums
         np.sum(grad_output, axis=dims, keepdims=True, out=sum_grad)
-        np.sum(
-            grad_output * normalized, axis=dims, keepdims=True, out=sum_grad_normalized
-        )
+        np.multiply(grad_output, normalized, out=x_hat_sum_term)
+        np.sum(x_hat_sum_term, axis=dims, keepdims=True, out=sum_grad_normalized)
 
         # Compute grad_input efficiently
         # grad_input = (1/(m*σ)) * [m*dout - Σ(dout) - x_hat*Σ(dout*x_hat)]
-        grad_input = np.empty_like(grad_output)
         np.multiply(grad_output, num_normalized, out=grad_input)  # m*dout
         grad_input -= sum_grad  # m*dout - Σ(dout)
-        grad_input -= (
-            normalized * sum_grad_normalized
-        )  # m*dout - Σ(dout) - x_hat*Σ(dout*x_hat)
-        grad_input *= (1.0 / num_normalized) * (1.0 / std)  # Scale by 1/(m*σ)
+        np.multiply(normalized, sum_grad_normalized, out=x_hat_sum_term)
+        grad_input -= x_hat_sum_term  # m*dout - Σ(dout) - x_hat*Σ(dout*x_hat)
+
+        np.divide(1.0, num_normalized, out=scale1)
+        np.divide(1.0, std, out=scale2)
+        np.multiply(scale1, scale2, out=scales)  # 1/(m*σ)
+        np.multiply(scales, grad_input, out=grad_input)
 
         return (
             grad_input,
