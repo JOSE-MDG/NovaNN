@@ -5,6 +5,7 @@ training_history.json
 pytorch_training_history.json
 __pycache__/
 .DS_Store
+.vscode
 .ipynb_checkpoints/
 
 # experimentation
@@ -20,3 +21,4 @@ dist/
 
 # scripts
 examples.py
+
