@@ -17,7 +17,6 @@ from nova.exceptions import (
     DatasetValidationError,
     DatasetDownloadError,
 )
-from sklearn.model_selection import train_test_split
 
 if TYPE_CHECKING:
     from nova import Tensor
@@ -135,6 +134,8 @@ def split_validation_subset(
         tensors = True
         x = x.detach().numpy()
         y = y.detach().numpy()
+
+    from sklearn.model_selection import train_test_split
 
     x_set, x_val, y_set, y_val = train_test_split(
         x,
@@ -380,6 +381,8 @@ def split_validation_dataset(
 
     # Perform the split
     stratify_column = dataset[label] if stratify else None
+
+    from sklearn.model_selection import train_test_split
 
     train, val = train_test_split(
         dataset,
