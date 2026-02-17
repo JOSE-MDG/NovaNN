@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 2/4/2026, 9:16:13 PM
+**Generated:** 2/17/2026, 1:04:22 AM
 
 ```
 ├── 📁 benchmarks
@@ -57,7 +57,8 @@
 │   │       ├── 🖼️ mlp_training_performance.png
 │   │       ├── 🖼️ mlp_training_speedup.png
 │   │       └── 🖼️ optimizer_comparison.png
-│   └── 🖼️ NovaNN Banners.png
+│   ├── 🖼️ NovaNN Banners.png
+│   └── 🖼️ graph.png
 ├── 📁 nova
 │   ├── 📁 _interfaces
 │   │   ├── 📝 README.es.md
