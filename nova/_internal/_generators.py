@@ -266,7 +266,7 @@ def make_inplace_func(
 
     else:
 
-        def inplace_binary_method(self: T, other: Union[Tensor, Any], /) -> T:
+        def inplace_binary_method(self: T, *args: Union[Tensor, Any]) -> T:
             # Prevent in-place ops on tensors in the computation graph
             if self.requires_grad:
                 raise RuntimeError(
@@ -275,10 +275,10 @@ def make_inplace_func(
                 )
 
             # Convert to Tensor unless raw mode is enabled
-            if not raw and not isinstance(other, Tensor):
-                other = ensure_tensor(other)
+            if not raw and len(args) == 1 and not isinstance(args[0], Tensor):
+                args = (ensure_tensor(args[0]),)
 
-            func.apply(self, other, _out=self.data)
+            func.apply(self, *args, _out=self.data)
 
             return self
 
