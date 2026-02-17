@@ -481,19 +481,9 @@ model.load_state_dict(nova.load('model.pth'))
 - No complete static typing
 - Type miscasting issues
 
-## Version Comparison
+## [4.0.4] - 2026-02-16
 
-| Feature           | v3.0.0         | v4.0.3                  |
-| ----------------- | -------------- | ----------------------- |
-| **Autograd**      | ❌ Manual      | ✅ Dynamic automatic    |
-| **API**           | Custom         | PyTorch-style           |
-| **Tensors**       | Simple wrapper | Complete class with ops |
-| **Operations**    | ~20            | 80+                     |
-| **Modules**       | Basic          | Complete + Lazy         |
-| **Schedulers**    | ❌             | ✅ 3 types              |
-| **Metrics**       | 3 basic        | 8 + averaging           |
-| **Serialization** | Pickle         | Safe + registry         |
-| **Documentation** | 1 huge README  | Modular READMEs         |
-| **Test coverage** | 95%            | 87% (code 5x larger)    |
-| **Efficiency**    | ~45%           | ~82% more efficient     |
-| **Benchmarks**    | ❌             | ✅ vs PyTorch           |
+### ⚡ Performance
+
+- **BatchNorm**: Backward pass optimized with pre-allocated buffers, correct use of reduction axes for parameter gradients, and in-place operations where safe. Avoids extra temporary allocations and shape mismatches.
+- **LayerNorm**: Backward pass optimized with pre-allocated buffers, reuse of buffers for intermediate products/sums, and consistent handling of `normalized_shape`. Reduces allocations and improves numerical stability.

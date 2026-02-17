@@ -489,19 +489,9 @@ class Parameter(Tensor):
 - Sin tipado estático completo
 - malcasting de tipos
 
-## Comparación de Versiones
+## [4.0.4] - 2026-02-16
 
-| Característica      | v3.0.0          | v4.0.3                 |
-| ------------------- | --------------- | ---------------------- |
-| **Autograd**        | ❌ Manual       | ✅ Automático dinámico |
-| **API**             | Custom          | PyTorch-style          |
-| **Tensors**         | Simple wrapper  | Clase completa con ops |
-| **Operaciones**     | ~20             | 80+                    |
-| **Módulos**         | Básicos         | Completos + Lazy       |
-| **Schedulers**      | ❌              | ✅ 3 tipos             |
-| **Métricas**        | 3 básicas       | 8 + averaging          |
-| **Serialización**   | Pickle          | Safe + registro        |
-| **Documentación**   | 1 README enorme | READMEs modulares      |
-| **Cobertura tests** | 95%             | 87% (código 5x mayor)  |
-| **Eficiencia**      | ~45%            | ~82% más eficiente     |
-| **Benchmarks**      | ❌              | ✅ vs PyTorch          |
+### ⚡ Rendimiento
+
+- **BatchNorm**: Backward optimizado con buffers preasignados, ejes de reducción correctos para los gradientes de parámetros y operaciones in-place donde es seguro. Evita asignaciones temporales extra y errores de forma.
+- **LayerNorm**: Backward optimizado con buffers preasignados, reutilización de buffers para productos/sumas intermedios y manejo consistente de `normalized_shape`. Reduce asignaciones y mejora la estabilidad numérica.

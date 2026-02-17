@@ -1,6 +1,6 @@
 ![Banner](./images/NovaNN%20Banners.png)
 
-![version](https://img.shields.io/badge/version-4.0.3-blue)
+![version](https://img.shields.io/badge/version-4.0.4-blue)
 ![python](https://img.shields.io/badge/python-v3.14-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![tests](https://img.shields.io/badge/tests-pytest-orange)
@@ -438,7 +438,7 @@ poetry add novann
 
 ```python
 import nova
-print(nova.__version__)  # Debería mostrar: 4.0.3
+print(nova.__version__)  # Debería mostrar: 4.0.4
 ```
 
 #### Requisitos del sistema
