@@ -214,7 +214,7 @@ def empty(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         data = np.empty(shape=size, dtype=dtype)
-    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
+    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype, copy=False)
 
 
 def min(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.Tensor:
@@ -1305,6 +1305,7 @@ def eye(
         data,
         dtype=dtype if dtype is not None else nova.float32,
         requires_grad=requires_grad,
+        copy=False,
     )
 
 
@@ -1374,6 +1375,7 @@ def full(
         data,
         dtype=dtype,
         requires_grad=requires_grad,
+        copy=False,
     )
 
 
@@ -1411,7 +1413,7 @@ def full_like(
         dtype = nova.float32
 
     data = np.full_like(input.data, fill_value=fill_value, dtype=dtype)
-    return nova.Tensor(data, dtype=dtype, requires_grad=requires_grad)
+    return nova.Tensor(data, dtype=dtype, requires_grad=requires_grad, copy=False)
 
 
 def arange(
@@ -1453,7 +1455,7 @@ def arange(
 
     data = np.arange(start=start, stop=stop, step=step, dtype=dtype)
 
-    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
+    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype, copy=False)
 
 
 def unique(
@@ -1494,7 +1496,7 @@ def unique(
         axis=dim,
     )
 
-    return nova.Tensor(unique, requires_grad=False, dtype=input.dtype)
+    return nova.Tensor(unique, requires_grad=False, dtype=input.dtype, copy=False)
 
 
 def argmin(input: nova.Tensor, dim: Dim = None, keepdims: bool = False):
@@ -1629,7 +1631,7 @@ def zeros(
     """
     dtype = dtype if dtype is not None else nova.float32
     data = np.zeros(size, dtype=dtype)
-    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
+    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype, copy=False)
 
 
 def zeros_like(
@@ -1658,6 +1660,7 @@ def zeros_like(
         data,
         requires_grad=requires_grad,
         dtype=input.dtype if dtype is None else dtype,
+        copy=False,
     )
 
 
@@ -1682,7 +1685,7 @@ def ones(
     """
     dtype = dtype if dtype is not None else nova.float32
     data = np.ones(size, dtype=dtype)
-    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
+    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype, copy=False)
 
 
 def ones_like(
@@ -1711,6 +1714,7 @@ def ones_like(
         data,
         requires_grad=requires_grad,
         dtype=input.dtype if dtype is None else dtype,
+        copy=False,
     )
 
 
@@ -1770,7 +1774,7 @@ def linspace(
     data = np.linspace(
         start=start, stop=stop, num=num, endpoint=endpoint, dtype=dtype, axis=dim
     )
-    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
+    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype, copy=False)
 
 
 def logspace(
@@ -1806,7 +1810,7 @@ def logspace(
     data = np.logspace(
         start=start, stop=stop, num=num, endpoint=endpoint, dtype=dtype, axis=dim
     )
-    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype)
+    return nova.Tensor(data, requires_grad=requires_grad, dtype=dtype, copy=False)
 
 
 def any(input: nova.Tensor, dim: Dim = None, keepdims: bool = False) -> nova.bool:
