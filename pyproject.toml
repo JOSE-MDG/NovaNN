@@ -1,6 +1,6 @@
 [project]
 name = "novann"
-version = "4.0.3"
+version = "4.0.4"
 description = "NovaNN deep learning framework"
 authors = [{ name = "JOSE-MDG", email = "josepemlengineer@gmail.com" }]
 license = "MIT"
@@ -10,7 +10,6 @@ dependencies = [
     "numpy (>=2.4.2,<3.0.0)",
     "pandas (>=3.0.0,<4.0.0)",
     "matplotlib (>=3.10.8,<4.0.0)",
-    "seaborn (>=0.13.2,<0.14.0)",
     "scikit-learn (>=1.8.0,<2.0.0)",
     "pyarrow (>=23.0.0,<24.0.0)",
     "pyyaml (>=6.0.3,<7.0.0)",
