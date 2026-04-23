@@ -11,6 +11,34 @@
 - 🇬🇧 [English](README.md)
 - 🇪🇸 [Español](README.es.md)
 
+## Tabla de contenidos
+
+- [¿Qué es NovaNN?](#qué-es-novann)
+- [Filosofía del proyecto](#filosofía-del-proyecto)
+- [Backend numérico](#backend-numérico)
+- [Objetivo educativo y técnico](#objetivo-educativo-y-técnico)
+- [Introducción](#introducción)
+  - [Organización del proyecto](#organización-del-proyecto)
+- [Inicio rápido](#-inicio-rápido)
+  - [Autograd y Grafos Computacionales](#1-autograd-y-grafos-computacionales)
+  - [Entrenamiento Completo de una Red Neuronal](#2-entrenamiento-completo-de-una-red-neuronal)
+  - [Arquitecturas CNN para Visión Computacional](#3-arquitecturas-cnn-para-visión-computacional)
+  - [Transfer Learning - Congelar Capas](#4-transfer-learning---congelar-capas)
+  - [Fine-Tuning con Learning Rates Diferenciados](#5-fine-tuning-con-learning-rates-diferenciados)
+  - [Guardado y Carga de Modelos](#6-guardado-y-carga-de-modelos)
+- [Tecnologías utilizadas](#️-tecnologías-utilizadas)
+- [Instalación](#-instalación)
+  - [Instalación desde PyPI (Recomendado)](#opción-1-instalación-desde-pypi-recomendado)
+  - [Instalación desde el código fuente](#opción-2-instalación-desde-el-código-fuente)
+  - [Ejecutar ejemplos](#ejecutar-ejemplos)
+  - [Desinstalación](#desinstalación)
+  - [Solución de problemas](#solución-de-problemas)
+- [Testing](#-testing)
+  - [Ejecutar todos los tests](#ejecutar-todos-los-tests)
+- [Contribución](#-contribución)
+- [Licencia](#-licencia)
+- [Autor y Mantenedor](#-autor-y-mantenedor)
+
 ## ¿Qué es NovaNN?
 
 **NovaNN** es un framework de **[Deep Learning](https://www.ibm.com/think/topics/deep-learning)** desarrollado desde cero en **Python**, diseñado para construir, entrenar y evaluar redes neuronales de forma modular, clara y extensible.
@@ -57,8 +85,8 @@ Este framework fue creado con fines **educativos y demostrativos**, con el prop�
 
 NovaNN está pensado para personas que quieran **entender cómo funcionan realmente los frameworks de Deep Learning por dentro**, más allá de simplemente utilizarlos.
 
-> ⚠️ **Nota**  
-> NovaNN no pretende reemplazar frameworks como PyTorch o TensorFlow en entornos de producción.  
+> ⚠️ **Nota**
+> NovaNN no pretende reemplazar frameworks como PyTorch o TensorFlow en entornos de producción.
 > Su propósito es servir como herramienta de aprendizaje avanzada y como demostración técnica de ingeniería aplicada al Deep Learning.
 
 ## Introducción
@@ -68,7 +96,7 @@ Esta estructura favorece tanto la extensibilidad como la claridad del flujo de t
 
 ### Organización del proyecto
 
-- **`examples/`**  
+- **`examples/`**
   Contiene scripts funcionales que muestran el uso del framework en distintos escenarios:
   - Clasificación binaria
   - Clasificación multiclase
@@ -76,18 +104,18 @@ Esta estructura favorece tanto la extensibilidad como la claridad del flujo de t
   - Redes convolucionales
 
 - **[`nova/`](./nova/README.es.md)**
-  Contiene el **núcleo completo del framework NovaNN**.  
-  Aquí se implementan los tensores, el motor de autograd, las operaciones matemáticas, los módulos de redes neuronales, optimizadores, métricas, serialización y utilidades internas.  
-  Está organizado de forma modular para separar claramente los distintos niveles del sistema: bajo nivel (tensores y operaciones), autograd, APIs de alto nivel (`nn`, `optim`, `metrics`) y utilidades auxiliares.  
+  Contiene el **núcleo completo del framework NovaNN**.
+  Aquí se implementan los tensores, el motor de autograd, las operaciones matemáticas, los módulos de redes neuronales, optimizadores, métricas, serialización y utilidades internas.
+  Está organizado de forma modular para separar claramente los distintos niveles del sistema: bajo nivel (tensores y operaciones), autograd, APIs de alto nivel (`nn`, `optim`, `metrics`) y utilidades auxiliares.
   Cada submódulo cuenta con su propia documentación para facilitar la navegación y el mantenimiento del código.
 
 - **[`benchmarks/`](./benchmarks/README.es.md)**
-  Incluye **benchmarks diseñados para evaluar el rendimiento de NovaNN** en distintos escenarios y compararlo con otros frameworks (principalmente PyTorch).  
+  Incluye **benchmarks diseñados para evaluar el rendimiento de NovaNN** en distintos escenarios y compararlo con otros frameworks (principalmente PyTorch).
    Los benchmarks se centran en:
   - operaciones elementales y reducción
   - coste del sistema de autograd
   - entrenamiento en CPU en modelos pequeños
-  - uso de memoria y overhead computacional  
+  - uso de memoria y overhead computacional
     Este directorio no forma parte del runtime del framework y está pensado exclusivamente para **análisis de rendimiento, validación técnica y estudios comparativos**.
 
 ## 🚀 Inicio rápido

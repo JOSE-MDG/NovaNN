@@ -11,6 +11,34 @@
 - 🇬🇧 [English](README.md)
 - 🇪🇸 [Español](README.es.md)
 
+## Table of Contents
+
+- [What is NovaNN?](#what-is-novann)
+- [Project Philosophy](#project-philosophy)
+- [Numerical Backend](#numerical-backend)
+- [Educational and Technical Goal](#educational-and-technical-goal)
+- [Introduction](#introduction)
+  - [Project Organization](#project-organization)
+- [Quick Start](#-quick-start)
+  - [Autograd and Computational Graphs](#1-autograd-and-computational-graphs)
+  - [Complete Neural Network Training](#2-complete-neural-network-training)
+  - [CNN Architectures for Computer Vision](#3-cnn-architectures-for-computer-vision)
+  - [Transfer Learning - Freezing Layers](#4-transfer-learning---freezing-layers)
+  - [Fine-Tuning with Differential Learning Rates](#5-fine-tuning-with-differential-learning-rates)
+  - [Model Saving and Loading](#6-model-saving-and-loading)
+- [Technologies Used](#️-technologies-used)
+- [Installation](#-installation)
+  - [Install from PyPI (Recommended)](#option-1-install-from-pypi-recommended)
+  - [Install from source](#option-2-install-from-source)
+  - [Run examples](#run-examples)
+  - [Uninstallation](#uninstallation)
+  - [Troubleshooting](#troubleshooting)
+- [Testing](#-testing)
+  - [Run All Tests](#run-all-tests)
+- [Contribution](#-contribution)
+- [License](#-license)
+- [Author and Maintainer](#-author-and-maintainer)
+
 ## What is NovaNN?
 
 **NovaNN** is a **[Deep Learning](https://www.ibm.com/think/topics/deep-learning)** framework developed from scratch in **Python**, designed to build, train, and evaluate neural networks in a modular, clear, and extensible way.
@@ -57,8 +85,8 @@ This framework was created for **educational and demonstrative purposes**, with 
 
 NovaNN is intended for people who want to **understand how Deep Learning frameworks really work inside**, beyond just using them.
 
-> ⚠️ **Note**  
-> NovaNN does not aim to replace frameworks like PyTorch or TensorFlow in production environments.  
+> ⚠️ **Note**
+> NovaNN does not aim to replace frameworks like PyTorch or TensorFlow in production environments.
 > Its purpose is to serve as an advanced learning tool and as a technical demonstration of engineering applied to Deep Learning.
 
 ## Introduction
@@ -68,7 +96,7 @@ This structure favors both extensibility and clarity of workflow.
 
 ### Project Organization
 
-- **`examples/`**  
+- **`examples/`**
   Contains functional scripts showing the use of the framework in different scenarios:
   - Binary classification
   - Multiclass classification
@@ -76,18 +104,18 @@ This structure favors both extensibility and clarity of workflow.
   - Convolutional networks
 
 - **[`nova/`](./nova/README.md)**
-  Contains the **complete core of the NovaNN framework**.  
-  Here tensors, the autograd engine, mathematical operations, neural network modules, optimizers, metrics, serialization, and internal utilities are implemented.  
-  It is organized in a modular way to clearly separate the different levels of the system: low-level (tensors and operations), autograd, high-level APIs (`nn`, `optim`, `metrics`) and auxiliary utilities.  
+  Contains the **complete core of the NovaNN framework**.
+  Here tensors, the autograd engine, mathematical operations, neural network modules, optimizers, metrics, serialization, and internal utilities are implemented.
+  It is organized in a modular way to clearly separate the different levels of the system: low-level (tensors and operations), autograd, high-level APIs (`nn`, `optim`, `metrics`) and auxiliary utilities.
   Each submodule has its own documentation to facilitate code navigation and maintenance.
 
 - **[`benchmarks/`](./benchmarks/README.md)**
-  Includes **benchmarks designed to evaluate NovaNN's performance** in different scenarios and compare it with other frameworks (mainly PyTorch).  
+  Includes **benchmarks designed to evaluate NovaNN's performance** in different scenarios and compare it with other frameworks (mainly PyTorch).
   The benchmarks focus on:
   - Elementary operations and reduction
   - Autograd system cost
   - CPU training on small models
-  - Memory usage and computational overhead  
+  - Memory usage and computational overhead
     This directory is not part of the framework runtime and is intended exclusively for **performance analysis, technical validation, and comparative studies**.
 
 ## 🚀 Quick Start
