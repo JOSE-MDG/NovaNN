@@ -80,7 +80,7 @@ class _LRScheduler:
         Returns:
             List of learning rates, one per parameter group.
         """
-        raise NotADirectoryError
+        raise NotImplementedError
 
     def step(self) -> None:
         """
