@@ -417,7 +417,8 @@ typedef struct {
 } Storage;
 ```
 
-### 8.3 C API Exposed by Rust (Simplified Example)
+###
+ 8.3 C API Exposed by Rust (Simplified Example)
 
 ```c
 Storage* nova_storage_create(size_t bytes);
@@ -435,6 +436,7 @@ void collect(Tensor *t) {
         t->storage = NULL;
     }
 }
+```
 
 ## 9. Rust — Full Responsibilities (Simplified Implementation)
 
