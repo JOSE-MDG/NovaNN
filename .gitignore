@@ -22,3 +22,5 @@ dist/
 # scripts
 examples.py
 
+# virtual eviroments
+.venv
