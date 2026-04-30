@@ -1,14 +1,15 @@
-# tests
+# Testing
 .pytest_cache/
 
-training_history.json
-pytorch_training_history.json
+# pycache modules
 __pycache__/
+
+# IDE signatures
 .DS_Store
 .vscode
-.ipynb_checkpoints/
 
-# experimentation
+# Notebooks and check points
+.ipynb_checkpoints/
 notebooks/
 
 # Coverage
@@ -19,8 +20,14 @@ htmlcov/
 # Wheels
 dist/
 
-# scripts
+# Scripts
 examples.py
 
-# virtual eviroments
+# Virtual eviroments
 .venv
+
+# Cargo crate
+Cargo.lock
+
+# Target (compiled rust modules and releases)
+ncore/rust/target/
