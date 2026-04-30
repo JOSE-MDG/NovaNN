@@ -1,26 +1,23 @@
-# tests
+# Python artifacts
+__pycache__/
 .pytest_cache/
 
-training_history.json
-pytorch_training_history.json
-__pycache__/
+# Environments and IDEs
+.venv/
+.vscode/
 .DS_Store
-.vscode
-.ipynb_checkpoints/
 
-# experimentation
+# Notebooks and experimentation
+.ipynb_checkpoints/
 notebooks/
 
-# Coverage
+# Coverage and Testing
 .coverage
 .coveragerc
 htmlcov/
 
-# Wheels
+# Build and Distribution
 dist/
 
-# scripts
+# Scripts
 examples.py
-
-# virtual eviroments
-.venv
