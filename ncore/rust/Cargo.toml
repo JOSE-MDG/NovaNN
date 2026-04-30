@@ -1,8 +1,8 @@
 [package]
-name = "rust-storage"
+name = "ncore-memory"
 version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "rust-storage"
+name = "ncore_memory"
 crate-type = ["cdylib", "staticlib"]
