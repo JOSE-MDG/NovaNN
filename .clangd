@@ -1,0 +1,66 @@
+CompileFlags:
+  CompilationDatabase: ./cmake
+  Add:
+    # Warnings
+    - -Wall
+    - -Wextra
+    - -Wpedantic
+    - -Wshadow
+    - -Wconversion
+    - -Wsign-conversion
+    - -Wfloat-equal
+    - -Wundef
+    - -Wpointer-arith
+    - -Wcast-align
+    - -Wformat=2
+    - -Wnull-dereference
+    - -Wdouble-promotion
+    - -Wimplicit-fallthrough
+    - -Wuninitialized
+    - -Wunused
+
+    # Suppressions
+    - -Wno-unused-parameter
+    - -Wno-missing-field-initializers
+
+
+    # Debug
+    - -g
+    - -fno-omit-frame-pointer
+
+If:
+  PathMatch: .*\.c:
+CompileFlags:
+  Add: [-std=c23]
+
+If:
+  PathMatch: .*\.cpp:
+CompileFlags:
+  Add: [-std=c++23]
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      - bugprone-*
+      - performance-*
+      - readability-*
+      - portability-*
+      - clang-analyzer-*
+    Remove:
+      - readability-magic-numbers
+
+Index:
+  Background: Build
+
+Completion:
+  AllScopes: Yes
+  DetailedLabel: Yes
+  IncludeInsertion: IWYU
+
+Hover:
+  ShowAKA: Yes
+
+InlayHints:
+  Enabled: Yes
+
+Style: file
