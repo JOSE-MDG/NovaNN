@@ -1,6 +1,8 @@
 [package]
-name = "rust"
+name = "mem-tools"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[lib]
+name = "mem-tools"
+crate-type = ["cdylib", "staticlib"]
