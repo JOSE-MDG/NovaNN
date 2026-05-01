@@ -1,0 +1,6 @@
+# Force language detection
+*.rs linguist-detectable=true
+
+# Explicit asignment to avoid indentification errors
+*.rs  linguist-language=Rust
+*.py  linguist-language=Python
