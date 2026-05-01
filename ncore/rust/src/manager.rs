@@ -1,3 +1,5 @@
+//! Global registry for managing storage instances.
+
 use crate::error::StorageError;
 use crate::storage::RustStorage;
 use std::collections::HashMap;
@@ -5,13 +7,16 @@ use std::sync::{Mutex, OnceLock};
 
 static MANAGER: OnceLock<Mutex<HashMap<u64, RustStorage>>> = OnceLock::new();
 
+/// Returns a reference to the global registry.
 fn registry() -> &'static Mutex<HashMap<u64, RustStorage>> {
     MANAGER.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+/// Manages storage instances globally.
 pub struct StorageManager;
 
 impl StorageManager {
+    /// Inserts new storage into the registry.
     pub fn insert(id: u64, storage: RustStorage) -> Result<(), StorageError> {
         registry()
             .lock()
@@ -42,6 +47,7 @@ impl StorageManager {
             .ok_or(StorageError::InvalidHandle)
     }
 
+    /// Returns `true` if the registry contains the given id.
     pub fn contains(id: u64) -> bool {
         registry()
             .lock()
