@@ -1,3 +1,5 @@
+//! Rust memory layer for NovaNN, providing FFI-compatible storage management.
+
 pub mod error;
 pub mod ffi;
 pub mod handle;
