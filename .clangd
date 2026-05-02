@@ -21,6 +21,7 @@ CompileFlags:
     - -Wno-missing-field-initializers
     - -g
     - -fno-omit-frame-pointer
+    - -march=native
 
 ---
 If:
@@ -51,7 +52,6 @@ Index:
 
 Completion:
   AllScopes: Yes
-  DetailedLabel: Yes
   HeaderInsertion: IWYU
 
 Hover:
