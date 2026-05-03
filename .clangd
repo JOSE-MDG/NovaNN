@@ -1,24 +1,24 @@
 CompileFlags:
-  CompilationDatabase: ./cmake
   Add:
+    - -I
+    - ncore/include
     - -Wall
     - -Wextra
     - -Wpedantic
     - -Wshadow
-    - -Wconversion
-    - -Wsign-conversion
-    - -Wfloat-equal
-    - -Wundef
-    - -Wpointer-arith
     - -Wcast-align
+    - -Wconversion
+    - -Wfloat-equal
     - -Wformat=2
-    - -Wnull-dereference
-    - -Wdouble-promotion
     - -Wimplicit-fallthrough
+    - -Wnull-dereference
+    - -Wpointer-arith
+    - -Wsign-conversion
+    - -Wundef
     - -Wuninitialized
     - -Wunused
-    - -Wno-unused-parameter
     - -Wno-missing-field-initializers
+    - -Wno-unused-parameter
     - -g
     - -fno-omit-frame-pointer
     - -march=native
