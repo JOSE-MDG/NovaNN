@@ -28,6 +28,9 @@ build/
 # Wheels
 dist/
 
+# Cache
+.cache/
+
 # Scripts
 examples.py
 
