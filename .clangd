@@ -1,7 +1,6 @@
 CompileFlags:
   Add:
-    - -I
-    - ncore/include
+    - -Incore/include
     - -Wall
     - -Wextra
     - -Wpedantic
