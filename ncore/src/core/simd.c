@@ -1,5 +1,4 @@
 #include <ncore/simd.h>
-#include <stdio.h>
 #include <threads.h>
 
 #ifdef _WIN32
