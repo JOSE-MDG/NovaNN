@@ -14,7 +14,7 @@ typedef unsigned int uint;
 static Capabilities_ Caps_;
 static once_flag init_flag = ONCE_FLAG_INIT;
 
-static inline void detect_cpu_capabilities_(Capabilities_ *__restrict caps) {
+static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
   memset(caps, 0, sizeof(Capabilities_));
 
   uint eax, ebx, ecx, edx;
