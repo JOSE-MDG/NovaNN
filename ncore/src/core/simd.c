@@ -79,14 +79,3 @@ const Capabilities_ *get_cpu_capabilities() {
   call_once(&init_flag, init_once);
   return &Caps_;
 }
-
-int main() {
-  const Capabilities_ *caps = (const Capabilities_ *)get_cpu_capabilities();
-
-  (caps->sse4_2_) ? printf("SSE4.2: True \n")
-                  : printf("SSE4.2: False\n"); // True
-  (caps->avx512f_) ? printf("AVX512F: True\n")
-                   : printf("AVX512F: False\n"); // False
-
-  return 0;
-}
