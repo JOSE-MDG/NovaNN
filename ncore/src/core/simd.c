@@ -69,6 +69,7 @@ static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
   caps->amx_fp16_ = (eax & (1 << 21)) != 0;
   caps->avx2_int8_ = (edx & (1 << 4)) != 0;
 
+  caps->amx_ = (bool)(caps->amx_bf16_ || caps->amx_fp16_ || caps->amx_int8_);
   caps->vnni_ = (bool)(caps->avx512_vnni_ || caps->avx2_vnni_);
 }
 

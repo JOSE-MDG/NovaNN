@@ -20,6 +20,7 @@ typedef struct {
   bool avx512_fp16_;
   bool avx512_bf16_;
 
+  bool amx_;
   bool amx_fp16_;
   bool amx_bf16_;
   bool amx_int8_;
