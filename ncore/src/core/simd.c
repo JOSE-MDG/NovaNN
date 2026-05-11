@@ -6,7 +6,7 @@
 #include <ncore/simd.h>
 #include <threads.h>
 
-#ifdef _WIN32
+#ifdef _WIN64
 #include <intrin.h>
 #else
 #include <cpuid.h>
@@ -16,7 +16,7 @@
 
 typedef unsigned int uint;
 
-static Capabilities_ Caps_;       ///< Global capabilities cache
+static Capabilities_ Caps_; ///< Global capabilities cache
 static once_flag init_flag = ONCE_FLAG_INIT;
 
 /**
@@ -49,7 +49,7 @@ static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
   caps->avx_ = (bool)((ecx & (1 << 28)) != 0);
   caps->f16c_ = (bool)((ecx & (1 << 29)) != 0);
 
-#ifdef _WIN32
+#ifdef _WIN64
   __cpuidex(cpu_info, 7, 0);
   eax = (uint)cpu_info[0];
   ebx = (uint)cpu_info[1];
@@ -69,7 +69,7 @@ static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
   caps->avx512_fp16_ = (bool)((edx & (1 << 23)) != 0);
   caps->amx_int8_ = (bool)((edx & (1 << 25)) != 0);
 
-#ifdef _WIN32
+#ifdef _WIN64
   __cpuidex(cpu_info, 7, 1);
   eax = (uint)cpu_info[0];
   ebx = (uint)cpu_info[1];
