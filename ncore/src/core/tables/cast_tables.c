@@ -2750,7 +2750,7 @@ static inline void tf32_to_u64_avx512_(const Tensor *restrict src,
  */
 static inline void tf64_to_s8_avx512_(const Tensor *restrict src,
                                       Tensor *restrict dst) {
-  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
@@ -3006,7 +3006,7 @@ static inline void ts8_to_fp16_avx512_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int32_t to _Float16 using AVX-512.
  *
- * Requires: AVX512FP16
+ * Requires: AVX512F,  AVX512FP16
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type _Float16.
@@ -3035,7 +3035,7 @@ static inline void ts32_to_fp16_avx512fp16_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int64_t to _Float16 using AVX-512.
  *
- * Requires: AVX512FP16
+ * Requires: AVX512F, AVX512FP16
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type _Float16.
@@ -3100,7 +3100,7 @@ static inline void tu8_to_fp16_avx512fp16_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint32_t to _Float16 using AVX-512.
  *
- * Requires: AVX512FP16
+ * Requires: AVX512F, AVX512FP16
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type _Float16.
@@ -3129,7 +3129,7 @@ static inline void tu32_to_fp16_avx512fp16_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to _Float16 using AVX-512.
  *
- * Requires: AVX512FP16
+ * Requires: AVX512F, AVX512FP16
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type _Float16.
@@ -5768,7 +5768,8 @@ const castFn lookup_tf64_to_bf16_[] = {tf64_to_bf16_avx512bf16_,
  * @brief Dispatch table for fp16 to s8 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_s8_avx512fp16_() — Requires: AVX512F, AVX512FP16
+ * - Index 0: tfp16_to_s8_avx512fp16_() — Requires: AVX512FP16, AVX512BW,
+ * AVX512F
  * - Index 1: tfp16_to_s8_scalar_() — Portable fallback
  */
 const castFn lookup_tfp16_to_s8_[] = {tfp16_to_s8_avx512fp16_,
@@ -5798,7 +5799,8 @@ const castFn lookup_tfp16_to_s64_[] = {tfp16_to_s64_avx512fp16_,
  * @brief Dispatch table for fp16 to u8 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_u8_avx512fp16_() — Requires: AVX512F, AVX512FP16
+ * - Index 0: tfp16_to_u8_avx512fp16_() — Requires: AVX512FP16, AVX512BW,
+ * AVX512F
  * - Index 1: tfp16_to_u8_scalar_() — Portable fallback
  */
 const castFn lookup_tfp16_to_u8_[] = {tfp16_to_u8_avx512fp16_,
@@ -5852,7 +5854,7 @@ const castFn lookup_tf32_to_s32_[] = {tf32_to_s32_avx512_,
  * @brief Dispatch table for f32 to s64 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_s64_avx512_() — Requires: AVX512F
+ * - Index 0: tf32_to_s64_avx512_() — Requires: AVX512F, AVX512DQ
  * - Index 1: tf32_to_s64_scalar_() — Portable fallback
  */
 const castFn lookup_tf32_to_s64_[] = {tf32_to_s64_avx512_, tf32_to_s64_scalar_};
@@ -5881,7 +5883,7 @@ const castFn lookup_tf32_to_u32_[] = {tf32_to_u32_avx512_, tf32_to_u32_scalar_};
  * @brief Dispatch table for f32 to u64 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_u64_avx512_() — Requires: AVX512F
+ * - Index 0: tf32_to_u64_avx512_() — Requires: AVX512F, AVX512DQ
  * - Index 1: tf32_to_u64_scalar_() — Portable fallback
  */
 const castFn lookup_tf32_to_u64_[] = {tf32_to_u64_avx512_, tf32_to_u64_scalar_};
@@ -5890,7 +5892,8 @@ const castFn lookup_tf32_to_u64_[] = {tf32_to_u64_avx512_, tf32_to_u64_scalar_};
  * @brief Dispatch table for bf16 to s8 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_s8_avx512bf16_() — Requires: AVX512F, AVX512BF16
+ * - Index 0: tbf16_to_s8_avx512bf16_() — Requires: AVX512BF16, AVX512BW,
+ * AVX512F
  * - Index 1: tbf16_to_s8_scalar_() — Portable fallback
  */
 const castFn lookup_tbf16_to_s8_[] = {tbf16_to_s8_avx512bf16_,
@@ -5910,7 +5913,8 @@ const castFn lookup_tbf16_to_s32_[] = {tbf16_to_s32_avx512bf16_,
  * @brief Dispatch table for bf16 to s64 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_s64_avx512bf16_() — Requires: AVX512F, AVX512BF16
+ * - Index 0: tbf16_to_s64_avx512bf16_() — Requires: AVX512F, AVX512BF16,
+ * AVX512VL, AVX512DQ
  * - Index 1: tbf16_to_s64_scalar_() — Portable fallback
  */
 const castFn lookup_tbf16_to_s64_[] = {tbf16_to_s64_avx512bf16_,
@@ -5920,7 +5924,8 @@ const castFn lookup_tbf16_to_s64_[] = {tbf16_to_s64_avx512bf16_,
  * @brief Dispatch table for bf16 to u8 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_u8_avx512bf16_() — Requires: AVX512F, AVX512BF16
+ * - Index 0: tbf16_to_u8_avx512bf16_() — Requires: AVX512BF16, AVX512BW,
+ * AVX512F
  * - Index 1: tbf16_to_u8_scalar_() — Portable fallback
  */
 const castFn lookup_tbf16_to_u8_[] = {tbf16_to_u8_avx512bf16_,
@@ -5940,7 +5945,8 @@ const castFn lookup_tbf16_to_u32_[] = {tbf16_to_u32_avx512bf16_,
  * @brief Dispatch table for bf16 to u64 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_u64_avx512bf16_() — Requires: AVX512F, AVX512BF16
+ * - Index 0: tbf16_to_u64_avx512bf16_() — Requires: AVX512F, AVX512BF16,
+ * AVX512VL, AVX512DQ
  * - Index 1: tbf16_to_u64_scalar_() — Portable fallback
  */
 const castFn lookup_tbf16_to_u64_[] = {tbf16_to_u64_avx512bf16_,
@@ -5999,7 +6005,7 @@ const castFn lookup_tf64_to_u32_[] = {tf64_to_u32_avx512_, tf64_to_u32_scalar_};
  * @brief Dispatch table for f64 to u64 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_u64_avx512_() — Requires: AVX512F
+ * - Index 0: tf64_to_u64_avx512_() — Requires: AVX512F, AVX512DQ
  * - Index 1: tf64_to_u64_scalar_() — Portable fallback
  */
 const castFn lookup_tf64_to_u64_[] = {tf64_to_u64_avx512_, tf64_to_u64_scalar_};
@@ -6008,7 +6014,7 @@ const castFn lookup_tf64_to_u64_[] = {tf64_to_u64_avx512_, tf64_to_u64_scalar_};
  * @brief Dispatch table for s8 to fp16 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_fp16_avx512_() — Requires: AVX512F
+ * - Index 0: ts8_to_fp16_avx512_() — Requires: AVX512F, AVX512FP16
  * - Index 1: ts8_to_fp16_scalar_() — Portable fallback
  */
 const castFn lookup_ts8_to_fp16_[] = {ts8_to_fp16_avx512_, ts8_to_fp16_scalar_};
@@ -6087,7 +6093,8 @@ const castFn lookup_ts32_to_bf16_[] = {ts32_to_bf16_avx512bf16_,
  * @brief Dispatch table for s64 to bf16 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16
+ * - Index 0: ts64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512DQ,
+ * AVX512BF16, AVX512VL
  * - Index 1: ts64_to_bf16_scalar_() — Portable fallback
  */
 const castFn lookup_ts64_to_bf16_[] = {ts64_to_bf16_avx512bf16_,
@@ -6117,7 +6124,8 @@ const castFn lookup_tu32_to_bf16_[] = {tu32_to_bf16_avx512bf16_,
  * @brief Dispatch table for u64 to bf16 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16
+ * - Index 0: tu64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512DQ,
+ * AVX512BF16, AVX512VL
  * - Index 1: tu64_to_bf16_scalar_() — Portable fallback
  */
 const castFn lookup_tu64_to_bf16_[] = {tu64_to_bf16_avx512bf16_,
@@ -6151,7 +6159,7 @@ const castFn lookup_ts32_to_f32_[] = {ts32_to_f32_avx512_,
  * @brief Dispatch table for s64 to f32 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_f32_avx512_() — Requires: AVX512F
+ * - Index 0: ts64_to_f32_avx512_() — Requires: AVX512F, AVX512DQ
  * - Index 1: ts64_to_f32_scalar_() — Portable fallback
  */
 const castFn lookup_ts64_to_f32_[] = {ts64_to_f32_avx512_, ts64_to_f32_scalar_};
@@ -6180,7 +6188,7 @@ const castFn lookup_tu32_to_f32_[] = {tu32_to_f32_avx512_, tu32_to_f32_scalar_};
  * @brief Dispatch table for u64 to f32 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_f32_avx512_() — Requires: AVX512F
+ * - Index 0: tu64_to_f32_avx512_() — Requires: AVX512F, AVX512DQ
  * - Index 1: tu64_to_f32_scalar_() — Portable fallback
  */
 const castFn lookup_tu64_to_f32_[] = {tu64_to_f32_avx512_, tu64_to_f32_scalar_};
@@ -6333,7 +6341,7 @@ const castFn lookup_tu8_to_u64_[] = {tu8_to_u64_avx512_, tu8_to_u64_avx2_,
  * @brief Dispatch table for u32 to u8 conversions.
  *
  * Variants:
- * - Index 0: tu32_to_u8_avx512_() — Requires: AVX512F, AVX512BW
+ * - Index 0: tu32_to_u8_avx512_() — Requires: AVX512F
  * - Index 1: tu32_to_u8_scalar_() — Portable fallback
  */
 const castFn lookup_tu32_to_u8_[] = {tu32_to_u8_avx512_, tu32_to_u8_scalar_};
@@ -6442,7 +6450,7 @@ const castFn lookup_ts32_to_u64_[] = {ts32_to_u64_avx512_, ts32_to_u64_avx2_,
  * @brief Dispatch table for s64 to u8 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_u8_avx512_() — Requires: AVX512F, AVX512BW
+ * - Index 0: ts64_to_u8_avx512_() — Requires: AVX512F
  * - Index 1: ts64_to_u8_scalar_() — Portable fallback
  */
 const castFn lookup_ts64_to_u8_[] = {ts64_to_u8_avx512_, ts64_to_u8_scalar_};
@@ -6543,7 +6551,7 @@ const castFn lookup_tu32_to_s64_[] = {tu32_to_s64_avx512_, tu32_to_s64_avx2_,
  * @brief Dispatch table for u64 to s8 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_s8_avx512_() — Requires: AVX512F, AVX512BW
+ * - Index 0: tu64_to_s8_avx512_() — Requires: AVX512F
  * - Index 1: tu64_to_s8_scalar_() — Portable fallback
  */
 const castFn lookup_tu64_to_s8_[] = {tu64_to_s8_avx512_, tu64_to_s8_scalar_};

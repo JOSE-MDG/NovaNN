@@ -141,14 +141,15 @@ extern const castFn lookup_tf64_to_f32_[];
 extern const castFn lookup_tf64_to_bf16_[];
 
 /* =========================================================================
- * Floating-point to integer conversions (18 tables)
+ * Floating-point to integer conversions (24 tables)
  * ========================================================================= */
 
 /**
  * @brief Dispatch table for fp16 to s8 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_s8_avx512fp16_() — Requires: AVX512F, AVX512FP16, AVX512BW
+ * - Index 0: tfp16_to_s8_avx512fp16_() — Requires: AVX512F, AVX512FP16,
+ * AVX512BW
  * - Index 1: tfp16_to_s8_scalar_() — Portable fallback
  */
 extern const castFn lookup_tfp16_to_s8_[];
@@ -175,7 +176,8 @@ extern const castFn lookup_tfp16_to_s64_[];
  * @brief Dispatch table for fp16 to u8 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_u8_avx512fp16_() — Requires: AVX512F, AVX512FP16, AVX512BW
+ * - Index 0: tfp16_to_u8_avx512fp16_() — Requires: AVX512F, AVX512FP16,
+ * AVX512BW
  * - Index 1: tfp16_to_u8_scalar_() — Portable fallback
  */
 extern const castFn lookup_tfp16_to_u8_[];
@@ -202,7 +204,8 @@ extern const castFn lookup_tfp16_to_u64_[];
  * @brief Dispatch table for bf16 to s8 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_s8_avx512bf16_() — Requires: AVX512F, AVX512BF16, AVX512BW
+ * - Index 0: tbf16_to_s8_avx512bf16_() — Requires: AVX512BF16, AVX512BW,
+ * AVX512F
  * - Index 1: tbf16_to_s8_scalar_() — Portable fallback
  */
 extern const castFn lookup_tbf16_to_s8_[];
@@ -220,7 +223,8 @@ extern const castFn lookup_tbf16_to_s32_[];
  * @brief Dispatch table for bf16 to s64 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_s64_avx512bf16_() — Requires: AVX512F, AVX512BF16, AVX512DQ, AVX512VL
+ * - Index 0: tbf16_to_s64_avx512bf16_() — Requires: AVX512F, AVX512BF16,
+ * AVX512DQ, AVX512VL
  * - Index 1: tbf16_to_s64_scalar_() — Portable fallback
  */
 extern const castFn lookup_tbf16_to_s64_[];
@@ -229,7 +233,8 @@ extern const castFn lookup_tbf16_to_s64_[];
  * @brief Dispatch table for bf16 to u8 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_u8_avx512bf16_() — Requires: AVX512F, AVX512BF16, AVX512BW
+ * - Index 0: tbf16_to_u8_avx512bf16_() — Requires: AVX512F, AVX512BF16,
+ * AVX512BW
  * - Index 1: tbf16_to_u8_scalar_() — Portable fallback
  */
 extern const castFn lookup_tbf16_to_u8_[];
@@ -247,7 +252,8 @@ extern const castFn lookup_tbf16_to_u32_[];
  * @brief Dispatch table for bf16 to u64 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_u64_avx512bf16_() — Requires: AVX512F, AVX512BF16, AVX512DQ, AVX512VL
+ * - Index 0: tbf16_to_u64_avx512bf16_() — Requires: AVX512F, AVX512BF16,
+ * AVX512DQ, AVX512VL
  * - Index 1: tbf16_to_u64_scalar_() — Portable fallback
  */
 extern const castFn lookup_tbf16_to_u64_[];
@@ -314,7 +320,7 @@ extern const castFn lookup_tf32_to_u64_[];
  * @brief Dispatch table for f64 to s8 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_s8_avx512_() — Requires: AVX512F, AVX512BW
+ * - Index 0: tf64_to_s8_avx512_() — Requires: AVX512F
  * - Index 1: tf64_to_s8_scalar_() — Portable fallback
  */
 extern const castFn lookup_tf64_to_s8_[];
@@ -343,7 +349,7 @@ extern const castFn lookup_tf64_to_s64_[];
  * @brief Dispatch table for f64 to u8 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_u8_avx512_() — Requires: AVX512F, AVX512BW
+ * - Index 0: tf64_to_u8_avx512_() — Requires: AVX512F
  * - Index 1: tf64_to_u8_scalar_() — Portable fallback
  */
 extern const castFn lookup_tf64_to_u8_[];
@@ -374,7 +380,7 @@ extern const castFn lookup_tf64_to_u64_[];
  * @brief Dispatch table for s8 to fp16 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_fp16_avx512_() — Requires: AVX512F
+ * - Index 0: ts8_to_fp16_avx512_() — Requires: AVX512F, AVX512FP16
  * - Index 1: ts8_to_fp16_scalar_() — Portable fallback
  */
 extern const castFn lookup_ts8_to_fp16_[];
@@ -446,7 +452,8 @@ extern const castFn lookup_ts32_to_bf16_[];
  * @brief Dispatch table for s64 to bf16 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16, AVX512DQ, AVX512VL
+ * - Index 0: ts64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16,
+ * AVX512DQ, AVX512VL
  * - Index 1: ts64_to_bf16_scalar_() — Portable fallback
  */
 extern const castFn lookup_ts64_to_bf16_[];
@@ -473,7 +480,8 @@ extern const castFn lookup_tu32_to_bf16_[];
  * @brief Dispatch table for u64 to bf16 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16, AVX512DQ, AVX512VL
+ * - Index 0: tu64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16,
+ * AVX512DQ, AVX512VL
  * - Index 1: tu64_to_bf16_scalar_() — Portable fallback
  */
 extern const castFn lookup_tu64_to_bf16_[];
@@ -593,7 +601,7 @@ extern const castFn lookup_tu32_to_f64_[];
 extern const castFn lookup_tu64_to_f64_[];
 
 /* =========================================================================
- * Integer to integer conversions (37 tables)
+ * Integer to integer conversions (30 tables)
  * ========================================================================= */
 
 /**
@@ -783,7 +791,7 @@ extern const castFn lookup_ts32_to_u64_[];
  * @brief Dispatch table for s64 to u8 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_u8_avx512_() — Requires: AVX512F, AVX512BW
+ * - Index 0: ts64_to_u8_avx512_() — Requires: AVX512F
  * - Index 1: ts64_to_u8_scalar_() — Portable fallback
  */
 extern const castFn lookup_ts64_to_u8_[];
@@ -876,7 +884,7 @@ extern const castFn lookup_tu32_to_s64_[];
  * @brief Dispatch table for u64 to s8 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_s8_avx512_() — Requires: AVX512F, AVX512BW
+ * - Index 0: tu64_to_s8_avx512_() — Requires: AVX512F
  * - Index 1: tu64_to_s8_scalar_() — Portable fallback
  */
 extern const castFn lookup_tu64_to_s8_[];
