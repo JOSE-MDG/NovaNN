@@ -1,5 +1,51 @@
 #pragma once
 
+/**
+ * @file simd.h
+ * @brief CPU SIMD capability detection and runtime selection.
+ *
+ * @details
+ * Provides runtime detection of CPU SIMD instruction sets and a unified
+ * interface for selecting optimized kernels based on available hardware.
+ *
+ * ## SIMD Support Tiers
+ * The detection follows a hierarchical model:
+ *
+ * | Tier | Feature | Width | Typical Use |
+ * |------|---------|-------|--------------|
+ * | SSE4.2 | sse4_2 | 128-bit | Basic vectorization |
+ * | AVX | avx | 256-bit | Float ops |
+ * | AVX2 | avx2 | 256-bit | Integer SIMD |
+ * | AVX-512 | avx512* | 512-bit | High-throughput |
+ * | AMX | amx_* | Tile | Matrix ops |
+ *
+ * ## Usage
+ * @code
+ * const Capabilities_ *caps = get_cpu_capabilities();
+ * if (caps->avx2_) {
+ *   // Use AVX2 optimized kernel
+ * } else if (caps->sse4_2_) {
+ *   // Use SSE4.2 fallback
+ * }
+ * @endcode
+ *
+ * ## Thread Safety
+ * Detection is performed once on first call using call_once.
+ * The returned pointer is safe to use from any thread.
+ *
+ * ## Detection Process
+ * 1. get_cpu_capabilities() is called
+ * 2. CPUID instruction queries available features
+ * 3. Results are cached in global static
+ * 4. Subsequent calls return cached result
+ *
+ * @note AVX-512 features are detected only if AVX-512F is available.
+ * VNNI flags (avx2_vnni, avx512_vnni) enable neural network optimizations.
+ *
+ * @see DetectSIMD.cmake Compile-time SIMD flag detection
+ * @see tensor.h Tensor structure using SIMD alignment
+ */
+
 #include <stdbool.h>
 
 /**
