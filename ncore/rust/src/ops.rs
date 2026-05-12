@@ -19,12 +19,12 @@ pub fn retain_op(handle: &RustHandle) -> Result<(), StorageError> {
 }
 
 /// Decrements the reference count and frees storage if it reaches zero.
-pub fn release_op(handle: &RustHandle) -> Result<(), StorageError> {
+pub fn release_op(handle: &RustHandle) -> Result<bool, StorageError> {
     let should_free = StorageManager::with(handle.id, |s| s.decrement_ref())?;
     if should_free {
         StorageManager::remove(handle.id)?;
     }
-    Ok(())
+    should_free
 }
 
 /// Resizes the storage associated with the handle.
