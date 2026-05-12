@@ -24,7 +24,7 @@ pub fn release_op(handle: &RustHandle) -> Result<bool, StorageError> {
     if should_free {
         StorageManager::remove(handle.id)?;
     }
-    should_free
+    Ok(should_free)
 }
 
 /// Resizes the storage associated with the handle.
