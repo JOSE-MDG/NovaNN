@@ -153,7 +153,7 @@ typedef enum COMPOSE(packed) {
   Float64 = 1,     ///< 64-bit floating point
   Float16 = 2,     ///< 16-bit floating point (half precision)
   BFloat16 = 3,    ///< Brain floating point (16-bit)
-  Sined8 = 4,      ///< Signed 8-bit integer (note: likely typo for Signed8)
+  Signed8 = 4,     ///< Signed 8-bit integer (note: likely typo for Signed8)
   UnSigned8 = 5,   ///< Unsigned 8-bit integer
   QSigned8 = 6,    ///< Quantized signed 8-bit integer
   QUnSigned8 = 7,  ///< Quantized unsigned 8-bit integer
