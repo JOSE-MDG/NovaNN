@@ -87,3 +87,23 @@ const bool quantized_unsigned_integer[NUM_DTYPES][1] = {
     [QSigned8] = {false},   [QUnSigned8] = {true}, [Signed32] = {false},
     [UnSigned32] = {false}, [Signed64] = {false},  [UnSigned64] = {false},
 };
+
+/**
+ * @brief Lookup table for the size of the types of each data type
+ *
+ * Contains the size for each data type
+ */
+const size_t lookup_dtype_sizes[NUM_DTYPES] = {[Float16] = sizeof(half),
+                                               [BFloat16] = sizeof(bfloat16),
+                                               [Float32] = sizeof(float32),
+                                               [Float64] = sizeof(float64),
+                                               [Signed8] = sizeof(int8),
+                                               [UnSigned8] = sizeof(uint8),
+                                               [Signed32] = sizeof(int32),
+                                               [UnSigned32] = sizeof(uint32),
+                                               [Signed64] = sizeof(int64),
+                                               [UnSigned64] = sizeof(uint64),
+                                               [QSigned8] = sizeof(qint8),
+                                               [QUnSigned8] = sizeof(quint8)
+
+};

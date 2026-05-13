@@ -50,3 +50,8 @@ extern const bool quantized_signed_integer[NUM_DTYPES][1];
  * @brief Indicates which dtypes are quantized unsigned integer types.
  */
 extern const bool quantized_unsigned_integer[NUM_DTYPES][1];
+
+/**
+ * @brief Specify the size for each data type
+ */
+extern const size_t lookup_dtype_sizes[NUM_DTYPES];
