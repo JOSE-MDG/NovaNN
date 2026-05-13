@@ -61,8 +61,8 @@
  */
 static void tfp16_to_f32_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const _Float16 *s = (const _Float16 *)src->data;
-  float *d = (float *)dst->data;
+  const _Float16 *s = src->data.half;
+  float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (float)s[i];
   }
@@ -78,8 +78,8 @@ static void tfp16_to_f32_scalar_(const Tensor *restrict src,
  */
 static void tfp16_to_f64_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const _Float16 *s = (const _Float16 *)src->data;
-  double *d = (double *)dst->data;
+  const _Float16 *s = src->data.half;
+  double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (double)s[i];
   }
@@ -95,8 +95,8 @@ static void tfp16_to_f64_scalar_(const Tensor *restrict src,
  */
 static void tfp16_to_bf16_scalar_(const Tensor *restrict src,
                                   Tensor *restrict dst) {
-  const _Float16 *s = (const _Float16 *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const _Float16 *s = src->data.half;
+  __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (__bf16)s[i];
   }
@@ -112,8 +112,8 @@ static void tfp16_to_bf16_scalar_(const Tensor *restrict src,
  */
 static void tf32_to_fp16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const float *s = (const float *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const float *s = src->data.f32;
+  _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (_Float16)s[i];
   }
@@ -130,8 +130,8 @@ static void tf32_to_fp16_scalar_(const Tensor *restrict src,
  */
 static void tf32_to_f64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const float *s = (const float *)src->data;
-  double *d = (double *)dst->data;
+  const float *s = src->data.f32;
+  double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (double)s[i];
   }
@@ -147,8 +147,8 @@ static void tf32_to_f64_scalar_(const Tensor *restrict src,
  */
 static void tf32_to_bf16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const float *s = (const float *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const float *s = src->data.f32;
+  __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (__bf16)s[i];
   }
@@ -164,8 +164,8 @@ static void tf32_to_bf16_scalar_(const Tensor *restrict src,
  */
 static void tbf16_to_fp16_scalar_(const Tensor *restrict src,
                                   Tensor *restrict dst) {
-  const __bf16 *s = (const __bf16 *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (_Float16)s[i];
   }
@@ -181,8 +181,8 @@ static void tbf16_to_fp16_scalar_(const Tensor *restrict src,
  */
 static void tbf16_to_f32_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const __bf16 *s = (const __bf16 *)src->data;
-  float *d = (float *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (float)s[i];
   }
@@ -198,8 +198,8 @@ static void tbf16_to_f32_scalar_(const Tensor *restrict src,
  */
 static void tbf16_to_f64_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const __bf16 *s = (const __bf16 *)src->data;
-  double *d = (double *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (double)s[i];
   }
@@ -215,8 +215,8 @@ static void tbf16_to_f64_scalar_(const Tensor *restrict src,
  */
 static void tf64_to_fp16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const double *s = (const double *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const double *s = src->data.f64;
+  _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (_Float16)s[i];
   }
@@ -233,8 +233,8 @@ static void tf64_to_fp16_scalar_(const Tensor *restrict src,
  */
 static void tf64_to_f32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const double *s = (const double *)src->data;
-  float *d = (float *)dst->data;
+  const double *s = src->data.f64;
+  float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (float)s[i];
   }
@@ -250,8 +250,8 @@ static void tf64_to_f32_scalar_(const Tensor *restrict src,
  */
 static void tf64_to_bf16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const double *s = (const double *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const double *s = src->data.f64;
+  __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (__bf16)s[i];
   }
@@ -270,8 +270,8 @@ static void tf64_to_bf16_scalar_(const Tensor *restrict src,
  */
 static void tfp16_to_s8_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const _Float16 *s = (const _Float16 *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int8_t)s[i];
   }
@@ -287,8 +287,8 @@ static void tfp16_to_s8_scalar_(const Tensor *restrict src,
  */
 static void tfp16_to_s32_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const _Float16 *s = (const _Float16 *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int32_t)s[i];
   }
@@ -304,8 +304,8 @@ static void tfp16_to_s32_scalar_(const Tensor *restrict src,
  */
 static void tfp16_to_s64_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const _Float16 *s = (const _Float16 *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int64_t)s[i];
   }
@@ -321,8 +321,8 @@ static void tfp16_to_s64_scalar_(const Tensor *restrict src,
  */
 static void tfp16_to_u8_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const _Float16 *s = (const _Float16 *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint8_t)s[i];
   }
@@ -338,8 +338,8 @@ static void tfp16_to_u8_scalar_(const Tensor *restrict src,
  */
 static void tfp16_to_u32_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const _Float16 *s = (const _Float16 *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint32_t)s[i];
   }
@@ -355,8 +355,8 @@ static void tfp16_to_u32_scalar_(const Tensor *restrict src,
  */
 static void tfp16_to_u64_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const _Float16 *s = (const _Float16 *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint64_t)s[i];
   }
@@ -371,8 +371,8 @@ static void tfp16_to_u64_scalar_(const Tensor *restrict src,
  */
 static void tbf16_to_s8_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const __bf16 *s = (const __bf16 *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int8_t)s[i];
   }
@@ -388,8 +388,8 @@ static void tbf16_to_s8_scalar_(const Tensor *restrict src,
  */
 static void tbf16_to_s32_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const __bf16 *s = (const __bf16 *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int32_t)s[i];
   }
@@ -405,8 +405,8 @@ static void tbf16_to_s32_scalar_(const Tensor *restrict src,
  */
 static void tbf16_to_s64_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const __bf16 *s = (const __bf16 *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int64_t)s[i];
   }
@@ -422,8 +422,8 @@ static void tbf16_to_s64_scalar_(const Tensor *restrict src,
  */
 static void tbf16_to_u8_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const __bf16 *s = (const __bf16 *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint8_t)s[i];
   }
@@ -439,8 +439,8 @@ static void tbf16_to_u8_scalar_(const Tensor *restrict src,
  */
 static void tbf16_to_u32_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const __bf16 *s = (const __bf16 *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint32_t)s[i];
   }
@@ -456,8 +456,8 @@ static void tbf16_to_u32_scalar_(const Tensor *restrict src,
  */
 static void tbf16_to_u64_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const __bf16 *s = (const __bf16 *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint64_t)s[i];
   }
@@ -473,8 +473,8 @@ static void tbf16_to_u64_scalar_(const Tensor *restrict src,
 static void tf32_to_s8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
 
-  const float *s = (const float *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const float *s = src->data.f32;
+  int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int8_t)s[i];
   }
@@ -491,8 +491,8 @@ static void tf32_to_s8_scalar_(const Tensor *restrict src,
 static void tf32_to_s32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const float *s = (const float *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const float *s = src->data.f32;
+  int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int32_t)s[i];
   }
@@ -508,8 +508,8 @@ static void tf32_to_s32_scalar_(const Tensor *restrict src,
 static void tf32_to_s64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const float *s = (const float *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const float *s = src->data.f32;
+  int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int64_t)s[i];
   }
@@ -525,8 +525,8 @@ static void tf32_to_s64_scalar_(const Tensor *restrict src,
 static void tf32_to_u8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
 
-  const float *s = (const float *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const float *s = src->data.f32;
+  uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint8_t)s[i];
   }
@@ -542,8 +542,8 @@ static void tf32_to_u8_scalar_(const Tensor *restrict src,
 static void tf32_to_u32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const float *s = (const float *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const float *s = src->data.f32;
+  uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint32_t)s[i];
   }
@@ -559,8 +559,8 @@ static void tf32_to_u32_scalar_(const Tensor *restrict src,
 static void tf32_to_u64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const float *s = (const float *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const float *s = src->data.f32;
+  uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint64_t)s[i];
   }
@@ -576,8 +576,8 @@ static void tf32_to_u64_scalar_(const Tensor *restrict src,
 static void tf64_to_s8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
 
-  const double *s = (const double *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const double *s = src->data.f64;
+  int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int8_t)s[i];
   }
@@ -594,8 +594,8 @@ static void tf64_to_s8_scalar_(const Tensor *restrict src,
 static void tf64_to_s32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const double *s = (const double *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const double *s = src->data.f64;
+  int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int32_t)s[i];
   }
@@ -611,8 +611,8 @@ static void tf64_to_s32_scalar_(const Tensor *restrict src,
 static void tf64_to_s64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const double *s = (const double *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const double *s = src->data.f64;
+  int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int64_t)s[i];
   }
@@ -628,8 +628,8 @@ static void tf64_to_s64_scalar_(const Tensor *restrict src,
 static void tf64_to_u8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
 
-  const double *s = (const double *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const double *s = src->data.f64;
+  uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint8_t)s[i];
   }
@@ -645,8 +645,8 @@ static void tf64_to_u8_scalar_(const Tensor *restrict src,
 static void tf64_to_u32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const double *s = (const double *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const double *s = src->data.f64;
+  uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint32_t)s[i];
   }
@@ -662,8 +662,8 @@ static void tf64_to_u32_scalar_(const Tensor *restrict src,
 static void tf64_to_u64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const double *s = (const double *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const double *s = src->data.f64;
+  uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint64_t)s[i];
   }
@@ -679,8 +679,8 @@ static void tf64_to_u64_scalar_(const Tensor *restrict src,
 static void ts8_to_fp16_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const int8_t *s = (const int8_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const int8_t *s = src->data.s8;
+  _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (_Float16)s[i];
   }
@@ -696,8 +696,8 @@ static void ts8_to_fp16_scalar_(const Tensor *restrict src,
 static void ts32_to_fp16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
 
-  const int32_t *s = (const int32_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const int32_t *s = src->data.s32;
+  _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (_Float16)s[i];
   }
@@ -713,8 +713,8 @@ static void ts32_to_fp16_scalar_(const Tensor *restrict src,
 static void ts64_to_fp16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
 
-  const int64_t *s = (const int64_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const int64_t *s = src->data.s64;
+  _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (_Float16)s[i];
   }
@@ -730,8 +730,8 @@ static void ts64_to_fp16_scalar_(const Tensor *restrict src,
 static void tu8_to_fp16_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const uint8_t *s = (const uint8_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const uint8_t *s = src->data.u8;
+  _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (_Float16)s[i];
   }
@@ -747,8 +747,8 @@ static void tu8_to_fp16_scalar_(const Tensor *restrict src,
 static void tu32_to_fp16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
 
-  const uint32_t *s = (const uint32_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const uint32_t *s = src->data.u32;
+  _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (_Float16)s[i];
   }
@@ -764,8 +764,8 @@ static void tu32_to_fp16_scalar_(const Tensor *restrict src,
 static void tu64_to_fp16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
 
-  const uint64_t *s = (const uint64_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const uint64_t *s = src->data.u64;
+  _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (_Float16)s[i];
   }
@@ -781,8 +781,8 @@ static void tu64_to_fp16_scalar_(const Tensor *restrict src,
 static void ts8_to_bf16_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
 
-  const int8_t *s = (const int8_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const int8_t *s = src->data.s8;
+  __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (__bf16)s[i];
   }
@@ -798,8 +798,8 @@ static void ts8_to_bf16_scalar_(const Tensor *restrict src,
 static void ts32_to_bf16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
 
-  const int32_t *s = (const int32_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const int32_t *s = src->data.s32;
+  __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (__bf16)s[i];
   }
@@ -814,8 +814,8 @@ static void ts32_to_bf16_scalar_(const Tensor *restrict src,
  */
 static void ts64_to_bf16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const int64_t *s = (const int64_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const int64_t *s = src->data.s64;
+  __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (__bf16)s[i];
   }
@@ -830,8 +830,8 @@ static void ts64_to_bf16_scalar_(const Tensor *restrict src,
  */
 static void tu8_to_bf16_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint8_t *s = (const uint8_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const uint8_t *s = src->data.u8;
+  __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (__bf16)s[i];
   }
@@ -846,8 +846,8 @@ static void tu8_to_bf16_scalar_(const Tensor *restrict src,
  */
 static void tu32_to_bf16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const uint32_t *s = (const uint32_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const uint32_t *s = src->data.u32;
+  __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (__bf16)s[i];
   }
@@ -862,8 +862,8 @@ static void tu32_to_bf16_scalar_(const Tensor *restrict src,
  */
 static void tu64_to_bf16_scalar_(const Tensor *restrict src,
                                  Tensor *restrict dst) {
-  const uint64_t *s = (const uint64_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const uint64_t *s = src->data.u64;
+  __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (__bf16)s[i];
   }
@@ -878,8 +878,8 @@ static void tu64_to_bf16_scalar_(const Tensor *restrict src,
  */
 static void ts8_to_f32_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const int8_t *s = (const int8_t *)src->data;
-  float *d = (float *)dst->data;
+  const int8_t *s = src->data.s8;
+  float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (float)s[i];
   }
@@ -895,8 +895,8 @@ static void ts8_to_f32_scalar_(const Tensor *restrict src,
  */
 static void ts32_to_f32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const int32_t *s = (const int32_t *)src->data;
-  float *d = (float *)dst->data;
+  const int32_t *s = src->data.s32;
+  float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (float)s[i];
   }
@@ -911,8 +911,8 @@ static void ts32_to_f32_scalar_(const Tensor *restrict src,
  */
 static void ts64_to_f32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const int64_t *s = (const int64_t *)src->data;
-  float *d = (float *)dst->data;
+  const int64_t *s = src->data.s64;
+  float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (float)s[i];
   }
@@ -927,8 +927,8 @@ static void ts64_to_f32_scalar_(const Tensor *restrict src,
  */
 static void tu8_to_f32_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const uint8_t *s = (const uint8_t *)src->data;
-  float *d = (float *)dst->data;
+  const uint8_t *s = src->data.u8;
+  float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (float)s[i];
   }
@@ -943,8 +943,8 @@ static void tu8_to_f32_scalar_(const Tensor *restrict src,
  */
 static void tu32_to_f32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint32_t *s = (const uint32_t *)src->data;
-  float *d = (float *)dst->data;
+  const uint32_t *s = src->data.u32;
+  float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (float)s[i];
   }
@@ -959,8 +959,8 @@ static void tu32_to_f32_scalar_(const Tensor *restrict src,
  */
 static void tu64_to_f32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint64_t *s = (const uint64_t *)src->data;
-  float *d = (float *)dst->data;
+  const uint64_t *s = src->data.u64;
+  float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (float)s[i];
   }
@@ -975,8 +975,8 @@ static void tu64_to_f32_scalar_(const Tensor *restrict src,
  */
 static void ts8_to_f64_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const int8_t *s = (const int8_t *)src->data;
-  double *d = (double *)dst->data;
+  const int8_t *s = src->data.s8;
+  double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (double)s[i];
   }
@@ -992,8 +992,8 @@ static void ts8_to_f64_scalar_(const Tensor *restrict src,
  */
 static void ts32_to_f64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const int32_t *s = (const int32_t *)src->data;
-  double *d = (double *)dst->data;
+  const int32_t *s = src->data.s32;
+  double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (double)s[i];
   }
@@ -1008,8 +1008,8 @@ static void ts32_to_f64_scalar_(const Tensor *restrict src,
  */
 static void ts64_to_f64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const int64_t *s = (const int64_t *)src->data;
-  double *d = (double *)dst->data;
+  const int64_t *s = src->data.s64;
+  double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (double)s[i];
   }
@@ -1024,8 +1024,8 @@ static void ts64_to_f64_scalar_(const Tensor *restrict src,
  */
 static void tu8_to_f64_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const uint8_t *s = (const uint8_t *)src->data;
-  double *d = (double *)dst->data;
+  const uint8_t *s = src->data.u8;
+  double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (double)s[i];
   }
@@ -1040,8 +1040,8 @@ static void tu8_to_f64_scalar_(const Tensor *restrict src,
  */
 static void tu32_to_f64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint32_t *s = (const uint32_t *)src->data;
-  double *d = (double *)dst->data;
+  const uint32_t *s = src->data.u32;
+  double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (double)s[i];
   }
@@ -1056,8 +1056,8 @@ static void tu32_to_f64_scalar_(const Tensor *restrict src,
  */
 static void tu64_to_f64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint64_t *s = (const uint64_t *)src->data;
-  double *d = (double *)dst->data;
+  const uint64_t *s = src->data.u64;
+  double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (double)s[i];
   }
@@ -1072,8 +1072,8 @@ static void tu64_to_f64_scalar_(const Tensor *restrict src,
  */
 static void ts8_to_s32_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const int8_t *s = (const int8_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int32_t)s[i];
   }
@@ -1088,8 +1088,8 @@ static void ts8_to_s32_scalar_(const Tensor *restrict src,
  */
 static void ts8_to_s64_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const int8_t *s = (const int8_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int64_t)s[i];
   }
@@ -1104,8 +1104,8 @@ static void ts8_to_s64_scalar_(const Tensor *restrict src,
  */
 static void ts32_to_s8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const int32_t *s = (const int32_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int8_t)s[i];
   }
@@ -1121,8 +1121,8 @@ static void ts32_to_s8_scalar_(const Tensor *restrict src,
  */
 static void ts32_to_s64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const int32_t *s = (const int32_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int64_t)s[i];
   }
@@ -1137,8 +1137,8 @@ static void ts32_to_s64_scalar_(const Tensor *restrict src,
  */
 static void ts64_to_s8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const int64_t *s = (const int64_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int8_t)s[i];
   }
@@ -1153,8 +1153,8 @@ static void ts64_to_s8_scalar_(const Tensor *restrict src,
  */
 static void ts64_to_s32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const int64_t *s = (const int64_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int32_t)s[i];
   }
@@ -1169,8 +1169,8 @@ static void ts64_to_s32_scalar_(const Tensor *restrict src,
  */
 static void tu8_to_u32_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const uint8_t *s = (const uint8_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint32_t)s[i];
   }
@@ -1185,8 +1185,8 @@ static void tu8_to_u32_scalar_(const Tensor *restrict src,
  */
 static void tu8_to_u64_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const uint8_t *s = (const uint8_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint64_t)s[i];
   }
@@ -1201,8 +1201,8 @@ static void tu8_to_u64_scalar_(const Tensor *restrict src,
  */
 static void tu32_to_u8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const uint32_t *s = (const uint32_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint8_t)s[i];
   }
@@ -1218,8 +1218,8 @@ static void tu32_to_u8_scalar_(const Tensor *restrict src,
  */
 static void tu32_to_u64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint32_t *s = (const uint32_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint64_t)s[i];
   }
@@ -1234,8 +1234,8 @@ static void tu32_to_u64_scalar_(const Tensor *restrict src,
  */
 static void tu64_to_u8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const uint64_t *s = (const uint64_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint8_t)s[i];
   }
@@ -1250,8 +1250,8 @@ static void tu64_to_u8_scalar_(const Tensor *restrict src,
  */
 static void tu64_to_u32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint64_t *s = (const uint64_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint32_t)s[i];
   }
@@ -1267,8 +1267,8 @@ static void tu64_to_u32_scalar_(const Tensor *restrict src,
  */
 static void ts8_to_u8_scalar_(const Tensor *restrict src,
                               Tensor *restrict dst) {
-  const int8_t *s = (const int8_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint8_t)s[i];
   }
@@ -1283,8 +1283,8 @@ static void ts8_to_u8_scalar_(const Tensor *restrict src,
  */
 static void ts8_to_u32_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const int8_t *s = (const int8_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint32_t)s[i];
   }
@@ -1299,8 +1299,8 @@ static void ts8_to_u32_scalar_(const Tensor *restrict src,
  */
 static void ts8_to_u64_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const int8_t *s = (const int8_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint64_t)s[i];
   }
@@ -1315,8 +1315,8 @@ static void ts8_to_u64_scalar_(const Tensor *restrict src,
  */
 static void ts32_to_u8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const int32_t *s = (const int32_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint8_t)s[i];
   }
@@ -1332,8 +1332,8 @@ static void ts32_to_u8_scalar_(const Tensor *restrict src,
  */
 static void ts32_to_u32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const int32_t *s = (const int32_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint32_t)s[i];
   }
@@ -1349,8 +1349,8 @@ static void ts32_to_u32_scalar_(const Tensor *restrict src,
  */
 static void ts32_to_u64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const int32_t *s = (const int32_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint64_t)s[i];
   }
@@ -1365,8 +1365,8 @@ static void ts32_to_u64_scalar_(const Tensor *restrict src,
  */
 static void ts64_to_u8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const int64_t *s = (const int64_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint8_t)s[i];
   }
@@ -1381,8 +1381,8 @@ static void ts64_to_u8_scalar_(const Tensor *restrict src,
  */
 static void ts64_to_u32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const int64_t *s = (const int64_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint32_t)s[i];
   }
@@ -1398,8 +1398,8 @@ static void ts64_to_u32_scalar_(const Tensor *restrict src,
  */
 static void ts64_to_u64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const int64_t *s = (const int64_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (uint64_t)s[i];
   }
@@ -1415,8 +1415,8 @@ static void ts64_to_u64_scalar_(const Tensor *restrict src,
  */
 static void tu8_to_s8_scalar_(const Tensor *restrict src,
                               Tensor *restrict dst) {
-  const uint8_t *s = (const uint8_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int8_t)s[i];
   }
@@ -1431,8 +1431,8 @@ static void tu8_to_s8_scalar_(const Tensor *restrict src,
  */
 static void tu8_to_s32_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const uint8_t *s = (const uint8_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int32_t)s[i];
   }
@@ -1447,8 +1447,8 @@ static void tu8_to_s32_scalar_(const Tensor *restrict src,
  */
 static void tu8_to_s64_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const uint8_t *s = (const uint8_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int64_t)s[i];
   }
@@ -1463,8 +1463,8 @@ static void tu8_to_s64_scalar_(const Tensor *restrict src,
  */
 static void tu32_to_s8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const uint32_t *s = (const uint32_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int8_t)s[i];
   }
@@ -1480,8 +1480,8 @@ static void tu32_to_s8_scalar_(const Tensor *restrict src,
  */
 static void tu32_to_s32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint32_t *s = (const uint32_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int32_t)s[i];
   }
@@ -1497,8 +1497,8 @@ static void tu32_to_s32_scalar_(const Tensor *restrict src,
  */
 static void tu32_to_s64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint32_t *s = (const uint32_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int64_t)s[i];
   }
@@ -1513,8 +1513,8 @@ static void tu32_to_s64_scalar_(const Tensor *restrict src,
  */
 static void tu64_to_s8_scalar_(const Tensor *restrict src,
                                Tensor *restrict dst) {
-  const uint64_t *s = (const uint64_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int8_t)s[i];
   }
@@ -1529,8 +1529,8 @@ static void tu64_to_s8_scalar_(const Tensor *restrict src,
  */
 static void tu64_to_s32_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint64_t *s = (const uint64_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int32_t)s[i];
   }
@@ -1546,8 +1546,8 @@ static void tu64_to_s32_scalar_(const Tensor *restrict src,
  */
 static void tu64_to_s64_scalar_(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  const uint64_t *s = (const uint64_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
     d[i] = (int64_t)s[i];
   }
@@ -1565,15 +1565,15 @@ static void tu64_to_s64_scalar_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void tfp16_to_f32_avx512_(const Tensor *restrict src,
-                                        Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tfp16_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  float *d = (float *)dst->data;
+  const _Float16 *s = src->data.half;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m256i v_src = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512 v_dst = _mm512_cvtph_ps(v_src);
@@ -1591,15 +1591,15 @@ static inline void tfp16_to_f32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void tfp16_to_f32_avx_avx2_fp16c_(const Tensor *restrict src,
-                                                Tensor *restrict dst) {
+__attribute__((target("f16c"))) static inline void
+tfp16_to_f32_avx_avx2_fp16c_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F32_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  float *d = (float *)dst->data;
+  const _Float16 *s = src->data.half;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m128i v_src = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m256 v_dst = _mm256_cvtph_ps(v_src);
@@ -1617,15 +1617,15 @@ static inline void tfp16_to_f32_avx_avx2_fp16c_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void tfp16_to_f64_avx512_(const Tensor *restrict src,
-                                        Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+tfp16_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  double *d = (double *)dst->data;
+  const _Float16 *s = src->data.half;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m128h v_src = (__m128h)_mm_loadu_si128((const __m128i_u *)&s[i]);
     __m512d v_dst = _mm512_cvtph_pd(v_src);
@@ -1643,19 +1643,20 @@ static inline void tfp16_to_f64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void tfp16_to_f64_avx_avx2_fp16c_(const Tensor *restrict src,
-                                                Tensor *restrict dst) {
+__attribute__((target("f16c"))) static inline void
+tfp16_to_f64_avx_avx2_fp16c_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  double *d = (double *)dst->data;
+  const _Float16 *s = src->data.half;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
-    __m128h v_src = (__m128h)_mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m256d v_dst = _mm256_cvtph_pd(v_src);
-    _mm256_storeu_pd(&d[i], v_dst);
+    __m128i v = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m128 f32 = _mm_cvtph_ps(v);
+    __m256d r = _mm256_cvtps_pd(f32);
+    _mm256_storeu_pd(&d[i], r);
   }
   if (rem > 0) {
     REMAINING(i, size, d, s, double)
@@ -1669,15 +1670,15 @@ static inline void tfp16_to_f64_avx_avx2_fp16c_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static inline void tfp16_to_bf16_avx512bf16_(const Tensor *restrict src,
-                                             Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bf16"))) static inline void
+tfp16_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 16;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const _Float16 *s = src->data.half;
+  __bf16 *d = dst->data.bf16;
   for (; i < n; i += step) {
     __m256i v_src = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512 v_inter = _mm512_cvtph_ps(v_src);
@@ -1696,15 +1697,15 @@ static inline void tfp16_to_bf16_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static inline void tf32_to_fp16_avx512fp16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+tf32_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const float *s = src->data.f32;
+  _Float16 *d = dst->data.half;
   for (; i < n; i += step) {
     __m512 v0 = _mm512_loadu_ps(&s[i]);
     __m512 v1 = _mm512_loadu_ps(&s[i + 16]);
@@ -1727,15 +1728,15 @@ static inline void tf32_to_fp16_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static inline void tf32_to_fp16_avx_avx2_f16c_(const Tensor *restrict src,
-                                               Tensor *restrict dst) {
+__attribute__((target("f16c"))) static inline void
+tf32_to_fp16_avx_avx2_f16c_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const float *s = src->data.f32;
+  _Float16 *d = dst->data.half;
   for (; i < n; i += step) {
     __m256 v0 = _mm256_loadu_ps(&s[i]);
     __m256 v1 = _mm256_loadu_ps(&s[i + 8]);
@@ -1758,15 +1759,15 @@ static inline void tf32_to_fp16_avx_avx2_f16c_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void tf32_to_f64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tf32_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  double *d = (double *)dst->data;
+  const float *s = src->data.f32;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m256 v = _mm256_loadu_ps(&s[i]);
     __m512d r = _mm512_cvtps_pd(v);
@@ -1784,15 +1785,15 @@ static inline void tf32_to_f64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void tf32_to_f64_avx_avx2_(const Tensor *restrict src,
-                                         Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+tf32_to_f64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  double *d = (double *)dst->data;
+  const float *s = src->data.f32;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m128 v = _mm_loadu_ps(&s[i]);
     __m256d r = _mm256_cvtps_pd(v);
@@ -1810,15 +1811,15 @@ static inline void tf32_to_f64_avx_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void tf32_to_f64_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tf32_to_f64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  double *d = (double *)dst->data;
+  const float *s = src->data.f32;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m128 v = _mm_loadu_ps(&s[i]);
     __m128d r = _mm_cvtps_pd(v);
@@ -1836,15 +1837,16 @@ static inline void tf32_to_f64_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static inline void tf32_to_bf16_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((
+    target("avx512f,avx512bf16,avx512bw,avx512vl"))) static inline void
+tf32_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const float *s = src->data.f32;
+  __bf16 *d = dst->data.bf16;
   for (; i < n; i += step) {
     __m512 v0 = _mm512_loadu_ps(&s[i]);
     __m512 v1 = _mm512_loadu_ps(&s[i + 16]);
@@ -1865,15 +1867,16 @@ static inline void tf32_to_bf16_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static inline void tbf16_to_fp16_avx512bf16_fp16_(const Tensor *restrict src,
-                                                  Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bf16,avx512fp16"))) static inline void
+tbf16_to_fp16_avx512bf16_fp16_(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const __bf16 *s = (const __bf16 *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  _Float16 *d = dst->data.half;
   for (; i < n; i += step) {
     __m256bh v0, v1;
     memcpy(&v0, &s[i], sizeof(v0));
@@ -1899,15 +1902,15 @@ static inline void tbf16_to_fp16_avx512bf16_fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void tbf16_to_f32_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512bf16"))) static inline void
+tbf16_to_f32_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const __bf16 *s = (const __bf16 *)src->data;
-  float *d = (float *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m256bh v;
     memcpy(&v, &s[i], sizeof(v));
@@ -1926,15 +1929,15 @@ static inline void tbf16_to_f32_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void tbf16_to_f64_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bf16,avx512vl"))) static inline void
+tbf16_to_f64_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const __bf16 *s = (const __bf16 *)src->data;
-  double *d = (double *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m128bh v;
     memcpy(&v, &s[i], sizeof(v));
@@ -1954,15 +1957,15 @@ static inline void tbf16_to_f64_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static inline void tf64_to_fp16_avx512fp16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+tf64_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const double *s = src->data.f64;
+  _Float16 *d = dst->data.half;
   for (; i < n; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __m128h r = _mm512_cvtpd_ph(v);
@@ -1980,15 +1983,15 @@ static inline void tf64_to_fp16_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void tf64_to_f32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tf64_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  float *d = (float *)dst->data;
+  const double *s = src->data.f64;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __m256 r = _mm512_cvtpd_ps(v);
@@ -2006,15 +2009,15 @@ static inline void tf64_to_f32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void tf64_to_f32_avx_avx2_(const Tensor *restrict src,
-                                         Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+tf64_to_f32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  float *d = (float *)dst->data;
+  const double *s = src->data.f64;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m256d v = _mm256_loadu_pd(&s[i]);
     __m128 r = _mm256_cvtpd_ps(v);
@@ -2032,15 +2035,15 @@ static inline void tf64_to_f32_avx_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void tf64_to_f32_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tf64_to_f32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  float *d = (float *)dst->data;
+  const double *s = src->data.f64;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m128d v = _mm_loadu_pd(&s[i]);
     __m128 r = _mm_cvtpd_ps(v);
@@ -2058,15 +2061,15 @@ static inline void tf64_to_f32_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static inline void tf64_to_bf16_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bf16,avx512vl"))) static inline void
+tf64_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const double *s = src->data.f64;
+  __bf16 *d = dst->data.bf16;
   for (; i < n; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __m256 f32 = _mm512_cvtpd_ps(v);
@@ -2085,15 +2088,15 @@ static inline void tf64_to_bf16_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void tfp16_to_s8_avx512fp16_(const Tensor *restrict src,
-                                           Tensor *restrict dst) {
+__attribute__((target("avx512fp16,avx512bw,avx512f"))) static inline void
+tfp16_to_s8_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m256h v0 = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m256h v1 = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i + 16]);
@@ -2120,15 +2123,15 @@ static inline void tfp16_to_s8_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tfp16_to_s32_avx512fp16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512fp16,avx512f"))) static inline void
+tfp16_to_s32_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m256h v = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512i r = _mm512_cvtph_epi32(v);
@@ -2146,15 +2149,15 @@ static inline void tfp16_to_s32_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tfp16_to_s64_avx512fp16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+tfp16_to_s64_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128h v = (__m128h)_mm_loadu_si128((const __m128i_u *)&s[i]);
     __m512i r = _mm512_cvtph_epi64(v);
@@ -2172,15 +2175,15 @@ static inline void tfp16_to_s64_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void tfp16_to_u8_avx512fp16_(const Tensor *restrict src,
-                                           Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16,avx512bw"))) static inline void
+tfp16_to_u8_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m256h v0 = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m256h v1 = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i + 16]);
@@ -2207,15 +2210,15 @@ static inline void tfp16_to_u8_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void tfp16_to_u32_avx512fp16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+tfp16_to_u32_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m256h v = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512i r = _mm512_cvtph_epu32(v);
@@ -2233,15 +2236,15 @@ static inline void tfp16_to_u32_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void tfp16_to_u64_avx512fp16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+tfp16_to_u64_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const _Float16 *s = (const _Float16 *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const _Float16 *s = src->data.half;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128h v = (__m128h)_mm_loadu_si128((const __m128i_u *)&s[i]);
     __m512i r = _mm512_cvtph_epu64(v);
@@ -2259,15 +2262,15 @@ static inline void tfp16_to_u64_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void tbf16_to_s8_avx512bf16_(const Tensor *restrict src,
-                                           Tensor *restrict dst) {
+__attribute__((target("avx512bf16,avx512bw,avx512f"))) static inline void
+tbf16_to_s8_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const __bf16 *s = (const __bf16 *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m256bh b0, b1, b2, b3;
     memcpy(&b0, &s[i], sizeof(b0));
@@ -2299,15 +2302,15 @@ static inline void tbf16_to_s8_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tbf16_to_s32_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512bf16,avx512f"))) static inline void
+tbf16_to_s32_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const __bf16 *s = (const __bf16 *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m256bh v;
     memcpy(&v, &s[i], sizeof(v));
@@ -2327,15 +2330,16 @@ static inline void tbf16_to_s32_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tbf16_to_s64_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((
+    target("avx512f,avx512bf16,avx512vl,avx512dq"))) static inline void
+tbf16_to_s64_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const __bf16 *s = (const __bf16 *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128bh v;
     memcpy(&v, &s[i], sizeof(v));
@@ -2355,15 +2359,15 @@ static inline void tbf16_to_s64_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void tbf16_to_u8_avx512bf16_(const Tensor *restrict src,
-                                           Tensor *restrict dst) {
+__attribute__((target("avx512bf16,avx512bw,avx512f"))) static inline void
+tbf16_to_u8_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const __bf16 *s = (const __bf16 *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m256bh b0, b1, b2, b3;
     memcpy(&b0, &s[i], sizeof(b0));
@@ -2395,15 +2399,15 @@ static inline void tbf16_to_u8_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void tbf16_to_u32_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512bf16,avx512f"))) static inline void
+tbf16_to_u32_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const __bf16 *s = (const __bf16 *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m256bh v;
     memcpy(&v, &s[i], sizeof(v));
@@ -2423,15 +2427,16 @@ static inline void tbf16_to_u32_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void tbf16_to_u64_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((
+    target("avx512f,avx512bf16,avx512vl,avx512dq"))) static inline void
+tbf16_to_u64_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const __bf16 *s = (const __bf16 *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const __bf16 *s = src->data.bf16;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128bh v;
     memcpy(&v, &s[i], sizeof(v));
@@ -2451,15 +2456,15 @@ static inline void tbf16_to_u64_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void tf32_to_s8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bw"))) static inline void
+tf32_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const float *s = src->data.f32;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m512 v0 = _mm512_loadu_ps(&s[i]);
     __m512 v1 = _mm512_loadu_ps(&s[i + 16]);
@@ -2486,15 +2491,15 @@ static inline void tf32_to_s8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void tf32_to_s8_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+tf32_to_s8_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const float *s = src->data.f32;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m256 v0 = _mm256_loadu_ps(&s[i]);
     __m256 v1 = _mm256_loadu_ps(&s[i + 8]);
@@ -2521,15 +2526,15 @@ static inline void tf32_to_s8_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tf32_to_s32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tf32_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const float *s = src->data.f32;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m512 v = _mm512_loadu_ps(&s[i]);
     __m512i r = _mm512_cvtps_epi32(v);
@@ -2547,15 +2552,15 @@ static inline void tf32_to_s32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tf32_to_s32_avx_avx2_(const Tensor *restrict src,
-                                         Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+tf32_to_s32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const float *s = src->data.f32;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m256 v = _mm256_loadu_ps(&s[i]);
     __m256i r = _mm256_cvtps_epi32(v);
@@ -2573,15 +2578,15 @@ static inline void tf32_to_s32_avx_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tf32_to_s32_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tf32_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const float *s = src->data.f32;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m128 v = _mm_loadu_ps(&s[i]);
     __m128i r = _mm_cvtps_epi32(v);
@@ -2599,15 +2604,15 @@ static inline void tf32_to_s32_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tf32_to_s64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512dq"))) static inline void
+tf32_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const float *s = src->data.f32;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m256 v = _mm256_loadu_ps(&s[i]);
     __m512i r = _mm512_cvtps_epi64(v);
@@ -2625,15 +2630,15 @@ static inline void tf32_to_s64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void tf32_to_u8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bw"))) static inline void
+tf32_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const float *s = src->data.f32;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m512 v0 = _mm512_loadu_ps(&s[i]);
     __m512 v1 = _mm512_loadu_ps(&s[i + 16]);
@@ -2660,15 +2665,15 @@ static inline void tf32_to_u8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void tf32_to_u8_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+tf32_to_u8_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const float *s = src->data.f32;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m256 v0 = _mm256_loadu_ps(&s[i]);
     __m256 v1 = _mm256_loadu_ps(&s[i + 8]);
@@ -2696,15 +2701,15 @@ static inline void tf32_to_u8_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void tf32_to_u32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tf32_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const float *s = src->data.f32;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m512 v = _mm512_loadu_ps(&s[i]);
     __m512i r = _mm512_cvtps_epu32(v);
@@ -2722,15 +2727,15 @@ static inline void tf32_to_u32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void tf32_to_u64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512dq"))) static inline void
+tf32_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = (const float *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const float *s = src->data.f32;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m256 v = _mm256_loadu_ps(&s[i]);
     __m512i r = _mm512_cvtps_epu64(v);
@@ -2748,15 +2753,15 @@ static inline void tf32_to_u64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void tf64_to_s8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f,avx2"))) static inline void
+tf64_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const double *s = src->data.f64;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __m256i s32 = _mm512_cvtpd_epi32(v);
@@ -2778,15 +2783,15 @@ static inline void tf64_to_s8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tf64_to_s32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tf64_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const double *s = src->data.f64;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __m256i r = _mm512_cvtpd_epi32(v);
@@ -2804,15 +2809,15 @@ static inline void tf64_to_s32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tf64_to_s32_avx_avx2_(const Tensor *restrict src,
-                                         Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+tf64_to_s32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const double *s = src->data.f64;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m256d v = _mm256_loadu_pd(&s[i]);
     __m128i r = _mm256_cvtpd_epi32(v);
@@ -2830,15 +2835,15 @@ static inline void tf64_to_s32_avx_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tf64_to_s32_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tf64_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const double *s = src->data.f64;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m128d v = _mm_loadu_pd(&s[i]);
     __m128i r = _mm_cvtpd_epi32(v);
@@ -2856,23 +2861,15 @@ static inline void tf64_to_s32_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-/**
- * @brief Cast every element from double to int64_t using AVX-512.
- *
- * Requires: AVX512F
- *
- * @param[in]  src  Source tensor with element type double.
- * @param[out] dst  Destination tensor with element type int64_t.
- */
-static inline void tf64_to_s64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512dq"))) static inline void
+tf64_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const double *s = src->data.f64;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __m512i r = _mm512_cvtpd_epi64(v);
@@ -2890,15 +2887,15 @@ static inline void tf64_to_s64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void tf64_to_u8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f,avx2"))) static inline void
+tf64_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const double *s = src->data.f64;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __m256i u32 = _mm512_cvtpd_epu32(v);
@@ -2920,15 +2917,15 @@ static inline void tf64_to_u8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void tf64_to_u32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tf64_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const double *s = src->data.f64;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __m256i r = _mm512_cvtpd_epu32(v);
@@ -2946,15 +2943,15 @@ static inline void tf64_to_u32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void tf64_to_u64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512dq"))) static inline void
+tf64_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = (const double *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const double *s = src->data.f64;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __m512i r = _mm512_cvtpd_epu64(v);
@@ -2972,15 +2969,15 @@ static inline void tf64_to_u64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static inline void ts8_to_fp16_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+ts8_to_fp16_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const int8_t *s = src->data.s8;
+  _Float16 *d = dst->data.half;
   for (; i < n; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
@@ -3011,15 +3008,15 @@ static inline void ts8_to_fp16_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static inline void ts32_to_fp16_avx512fp16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+ts32_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const int32_t *s = src->data.s32;
+  _Float16 *d = dst->data.half;
   for (; i < n; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
@@ -3040,15 +3037,15 @@ static inline void ts32_to_fp16_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static inline void ts64_to_fp16_avx512fp16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+ts64_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const int64_t *s = src->data.s64;
+  _Float16 *d = dst->data.half;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m128h r = _mm512_cvtepi64_ph(v);
@@ -3066,15 +3063,15 @@ static inline void ts64_to_fp16_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static inline void tu8_to_fp16_avx512fp16_(const Tensor *restrict src,
-                                           Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+tu8_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const uint8_t *s = src->data.u8;
+  _Float16 *d = dst->data.half;
   for (; i < n; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
@@ -3105,15 +3102,15 @@ static inline void tu8_to_fp16_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static inline void tu32_to_fp16_avx512fp16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+tu32_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const uint32_t *s = src->data.u32;
+  _Float16 *d = dst->data.half;
   for (; i < n; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
@@ -3134,15 +3131,15 @@ static inline void tu32_to_fp16_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static inline void tu64_to_fp16_avx512fp16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512fp16"))) static inline void
+tu64_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  _Float16 *d = (_Float16 *)dst->data;
+  const uint64_t *s = src->data.u64;
+  _Float16 *d = dst->data.half;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m128h r = _mm512_cvtepu64_ph(v);
@@ -3160,15 +3157,15 @@ static inline void tu64_to_fp16_avx512fp16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static inline void ts8_to_bf16_avx512bf16_(const Tensor *restrict src,
-                                           Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bf16"))) static inline void
+ts8_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const int8_t *s = src->data.s8;
+  __bf16 *d = dst->data.bf16;
   for (; i < n; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
@@ -3199,15 +3196,15 @@ static inline void ts8_to_bf16_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static inline void ts32_to_bf16_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bf16"))) static inline void
+ts32_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const int32_t *s = src->data.s32;
+  __bf16 *d = dst->data.bf16;
   for (; i < n; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
@@ -3228,15 +3225,16 @@ static inline void ts32_to_bf16_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static inline void ts64_to_bf16_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((
+    target("avx512f,avx512dq,avx512bf16,avx512vl"))) static inline void
+ts64_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const int64_t *s = src->data.s64;
+  __bf16 *d = dst->data.bf16;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m256 f32 = _mm512_cvtepi64_ps(v);
@@ -3255,15 +3253,15 @@ static inline void ts64_to_bf16_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static inline void tu8_to_bf16_avx512bf16_(const Tensor *restrict src,
-                                           Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bf16"))) static inline void
+tu8_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const uint8_t *s = src->data.u8;
+  __bf16 *d = dst->data.bf16;
   for (; i < n; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
@@ -3294,15 +3292,15 @@ static inline void tu8_to_bf16_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static inline void tu32_to_bf16_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bf16"))) static inline void
+tu32_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const uint32_t *s = src->data.u32;
+  __bf16 *d = dst->data.bf16;
   for (; i < n; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
@@ -3323,15 +3321,16 @@ static inline void tu32_to_bf16_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static inline void tu64_to_bf16_avx512bf16_(const Tensor *restrict src,
-                                            Tensor *restrict dst) {
+__attribute__((
+    target("avx512f,avx512dq,avx512bf16,avx512vl"))) static inline void
+tu64_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  __bf16 *d = (__bf16 *)dst->data;
+  const uint64_t *s = src->data.u64;
+  __bf16 *d = dst->data.bf16;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m256 f32 = _mm512_cvtepu64_ps(v);
@@ -3350,15 +3349,15 @@ static inline void tu64_to_bf16_avx512bf16_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void ts8_to_f32_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts8_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  float *d = (float *)dst->data;
+  const int8_t *s = src->data.s8;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
@@ -3381,15 +3380,15 @@ static inline void ts8_to_f32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void ts8_to_f32_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+ts8_to_f32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  float *d = (float *)dst->data;
+  const int8_t *s = src->data.s8;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m256i i0 =
         _mm256_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
@@ -3416,15 +3415,15 @@ static inline void ts8_to_f32_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void ts32_to_f32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts32_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  float *d = (float *)dst->data;
+  const int32_t *s = src->data.s32;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m512 r = _mm512_cvtepi32_ps(v);
@@ -3442,15 +3441,15 @@ static inline void ts32_to_f32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void ts32_to_f32_avx_avx2_(const Tensor *restrict src,
-                                         Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+ts32_to_f32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  float *d = (float *)dst->data;
+  const int32_t *s = src->data.s32;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m256 r = _mm256_cvtepi32_ps(v);
@@ -3468,15 +3467,15 @@ static inline void ts32_to_f32_avx_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void ts32_to_f32_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts32_to_f32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  float *d = (float *)dst->data;
+  const int32_t *s = src->data.s32;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128 r = _mm_cvtepi32_ps(v);
@@ -3494,15 +3493,15 @@ static inline void ts32_to_f32_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void ts64_to_f32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512dq"))) static inline void
+ts64_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  float *d = (float *)dst->data;
+  const int64_t *s = src->data.s64;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m256 r = _mm512_cvtepi64_ps(v);
@@ -3520,15 +3519,15 @@ static inline void ts64_to_f32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void tu8_to_f32_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu8_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  float *d = (float *)dst->data;
+  const uint8_t *s = src->data.u8;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
@@ -3551,15 +3550,15 @@ static inline void tu8_to_f32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void tu8_to_f32_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+tu8_to_f32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  float *d = (float *)dst->data;
+  const uint8_t *s = src->data.u8;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m256i i0 =
         _mm256_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
@@ -3586,15 +3585,15 @@ static inline void tu8_to_f32_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void tu32_to_f32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu32_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  float *d = (float *)dst->data;
+  const uint32_t *s = src->data.u32;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m512 r = _mm512_cvtepu32_ps(v);
@@ -3612,15 +3611,15 @@ static inline void tu32_to_f32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static inline void tu64_to_f32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512dq"))) static inline void
+tu64_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  float *d = (float *)dst->data;
+  const uint64_t *s = src->data.u64;
+  float *d = dst->data.f32;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m256 r = _mm512_cvtepu64_ps(v);
@@ -3638,15 +3637,15 @@ static inline void tu64_to_f32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void ts8_to_f64_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f,avx2"))) static inline void
+ts8_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  double *d = (double *)dst->data;
+  const int8_t *s = src->data.s8;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m256i i32 = _mm256_cvtepi8_epi32(b);
@@ -3665,15 +3664,15 @@ static inline void ts8_to_f64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void ts32_to_f64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts32_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  double *d = (double *)dst->data;
+  const int32_t *s = src->data.s32;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512d r = _mm512_cvtepi32_pd(v);
@@ -3691,15 +3690,15 @@ static inline void ts32_to_f64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void ts32_to_f64_avx_avx2_(const Tensor *restrict src,
-                                         Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+ts32_to_f64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  double *d = (double *)dst->data;
+  const int32_t *s = src->data.s32;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m256d r = _mm256_cvtepi32_pd(v);
@@ -3717,15 +3716,15 @@ static inline void ts32_to_f64_avx_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void ts32_to_f64_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts32_to_f64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  double *d = (double *)dst->data;
+  const int32_t *s = src->data.s32;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128d r = _mm_cvtepi32_pd(v);
@@ -3743,15 +3742,15 @@ static inline void ts32_to_f64_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void ts64_to_f64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512dq"))) static inline void
+ts64_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  double *d = (double *)dst->data;
+  const int64_t *s = src->data.s64;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m512d r = _mm512_cvtepi64_pd(v);
@@ -3769,15 +3768,15 @@ static inline void ts64_to_f64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void tu8_to_f64_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f,avx2"))) static inline void
+tu8_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  double *d = (double *)dst->data;
+  const uint8_t *s = src->data.u8;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m256i i32 = _mm256_cvtepu8_epi32(b);
@@ -3796,15 +3795,15 @@ static inline void tu8_to_f64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void tu32_to_f64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu32_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  double *d = (double *)dst->data;
+  const uint32_t *s = src->data.u32;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512d r = _mm512_cvtepu32_pd(v);
@@ -3822,15 +3821,15 @@ static inline void tu32_to_f64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static inline void tu64_to_f64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512dq"))) static inline void
+tu64_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  double *d = (double *)dst->data;
+  const uint64_t *s = src->data.u64;
+  double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m512d r = _mm512_cvtepu64_pd(v);
@@ -3848,15 +3847,15 @@ static inline void tu64_to_f64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void ts8_to_s32_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts8_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
@@ -3879,15 +3878,15 @@ static inline void ts8_to_s32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void ts8_to_s32_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+ts8_to_s32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m256i r0 =
         _mm256_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
@@ -3914,15 +3913,15 @@ static inline void ts8_to_s32_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void ts8_to_s32_sse4_2_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts8_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m128i r0 = _mm_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
     __m128i r1 =
@@ -3948,15 +3947,15 @@ static inline void ts8_to_s32_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void ts8_to_s64_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts8_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m512i r = _mm512_cvtepi8_epi64(b);
@@ -3974,15 +3973,15 @@ static inline void ts8_to_s64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void ts8_to_s64_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+ts8_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m256i r = _mm256_cvtepi8_epi64(b);
@@ -4000,15 +3999,15 @@ static inline void ts8_to_s64_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void ts8_to_s64_sse4_2_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts8_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m128i r = _mm_cvtepi8_epi64(b);
@@ -4027,15 +4026,15 @@ static inline void ts8_to_s64_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void ts32_to_s8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts32_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
@@ -4062,15 +4061,15 @@ static inline void ts32_to_s8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void ts32_to_s64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts32_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512i r = _mm512_cvtepi32_epi64(v);
@@ -4088,15 +4087,15 @@ static inline void ts32_to_s64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void ts32_to_s64_avx2_(const Tensor *restrict src,
-                                     Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+ts32_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m256i r = _mm256_cvtepi32_epi64(v);
@@ -4114,15 +4113,15 @@ static inline void ts32_to_s64_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void ts32_to_s64_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts32_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i r = _mm_cvtepi32_epi64(v);
@@ -4140,15 +4139,15 @@ static inline void ts32_to_s64_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void ts64_to_s8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bw"))) static inline void
+ts64_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m128i r = _mm512_cvtepi64_epi8(v);
@@ -4166,15 +4165,15 @@ static inline void ts64_to_s8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void ts64_to_s32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts64_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m256i r = _mm512_cvtepi64_epi32(v);
@@ -4192,15 +4191,15 @@ static inline void ts64_to_s32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void tu8_to_u32_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu8_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
@@ -4223,15 +4222,15 @@ static inline void tu8_to_u32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void tu8_to_u32_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+tu8_to_u32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m256i r0 =
         _mm256_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
@@ -4258,15 +4257,15 @@ static inline void tu8_to_u32_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void tu8_to_u64_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu8_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m512i r = _mm512_cvtepu8_epi64(b);
@@ -4284,15 +4283,15 @@ static inline void tu8_to_u64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void tu8_to_u64_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+tu8_to_u64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m256i r = _mm256_cvtepu8_epi64(b);
@@ -4310,15 +4309,15 @@ static inline void tu8_to_u64_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void tu8_to_u64_sse4_2_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tu8_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m128i r = _mm_cvtepu8_epi64(b);
@@ -4336,15 +4335,15 @@ static inline void tu8_to_u64_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void tu32_to_u8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu32_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
@@ -4367,15 +4366,15 @@ static inline void tu32_to_u8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void tu32_to_u64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu32_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512i r = _mm512_cvtepu32_epi64(v);
@@ -4393,15 +4392,15 @@ static inline void tu32_to_u64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void tu32_to_u64_avx2_(const Tensor *restrict src,
-                                     Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+tu32_to_u64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m256i r = _mm256_cvtepu32_epi64(v);
@@ -4419,15 +4418,15 @@ static inline void tu32_to_u64_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void tu32_to_u64_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tu32_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i r = _mm_cvtepu32_epi64(v);
@@ -4445,15 +4444,15 @@ static inline void tu32_to_u64_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void tu64_to_u8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bw"))) static inline void
+tu64_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m128i r = _mm512_cvtepi64_epi8(v);
@@ -4471,15 +4470,15 @@ static inline void tu64_to_u8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void tu64_to_u32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu64_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m256i r = _mm512_cvtepi64_epi32(v);
@@ -4497,15 +4496,15 @@ static inline void tu64_to_u32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void ts8_to_u8_avx512_(const Tensor *restrict src,
-                                     Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts8_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     _mm512_storeu_si512(&d[i], v);
@@ -4522,15 +4521,15 @@ static inline void ts8_to_u8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void ts8_to_u8_avx_avx2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+ts8_to_u8_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 32;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     _mm256_storeu_si256((__m256i_u *)&d[i], v);
@@ -4547,15 +4546,15 @@ static inline void ts8_to_u8_avx_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void ts8_to_u8_sse4_2_(const Tensor *restrict src,
-                                     Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts8_to_u8_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 16;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     _mm_storeu_si128((__m128i_u *)&d[i], v);
@@ -4572,15 +4571,15 @@ static inline void ts8_to_u8_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void tu8_to_s8_avx512_(const Tensor *restrict src,
-                                     Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu8_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     _mm512_storeu_si512(&d[i], v);
@@ -4597,15 +4596,15 @@ static inline void tu8_to_s8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void tu8_to_s8_avx_avx2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+tu8_to_s8_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 32;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     _mm256_storeu_si256((__m256i_u *)&d[i], v);
@@ -4622,15 +4621,15 @@ static inline void tu8_to_s8_avx_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void tu8_to_s8_sse4_2_(const Tensor *restrict src,
-                                     Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tu8_to_s8_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 16;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     _mm_storeu_si128((__m128i_u *)&d[i], v);
@@ -4647,15 +4646,15 @@ static inline void tu8_to_s8_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void ts8_to_u32_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts8_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
@@ -4678,15 +4677,15 @@ static inline void ts8_to_u32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void ts8_to_u32_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+ts8_to_u32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m256i r0 =
         _mm256_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
@@ -4713,15 +4712,15 @@ static inline void ts8_to_u32_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void ts8_to_u32_sse4_2_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts8_to_u32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m128i r0 = _mm_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
     __m128i r1 =
@@ -4747,15 +4746,15 @@ static inline void ts8_to_u32_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void ts8_to_u64_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts8_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8_t *s = (const int8_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const int8_t *s = src->data.s8;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m512i r = _mm512_cvtepi8_epi64(b);
@@ -4773,15 +4772,15 @@ static inline void ts8_to_u64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void ts32_to_u8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bw"))) static inline void
+ts32_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
@@ -4804,15 +4803,15 @@ static inline void ts32_to_u8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void ts32_to_u8_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+ts32_to_u8_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m256i v0 = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m256i v1 = _mm256_loadu_si256((const __m256i_u *)&s[i + 8]);
@@ -4835,15 +4834,15 @@ static inline void ts32_to_u8_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void ts32_to_u8_sse4_2_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts32_to_u8_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m128i v0 = _mm_loadu_si128((__m128i_u *)&s[i]);
     __m128i v1 = _mm_loadu_si128((__m128i_u *)&s[i + 4]);
@@ -4866,15 +4865,15 @@ static inline void ts32_to_u8_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void ts32_to_u32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts32_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     _mm512_storeu_si512(&d[i], v);
@@ -4891,15 +4890,15 @@ static inline void ts32_to_u32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void ts32_to_u32_avx_avx2_(const Tensor *restrict src,
-                                         Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+ts32_to_u32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 8;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     _mm256_storeu_si256((__m256i_u *)&d[i], v);
@@ -4916,15 +4915,15 @@ static inline void ts32_to_u32_avx_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void ts32_to_u32_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts32_to_u32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 4;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     _mm_storeu_si128((__m128i_u *)&d[i], v);
@@ -4941,15 +4940,15 @@ static inline void ts32_to_u32_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void ts32_to_u64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts32_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512i r = _mm512_cvtepi32_epi64(v);
@@ -4967,15 +4966,15 @@ static inline void ts32_to_u64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void ts32_to_u64_avx2_(const Tensor *restrict src,
-                                     Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+ts32_to_u64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m256i r = _mm256_cvtepi32_epi64(v);
@@ -4993,15 +4992,15 @@ static inline void ts32_to_u64_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void ts32_to_u64_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts32_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32_t *s = (const int32_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const int32_t *s = src->data.s32;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i r = _mm_cvtepi32_epi64(v);
@@ -5019,15 +5018,15 @@ static inline void ts32_to_u64_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static inline void ts64_to_u8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts64_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  uint8_t *d = (uint8_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  uint8_t *d = dst->data.u8;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m128i r = _mm512_cvtepi64_epi8(v);
@@ -5045,15 +5044,15 @@ static inline void ts64_to_u8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static inline void ts64_to_u32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts64_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  uint32_t *d = (uint32_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  uint32_t *d = dst->data.u32;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m256i r = _mm512_cvtepi64_epi32(v);
@@ -5071,15 +5070,15 @@ static inline void ts64_to_u32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void ts64_to_u64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+ts64_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     _mm512_storeu_si512(&d[i], v);
@@ -5096,15 +5095,15 @@ static inline void ts64_to_u64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void ts64_to_u64_avx_avx2_(const Tensor *restrict src,
-                                         Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+ts64_to_u64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 4;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     _mm256_storeu_si256((__m256i_u *)&d[i], v);
@@ -5121,15 +5120,15 @@ static inline void ts64_to_u64_avx_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static inline void ts64_to_u64_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+ts64_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64_t *s = (const int64_t *)src->data;
-  uint64_t *d = (uint64_t *)dst->data;
+  const int64_t *s = src->data.s64;
+  uint64_t *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     _mm_storeu_si128((__m128i_u *)&d[i], v);
@@ -5146,15 +5145,15 @@ static inline void ts64_to_u64_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tu8_to_s32_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu8_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
@@ -5177,15 +5176,15 @@ static inline void tu8_to_s32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tu8_to_s32_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+tu8_to_s32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m256i r0 =
         _mm256_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
@@ -5212,15 +5211,15 @@ static inline void tu8_to_s32_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tu8_to_s32_sse4_2_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tu8_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m128i r0 = _mm_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
     __m128i r1 =
@@ -5246,15 +5245,15 @@ static inline void tu8_to_s32_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tu8_to_s64_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu8_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m512i r = _mm512_cvtepu8_epi64(b);
@@ -5272,15 +5271,15 @@ static inline void tu8_to_s64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tu8_to_s64_avx2_(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+tu8_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m256i r = _mm256_cvtepu8_epi64(b);
@@ -5298,15 +5297,15 @@ static inline void tu8_to_s64_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tu8_to_s64_sse4_2_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tu8_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8_t *s = (const uint8_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint8_t *s = src->data.u8;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
     __m128i r = _mm_cvtepu8_epi64(b);
@@ -5324,15 +5323,15 @@ static inline void tu8_to_s64_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void tu32_to_s8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f,avx512bw"))) static inline void
+tu32_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
@@ -5355,15 +5354,15 @@ static inline void tu32_to_s8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tu32_to_s32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu32_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     _mm512_storeu_si512(&d[i], v);
@@ -5380,15 +5379,15 @@ static inline void tu32_to_s32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tu32_to_s32_avx_avx2_(const Tensor *restrict src,
-                                         Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+tu32_to_s32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 8;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     _mm256_storeu_si256((__m256i_u *)&d[i], v);
@@ -5398,22 +5397,22 @@ static inline void tu32_to_s32_avx_avx2_(const Tensor *restrict src,
   }
 }
 /**
- * @brief Cast every element from uint32_t to int32_t using SSE.
+ * @brief Cast every element from uint32_t to int32_t using SSE4.2.
  *
- * Requires: SSE
+ * Requires: SSE4.2
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tu32_to_s32_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tu32_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 4;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     _mm_storeu_si128((__m128i_u *)&d[i], v);
@@ -5430,15 +5429,15 @@ static inline void tu32_to_s32_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tu32_to_s64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu32_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512i r = _mm512_cvtepu32_epi64(v);
@@ -5456,15 +5455,15 @@ static inline void tu32_to_s64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tu32_to_s64_avx2_(const Tensor *restrict src,
-                                     Tensor *restrict dst) {
+__attribute__((target("avx2"))) static inline void
+tu32_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m256i r = _mm256_cvtepu32_epi64(v);
@@ -5482,15 +5481,15 @@ static inline void tu32_to_s64_avx2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tu32_to_s64_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tu32_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32_t *s = (const uint32_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint32_t *s = src->data.u32;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i r = _mm_cvtepu32_epi64(v);
@@ -5508,15 +5507,15 @@ static inline void tu32_to_s64_sse4_2_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static inline void tu64_to_s8_avx512_(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu64_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  int8_t *d = (int8_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  int8_t *d = dst->data.s8;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m128i r = _mm512_cvtepi64_epi8(v);
@@ -5534,15 +5533,15 @@ static inline void tu64_to_s8_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static inline void tu64_to_s32_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu64_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  int32_t *d = (int32_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  int32_t *d = dst->data.s32;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     __m256i r = _mm512_cvtepi64_epi32(v);
@@ -5560,15 +5559,15 @@ static inline void tu64_to_s32_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tu64_to_s64_avx512_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("avx512f"))) static inline void
+tu64_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m512i v = _mm512_loadu_si512(&s[i]);
     _mm512_storeu_si512(&d[i], v);
@@ -5585,15 +5584,15 @@ static inline void tu64_to_s64_avx512_(const Tensor *restrict src,
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tu64_to_s64_avx_avx2_(const Tensor *restrict src,
-                                         Tensor *restrict dst) {
+__attribute__((target("avx,avx2"))) static inline void
+tu64_to_s64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 4;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     _mm256_storeu_si256((__m256i_u *)&d[i], v);
@@ -5606,20 +5605,20 @@ static inline void tu64_to_s64_avx_avx2_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to int64_t using SSE.
  *
- * Requires: SSE
+ * Requires: SSE4.2
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static inline void tu64_to_s64_sse4_2_(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
+__attribute__((target("sse4.2"))) static inline void
+tu64_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 2;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64_t *s = (const uint64_t *)src->data;
-  int64_t *d = (int64_t *)dst->data;
+  const uint64_t *s = src->data.u64;
+  int64_t *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
     _mm_storeu_si128((__m128i_u *)&d[i], v);
@@ -6332,7 +6331,7 @@ const castFn lookup_tu8_to_u32_[] = {tu8_to_u32_avx512_, tu8_to_u32_avx2_,
  * - Index 0: tu8_to_u64_avx512_() — Requires: AVX512F
  * - Index 1: tu8_to_u64_avx2_() — Requires: AVX2
  * - Index 2: tu8_to_u64_sse4_2_() — Requires: SSE4.2
- * - Index 3: tu8_to_u64_scalar_() — Portable fallback
+ * - Index 3: tu8_to_u64_scalar_() —
  */
 const castFn lookup_tu8_to_u64_[] = {tu8_to_u64_avx512_, tu8_to_u64_avx2_,
                                      tu8_to_u64_sse4_2_, tu8_to_u64_scalar_};
