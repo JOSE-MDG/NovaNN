@@ -148,7 +148,7 @@ typedef nova_u64 uint64;
  * Used throughout the library to identify the data type of tensors
  * and perform appropriate operations.
  */
-typedef enum COMPOSE(packed) {
+typedef enum ATTR(packed) {
   Float32 = 0,     ///< 32-bit floating point
   Float64 = 1,     ///< 64-bit floating point
   Float16 = 2,     ///< 16-bit floating point (half precision)
