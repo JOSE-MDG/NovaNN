@@ -1,0 +1,48 @@
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-reserved-identifier,
+  -bugprone-narrowing-conversions,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -bugprone-casting-through-void,
+  misc-const-correctness,
+  misc-definitions-in-headers,
+  misc-header-include-cycle,
+  misc-misplaced-const,
+  misc-no-recursion,
+  misc-redundant-expression,
+  misc-static-assert,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-auto,
+  -modernize-macro-to-enum,
+  performance-*,
+  portability-*,
+  readability-*,
+  -readability-magic-numbers,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -readability-named-parameter,
+  -readability-function-size,
+  -readability-else-after-return,
+  -readability-redundant-preprocessor,
+  -readability-isolate-declaration,
+  -readability-uppercase-literal-suffix
+
+WarningsAsErrors: ""
+
+HeaderFilterRegex: "ncore/.*"
+
+FormatStyle: file
+
+CheckOptions:
+  bugprone-assert-side-effect.AssertMacros: "NOVA_INTERNAL_ASSERT"
+  bugprone-suspicious-string-compare.WarnOnImplicitComparison: false
+  modernize-use-nullptr.NullMacros: "NULL"
+  readability-identifier-naming.EnumCase: "CamelCase"
+  readability-identifier-naming.FunctionCase: "snake_case"
+  readability-identifier-naming.VariableCase: "snake_case"
+  readability-identifier-naming.MacroDefinitionCase: "UPPER_CASE"
+  readability-braces-around-statements.ShortStatementLines: 1
