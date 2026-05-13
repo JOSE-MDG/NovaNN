@@ -63,7 +63,7 @@ static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
   caps->avx512f_ = (bool)((ebx & (1 << 16)) != 0);
   caps->avx512_dq_ = (bool)((ebx & (1 << 17)) != 0);
   caps->avx512_bw_ = (bool)((ebx & (1 << 30)) != 0);
-  caps->avx512_vl_ = (bool)((ebx & (1 << 31)) != 0);
+  caps->avx512_vl_ = (bool)((ebx & (1U << 31)) != 0);
   caps->avx512_vnni_ = (bool)((ecx & (1 << 11)) != 0);
   caps->amx_bf16_ = (bool)((edx & (1 << 22)) != 0);
   caps->avx512_fp16_ = (bool)((edx & (1 << 23)) != 0);
