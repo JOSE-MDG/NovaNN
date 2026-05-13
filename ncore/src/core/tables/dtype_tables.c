@@ -20,7 +20,7 @@
  */
 const bool floating[NUM_DTYPES][1] = {
     [Float32] = {true},     [Float64] = {true},     [Float16] = {true},
-    [BFloat16] = {true},    [Sined8] = {false},     [UnSigned8] = {false},
+    [BFloat16] = {true},    [Signed8] = {false},    [UnSigned8] = {false},
     [QSigned8] = {false},   [QUnSigned8] = {false}, [Signed32] = {false},
     [UnSigned32] = {false}, [Signed64] = {false},   [UnSigned64] = {false},
 };
@@ -33,7 +33,7 @@ const bool floating[NUM_DTYPES][1] = {
  */
 const bool integer[NUM_DTYPES][1] = {
     [Float32] = {false},   [Float64] = {false},   [Float16] = {false},
-    [BFloat16] = {false},  [Sined8] = {true},     [UnSigned8] = {true},
+    [BFloat16] = {false},  [Signed8] = {true},    [UnSigned8] = {true},
     [QSigned8] = {true},   [QUnSigned8] = {true}, [Signed32] = {true},
     [UnSigned32] = {true}, [Signed64] = {true},   [UnSigned64] = {true},
 };
@@ -41,12 +41,12 @@ const bool integer[NUM_DTYPES][1] = {
 /**
  * @brief Lookup table for signed integer dtypes.
  *
- * Contains true for Sined8 (note: likely typo for Signed8), Signed32,
+ * Contains true for Signed8 (note: likely typo for Signed8), Signed32,
  * Signed64, and quantized signed types.
  */
 const bool signed_integer[NUM_DTYPES][1] = {
     [Float32] = {false},    [Float64] = {false},    [Float16] = {false},
-    [BFloat16] = {false},   [Sined8] = {true},      [UnSigned8] = {false},
+    [BFloat16] = {false},   [Signed8] = {true},     [UnSigned8] = {false},
     [QSigned8] = {true},    [QUnSigned8] = {false}, [Signed32] = {true},
     [UnSigned32] = {false}, [Signed64] = {true},    [UnSigned64] = {false},
 };
@@ -59,7 +59,7 @@ const bool signed_integer[NUM_DTYPES][1] = {
  */
 const bool unsigned_integer[NUM_DTYPES][1] = {
     [Float32] = {false},   [Float64] = {false},   [Float16] = {false},
-    [BFloat16] = {false},  [Sined8] = {false},    [UnSigned8] = {true},
+    [BFloat16] = {false},  [Signed8] = {false},   [UnSigned8] = {true},
     [QSigned8] = {false},  [QUnSigned8] = {true}, [Signed32] = {false},
     [UnSigned32] = {true}, [Signed64] = {false},  [UnSigned64] = {true},
 };
@@ -71,7 +71,7 @@ const bool unsigned_integer[NUM_DTYPES][1] = {
  */
 const bool quantized_signed_integer[NUM_DTYPES][1] = {
     [Float32] = {false},    [Float64] = {false},    [Float16] = {false},
-    [BFloat16] = {false},   [Sined8] = {false},     [UnSigned8] = {false},
+    [BFloat16] = {false},   [Signed8] = {false},    [UnSigned8] = {false},
     [QSigned8] = {true},    [QUnSigned8] = {false}, [Signed32] = {false},
     [UnSigned32] = {false}, [Signed64] = {false},   [UnSigned64] = {false},
 };
@@ -83,7 +83,7 @@ const bool quantized_signed_integer[NUM_DTYPES][1] = {
  */
 const bool quantized_unsigned_integer[NUM_DTYPES][1] = {
     [Float32] = {false},    [Float64] = {false},   [Float16] = {false},
-    [BFloat16] = {false},   [Sined8] = {false},    [UnSigned8] = {false},
+    [BFloat16] = {false},   [Signed8] = {false},   [UnSigned8] = {false},
     [QSigned8] = {false},   [QUnSigned8] = {true}, [Signed32] = {false},
     [UnSigned32] = {false}, [Signed64] = {false},  [UnSigned64] = {false},
 };
