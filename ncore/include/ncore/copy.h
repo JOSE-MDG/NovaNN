@@ -24,7 +24,7 @@ typedef void (*copyFn)(const Tensor *restrict, Tensor *restrict dst);
  * An array of copyFn pointers indexed by DType_.  Used internally
  * by deepcopy() to select the correct per-dtype copy routine.
  */
-typedef void(*table[NUM_DTYPES]);
+typedef copyFn table[NUM_DTYPES];
 
 /**
  * @brief Deep-copy a tensor.
