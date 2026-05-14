@@ -38,7 +38,7 @@ TensorStorage *allocate_tensor_buffer(size_t bytes, Device device) {
   RustHandle handle = reserve(bytes, 64);
 
   NOVA_INTERNAL_ASSERT(is_valid_handle(&handle),
-                       "[HANDLE] allocate_buffer: Invalid rust memory handle")
+                       "[HANDLE] allocate_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation and TensorStorage creation
@@ -76,7 +76,7 @@ float32 *allocate_f32_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_f32_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_f32_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for float32
@@ -105,7 +105,7 @@ float64 *allocate_f64_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_f64_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_f64_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for float64
@@ -134,7 +134,7 @@ half *allocate_f16_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_f16_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_f16_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for float16
@@ -163,7 +163,7 @@ bfloat16 *allocate_bf16_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_bf16_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_bf16_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for bfloat16
@@ -192,7 +192,7 @@ int8 *allocate_s8_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_s8_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_s8_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for int8
@@ -221,7 +221,7 @@ uint8 *allocate_u8_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_u8_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_u8_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for uint8
@@ -250,7 +250,7 @@ int32 *allocate_s32_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_s32_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_s32_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for int32
@@ -279,7 +279,7 @@ uint32 *allocate_u32_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_u32_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_u32_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for uint32
@@ -308,7 +308,7 @@ int64 *allocate_s64_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_s64_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_s64_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for int64
@@ -337,7 +337,7 @@ uint64 *allocate_u64_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_u64_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_u64_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for uint64
@@ -366,7 +366,7 @@ qint8 *allocate_qs8_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_qs8_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_qs8_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for qint8
@@ -395,7 +395,7 @@ quint8 *allocate_qu8_buffer(size_t bytes, size_t align, Device device) {
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
-      "[HANDLE] allocate_qu8_buffer: Invalid rust memory handle")
+      "[HANDLE] allocate_qu8_buffer: Invalid rust memory handle\n")
 
   if (device == DEVICE_GPU) {
     // TODO: Implement GPU memory allocation for quint8
