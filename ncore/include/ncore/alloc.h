@@ -18,10 +18,6 @@
 #include <ncore/storage.h>
 #include <stddef.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Allocate a tensor storage descriptor with an untyped data buffer.
  *
@@ -142,7 +138,3 @@ qint8 *allocate_qs8_buffer(size_t bytes, size_t align, Device device);
  * @return Pointer to the buffer, or NULL for META / on error.
  */
 quint8 *allocate_qu8_buffer(size_t bytes, size_t align, Device device);
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
