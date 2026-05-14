@@ -17,8 +17,19 @@ notebooks/
 .coveragerc
 htmlcov/
 
+# Build directories
+build/
+
+# Compiled files
+*.so
+*.a
+*.o
+
 # Wheels
 dist/
+
+# Cache
+.cache/
 
 # Scripts
 examples.py

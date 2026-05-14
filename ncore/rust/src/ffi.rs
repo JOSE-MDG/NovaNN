@@ -24,11 +24,11 @@ pub unsafe extern "C" fn retain(handle: *mut RustHandle) {
 
 /// Decrements the reference count and frees storage if it reaches zero.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn release(handle: *mut RustHandle) {
+pub unsafe extern "C" fn release(handle: *mut RustHandle) -> bool {
     if handle.is_null() {
-        return;
+        return false;
     }
-    let _ = ops::release_op(unsafe { &*handle });
+    ops::release_op(unsafe { &*handle }).unwrap_or(false)
 }
 
 /// Resizes the storage associated with the handle.
