@@ -16,8 +16,23 @@ notebooks/
 .coveragerc
 htmlcov/
 
+<<<<<<< HEAD
 # Build and Distribution
+=======
+# Build directories
+build/
+
+# Compiled files
+*.so
+*.a
+*.o
+
+# Wheels
+>>>>>>> dev
 dist/
+
+# Cache
+.cache/
 
 # Scripts
 examples.py
