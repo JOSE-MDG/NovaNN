@@ -256,9 +256,9 @@ static copyFn lookup_gpu_copy[NUM_DTYPES][1] = {
  * The caller retrieves lookup_copy[src->device], then indexes
  * by src->dtype to obtain the matching copy function pointer.
  */
-static table lookup_copy[2][1] = {
-    [DEVICE_CPU] = {{lookup_cpu_copy}},
-    [DEVICE_GPU] = {{lookup_gpu_copy}},
+static copyFn *lookup_copy[2] = {
+    [DEVICE_CPU] = (copyFn *)lookup_cpu_copy,
+    [DEVICE_GPU] = (copyFn *)lookup_gpu_copy,
 };
 
 /**
@@ -314,8 +314,7 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst) {
     dst->is_allocated_ = true;
 
     // Copy buffer and storage
-    table *table = lookup_copy[src->device];
-    copyFn func = (copyFn)table[src->dtype][0];
+    copyFn func = lookup_copy[src->device][src->dtype];
     func(src, dst);
   }
 
