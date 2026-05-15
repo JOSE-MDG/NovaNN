@@ -217,3 +217,13 @@ bool is_quantized_unsigned_integer(const Tensor *restrict input);
  */
 void cast(const Tensor *restrict src, DType_ target_dtype,
           Tensor *restrict dst);
+
+/**
+ * @brief Returns the size in bytes of a given data type.
+ *
+ * Looks up the size from a precomputed lookup table indexed by DType_.
+ *
+ * @param dtype The data type to query.
+ * @return size_t Size of the dtype in bytes.
+ */
+size_t dtype_size(DType_ dtype);
