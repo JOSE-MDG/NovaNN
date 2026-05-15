@@ -133,37 +133,53 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
                      bool requires_grad, size_t ndims);
 
 /**
- * @brief Create a tensor without allocating a data buffer.
+ * @brief Create a fully allocated 0-dimensional (scalar) tensor.
  *
- * All metadata fields are initialised but storage and data pointers
- * are left NULL.  Intended for use as a destination for deepcopy()
- * or for injecting externally-managed buffers.
+ * Allocates a single-element data buffer on the specified device.
+ * Shape and strides are zeroed and ndims is set to 0.
  *
- * @param shape         Dimension sizes.
  * @param dtype         Element data type.
- * @param device        Target device.
- * @param requires_grad Whether to track gradients.
- * @param ndims         Number of dimensions.
- * @return Initialised Tensor with no backing storage.
+ * @param device        Target device (CPU, GPU, or META).
+ * @param requires_grad If true, an unallocated gradient tensor is created.
+ * @return Initialised scalar Tensor with backing storage.
  */
-Tensor create_unallocated_tensor(const shape_t shape, DType_ dtype,
-                                 Device device, bool requires_grad,
-                                 size_t ndims);
+Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad);
 
 /**
- * @brief Create a heap-allocated gradient tensor with no data buffer.
+ * @brief Create a view of an existing tensor with a new shape.
  *
- * Allocates a Tensor on the heap suitable for use as a gradient slot.
- * The caller must free it, typically via collect().
+ * Shares the underlying storage (incrementing the reference count),
+ * recomputes strides, and marks the result as a non-leaf view.
  *
- * @param shape  Dimension sizes.
- * @param dtype  Element data type.
- * @param device Target device.
- * @param ndims  Number of dimensions.
- * @return Pointer to the newly allocated Tensor (heap).
+ * @param src       Source tensor to view (must outlive the view).
+ * @param new_shape New dimension sizes.  Product must equal src->size.
+ * @param new_ndims Number of dimensions in the new shape.
+ * @return View tensor sharing src's storage.
  */
-TensorGrad create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
-                                          Device device, size_t ndims);
+Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
+                   size_t new_ndims);
+
+/**
+ * @brief Check whether a tensor's data buffer is contiguous.
+ *
+ * A tensor is contiguous when elements are stored in row-major order
+ * without gaps, i.e. strides are strictly decreasing by shape[dim].
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor is contiguous, false otherwise.
+ */
+bool is_contiguous(const Tensor *restrict ten);
+
+/**
+ * @brief Move ownership of tensor resources from src to dst.
+ *
+ * Collects dst, transfers src's contents, then resets src to a hollow
+ * shell (storage/data/grad set to NULL).
+ *
+ * @param dst Destination tensor (previous resources are freed).
+ * @param src Source tensor (ownership transferred; src invalidated).
+ */
+void move_tensor(Tensor *restrict dst, Tensor *restrict src);
 
 /**
  * @brief Recursively release tensor memory and gradients.
@@ -174,5 +190,3 @@ TensorGrad create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
  * @param ten Tensor to collect (may be NULL).
  */
 void collect(Tensor *ten);
-
-

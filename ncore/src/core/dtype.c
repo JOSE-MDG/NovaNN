@@ -90,3 +90,11 @@ void cast(const Tensor *restrict src, DType_ target_dtype,
   castFn func = cast_dispatch[src->dtype][target_dtype];
   func(src, dst);
 }
+
+/**
+ * @brief Returns the size in bytes of a given data type.
+ *
+ * @param dtype The data type to query.
+ * @return size_t Size of the dtype in bytes.
+ */
+size_t dtype_size(DType_ dtype) { return lookup_dtype_sizes[dtype]; }
