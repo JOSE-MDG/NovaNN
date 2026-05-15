@@ -21,7 +21,6 @@ CompileFlags:
     - -g
     - -fno-omit-frame-pointer
     - -march=native
-
 ---
 If:
   PathMatch: .*\.c
@@ -50,11 +49,11 @@ Index:
   Background: Build
 
 Completion:
-  AllScopes: Yes
+  AllScopes: true
   HeaderInsertion: IWYU
 
 Hover:
-  ShowAKA: Yes
+  ShowAKA: true
 
 InlayHints:
-  Enabled: Yes
+  Enabled: true
