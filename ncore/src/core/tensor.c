@@ -1,70 +1,45 @@
 /**
  * @file tensor.c
- * @brief Implementation of tensor creation, unallocation, and collection.
+ * @brief Implementation of tensor creation, allocation, and resource
+ * management.
  *
- * Provides factory functions for allocating and initialising Tensor
- * instances (with or without a data buffer), gradient-tensor creation,
- * and recursive memory reclamation via collect().
+ * @details
+ * Provides the backend implementation for the public Tensor API declared in
+ * tensor.h.  Handles the full lifecycle of tensors from creation through
+ * memory management to final cleanup.
+ *
+ * ## Storage Model
+ * Tensors allocate data through the Rust FFI allocator (reserve/retain/
+ * release).  The TensorStorage struct holds the typed pointer, byte count,
+ * alignment, and a reference-counted RustHandle.  META tensors are a
+ * special case that never allocate backing storage.
+ *
+ * ## Creation
+ * - create_tensor() and create_scalar_tensor() allocate a fresh data
+ *   buffer via allocate_tensor_buffer() and optionally attach an
+ *   unallocated gradient tensor for autograd.
+ * - create_view() shares an existing tensor's storage (incrementing the
+ *   Rust reference count) and recomputes strides for the requested shape.
+ *
+ * ## View Semantics
+ * Views are shallow copies that share storage with the source tensor.
+ * The Rust-side refcount is bumped on creation so that the underlying
+ * allocation stays alive as long as any view exists.
+ *
+ * ## Cleanup
+ * collect() decrements the Rust reference count, frees the storage when
+ * the count reaches zero, and recursively releases gradient tensors.
+ * move_tensor() transfers ownership without an additional allocation.
  */
 
+#include <assert.h>
 #include <ncore/alloc.h>
 #include <ncore/dtype.h>
+#include <ncore/headeronly/tensor_utils.h>
 #include <ncore/macros.h>
 #include <ncore/storage.h>
-#include <ncore/tables/dtype_tables.h>
 #include <ncore/tensor.h>
 #include <string.h>
-
-/* =========================================================================
- * Internal helpers
- * ========================================================================= */
-
-/**
- * @brief Compute per-dimension strides for a contiguous tensor.
- *
- * Stride[i] = item_size * product(shape[i+1..ndims-1]).
- * The last dimension always has stride == item_size.
- *
- * @param ten       Tensor whose strides[] will be written.
- * @param ndims     Number of dimensions.
- * @param shape     Dimension sizes.
- * @param item_size Element size in bytes.
- */
-static inline void compute_tensor_strides_(Tensor *ten, size_t ndims,
-                                            const shape_t shape,
-                                            size_t item_size) {
-  strides_t strides;
-
-  ten->strides[ndims - 1] = item_size;
-  for (size_t dim = ndims - 1; dim-- > 0;) {
-    strides[dim] = ten->strides[dim + 1] * ten->shape[dim + 1];
-  }
-
-  memcpy(ten->strides, strides, ndims * sizeof(size_t));
-}
-
-/**
- * @brief Compute the total number of elements in a tensor.
- *
- * The result is the product of all dimension sizes and is stored in
- * ten->size.
- *
- * @param ten   Tensor whose size will be set.
- * @param shape Dimension sizes.
- */
-static inline void compute_tensor_size_(Tensor *ten, const shape_t shape) {
-
-  size_t size = 1;
-  for (size_t dim = 0; dim < ten->ndims; dim++) {
-    size *= shape[dim];
-  }
-
-  ten->size = size;
-}
-
-/* =========================================================================
- * Public API
- * ========================================================================= */
 
 /**
  * @brief Create a fully allocated tensor.
@@ -89,7 +64,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
   tensor.dtype = dtype;
   tensor.device = device;
   tensor.ndims = ndims;
-  tensor.item_size = lookup_dtype_sizes[dtype];
+  tensor.item_size = dtype_size(dtype);
   tensor.offset = 0;
   tensor.is_leaf_ = true;
   tensor.is_view_ = false;
@@ -106,7 +81,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
   if (device == DEVICE_META) {
     NOVA_INTERNAL_ASSERT(storage == NULL,
                          "[STORAGE] create_tensor: META tensor must have NULL "
-                         "storage, but non-NULL storage was returned\n")
+                         "storage, but non-NULL storage was returned\n");
     tensor.storage = NULL;
     tensor.data.data = NULL;
     tensor.is_allocated_ = false;
@@ -117,7 +92,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
   }
   NOVA_INTERNAL_ASSERT(storage != NULL,
                        "[STORAGE] create_tensor: CPU/GPU tensor must have "
-                       "non-NULL storage, but allocation returned NULL\n")
+                       "non-NULL storage, but allocation returned NULL\n");
   tensor.storage = storage;
   tensor.data = tensor.storage->ptr;
   tensor.is_allocated_ = true;
@@ -130,31 +105,27 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
 }
 
 /**
- * @brief Create a tensor without allocating a data buffer.
+ * @brief Create a fully allocated 0-dimensional (scalar) tensor.
  *
- * Initialises all metadata fields and sets storage / data to NULL.
- * Useful as a destination for deepcopy() or external buffer injection.
+ * Allocates a single-element data buffer on the specified device.
+ * Shape and strides are zeroed and ndims is set to 0.
  *
- * @param shape         Dimension sizes.
  * @param dtype         Element data type.
- * @param device        Target device.
+ * @param device        Target device (CPU, GPU, or META).
  * @param requires_grad Whether to track gradients.
- * @param ndims         Number of dimensions.
- * @return Initialised Tensor with no backing storage.
+ * @return Initialised scalar Tensor with backing storage.
  */
-Tensor create_unallocated_tensor(const shape_t shape, DType_ dtype,
-                                 Device device, bool requires_grad,
-                                 size_t ndims) {
-
+Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad) {
   Tensor tensor = {0};
 
-  memcpy(tensor.shape, shape, ndims * sizeof(size_t));
+  tensor.shape[0] = 0;
+  tensor.strides[0] = 0;
+  tensor.size = 1;
   tensor.dtype = dtype;
   tensor.device = device;
-  tensor.ndims = ndims;
-  tensor.item_size = lookup_dtype_sizes[dtype];
+  tensor.ndims = 0;
+  tensor.item_size = dtype_size(dtype);
   tensor.offset = 0;
-  tensor.grad = NULL;
   tensor.is_leaf_ = true;
   tensor.is_view_ = false;
   tensor.requires_grad_ = requires_grad;
@@ -162,58 +133,114 @@ Tensor create_unallocated_tensor(const shape_t shape, DType_ dtype,
   tensor.grad_fn_ = NULL;
   tensor.scale_ = 1.0F;
   tensor.zero_point_ = 0;
-  tensor.storage = NULL;
-  tensor.data.data = NULL;
-  tensor.is_allocated_ = false;
-  compute_tensor_size_(&tensor, shape);
-  compute_tensor_strides_(&tensor, ndims, shape, tensor.item_size);
+
+  TensorStorage *storage =
+      allocate_tensor_buffer(tensor.item_size * tensor.size, tensor.device);
+  if (device == DEVICE_META) {
+    NOVA_INTERNAL_ASSERT(storage == NULL,
+                         "[STORAGE] create_tensor: META tensor must have NULL "
+                         "storage, but non-NULL storage was returned\n");
+    tensor.storage = NULL;
+    tensor.data.data = NULL;
+    tensor.is_allocated_ = false;
+    if (requires_grad) {
+      tensor.grad = create_unallocated_scalar_grad_tensor(dtype, device);
+    }
+    return tensor;
+  }
+  NOVA_INTERNAL_ASSERT(storage != NULL,
+                       "[STORAGE] create_tensor: CPU/GPU tensor must have "
+                       "non-NULL storage, but allocation returned NULL\n");
+  tensor.storage = storage;
+  tensor.data = tensor.storage->ptr;
+  tensor.is_allocated_ = true;
+
+  if (requires_grad) {
+    tensor.grad = create_unallocated_scalar_grad_tensor(dtype, device);
+  }
+
   return tensor;
 }
 
 /**
- * @brief Create a heap-allocated gradient tensor with no data buffer.
+ * @brief Create a view of an existing tensor with a new shape.
  *
- * Allocates a Tensor on the heap via malloc() and initialises it as an
- * unallocated tensor with requires_grad_ = false.  Must be freed by the
- * caller (typically via collect()).
+ * Shares the same underlying storage (incrementing the Rust-side
+ * reference count), recomputes strides for the new shape, and marks
+ * the resulting tensor as a non-leaf view.  If the source has a
+ * gradient, an unallocated gradient tensor is created for the view.
  *
- * @param shape  Dimension sizes.
- * @param dtype  Element data type.
- * @param device Target device.
- * @param ndims  Number of dimensions.
- * @return Pointer to a newly allocated, zero-initialised Tensor, or
- *         aborts on allocation failure.
+ * @param src       Source tensor to view (must outlive the view).
+ * @param new_shape New dimension sizes.  Product must equal src->size.
+ * @param new_ndims Number of dimensions in the new shape.
+ * @return View tensor sharing src's storage.
  */
-TensorGrad create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
-                                          Device device, size_t ndims) {
+Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
+                   size_t new_ndims) {
 
-  TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
+  Tensor dst = *src;
 
-  NOVA_INTERNAL_ASSERT(
-      grad != NULL,
-      "[GRAD] create_unallocated_grad_tensor: malloc returned NULL\n")
+  // Increase rust reference counter
+  retain(&dst.storage->handle);
 
-  memcpy(grad->shape, shape, ndims * sizeof(size_t));
-  grad->dtype = dtype;
-  grad->device = device;
-  grad->ndims = ndims;
-  grad->item_size = lookup_dtype_sizes[dtype];
-  grad->offset = 0;
-  grad->grad = NULL;
-  grad->is_leaf_ = true;
-  grad->is_view_ = false;
-  grad->requires_grad_ = false;
-  grad->retain_grad_ = false;
-  grad->grad_fn_ = NULL;
-  grad->scale_ = 1.0F;
-  grad->zero_point_ = 0;
-  grad->storage = NULL;
-  grad->data.data = NULL;
-  grad->is_allocated_ = false;
-  compute_tensor_size_(grad, shape);
-  compute_tensor_strides_(grad, ndims, shape, grad->item_size);
+  // Copy tensor metadata
+  dst.ndims = new_ndims;
+  memcpy(dst.shape, new_shape, new_ndims * sizeof(size_t));
+  compute_tensor_strides_(&dst, dst.ndims, dst.shape, dst.item_size);
 
-  return grad;
+  dst.is_view_ = true;
+  dst.is_leaf_ = false;
+
+  if (src->grad != NULL) {
+    dst.grad = create_unallocated_grad_tensor(new_shape, src->grad->dtype,
+                                              src->device, new_ndims);
+  }
+
+  return dst;
+}
+
+/**
+ * @brief Check whether a tensor's data buffer is contiguous in memory.
+ *
+ * A tensor is contiguous when the strides are strictly decreasing by
+ * a factor of shape[dim] for each dimension, meaning elements are
+ * stored in row-major order with no gaps.
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor is contiguous, false otherwise.
+ */
+bool is_contiguous(const Tensor *restrict ten) {
+  size_t expected = ten->item_size;
+  for (size_t dim = ten->ndims - 1; dim >= 0; dim--) {
+    if (ten->strides[dim] != expected) {
+      return false;
+    }
+    expected *= ten->strides[dim];
+  }
+  return true;
+}
+
+/**
+ * @brief Move ownership of tensor resources from src to dst.
+ *
+ * Collects any existing resources in dst, then transfers the contents
+ * of src into dst.  src is zeroed (storage, data, grad, grad_fn_ are
+ * set to NULL / false) so that a subsequent collect() on src is a
+ * no-op.
+ *
+ * @param dst Destination tensor (previous resources are freed).
+ * @param src Source tensor (ownership is transferred; src becomes a
+ *            hollow shell).
+ */
+void move_tensor(Tensor *restrict dst, Tensor *restrict src) {
+  collect(dst);
+
+  *dst = *src;
+  src->storage = NULL;
+  src->data.data = NULL;
+  src->grad = NULL;
+  src->grad_fn_ = NULL;
+  src->is_allocated_ = false;
 }
 
 /**
