@@ -4,8 +4,7 @@
  *
  * Provides contiguous-stride computation, element-count calculation,
  * unallocated tensor factory helpers, and a row-major odometer for
- * multi-dimensional iteration.  All functions are static inline and
- * intended for use inside other header-only helpers.
+ * multi-dimensional iteration.
  */
 
 #pragma once
