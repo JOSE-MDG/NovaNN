@@ -13,6 +13,7 @@
 
 #include <ncore/alloc.h>
 #include <ncore/copy.h>
+#include <ncore/headeronly/tensor_utils.h>
 #include <ncore/macros.h>
 #include <ncore/tensor.h>
 #include <string.h>
@@ -278,12 +279,11 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst) {
     return;
   }
 
-  NOVA_INTERNAL_ASSERT(dst != NULL, "[COPY] deepcopy: dst is NULL\n")
+  NOVA_INTERNAL_ASSERT(dst != NULL, "[COPY] deepcopy: dst is NULL\n");
 
-  NOVA_INTERNAL_ASSERT(
-      !dst->is_allocated_,
-      "[COPY] deepcopy: dst must be an unallocated tensor created by "
-      "create_unallocated_tensor()")
+  NOVA_INTERNAL_ASSERT(!dst->is_allocated_,
+                       "[COPY] deepcopy: dst must be an unallocated tensor "
+                       "created by create_unallocated_tensor()\n");
 
   // Copy static members
   memcpy(dst->shape, src->shape, src->ndims * sizeof(size_t));
@@ -307,7 +307,7 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst) {
 
     NOVA_INTERNAL_ASSERT(new_storage != NULL,
                          "[STORAGE] deepcopy: CPU/GPU tensor must have "
-                         "non-NULL storage, but allocation returned NULL\n")
+                         "non-NULL storage, but allocation returned NULL\n");
 
     dst->storage = new_storage;
     dst->data = new_storage->ptr;
