@@ -8,7 +8,6 @@
 
 #include <ncore/headeronly/cast.h>
 #include <ncore/macros.h>
-#include <ncore/tables/cast_tables.h>
 
 castFn cast_dispatch[NUM_DTYPES][NUM_DTYPES] = {NULL};
 
