@@ -1,40 +1,14 @@
 /**
  * @file tensor.h
- * @brief Tensor data structure and related type definitions.
+ * @brief Core Tensor type — the fundamental n-dimensional array with autograd.
  *
  * @details
- * Provides the core Tensor type used throughout NovaNN for multi-dimensional
- * array storage with automatic differentiation support.
+ * Defines the Tensor struct, its associated typedefs (shape_t, strides_t,
+ * TensorGrad), and the public API for creation, views, memory management,
+ * and scalar/alignment/collected query predicates.  All cache-line aligned
+ * fields (ALIGN(64)) are padded for optimal SIMD vectorization.
  *
- * ## Usage
- * Tensors are the fundamental data structure in NovaNN:
- * @code
- * Tensor t = create_tensor(shape, dtype, device, requires_grad, ndims);
- * @endcode
- *
- * ## Memory Layout
- * Tensors use a strided layout for efficient indexing:
- * - Data is stored in a contiguous TensorStorage buffer
- * - shape[] defines the size of each dimension
- * - strides[] defines bytes to skip for each dimension index
- *
- * ## Automatic Differentiation
- * The autograd system tracks operations:
- * - requires_grad_: enables gradient tracking
- * - grad_fn_: links to backward computation node
- * - is_leaf_: marks user-created tensors
- *
- * ## Quantization
- * Tensors support integer quantization:
- * - scale_: scaling factor for dequantization
- * - zero_point_: offset for symmetric quantization
- *
- * @note All fields marked with ALIGN(64) are cache-line aligned for optimal
- * SIMD vectorization performance.
- *
- * @see simd.h SIMD capability detection
- * @see dtype.h Data type definitions
- * @see storage.h Tensor storage management
+ * @see dtype.h, storage.h, simd.h
  */
 
 #pragma once

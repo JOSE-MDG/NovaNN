@@ -1,35 +1,12 @@
 /**
  * @file tensor.c
- * @brief Implementation of tensor creation, allocation, and resource
- * management.
+ * @brief Backend implementation of Tensor creation, views, and lifecycle.
  *
  * @details
- * Provides the backend implementation for the public Tensor API declared in
- * tensor.h.  Handles the full lifecycle of tensors from creation through
- * memory management to final cleanup.
- *
- * ## Storage Model
- * Tensors allocate data through the Rust FFI allocator (reserve/retain/
- * release).  The TensorStorage struct holds the typed pointer, byte count,
- * alignment, and a reference-counted RustHandle.  META tensors are a
- * special case that never allocate backing storage.
- *
- * ## Creation
- * - create_tensor() and create_scalar_tensor() allocate a fresh data
- *   buffer via allocate_tensor_buffer() and optionally attach an
- *   unallocated gradient tensor for autograd.
- * - create_view() shares an existing tensor's storage (incrementing the
- *   Rust reference count) and recomputes strides for the requested shape.
- *
- * ## View Semantics
- * Views are shallow copies that share storage with the source tensor.
- * The Rust-side refcount is bumped on creation so that the underlying
- * allocation stays alive as long as any view exists.
- *
- * ## Cleanup
- * collect() decrements the Rust reference count, frees the storage when
- * the count reaches zero, and recursively releases gradient tensors.
- * move_tensor() transfers ownership without an additional allocation.
+ * Implements the full Tensor API: allocation through the Rust FFI allocator
+ * (reserve/retain/release), strided layout computation, view sharing with
+ * reference-counted storage, META-tensor special cases, and recursive
+ * cleanup of gradient sub-graphs.
  */
 
 #include <assert.h>
