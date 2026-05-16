@@ -273,3 +273,76 @@ void collect(Tensor *ten) {
     ten->grad = NULL;
   }
 }
+
+/**
+ * @brief Check whether a tensor is 0-dimensional (scalar).
+ *
+ * A tensor is a scalar when ndims is 0, shape[0] and strides[0] are 0,
+ * and total size is 1 (single element).
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor is a scalar, false otherwise.
+ */
+bool is_scalar(const Tensor *ten) {
+  return (bool)(ten->shape[0] == 0 && ten->strides[0] == 0 && ten->size == 1 &&
+                ten->ndims == 0);
+}
+
+/**
+ * @brief Check whether a gradient tensor is 0-dimensional (scalar).
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient is a scalar, false otherwise.
+ */
+bool is_scalar_grad(TensorGrad grad) {
+  return (bool)(grad->shape[0] == 0 && grad->strides[0] == 0 &&
+                grad->size == 1 && grad->ndims == 0);
+}
+
+/**
+ * @brief Check whether a tensor's data buffer is 64-byte aligned.
+ *
+ * 64-byte alignment is required for optimal SIMD vectorization.
+ *
+ * @param ten Tensor to check.
+ * @return true if the data pointer is 64-byte aligned, false otherwise.
+ * @pre ten->storage must not be NULL.
+ */
+bool is_aligned(const Tensor *ten) {
+  return (bool)(((uintptr_t)ten->storage->ptr.v % 64) == 0);
+}
+
+/**
+ * @brief Check whether a gradient tensor's data buffer is 64-byte aligned.
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient data pointer is 64-byte aligned, false
+ *         otherwise.
+ * @pre grad->storage must not be NULL.
+ */
+bool is_grad_aligned(TensorGrad grad) {
+  return (bool)(((uintptr_t)grad->storage->ptr.v % 64) == 0);
+}
+
+/**
+ * @brief Check whether a tensor has been collected (freed).
+ *
+ * A tensor is considered collected when both its storage and data pointer
+ * are NULL, typically after a call to collect().
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor has been collected, false otherwise.
+ */
+bool is_collected(const Tensor *ten) {
+  return (bool)(ten->storage == NULL && ten->data.data == NULL);
+}
+
+/**
+ * @brief Check whether a gradient tensor has been collected (freed).
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient has been collected, false otherwise.
+ */
+bool is_grad_collected(TensorGrad grad) {
+  return (bool)(grad->storage == NULL && grad->data.data == NULL);
+}

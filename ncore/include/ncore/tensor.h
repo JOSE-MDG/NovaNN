@@ -190,3 +190,54 @@ void move_tensor(Tensor *restrict dst, Tensor *restrict src);
  * @param ten Tensor to collect (may be NULL).
  */
 void collect(Tensor *ten);
+
+/**
+ * @brief Check whether a tensor is 0-dimensional (scalar).
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor is a scalar, false otherwise.
+ */
+bool is_scalar(const Tensor *ten);
+
+/**
+ * @brief Check whether a gradient tensor is 0-dimensional (scalar).
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient is a scalar, false otherwise.
+ */
+bool is_scalar_grad(TensorGrad grad);
+
+/**
+ * @brief Check whether a tensor's data buffer is 64-byte aligned.
+ *
+ * 64-byte alignment is required for optimal SIMD vectorization.
+ *
+ * @param ten Tensor to check.
+ * @return true if the data pointer is 64-byte aligned, false otherwise.
+ */
+bool is_aligned(const Tensor *ten);
+
+/**
+ * @brief Check whether a gradient tensor's data buffer is 64-byte aligned.
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient data pointer is 64-byte aligned, false
+ *         otherwise.
+ */
+bool is_grad_aligned(TensorGrad grad);
+
+/**
+ * @brief Check whether a tensor has been collected (freed).
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor has been collected, false otherwise.
+ */
+bool is_collected(const Tensor *ten);
+
+/**
+ * @brief Check whether a gradient tensor has been collected (freed).
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient has been collected, false otherwise.
+ */
+bool is_grad_collected(TensorGrad grad);
