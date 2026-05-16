@@ -211,7 +211,7 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
  */
 bool is_contiguous(const Tensor *restrict ten) {
   size_t expected = ten->item_size;
-  for (size_t dim = ten->ndims - 1; dim >= 0; dim--) {
+  for (int dim = (int)ten->ndims - 1; dim >= 0; dim--) {
     if (ten->strides[dim] != expected) {
       return false;
     }
