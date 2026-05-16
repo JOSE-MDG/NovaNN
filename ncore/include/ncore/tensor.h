@@ -1,40 +1,14 @@
 /**
  * @file tensor.h
- * @brief Tensor data structure and related type definitions.
+ * @brief Core Tensor type — the fundamental n-dimensional array with autograd.
  *
  * @details
- * Provides the core Tensor type used throughout NovaNN for multi-dimensional
- * array storage with automatic differentiation support.
+ * Defines the Tensor struct, its associated typedefs (shape_t, strides_t,
+ * TensorGrad), and the public API for creation, views, memory management,
+ * and scalar/alignment/collected query predicates.  All cache-line aligned
+ * fields (ALIGN(64)) are padded for optimal SIMD vectorization.
  *
- * ## Usage
- * Tensors are the fundamental data structure in NovaNN:
- * @code
- * Tensor t = create_tensor(shape, dtype, device, requires_grad, ndims);
- * @endcode
- *
- * ## Memory Layout
- * Tensors use a strided layout for efficient indexing:
- * - Data is stored in a contiguous TensorStorage buffer
- * - shape[] defines the size of each dimension
- * - strides[] defines bytes to skip for each dimension index
- *
- * ## Automatic Differentiation
- * The autograd system tracks operations:
- * - requires_grad_: enables gradient tracking
- * - grad_fn_: links to backward computation node
- * - is_leaf_: marks user-created tensors
- *
- * ## Quantization
- * Tensors support integer quantization:
- * - scale_: scaling factor for dequantization
- * - zero_point_: offset for symmetric quantization
- *
- * @note All fields marked with ALIGN(64) are cache-line aligned for optimal
- * SIMD vectorization performance.
- *
- * @see simd.h SIMD capability detection
- * @see dtype.h Data type definitions
- * @see storage.h Tensor storage management
+ * @see dtype.h, storage.h, simd.h
  */
 
 #pragma once
@@ -190,3 +164,54 @@ void move_tensor(Tensor *restrict dst, Tensor *restrict src);
  * @param ten Tensor to collect (may be NULL).
  */
 void collect(Tensor *ten);
+
+/**
+ * @brief Check whether a tensor is 0-dimensional (scalar).
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor is a scalar, false otherwise.
+ */
+bool is_scalar(const Tensor *ten);
+
+/**
+ * @brief Check whether a gradient tensor is 0-dimensional (scalar).
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient is a scalar, false otherwise.
+ */
+bool is_scalar_grad(TensorGrad grad);
+
+/**
+ * @brief Check whether a tensor's data buffer is 64-byte aligned.
+ *
+ * 64-byte alignment is required for optimal SIMD vectorization.
+ *
+ * @param ten Tensor to check.
+ * @return true if the data pointer is 64-byte aligned, false otherwise.
+ */
+bool is_aligned(const Tensor *ten);
+
+/**
+ * @brief Check whether a gradient tensor's data buffer is 64-byte aligned.
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient data pointer is 64-byte aligned, false
+ *         otherwise.
+ */
+bool is_grad_aligned(TensorGrad grad);
+
+/**
+ * @brief Check whether a tensor has been collected (freed).
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor has been collected, false otherwise.
+ */
+bool is_collected(const Tensor *ten);
+
+/**
+ * @brief Check whether a gradient tensor has been collected (freed).
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient has been collected, false otherwise.
+ */
+bool is_grad_collected(TensorGrad grad);

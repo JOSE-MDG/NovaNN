@@ -1,35 +1,12 @@
 /**
  * @file tensor.c
- * @brief Implementation of tensor creation, allocation, and resource
- * management.
+ * @brief Backend implementation of Tensor creation, views, and lifecycle.
  *
  * @details
- * Provides the backend implementation for the public Tensor API declared in
- * tensor.h.  Handles the full lifecycle of tensors from creation through
- * memory management to final cleanup.
- *
- * ## Storage Model
- * Tensors allocate data through the Rust FFI allocator (reserve/retain/
- * release).  The TensorStorage struct holds the typed pointer, byte count,
- * alignment, and a reference-counted RustHandle.  META tensors are a
- * special case that never allocate backing storage.
- *
- * ## Creation
- * - create_tensor() and create_scalar_tensor() allocate a fresh data
- *   buffer via allocate_tensor_buffer() and optionally attach an
- *   unallocated gradient tensor for autograd.
- * - create_view() shares an existing tensor's storage (incrementing the
- *   Rust reference count) and recomputes strides for the requested shape.
- *
- * ## View Semantics
- * Views are shallow copies that share storage with the source tensor.
- * The Rust-side refcount is bumped on creation so that the underlying
- * allocation stays alive as long as any view exists.
- *
- * ## Cleanup
- * collect() decrements the Rust reference count, frees the storage when
- * the count reaches zero, and recursively releases gradient tensors.
- * move_tensor() transfers ownership without an additional allocation.
+ * Implements the full Tensor API: allocation through the Rust FFI allocator
+ * (reserve/retain/release), strided layout computation, view sharing with
+ * reference-counted storage, META-tensor special cases, and recursive
+ * cleanup of gradient sub-graphs.
  */
 
 #include <assert.h>
@@ -211,7 +188,7 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
  */
 bool is_contiguous(const Tensor *restrict ten) {
   size_t expected = ten->item_size;
-  for (size_t dim = ten->ndims - 1; dim >= 0; dim--) {
+  for (int dim = (int)ten->ndims - 1; dim >= 0; dim--) {
     if (ten->strides[dim] != expected) {
       return false;
     }
@@ -272,4 +249,77 @@ void collect(Tensor *ten) {
     free(ten->grad);
     ten->grad = NULL;
   }
+}
+
+/**
+ * @brief Check whether a tensor is 0-dimensional (scalar).
+ *
+ * A tensor is a scalar when ndims is 0, shape[0] and strides[0] are 0,
+ * and total size is 1 (single element).
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor is a scalar, false otherwise.
+ */
+bool is_scalar(const Tensor *ten) {
+  return (bool)(ten->shape[0] == 0 && ten->strides[0] == 0 && ten->size == 1 &&
+                ten->ndims == 0);
+}
+
+/**
+ * @brief Check whether a gradient tensor is 0-dimensional (scalar).
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient is a scalar, false otherwise.
+ */
+bool is_scalar_grad(TensorGrad grad) {
+  return (bool)(grad->shape[0] == 0 && grad->strides[0] == 0 &&
+                grad->size == 1 && grad->ndims == 0);
+}
+
+/**
+ * @brief Check whether a tensor's data buffer is 64-byte aligned.
+ *
+ * 64-byte alignment is required for optimal SIMD vectorization.
+ *
+ * @param ten Tensor to check.
+ * @return true if the data pointer is 64-byte aligned, false otherwise.
+ * @pre ten->storage must not be NULL.
+ */
+bool is_aligned(const Tensor *ten) {
+  return (bool)(((uintptr_t)ten->storage->ptr.v % 64) == 0);
+}
+
+/**
+ * @brief Check whether a gradient tensor's data buffer is 64-byte aligned.
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient data pointer is 64-byte aligned, false
+ *         otherwise.
+ * @pre grad->storage must not be NULL.
+ */
+bool is_grad_aligned(TensorGrad grad) {
+  return (bool)(((uintptr_t)grad->storage->ptr.v % 64) == 0);
+}
+
+/**
+ * @brief Check whether a tensor has been collected (freed).
+ *
+ * A tensor is considered collected when both its storage and data pointer
+ * are NULL, typically after a call to collect().
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor has been collected, false otherwise.
+ */
+bool is_collected(const Tensor *ten) {
+  return (bool)(ten->storage == NULL && ten->data.data == NULL);
+}
+
+/**
+ * @brief Check whether a gradient tensor has been collected (freed).
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient has been collected, false otherwise.
+ */
+bool is_grad_collected(TensorGrad grad) {
+  return (bool)(grad->storage == NULL && grad->data.data == NULL);
 }
