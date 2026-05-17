@@ -86,8 +86,8 @@ struct ALIGN(64) Tensor {
   bool is_allocated_;    ///< If true, tensor is allocated in memory
   float scale_;          ///< Quantization scale (0 if not quantized)
   int32_t zero_point_;   ///< Quantization zero point (0 if not quantized)
-  int64_t version_;      ///< Version counter (Increases by one when an in-place
-                         ///< operation if performed)
+  int64_t version_;      ///< Mutation counter; incremented on every in-place
+                         ///< operation for version-tracking and alias detection.
 };
 
 /**
@@ -217,3 +217,34 @@ bool is_collected(const Tensor *ten);
  * @return true if the gradient has been collected, false otherwise.
  */
 bool is_grad_collected(TensorGrad grad);
+
+/**
+ * @brief Check whether a tensor's data buffer has been allocated.
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor has a valid backing storage, false otherwise.
+ */
+bool is_allocated(const Tensor *ten);
+
+/**
+ * @brief Check whether a gradient tensor's data buffer has been allocated.
+ *
+ * Returns false if grad is NULL.
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient has a valid backing storage, false otherwise.
+ */
+bool is_grad_allocated(TensorGrad grad);
+
+/**
+ * @brief Create a tensor with the same shape, dtype, and device as another.
+ *
+ * Inspects the source tensor and produces a new tensor with identical
+ * metadata.  If the source is allocated, the result is also allocated;
+ * otherwise an unallocated tensor is returned.  Scalar tensors are
+ * handled specially via create_scalar_tensor / create_unallocated_scalar_tensor.
+ *
+ * @param ten Source tensor to copy metadata from.
+ * @return New tensor with matching shape, dtype, device, and requires_grad.
+ */
+Tensor create_tensor_like(const Tensor *ten);

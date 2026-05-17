@@ -142,6 +142,36 @@ Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad) {
 }
 
 /**
+ * @brief Create a tensor with the same shape, dtype, and device as another.
+ *
+ * Inspects the source tensor and produces a new tensor with identical
+ * metadata.  If the source is allocated, the result is also allocated;
+ * otherwise an unallocated tensor is returned.  Scalar tensors are
+ * handled specially via create_scalar_tensor / create_unallocated_scalar_tensor.
+ *
+ * @param ten Source tensor to copy metadata from.
+ * @return New tensor with matching shape, dtype, device, and requires_grad.
+ */
+Tensor create_tensor_like(const Tensor *ten) {
+  Tensor tensor = {0};
+  if (is_scalar(ten)) {
+    tensor =
+        ((int)is_allocated(ten))
+            ? create_scalar_tensor(ten->dtype, ten->device, ten->requires_grad_)
+            : create_unallocated_scalar_tensor(ten->dtype, ten->device,
+                                               ten->requires_grad_);
+  } else {
+    tensor =
+        ((int)is_allocated(ten))
+            ? create_tensor(ten->shape, ten->dtype, ten->device,
+                            ten->requires_grad_, ten->ndims)
+            : create_unallocated_tensor(ten->shape, ten->dtype, ten->device,
+                                        ten->requires_grad_, ten->ndims);
+  }
+  return tensor;
+}
+
+/**
  * @brief Create a view of an existing tensor with a new shape.
  *
  * Shares the same underlying storage (incrementing the Rust-side
@@ -314,7 +344,8 @@ bool is_grad_aligned(TensorGrad grad) {
  * @return true if the tensor has been collected, false otherwise.
  */
 bool is_collected(const Tensor *ten) {
-  return (bool)(ten->storage == NULL && ten->data.data == NULL);
+  return (bool)(ten->storage == NULL && ten->data.data == NULL &&
+                !ten->is_allocated_);
 }
 
 /**
@@ -324,5 +355,29 @@ bool is_collected(const Tensor *ten) {
  * @return true if the gradient has been collected, false otherwise.
  */
 bool is_grad_collected(TensorGrad grad) {
-  return (bool)(grad->storage == NULL && grad->data.data == NULL);
+  return (bool)(grad->storage == NULL && grad->data.data == NULL &&
+                !grad->is_allocated_);
+}
+
+/**
+ * @brief Check whether a tensor's data buffer has been allocated.
+ *
+ * @param ten Tensor to check.
+ * @return true if the tensor has a valid backing storage, false otherwise.
+ */
+bool is_allocated(const Tensor *ten) { return ten->is_allocated_; }
+
+/**
+ * @brief Check whether a gradient tensor's data buffer has been allocated.
+ *
+ * Returns false if grad is NULL.
+ *
+ * @param grad Gradient tensor to check.
+ * @return true if the gradient has a valid backing storage, false otherwise.
+ */
+bool is_grad_allocated(TensorGrad grad) {
+  if (grad) {
+    return (grad->is_allocated_);
+  }
+  return false;
 }
