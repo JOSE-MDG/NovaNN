@@ -32,7 +32,7 @@ static const char *g_device_string[3] = {
     [DEVICE_CPU] = "cpu", [DEVICE_GPU] = "cuda", [DEVICE_META] = "meta"};
 
 static const char *dtype_string(DType_ d) {
-  if (d < 0 || d >= NUM_DTYPES) return "unknown";
+  if (d >= NUM_DTYPES) return "unknown";
   return g_dtype_string[d];
 }
 
