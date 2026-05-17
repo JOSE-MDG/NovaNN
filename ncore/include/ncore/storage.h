@@ -31,7 +31,7 @@ typedef union {
   unsigned char *data; ///< Raw byte pointer (serialisation / memcpy).
   float32 *f32;        ///< Pointer to 32-bit float elements.
   float64 *f64;        ///< Pointer to 64-bit float (double) elements.
-  half *half;     ///< Pointer to IEEE 754 half-precision (16-bit) elements.
+  float16 *half;  ///< Pointer to IEEE 754 half-precision (16-bit) elements.
   bfloat16 *bf16; ///< Pointer to Brain Float 16 elements.
   int8 *s8;       ///< Pointer to signed 8-bit integer elements.
   uint8 *u8;      ///< Pointer to unsigned 8-bit integer elements.

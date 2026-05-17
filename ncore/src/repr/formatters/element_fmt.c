@@ -39,8 +39,8 @@ static int fmt_float64(char *buf, size_t cap, const void *ptr,
 static int fmt_float16(char *buf, size_t cap, const void *ptr,
                        const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
-  return float_format_value(buf, cap, (double)*(const half *)ptr, ctx->use_sci,
-                            ctx->effective_precision);
+  return float_format_value(buf, cap, (double)*(const float16 *)ptr,
+                            ctx->use_sci, ctx->effective_precision);
 }
 
 static int fmt_bfloat16(char *buf, size_t cap, const void *ptr,

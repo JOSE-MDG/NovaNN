@@ -129,9 +129,9 @@ float64 *allocate_f64_buffer(size_t bytes, size_t align, Device device) {
  * @param device Target device.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-half *allocate_f16_buffer(size_t bytes, size_t align, Device device) {
+float16 *allocate_f16_buffer(size_t bytes, size_t align, Device device) {
 
-  half *ptr = NULL;
+  float16 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
   NOVA_INTERNAL_ASSERT(
       is_valid_handle(&handle),
@@ -145,7 +145,7 @@ half *allocate_f16_buffer(size_t bytes, size_t align, Device device) {
     return ptr;
   }
   if (device == DEVICE_CPU) {
-    ptr = (half *)get_data_from(&handle);
+    ptr = (float16 *)get_data_from(&handle);
   }
 
   return ptr;

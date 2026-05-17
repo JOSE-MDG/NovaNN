@@ -82,11 +82,6 @@ typedef int64_t nova_s64;
 typedef uint64_t nova_u64;
 
 /**
- * @brief Public type alias for 16-bit half-precision floating-point.
- */
-typedef nova_f16 half;
-
-/**
  * @brief Public type alias for 32-bit floating-point.
  */
 typedef nova_f32 float32;

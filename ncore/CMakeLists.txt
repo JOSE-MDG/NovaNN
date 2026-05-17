@@ -36,3 +36,30 @@ target_compile_options(ncore_core_obj PRIVATE
     $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
 )
+
+# Autograd C++ implementation (RAII wrapper + engine).
+file(GLOB_RECURSE AUTOGRAD_SOURCES
+    "${CMAKE_SOURCE_DIR}/ncore/src/autograd/*.cpp"
+)
+
+add_library(ncore_autograd_obj OBJECT
+    ${AUTOGRAD_SOURCES}
+)
+
+set_target_properties(ncore_autograd_obj PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
+target_include_directories(ncore_autograd_obj
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
+    PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/src>
+)
+
+target_compile_options(ncore_autograd_obj PRIVATE
+    ${COMPILE_FLAGS}
+    ${SIMD_FLAGS}
+    $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
+    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
+)

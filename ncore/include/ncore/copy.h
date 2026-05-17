@@ -11,6 +11,10 @@
 
 #include <ncore/tensor.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Copy function pointer type.
  * @param src Source tensor (read-only).
@@ -36,3 +40,7 @@ typedef copyFn table[NUM_DTYPES];
  * @param dst Destination tensor (must not be is_allocated_).
  */
 void deepcopy(const Tensor *restrict src, Tensor *restrict dst);
+
+#ifdef __cplusplus
+}
+#endif
