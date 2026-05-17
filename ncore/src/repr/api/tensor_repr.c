@@ -64,18 +64,21 @@ static char *repr_internal(const Tensor *ten, const ReprOptions *opts) {
 }
 
 char *tensor_repr(const Tensor *ten) {
+  if (!ten) return NULL;
   ReprOptions opts = repr_default_options();
   opts.mode = REPR_MODE_NORMAL;
   return repr_internal(ten, &opts);
 }
 
 char *tensor_repr_debug(const Tensor *ten) {
+  if (!ten) return NULL;
   ReprOptions opts = repr_default_options();
   opts.mode = REPR_MODE_DEBUG;
   return repr_internal(ten, &opts);
 }
 
 char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts) {
+  if (!ten) return NULL;
   if (!opts) {
     return tensor_repr(ten);
   }
@@ -83,6 +86,7 @@ char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts) {
 }
 
 void tensor_print(const Tensor *ten) {
+  if (!ten) return;
   char *s = tensor_repr(ten);
   if (s) {
     printf("%s\n", s);
@@ -91,6 +95,7 @@ void tensor_print(const Tensor *ten) {
 }
 
 void tensor_print_debug(const Tensor *ten) {
+  if (!ten) return;
   char *s = tensor_repr_debug(ten);
   if (s) {
     printf("%s\n", s);
