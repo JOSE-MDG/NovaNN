@@ -56,7 +56,7 @@ float64 *allocate_f64_buffer(size_t bytes, size_t align, Device device);
  * @param align  Alignment constraint (must be a power of two).
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-half *allocate_f16_buffer(size_t bytes, size_t align, Device device);
+float16 *allocate_f16_buffer(size_t bytes, size_t align, Device device);
 
 /**
  * @brief Allocate a typed bfloat16 buffer.

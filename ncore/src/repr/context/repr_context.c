@@ -128,7 +128,8 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   size_t max_w = 0;
   for (size_t i = 0; i < n; i++) {
     char fmt_buf[128];
-    const void *ptr = (const uint8_t *)ten->data.data + (ten->offset + i * ten->item_size);
+    const void *ptr =
+        (const uint8_t *)ten->data.data + (ten->offset + i * ten->item_size);
     format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &ctx);
     size_t w = strlen(fmt_buf);
     if (w > max_w) {
@@ -139,7 +140,8 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   if (ten->size > n && n > 0) {
     for (size_t i = ten->size - n; i < ten->size; i++) {
       char fmt_buf[128];
-      const void *ptr = (const uint8_t *)ten->data.data + (ten->offset + i * ten->item_size);
+      const void *ptr =
+          (const uint8_t *)ten->data.data + (ten->offset + i * ten->item_size);
       format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &ctx);
       size_t w = strlen(fmt_buf);
       if (w > max_w) {
