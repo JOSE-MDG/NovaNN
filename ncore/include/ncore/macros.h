@@ -29,6 +29,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// C99 `restrict` is not a C++ keyword. Some public headers use `restrict`
+// in their API, so provide a portable definition when compiling as C++.
+#if defined(__cplusplus) && !defined(restrict)
+#define restrict __restrict__
+#endif
+
 /**
  * @brief Align a struct or variable to N bytes.
  *
