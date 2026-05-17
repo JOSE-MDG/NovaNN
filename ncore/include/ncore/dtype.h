@@ -14,6 +14,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct Tensor;
 typedef struct Tensor Tensor;
 
@@ -227,3 +231,7 @@ void cast(const Tensor *restrict src, DType_ target_dtype,
  * @return size_t Size of the dtype in bytes.
  */
 size_t dtype_size(DType_ dtype);
+
+#ifdef __cplusplus
+}
+#endif

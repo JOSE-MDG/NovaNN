@@ -21,6 +21,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Backward pass node for automatic differentiation.
  */
@@ -87,7 +91,7 @@ struct ALIGN(64) Tensor {
   float scale_;          ///< Quantization scale (0 if not quantized)
   int32_t zero_point_;   ///< Quantization zero point (0 if not quantized)
   int64_t version_;      ///< Mutation counter; incremented on every in-place
-                         ///< operation for version-tracking and alias detection.
+                    ///< operation for version-tracking and alias detection.
 };
 
 /**
@@ -242,9 +246,14 @@ bool is_grad_allocated(TensorGrad grad);
  * Inspects the source tensor and produces a new tensor with identical
  * metadata.  If the source is allocated, the result is also allocated;
  * otherwise an unallocated tensor is returned.  Scalar tensors are
- * handled specially via create_scalar_tensor / create_unallocated_scalar_tensor.
+ * handled specially via create_scalar_tensor /
+ * create_unallocated_scalar_tensor.
  *
  * @param ten Source tensor to copy metadata from.
  * @return New tensor with matching shape, dtype, device, and requires_grad.
  */
 Tensor create_tensor_like(const Tensor *ten);
+
+#ifdef __cplusplus
+}
+#endif
