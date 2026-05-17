@@ -86,6 +86,8 @@ struct ALIGN(64) Tensor {
   bool is_allocated_;    ///< If true, tensor is allocated in memory
   float scale_;          ///< Quantization scale (0 if not quantized)
   int32_t zero_point_;   ///< Quantization zero point (0 if not quantized)
+  int64_t version_;      ///< Version counter (Increases by one when an in-place
+                         ///< operation if performed)
 };
 
 /**
