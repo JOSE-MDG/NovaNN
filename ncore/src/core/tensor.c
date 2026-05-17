@@ -50,6 +50,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
   tensor.grad_fn_ = NULL;
   tensor.scale_ = 1.0F;
   tensor.zero_point_ = 0;
+  tensor.version_ = 0;
   compute_tensor_size_(&tensor, shape);
   compute_tensor_strides_(&tensor, ndims, shape, tensor.item_size);
 
@@ -110,6 +111,7 @@ Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad) {
   tensor.grad_fn_ = NULL;
   tensor.scale_ = 1.0F;
   tensor.zero_point_ = 0;
+  tensor.version_ = 0;
 
   TensorStorage *storage =
       allocate_tensor_buffer(tensor.item_size * tensor.size, tensor.device);
@@ -241,6 +243,7 @@ void collect(Tensor *ten) {
       free(ten->storage);
       ten->storage = NULL;
       ten->data.data = NULL;
+      ten->is_allocated_ = false;
     }
   }
 

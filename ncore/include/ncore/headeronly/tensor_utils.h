@@ -126,6 +126,7 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
   tensor.storage = NULL;
   tensor.data.data = NULL;
   tensor.is_allocated_ = false;
+  tensor.version_ = 0;
   compute_tensor_size_(&tensor, shape);
   compute_tensor_strides_(&tensor, ndims, shape, tensor.item_size);
   return tensor;
@@ -183,6 +184,7 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
   tensor.storage = NULL;
   tensor.data.data = NULL;
   tensor.is_allocated_ = false;
+  tensor.version_ = 0;
   return tensor;
 }
 
