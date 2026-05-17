@@ -1,8 +1,13 @@
 # Force language detection
 *.rs linguist-detectable=true
-*.c  linguist-detectable=true
+*.c linguist-detectable=true
+*.cpp linguist-detectable=true
+*.cmake linguist-detectable=true
 
 # Explicit asignment to avoid indentification errors
-*.rs  linguist-language=Rust
-*.py  linguist-language=Python
-*.c   linguist-language=C
+*.rs linguist-language=Rust
+*.py linguist-language=Python
+*.c linguist-language=C
+*.cpp linguist-language=C++
+*.hpp linguist-language=C++
+*.cmake linguist-language=CMake
