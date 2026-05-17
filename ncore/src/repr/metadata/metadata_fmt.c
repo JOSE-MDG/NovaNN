@@ -31,9 +31,15 @@ static const char *g_dtype_string[NUM_DTYPES] = {
 static const char *g_device_string[3] = {
     [DEVICE_CPU] = "cpu", [DEVICE_GPU] = "cuda", [DEVICE_META] = "meta"};
 
-static const char *dtype_string(DType_ d) { return g_dtype_string[d]; }
+static const char *dtype_string(DType_ d) {
+  if (d < 0 || d >= NUM_DTYPES) return "unknown";
+  return g_dtype_string[d];
+}
 
-static const char *device_string(Device d) { return g_device_string[d]; }
+static const char *device_string(Device d) {
+  if ((int)d < 0 || (int)d >= 3) return "unknown";
+  return g_device_string[d];
+}
 
 void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
   const Tensor *ten = ctx->tensor;
@@ -105,7 +111,7 @@ void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
     sb_append(sb, ", grad_fn=<BackwardNode>");
   } else {
     sb_append(sb, ", requires_grad=");
-    sb_append(sb, (int)ten->requires_grad_ ? "True" : "False");
+    sb_append(sb, ten->requires_grad_ ? "True" : "False");
   }
 
   sb_append(sb, ")");
