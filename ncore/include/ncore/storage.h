@@ -31,16 +31,16 @@ typedef union {
   unsigned char *data; ///< Raw byte pointer (serialisation / memcpy).
   float32 *f32;        ///< Pointer to 32-bit float elements.
   float64 *f64;        ///< Pointer to 64-bit float (double) elements.
-  half *half;          ///< Pointer to IEEE 754 half-precision (16-bit) elements.
-  bfloat16 *bf16;      ///< Pointer to Brain Float 16 elements.
-  int8 *s8;            ///< Pointer to signed 8-bit integer elements.
-  uint8 *u8;           ///< Pointer to unsigned 8-bit integer elements.
-  int32 *s32;          ///< Pointer to signed 32-bit integer elements.
-  uint32 *u32;         ///< Pointer to unsigned 32-bit integer elements.
-  int64 *s64;          ///< Pointer to signed 64-bit integer elements.
-  uint64 *u64;         ///< Pointer to unsigned 64-bit integer elements.
-  qint8 *qs8;          ///< Pointer to quantised signed 8-bit elements.
-  quint8 *qu8;         ///< Pointer to quantised unsigned 8-bit elements.
+  half *half;     ///< Pointer to IEEE 754 half-precision (16-bit) elements.
+  bfloat16 *bf16; ///< Pointer to Brain Float 16 elements.
+  int8 *s8;       ///< Pointer to signed 8-bit integer elements.
+  uint8 *u8;      ///< Pointer to unsigned 8-bit integer elements.
+  int32 *s32;     ///< Pointer to signed 32-bit integer elements.
+  uint32 *u32;    ///< Pointer to unsigned 32-bit integer elements.
+  int64 *s64;     ///< Pointer to signed 64-bit integer elements.
+  uint64 *u64;    ///< Pointer to unsigned 64-bit integer elements.
+  qint8 *qs8;     ///< Pointer to quantised signed 8-bit elements.
+  quint8 *qu8;    ///< Pointer to quantised unsigned 8-bit elements.
 } data_ptr;
 
 /**
@@ -51,9 +51,9 @@ typedef union {
  * on the Rust side; this struct is a thin FFI bridge.
  */
 typedef struct {
-  int64_t id;          ///< Unique identifier for the allocation.
-  size_t size_bytes;   ///< Usable size of the allocation in bytes.
-  size_t align;        ///< Alignment constraint (e.g., 64 for cache-line alignment).
+  int64_t id;        ///< Unique identifier for the allocation.
+  size_t size_bytes; ///< Usable size of the allocation in bytes.
+  size_t align; ///< Alignment constraint (e.g., 64 for cache-line alignment).
 } RustHandle;
 
 /**
@@ -99,10 +99,6 @@ void *get_data_from(RustHandle *handle);
  */
 bool is_valid_handle(RustHandle *handle);
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif /* __cplusplus */
-
 /**
  * @brief Complete tensor storage descriptor.
  *
@@ -110,8 +106,12 @@ bool is_valid_handle(RustHandle *handle);
  * handle so that the Tensor struct can manage memory transparently.
  */
 typedef struct {
-  data_ptr ptr;        ///< Typed pointer to the data buffer.
-  size_t size_bytes;   ///< Total capacity in bytes.
-  size_t align;        ///< Alignment of the buffer.
-  RustHandle handle;   ///< Rust FFI handle for reference counting.
+  data_ptr ptr;      ///< Typed pointer to the data buffer.
+  size_t size_bytes; ///< Total capacity in bytes.
+  size_t align;      ///< Alignment of the buffer.
+  RustHandle handle; ///< Rust FFI handle for reference counting.
 } TensorStorage;
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
