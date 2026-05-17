@@ -37,7 +37,7 @@ static const char *dtype_string(DType_ d) {
 }
 
 static const char *device_string(Device d) {
-  if ((int)d < 0 || (int)d >= 3) return "unknown";
+  if ((int)d >= 3) return "unknown";
   return g_device_string[d];
 }
 
