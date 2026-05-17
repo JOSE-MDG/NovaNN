@@ -48,15 +48,16 @@ static bool is_quantized_dtype(DType_ d) {
  * switch rather than adding a second dispatch path.
  */
 static double get_float_value(const Tensor *ten, size_t idx) {
+  const size_t elem_off = ten->offset / ten->item_size + idx;
   switch (ten->dtype) {
   case Float32:
-    return (double)ten->data.f32[idx];
+    return (double)ten->data.f32[elem_off];
   case Float64:
-    return ten->data.f64[idx];
+    return ten->data.f64[elem_off];
   case Float16:
-    return (double)ten->data.half[idx];
+    return (double)ten->data.half[elem_off];
   case BFloat16:
-    return (double)ten->data.bf16[idx];
+    return (double)ten->data.bf16[elem_off];
   default:
     return 0.0;
   }
@@ -66,17 +67,17 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   ReprContext ctx;
   memset(&ctx, 0, sizeof(ctx));
   ctx.tensor = ten;
-  ctx.options = *opts;
+  ctx.options = opts ? *opts : repr_default_options();
   ctx.is_float = is_float_dtype(ten->dtype);
   ctx.is_integer = is_integer_dtype(ten->dtype);
   ctx.is_quantized = is_quantized_dtype(ten->dtype);
-  ctx.is_bool = opts->is_bool;
+  ctx.is_bool = opts ? opts->is_bool : false;
   ctx.is_scalar = (ten->ndims == 0);
   ctx.is_meta = (ten->device == DEVICE_META);
   ctx.is_gpu = (ten->device == DEVICE_GPU);
-  ctx.effective_precision = opts->precision;
-  ctx.is_summarized = (ten->size > opts->threshold);
-  ctx.use_sci = opts->sci_mode;
+  ctx.effective_precision = opts ? opts->precision : 4;
+  ctx.is_summarized = (ten->size > ctx.options.threshold);
+  ctx.use_sci = opts ? opts->sci_mode : false;
 
   size_t n = ten->size > 1000 ? 1000 : ten->size;
 
@@ -87,7 +88,9 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   }
 
   /* --- Scientific-notation auto-detection --- */
-  if (ctx.is_float && opts->sci_mode_auto && !opts->sci_mode && n > 0) {
+  const bool sci_mode_auto = opts ? opts->sci_mode_auto : true;
+  const bool sci_mode = opts ? opts->sci_mode : false;
+  if (ctx.is_float && sci_mode_auto && !sci_mode && n > 0) {
     double max_abs = 0.0;
     double min_nonzero_abs = 1e100;
     bool found = false;
@@ -125,7 +128,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   size_t max_w = 0;
   for (size_t i = 0; i < n; i++) {
     char fmt_buf[128];
-    const void *ptr = (const uint8_t *)ten->data.data + (i * ten->item_size);
+    const void *ptr = (const uint8_t *)ten->data.data + (ten->offset + i * ten->item_size);
     format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &ctx);
     size_t w = strlen(fmt_buf);
     if (w > max_w) {
@@ -136,7 +139,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   if (ten->size > n && n > 0) {
     for (size_t i = ten->size - n; i < ten->size; i++) {
       char fmt_buf[128];
-      const void *ptr = (const uint8_t *)ten->data.data + (i * ten->item_size);
+      const void *ptr = (const uint8_t *)ten->data.data + (ten->offset + i * ten->item_size);
       format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &ctx);
       size_t w = strlen(fmt_buf);
       if (w > max_w) {
