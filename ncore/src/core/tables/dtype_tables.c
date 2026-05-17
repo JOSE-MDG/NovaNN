@@ -93,7 +93,7 @@ const bool quantized_unsigned_integer[NUM_DTYPES][1] = {
  *
  * Contains the size for each data type
  */
-const size_t lookup_dtype_sizes[NUM_DTYPES] = {[Float16] = sizeof(half),
+const size_t lookup_dtype_sizes[NUM_DTYPES] = {[Float16] = sizeof(float16),
                                                [BFloat16] = sizeof(bfloat16),
                                                [Float32] = sizeof(float32),
                                                [Float64] = sizeof(float64),
