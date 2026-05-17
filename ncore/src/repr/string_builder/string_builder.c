@@ -42,12 +42,14 @@ static void sb_grow(StringBuilder *sb, size_t needed) {
     }
     return;
   }
-  while (sb->cap < needed) {
-    sb->cap *= 2;
+  size_t new_cap = sb->cap;
+  while (new_cap < needed) {
+    new_cap *= 2;
   }
-  char *new_buf = (char *)realloc(sb->buf, sb->cap);
+  char *new_buf = (char *)realloc(sb->buf, new_cap);
   if (new_buf) {
     sb->buf = new_buf;
+    sb->cap = new_cap;
   }
 }
 

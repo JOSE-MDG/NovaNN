@@ -151,6 +151,6 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
 }
 
 void summarized_layout_render(const ReprContext *ctx, StringBuilder *sb) {
-  size_t coords[64] = {0};
+  size_t coords[NOVA_MAX_DIMS] = {0};
   render_range(sb, ctx, 0, 7, coords);
 }

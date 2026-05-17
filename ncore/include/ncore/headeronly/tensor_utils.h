@@ -15,6 +15,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Multi-dimensional coordinate array type.
+ *
+ * Fixed-size array of NOVA_MAX_DIMS elements representing a position
+ * within an n-dimensional tensor.  Used by iteration and indexing
+ * utilities.
+ */
 typedef size_t coords_t[NOVA_MAX_DIMS];
 
 /**
@@ -95,6 +102,47 @@ static inline void compute_grad_tensor_size_(TensorGrad grad,
 }
 
 /**
+ * @brief Compute the linear byte offset from multi-dimensional coordinates.
+ *
+ * Applies the standard strided offset formula:
+ *   offset = sum(coords[dim] * strides[dim]) for all dim.
+ *
+ * @param coords  Multi-dimensional coordinates.
+ * @param ndims   Number of dimensions.
+ * @param strides Per-dimension stride values (in bytes).
+ * @return Byte offset from the start of the data buffer.
+ */
+static inline size_t compute_linear_byte_offset(const coords_t coords,
+                                                size_t ndims,
+                                                const strides_t strides) {
+  size_t offset = 0;
+  for (size_t dim = 0; dim < ndims; dim++) {
+    offset += coords[dim] * strides[dim];
+  }
+  return offset;
+}
+
+/**
+ * @brief Reconstruct multi-dimensional coordinates from a linear byte offset.
+ *
+ * Performs the inverse of compute_linear_byte_offset() by repeatedly
+ * dividing the offset by each dimension's stride to recover the
+ * coordinate along that axis.
+ *
+ * @param offset  Linear byte offset into the data buffer.
+ * @param ndims   Number of dimensions.
+ * @param coords  Output array (written in-place).
+ * @param strides Per-dimension stride values (in bytes).
+ */
+static inline void compute_coords_given_linear_byte_offset_(
+    size_t offset, size_t ndims, coords_t coords, const strides_t strides) {
+  for (size_t dim = 0; dim < ndims; dim++) {
+    coords[dim] = (offset / strides[dim]);
+    offset %= strides[dim];
+  }
+}
+
+/**
  * @brief Create a tensor without allocating a data buffer.
  *
  * @param shape         Dimension sizes.
@@ -126,6 +174,7 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
   tensor.storage = NULL;
   tensor.data.data = NULL;
   tensor.is_allocated_ = false;
+  tensor.version_ = 0;
   compute_tensor_size_(&tensor, shape);
   compute_tensor_strides_(&tensor, ndims, shape, tensor.item_size);
   return tensor;
@@ -183,6 +232,7 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
   tensor.storage = NULL;
   tensor.data.data = NULL;
   tensor.is_allocated_ = false;
+  tensor.version_ = 0;
   return tensor;
 }
 
