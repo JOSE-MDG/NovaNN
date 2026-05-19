@@ -147,7 +147,8 @@ Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad) {
  * Inspects the source tensor and produces a new tensor with identical
  * metadata.  If the source is allocated, the result is also allocated;
  * otherwise an unallocated tensor is returned.  Scalar tensors are
- * handled specially via create_scalar_tensor / create_unallocated_scalar_tensor.
+ * handled specially via create_scalar_tensor /
+ * create_unallocated_scalar_tensor.
  *
  * @param ten Source tensor to copy metadata from.
  * @return New tensor with matching shape, dtype, device, and requires_grad.
