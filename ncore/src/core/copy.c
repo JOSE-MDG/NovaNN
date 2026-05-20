@@ -263,7 +263,7 @@ static copyFn *lookup_copy[2] = {
 };
 
 /**
- * @brief Deep-copy a tensor: allocate new storage and copy element data.
+ * @brief Deep-copy a tensor: Copies the elements of one tensor to another.
  *
  * Copies all static metadata from src to dst, allocates a fresh buffer
  * via allocate_tensor_buffer(), then dispatches through the
