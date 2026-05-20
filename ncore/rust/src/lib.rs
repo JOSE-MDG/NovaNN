@@ -3,6 +3,7 @@
 pub mod error;
 pub mod ffi;
 pub mod handle;
+pub mod id;
 pub mod manager;
 pub mod ops;
 pub mod storage;
