@@ -1,13 +1,9 @@
-//! Handle generation for storage entries.
-
-use std::sync::atomic::{AtomicU64, Ordering};
-
-/// ID 0 is reserved as the sentinel "invalid" value.
-static NEXT_ID: AtomicU64 = AtomicU64::new(1);
-
-pub fn next_id() -> u64 {
-    NEXT_ID.fetch_add(1, Ordering::Relaxed)
-}
+//! FFI-safe handle type for storage entries.
+//!
+//! Provides [`RustHandle`], a `repr(C)` struct that is shared across
+//! the C/Rust boundary. Each handle carries a unique ID used to look
+//! up the corresponding storage in the global registry, along with
+//! cached metadata (size, alignment).
 
 /// Shared across FFI boundaries. Must stay `repr(C)` and trivially copyable.
 #[repr(C)]
