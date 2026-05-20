@@ -1,7 +1,7 @@
 //! Low-level memory allocation and management.
 
 use crate::error::StorageError;
-use std::alloc::{alloc, dealloc, realloc, Layout};
+use std::alloc::{Layout, alloc, dealloc, realloc};
 
 /// Low-level storage holding allocated memory and metadata.
 pub struct RustStorage {
