@@ -42,7 +42,7 @@ CheckOptions:
   bugprone-suspicious-string-compare.WarnOnImplicitComparison: false
   modernize-use-nullptr.NullMacros: "NULL"
   readability-identifier-naming.EnumCase: "CamelCase"
-  readability-identifier-naming.FunctionCase: "snake_case"
-  readability-identifier-naming.VariableCase: "snake_case"
+  readability-identifier-naming.FunctionCase: "lower_case"
+  readability-identifier-naming.VariableCase: "lower_case"
   readability-identifier-naming.MacroDefinitionCase: "UPPER_CASE"
   readability-braces-around-statements.ShortStatementLines: 1
