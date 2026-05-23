@@ -9,6 +9,13 @@
  */
 
 #include "hip_allocator.hpp"
+
+#if __has_include(<hip/hip_runtime_api.h>)
+// clangd/clang-tidy runs may not define a HIP platform macro, but the HIP
+// headers require exactly one platform to be set.
+#if !defined(__HIP_PLATFORM_AMD__) && !defined(__HIP_PLATFORM_NVIDIA__)
+#define __HIP_PLATFORM_AMD__ 1
+#endif
 #include <hip/hip_runtime_api.h>
 
 /**
@@ -28,29 +35,6 @@ static int map_hip_error(hipError_t err) {
     return 2;
   default:
     return -1;
-  }
-}
-
-/**
- * @brief Return a human-readable description for an application-level
- *        HIP status code.
- *
- * @param code Status code produced by map_hip_error().
- * @return Static string describing the error (never NULL).
- */
-static const char *hip_error_msg(int code) {
-  switch (code) {
-  case 0:
-    return "ok";
-  case 1:
-    return "hipErrorInvalidValue: one or more parameters is invalid (e.g., "
-           "null pointer, misaligned size, or out-of-range argument)";
-  case 2:
-    return "hipErrorMemoryAllocation: the device or host memory allocation "
-           "failed — possible causes: out of memory, fragmented heap, or "
-           "driver limit reached";
-  default:
-    return "unknown hip error: an unrecognized HIP driver API error occurred";
   }
 }
 
@@ -95,7 +79,7 @@ HipStatus_t hip_reserve(std::size_t bytes, std::size_t align, bool pinned,
 
   const int code = map_hip_error(err);
   if (code != 0) {
-    return HipStatus_t{.code = code, .msg = hip_error_msg(code)};
+    return HipStatus_t{.code = code, .msg = hipGetErrorString(err)};
   }
 
   *out = HipBuffer_t{.ptr = ptr, .bytes = alloc_bytes, .is_pinned = pinned};
@@ -127,9 +111,25 @@ HipStatus_t hip_release(HipBuffer_t *buf) {
 
   const int code = map_hip_error(err);
   if (code != 0) {
-    return HipStatus_t{.code = code, .msg = hip_error_msg(code)};
+    return HipStatus_t{.code = code, .msg = hipGetErrorString(err)};
   }
 
   *buf = HipBuffer_t{};
   return HIP_OK;
 }
+
+#else
+
+HipStatus_t hip_reserve(std::size_t, std::size_t, bool, HipBuffer_t *) {
+  return HipStatus_t{
+      .code = -1,
+      .msg = "HIP runtime headers not available at build/lint time"};
+}
+
+HipStatus_t hip_release(HipBuffer_t *) {
+  return HipStatus_t{
+      .code = -1,
+      .msg = "HIP runtime headers not available at build/lint time"};
+}
+
+#endif
