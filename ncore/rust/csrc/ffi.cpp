@@ -1,19 +1,22 @@
 /**
  * @file ffi.cpp
- * @brief Dispatch layer that routes allocation requests to the CUDA or HIP
+ * @brief Dispatch layer that routes memory requests to the CUDA or HIP
  *        backend at run time.
  *
  * device_reserve instantiates a backend-specific buffer descriptor on the
  * stack, calls the corresponding reserve function, and copies the result
  * into the generic DeviceBuffer_t / DeviceStatus_t structures.
  * device_release reads the device_kind field and calls the matching backend
- * free routine.
+ * free routine. device_memcpy queries the active backend and forwards the
+ * copy request without exposing CUDA or HIP runtime enums to callers.
  */
 
 #include "ffi.hpp"
-#include "device/admin.hpp"
 #include "device/cuda/cuda_allocator.hpp"
+#include "device/cuda/cuda_io.hpp"
 #include "device/hip/hip_allocator.hpp"
+#include "device/hip/hip_io.hpp"
+#include <cstdlib>
 #include <cstring>
 
 /**
@@ -45,7 +48,7 @@ device_reserve_dispatch(std::size_t bytes, bool pinned, std::size_t align,
   *status = func_kind(bytes, align, pinned, buf);
 
   dstatus->code = status->code;
-  dstatus->message = std::string(status->msg);
+  dstatus->message = status->msg;
 
   dbuf->ptr = buf->ptr;
   dbuf->bytes = buf->bytes;
@@ -114,4 +117,40 @@ DeviceStatus_t device_release(DeviceBuffer_t *buf) {
   }
 
   return dstatus;
+}
+
+/**
+ * @brief Copy bytes using the currently active GPU backend.
+ *
+ * CUDA is used when get_device_backend() reports DeviceCUDA; HIP is used
+ * when it reports DeviceHIP. If no backend is available, the returned status
+ * has code -1 and a descriptive message.
+ *
+ * @param src       Source pointer.
+ * @param dst       Destination pointer.
+ * @param is_pinned Whether the host-side buffer is pinned/page-locked.
+ * @param kind      Device-agnostic copy direction.
+ * @param bytes     Number of bytes to copy.
+ * @return DeviceStatus_t populated from the selected backend status.
+ */
+DeviceStatus_t device_memcpy(const void *src, void *dst, bool is_pinned,
+                             DeviceMemcpyKind kind, std::size_t bytes) {
+  DeviceStatus_t status = {};
+  DeviceKind_t device = get_device_backend();
+
+  if (device == DeviceKind_t::DeviceCUDA) {
+    CudaStatus_t cstatus = cuda_memcpy(bytes, kind, src, dst, is_pinned);
+    status.code = cstatus.code;
+    status.message = cstatus.msg;
+    return status;
+  }
+  if (device == DeviceKind_t::DeviceHIP) {
+    HipStatus_t hstatus = hip_memcpy(bytes, kind, src, dst, is_pinned);
+    status.code = hstatus.code;
+    status.message = hstatus.msg;
+    return status;
+  }
+  status.code = -1;
+  status.message = "No device was found";
+  return status;
 }

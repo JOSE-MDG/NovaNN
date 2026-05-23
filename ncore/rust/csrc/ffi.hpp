@@ -1,17 +1,16 @@
 /**
  * @file ffi.hpp
- * @brief C-FFI boundary for device-agnostic memory allocation.
+ * @brief C-FFI boundary for device-agnostic memory management.
  *
  * Provides a unified interface that dispatches to either the CUDA or
- * the HIP backend at run time.  Client code may use device_reserve /
- * device_release without knowing which GPU runtime is active.
+ * the HIP backend at run time. Client code may allocate, release, and copy
+ * device memory without including CUDA or HIP runtime headers directly.
  */
 
 #pragma once
 
 #include "device/admin.hpp"
 #include <cstddef>
-#include <string>
 
 /**
  * @brief Opaque descriptor for an allocated device buffer.
@@ -33,14 +32,30 @@ struct DeviceBuffer_t {
 };
 
 /**
- * @brief Result type returned by device_reserve and device_release.
+ * @brief Result type returned by device management operations.
  *
  * @var code     Zero on success, a positive error code on failure.
  * @var message  Human-readable error description.
  */
 struct DeviceStatus_t {
   int code = 0;
-  std::string message = "ok";
+  const char *message = "ok";
+};
+
+/**
+ * @brief Device-agnostic memory copy direction.
+ *
+ * Mirrors the host/device copy directions supported by CUDA and HIP while
+ * keeping runtime-specific enums out of public csrc headers.
+ *
+ * @var deviceMemcpyHostToDevice Copy from host memory into device memory.
+ * @var deviceMemcpyDeviceToHost Copy from device memory into host memory.
+ * @var deviceMemcpyDeviceToDevice Copy between two device-memory pointers.
+ */
+enum class DeviceMemcpyKind : std::int8_t {
+  deviceMemcpyHostToDevice = 1,
+  deviceMemcpyDeviceToHost = 2,
+  deviceMemcpyDeviceToDevice = 3
 };
 
 extern "C" {
@@ -79,4 +94,20 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
  *         code with a descriptive message on failure.
  */
 DeviceStatus_t device_release(DeviceBuffer_t *buf);
+
+/**
+ * @brief Copy memory through the active backend.
+ *
+ * Dispatches to cuda_memcpy or hip_memcpy according to get_device_backend().
+ * If the active backend is DeviceNull, an error status is returned.
+ *
+ * @param src       Source pointer.
+ * @param dst       Destination pointer.
+ * @param is_pinned Whether the host-side pointer is pinned/page-locked.
+ * @param kind      Device-agnostic copy direction.
+ * @param bytes     Number of bytes to copy.
+ * @return DeviceStatus_t with code 0 on success, or a backend-specific error.
+ */
+DeviceStatus_t device_memcpy(const void *src, void *dst, bool is_pinned,
+                             DeviceMemcpyKind kind, std::size_t bytes);
 }
