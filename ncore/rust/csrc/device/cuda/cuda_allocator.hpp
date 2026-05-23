@@ -4,7 +4,7 @@
  *
  * Provides a thin wrapper around cudaMalloc / cudaMallocHost and
  * cudaFree / cudaFreeHost, with alignment support and descriptive
- * error reporting via CudaStatus.
+ * error reporting via CudaStatus_t.
  */
 
 #pragma once
@@ -39,7 +39,7 @@ struct CudaStatus_t {
   explicit operator bool() const noexcept { return code == 0; }
 };
 
-/** @brief Shorthand for a successful CudaStatus. */
+/** @brief Shorthand for a successful CudaStatus_t. */
 inline constexpr CudaStatus_t CUDA_OK{.code = 0, .msg = "ok"};
 
 /**
@@ -56,7 +56,7 @@ inline constexpr CudaStatus_t CUDA_OK{.code = 0, .msg = "ok"};
  *               cudaMalloc.
  * @param out    Output buffer descriptor (only valid when the returned
  *               status is CUDA_OK).
- * @return CudaStatus with code 0 on success, or a positive error code
+ * @return CudaStatus_t with code 0 on success, or a positive error code
  *         with a descriptive message on failure.
  */
 CudaStatus_t cuda_reserve(std::size_t bytes, std::size_t align, bool pinned,
@@ -70,7 +70,7 @@ CudaStatus_t cuda_reserve(std::size_t bytes, std::size_t align, bool pinned,
  *
  * @param buf Pointer to the buffer descriptor to free.  If buf or
  *            buf->ptr is NULL the function returns an error status.
- * @return CudaStatus with code 0 on success, or a positive error code
+ * @return CudaStatus_t with code 0 on success, or a positive error code
  *         with a descriptive message on failure.
  */
 CudaStatus_t cuda_release(CudaBuffer_t *buf);

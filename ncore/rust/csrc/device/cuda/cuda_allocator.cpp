@@ -108,12 +108,18 @@ CudaStatus_t cuda_release(CudaBuffer_t *buf) {
 
 #else
 
+/**
+ * @brief Fallback allocation entry point when CUDA headers are unavailable.
+ */
 CudaStatus_t cuda_reserve(std::size_t, std::size_t, bool, CudaBuffer_t *) {
   return CudaStatus_t{
       .code = -1,
       .msg = "CUDA runtime headers not available at build/lint time"};
 }
 
+/**
+ * @brief Fallback release entry point when CUDA headers are unavailable.
+ */
 CudaStatus_t cuda_release(CudaBuffer_t *) {
   return CudaStatus_t{
       .code = -1,
