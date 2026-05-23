@@ -88,10 +88,11 @@ struct ALIGN(64) Tensor {
   bool is_view_;         ///< If true, tensor is a view of another tensor
   bool is_leaf_;         ///< If true, tensor is a leaf in computation graph
   bool is_allocated_;    ///< If true, tensor is allocated in memory
-  float scale_;          ///< Quantization scale (0 if not quantized)
-  int32_t zero_point_;   ///< Quantization zero point (0 if not quantized)
-  int64_t version_;      ///< Mutation counter; incremented on every in-place
-                    ///< operation for version-tracking and alias detection.
+  bool is_pinned; ///< If true, tensor is allocated to a paged-memory location
+  float scale_;   ///< Quantization scale (0 if not quantized)
+  int32_t zero_point_; ///< Quantization zero point (0 if not quantized)
+  int64_t version_;    ///< Mutation counter; incremented on every in-place
+                       ///< operation for version-tracking and alias detection.
 };
 
 /**
@@ -105,12 +106,13 @@ struct ALIGN(64) Tensor {
  * @param dtype         Element data type.
  * @param device        Target device (CPU, GPU, or META).
  * @param requires_grad If true, an unallocated gradient tensor is created.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @param ndims         Number of dimensions.
  * @return Initialised Tensor with backing storage (or NULL storage for
  *         DEVICE_META).
  */
 Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
-                     bool requires_grad, size_t ndims);
+                     bool requires_grad, bool pin_memory, size_t ndims);
 
 /**
  * @brief Create a fully allocated 0-dimensional (scalar) tensor.
@@ -121,9 +123,11 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
  * @param dtype         Element data type.
  * @param device        Target device (CPU, GPU, or META).
  * @param requires_grad If true, an unallocated gradient tensor is created.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Initialised scalar Tensor with backing storage.
  */
-Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad);
+Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad,
+                            bool pin_memory);
 
 /**
  * @brief Create a view of an existing tensor with a new shape.
