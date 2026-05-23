@@ -9,6 +9,8 @@
  */
 
 #include "cuda_allocator.hpp"
+
+#if __has_include(<cuda_runtime_api.h>)
 #include <cuda_runtime_api.h>
 
 /**
@@ -28,29 +30,6 @@ static int map_cuda_error(cudaError_t err) {
     return 2;
   default:
     return -1;
-  }
-}
-
-/**
- * @brief Return a human-readable description for an application-level
- *        CUDA status code.
- *
- * @param code Status code produced by map_cuda_error().
- * @return Static string describing the error (never NULL).
- */
-static const char *cuda_error_msg(int code) {
-  switch (code) {
-  case 0:
-    return "ok";
-  case 1:
-    return "cudaErrorInvalidValue: one or more parameters is invalid (e.g., "
-           "null pointer, misaligned size, or out-of-range argument)";
-  case 2:
-    return "cudaErrorMemoryAllocation: the device or host memory allocation "
-           "failed — possible causes: out of memory, fragmented heap, or "
-           "driver limit reached";
-  default:
-    return "unknown cuda error: an unrecognized CUDA driver API error occurred";
   }
 }
 
@@ -92,7 +71,7 @@ CudaStatus_t cuda_reserve(std::size_t bytes, std::size_t align, bool pinned,
                                  : cudaMalloc(&ptr, alloc_bytes);
   const int code = map_cuda_error(err);
   if (code != 0) {
-    return CudaStatus_t{.code = code, .msg = cuda_error_msg(code)};
+    return CudaStatus_t{.code = code, .msg = cudaGetErrorString(err)};
   }
   *out = CudaBuffer_t{.ptr = ptr, .bytes = alloc_bytes, .is_pinned = pinned};
   return CUDA_OK;
@@ -121,8 +100,24 @@ CudaStatus_t cuda_release(CudaBuffer_t *buf) {
       buf->is_pinned ? cudaFreeHost(buf->ptr) : cudaFree(buf->ptr);
   const int code = map_cuda_error(err);
   if (code != 0) {
-    return CudaStatus_t{.code = code, .msg = cuda_error_msg(code)};
+    return CudaStatus_t{.code = code, .msg = cudaGetErrorString(err)};
   }
   *buf = CudaBuffer_t{};
   return CUDA_OK;
 }
+
+#else
+
+CudaStatus_t cuda_reserve(std::size_t, std::size_t, bool, CudaBuffer_t *) {
+  return CudaStatus_t{
+      .code = -1,
+      .msg = "CUDA runtime headers not available at build/lint time"};
+}
+
+CudaStatus_t cuda_release(CudaBuffer_t *) {
+  return CudaStatus_t{
+      .code = -1,
+      .msg = "CUDA runtime headers not available at build/lint time"};
+}
+
+#endif
