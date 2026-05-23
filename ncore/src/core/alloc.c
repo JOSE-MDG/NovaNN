@@ -27,11 +27,13 @@
  * Reserves a 64-byte-aligned Rust allocation, allocates a TensorStorage
  * struct on the heap (CPU only), and wires them together.
  *
- * @param bytes  Requested buffer size in bytes.
+ * @param bytes Requested buffer size in bytes.
  * @param device Target device (CPU, GPU, or META).
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to a newly allocated TensorStorage, or NULL on failure.
  */
-TensorStorage *allocate_tensor_buffer(size_t bytes, Device device) {
+TensorStorage *allocate_tensor_buffer(size_t bytes, Device device,
+                                      bool pin_memory) {
 
   TensorStorage *storage = NULL;
 
@@ -69,9 +71,11 @@ TensorStorage *allocate_tensor_buffer(size_t bytes, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-float32 *allocate_f32_buffer(size_t bytes, size_t align, Device device) {
+float32 *allocate_f32_buffer(size_t bytes, size_t align, Device device,
+                             bool pin_memory) {
 
   float32 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -98,9 +102,11 @@ float32 *allocate_f32_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-float64 *allocate_f64_buffer(size_t bytes, size_t align, Device device) {
+float64 *allocate_f64_buffer(size_t bytes, size_t align, Device device,
+                             bool pin_memory) {
 
   float64 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -127,9 +133,11 @@ float64 *allocate_f64_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-float16 *allocate_f16_buffer(size_t bytes, size_t align, Device device) {
+float16 *allocate_f16_buffer(size_t bytes, size_t align, Device device,
+                             bool pin_memory) {
 
   float16 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -156,9 +164,11 @@ float16 *allocate_f16_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-bfloat16 *allocate_bf16_buffer(size_t bytes, size_t align, Device device) {
+bfloat16 *allocate_bf16_buffer(size_t bytes, size_t align, Device device,
+                               bool pin_memory) {
 
   bfloat16 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -185,9 +195,11 @@ bfloat16 *allocate_bf16_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-int8 *allocate_s8_buffer(size_t bytes, size_t align, Device device) {
+int8 *allocate_s8_buffer(size_t bytes, size_t align, Device device,
+                         bool pin_memory) {
 
   int8 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -214,9 +226,11 @@ int8 *allocate_s8_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-uint8 *allocate_u8_buffer(size_t bytes, size_t align, Device device) {
+uint8 *allocate_u8_buffer(size_t bytes, size_t align, Device device,
+                          bool pin_memory) {
 
   uint8 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -243,9 +257,11 @@ uint8 *allocate_u8_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-int32 *allocate_s32_buffer(size_t bytes, size_t align, Device device) {
+int32 *allocate_s32_buffer(size_t bytes, size_t align, Device device,
+                           bool pin_memory) {
 
   int32 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -272,9 +288,11 @@ int32 *allocate_s32_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-uint32 *allocate_u32_buffer(size_t bytes, size_t align, Device device) {
+uint32 *allocate_u32_buffer(size_t bytes, size_t align, Device device,
+                            bool pin_memory) {
 
   uint32 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -301,9 +319,11 @@ uint32 *allocate_u32_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-int64 *allocate_s64_buffer(size_t bytes, size_t align, Device device) {
+int64 *allocate_s64_buffer(size_t bytes, size_t align, Device device,
+                           bool pin_memory) {
 
   int64 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -330,9 +350,11 @@ int64 *allocate_s64_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-uint64 *allocate_u64_buffer(size_t bytes, size_t align, Device device) {
+uint64 *allocate_u64_buffer(size_t bytes, size_t align, Device device,
+                            bool pin_memory) {
 
   uint64 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -359,9 +381,11 @@ uint64 *allocate_u64_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-qint8 *allocate_qs8_buffer(size_t bytes, size_t align, Device device) {
+qint8 *allocate_qs8_buffer(size_t bytes, size_t align, Device device,
+                           bool pin_memory) {
 
   qint8 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);
@@ -388,9 +412,11 @@ qint8 *allocate_qs8_buffer(size_t bytes, size_t align, Device device) {
  * @param bytes  Requested size in bytes.
  * @param align  Alignment constraint (must be a power of two).
  * @param device Target device.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Pointer to the buffer, or NULL for META / on error.
  */
-quint8 *allocate_qu8_buffer(size_t bytes, size_t align, Device device) {
+quint8 *allocate_qu8_buffer(size_t bytes, size_t align, Device device,
+                            bool pin_memory) {
 
   quint8 *ptr = NULL;
   RustHandle handle = reserve(bytes, align);

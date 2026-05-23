@@ -150,7 +150,7 @@ static inline void compute_coords_given_linear_byte_offset_(
  * @param device        Target device.
  * @param requires_grad Whether to track gradients.
  * @param ndims         Number of dimensions.
- * @return Initialised Tensor with no backing storage.
+ * @return Initialised Tensor with no backing storage and unpinned memory flag.
  */
 static inline Tensor create_unallocated_tensor(const shape_t shape,
                                                DType_ dtype, Device device,
@@ -175,6 +175,7 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
   tensor.data.data = NULL;
   tensor.is_allocated_ = false;
   tensor.version_ = 0;
+  tensor.is_pinned = false;
   compute_tensor_size_(&tensor, shape);
   compute_tensor_strides_(&tensor, ndims, shape, tensor.item_size);
   return tensor;
@@ -207,7 +208,8 @@ static inline TensorGrad create_unallocated_grad_tensor(const shape_t shape,
  * @param dtype         Element data type.
  * @param device        Target device.
  * @param requires_grad Whether to track gradients.
- * @return Initialised scalar Tensor with no backing storage.
+ * @return Initialised scalar Tensor with no backing storage and unpinned
+ *         memory flag.
  */
 static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
                                                       Device device,
@@ -233,6 +235,7 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
   tensor.data.data = NULL;
   tensor.is_allocated_ = false;
   tensor.version_ = 0;
+  tensor.is_pinned = false;
   return tensor;
 }
 
