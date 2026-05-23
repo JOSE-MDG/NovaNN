@@ -298,12 +298,13 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst) {
   dst->retain_grad_ = src->retain_grad_;
   dst->is_leaf_ = true;
   dst->is_view_ = false;
+  dst->is_pinned = src->is_pinned;
   dst->grad_fn_ = NULL;
   dst->offset = 0;
 
   if (src->storage != NULL) {
-    TensorStorage *new_storage =
-        allocate_tensor_buffer(src->storage->size_bytes, src->device);
+    TensorStorage *new_storage = allocate_tensor_buffer(
+        src->storage->size_bytes, src->device, src->is_pinned);
 
     NOVA_INTERNAL_ASSERT(new_storage != NULL,
                          "[STORAGE] deepcopy: CPU/GPU tensor must have "
