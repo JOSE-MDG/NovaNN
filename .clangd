@@ -1,6 +1,8 @@
 CompileFlags:
   Add:
     - -Incore/include
+    - -I/opt/cuda/include
+    - -I/opt/rocm/include
     - -Wall
     - -Wextra
     - -Wpedantic
@@ -23,14 +25,23 @@ CompileFlags:
     - -march=native
 ---
 If:
-  PathMatch: .*\.c
+  PathMatch: ncore/rust/csrc/.*\.(c|cpp)
 CompileFlags:
+  Compiler: g++
+  Add: [-std=c++23]
+
+---
+If:
+  PathMatch: ncore/src/core/.*\.c
+CompileFlags:
+  Compiler: gcc
   Add: [-std=c23]
 
 ---
 If:
-  PathMatch: .*\.cpp
+  PathMatch: .*\.(cpp|hpp|cc|cxx)
 CompileFlags:
+  Compiler: g++
   Add: [-std=c++23]
 
 ---

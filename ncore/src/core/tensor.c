@@ -29,11 +29,12 @@
  * @param dtype         Element data type.
  * @param device        Target device (CPU, GPU, or META).
  * @param requires_grad Whether to track gradients.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @param ndims         Number of dimensions.
  * @return Initialised Tensor (value type, heap-allocated storage).
  */
 Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
-                     bool requires_grad, size_t ndims) {
+                     bool requires_grad, bool pin_memory, size_t ndims) {
 
   Tensor tensor = {0};
 
@@ -51,11 +52,12 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
   tensor.scale_ = 1.0F;
   tensor.zero_point_ = 0;
   tensor.version_ = 0;
+  tensor.is_pinned = pin_memory;
   compute_tensor_size_(&tensor, shape);
   compute_tensor_strides_(&tensor, ndims, shape, tensor.item_size);
 
-  TensorStorage *storage =
-      allocate_tensor_buffer(tensor.item_size * tensor.size, tensor.device);
+  TensorStorage *storage = allocate_tensor_buffer(
+      tensor.item_size * tensor.size, tensor.device, pin_memory);
   if (device == DEVICE_META) {
     NOVA_INTERNAL_ASSERT(storage == NULL,
                          "[STORAGE] create_tensor: META tensor must have NULL "
@@ -91,9 +93,11 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
  * @param dtype         Element data type.
  * @param device        Target device (CPU, GPU, or META).
  * @param requires_grad Whether to track gradients.
+ * @param pin_memory If true, request page-locked host memory when supported.
  * @return Initialised scalar Tensor with backing storage.
  */
-Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad) {
+Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad,
+                            bool pin_memory) {
   Tensor tensor = {0};
 
   tensor.shape[0] = 0;
@@ -112,9 +116,10 @@ Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad) {
   tensor.scale_ = 1.0F;
   tensor.zero_point_ = 0;
   tensor.version_ = 0;
+  tensor.is_pinned = pin_memory;
 
-  TensorStorage *storage =
-      allocate_tensor_buffer(tensor.item_size * tensor.size, tensor.device);
+  TensorStorage *storage = allocate_tensor_buffer(
+      tensor.item_size * tensor.size, tensor.device, pin_memory);
   if (device == DEVICE_META) {
     NOVA_INTERNAL_ASSERT(storage == NULL,
                          "[STORAGE] create_tensor: META tensor must have NULL "
@@ -156,16 +161,16 @@ Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad) {
 Tensor create_tensor_like(const Tensor *ten) {
   Tensor tensor = {0};
   if (is_scalar(ten)) {
-    tensor =
-        ((int)is_allocated(ten))
-            ? create_scalar_tensor(ten->dtype, ten->device, ten->requires_grad_)
-            : create_unallocated_scalar_tensor(ten->dtype, ten->device,
-                                               ten->requires_grad_);
+    tensor = ((int)is_allocated(ten))
+                 ? create_scalar_tensor(ten->dtype, ten->device,
+                                        ten->requires_grad_, ten->is_pinned)
+                 : create_unallocated_scalar_tensor(ten->dtype, ten->device,
+                                                    ten->requires_grad_);
   } else {
     tensor =
         ((int)is_allocated(ten))
             ? create_tensor(ten->shape, ten->dtype, ten->device,
-                            ten->requires_grad_, ten->ndims)
+                            ten->requires_grad_, ten->is_pinned, ten->ndims)
             : create_unallocated_tensor(ten->shape, ten->dtype, ten->device,
                                         ten->requires_grad_, ten->ndims);
   }
@@ -251,6 +256,7 @@ void move_tensor(Tensor *restrict dst, Tensor *restrict src) {
   src->grad = NULL;
   src->grad_fn_ = NULL;
   src->is_allocated_ = false;
+  src->is_pinned = false;
 }
 
 /**
@@ -320,7 +326,10 @@ bool is_scalar_grad(TensorGrad grad) {
  * @pre ten->storage must not be NULL.
  */
 bool is_aligned(const Tensor *ten) {
-  return (bool)(((uintptr_t)ten->storage->ptr.v % 64) == 0);
+  return (bool)(!ten->is_pinned ? (((uintptr_t)ten->storage->ptr.v % 512) ==
+                                   0) // Aligned by default to 512 bytes (GPU)
+                                : (((uintptr_t)ten->storage->ptr.v % 64) ==
+                                   0)); // Aligned by default to 64 bytes (CPU)
 }
 
 /**
@@ -332,7 +341,10 @@ bool is_aligned(const Tensor *ten) {
  * @pre grad->storage must not be NULL.
  */
 bool is_grad_aligned(TensorGrad grad) {
-  return (bool)(((uintptr_t)grad->storage->ptr.v % 64) == 0);
+  return (!grad->is_pinned ? (((uintptr_t)grad->storage->ptr.v % 512) ==
+                              0) // Aligned by default to 512 bytes (GPU)
+                           : (((uintptr_t)grad->storage->ptr.v % 64) == 0)) !=
+         0; // Aligned by default to 64 bytes (CPU)
 }
 
 /**
@@ -345,7 +357,7 @@ bool is_grad_aligned(TensorGrad grad) {
  * @return true if the tensor has been collected, false otherwise.
  */
 bool is_collected(const Tensor *ten) {
-  return (bool)(ten->storage == NULL && ten->data.data == NULL &&
+  return (bool)(ten->data.data == NULL && ten->storage == NULL &&
                 !ten->is_allocated_);
 }
 
@@ -356,8 +368,11 @@ bool is_collected(const Tensor *ten) {
  * @return true if the gradient has been collected, false otherwise.
  */
 bool is_grad_collected(TensorGrad grad) {
-  return (bool)(grad->storage == NULL && grad->data.data == NULL &&
-                !grad->is_allocated_);
+  if (grad != NULL) {
+    return (bool)(grad->data.data == NULL && grad->storage == NULL &&
+                  !grad->is_allocated_);
+  }
+  return true;
 }
 
 /**
@@ -366,7 +381,9 @@ bool is_grad_collected(TensorGrad grad) {
  * @param ten Tensor to check.
  * @return true if the tensor has a valid backing storage, false otherwise.
  */
-bool is_allocated(const Tensor *ten) { return ten->is_allocated_; }
+bool is_allocated(const Tensor *ten) {
+  return (bool)(ten->is_allocated_ && ten->data.data != NULL);
+}
 
 /**
  * @brief Check whether a gradient tensor's data buffer has been allocated.
@@ -377,8 +394,8 @@ bool is_allocated(const Tensor *ten) { return ten->is_allocated_; }
  * @return true if the gradient has a valid backing storage, false otherwise.
  */
 bool is_grad_allocated(TensorGrad grad) {
-  if (grad) {
-    return (grad->is_allocated_);
+  if (grad != NULL) {
+    return (bool)(grad->is_allocated_ && grad->data.data != NULL);
   }
   return false;
 }
