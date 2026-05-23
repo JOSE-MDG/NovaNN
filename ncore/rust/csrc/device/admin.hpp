@@ -10,14 +10,20 @@
 #pragma once
 
 #include <cstdint>
+#include <ncore/device.h>
 
 /**
  * @brief Identifies the active GPU compute backend.
  *
- * @var DeviceCUDA  NVIDIA CUDA runtime.
- * @var DeviceHIP   AMD ROCm HIP runtime.
+ * @var DeviceCUDA NVIDIA CUDA runtime.
+ * @var DeviceHIP  AMD ROCm HIP runtime.
+ * @var DeviceNull No supported GPU runtime detected.
  */
-enum class DeviceKind_t : std::int8_t { DeviceCUDA = 0, DeviceHIP = 1 };
+enum class DeviceKind_t : std::int8_t {
+  DeviceCUDA = 0,
+  DeviceHIP = 1,
+  DeviceNull = 3
+};
 
 extern "C" {
 
@@ -27,6 +33,5 @@ extern "C" {
  * @return DeviceKind_t value indicating the runtime that was detected
  *         during library initialisation.
  */
-DeviceKind_t get_device_backend();
-
+DeviceKind_t get_device_backend(void);
 }
