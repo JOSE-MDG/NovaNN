@@ -120,12 +120,18 @@ HipStatus_t hip_release(HipBuffer_t *buf) {
 
 #else
 
+/**
+ * @brief Fallback allocation entry point when HIP headers are unavailable.
+ */
 HipStatus_t hip_reserve(std::size_t, std::size_t, bool, HipBuffer_t *) {
   return HipStatus_t{
       .code = -1,
       .msg = "HIP runtime headers not available at build/lint time"};
 }
 
+/**
+ * @brief Fallback release entry point when HIP headers are unavailable.
+ */
 HipStatus_t hip_release(HipBuffer_t *) {
   return HipStatus_t{
       .code = -1,
