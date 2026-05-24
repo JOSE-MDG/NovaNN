@@ -57,12 +57,19 @@ typedef struct {
 } RustHandle;
 
 /**
- * @brief Allocate a new buffer via the Rust memory allocator.
- * @param size  Requested size in bytes.
- * @param align Required alignment (must be a power of two).
+ * @brief Allocate a buffer on the specified memory device.
+ *
+ * Supports CPU host RAM (`"cpu"`), GPU device VRAM (`"device"`), and
+ * pinned (page-locked) host memory via the active GPU backend.
+ *
+ * @param size       Requested size in bytes.
+ * @param device     Target device: `"cpu"` or `"device"`.
+ * @param pin_memory If true and device is `"cpu"`, allocate page-locked
+ *                   host memory.  Must be `false` when device is `"device"`.
+ * @param align      Required alignment (must be a power of two).
  * @return A valid RustHandle on success, or a handle with id == 0 on failure.
  */
-RustHandle reserve(size_t size, size_t align);
+RustHandle reserve(size_t size, const char *device, bool pin_memory, size_t align);
 
 /**
  * @brief Increment the reference count of a Rust allocation.
