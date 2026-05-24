@@ -15,7 +15,7 @@
     Requires: CheckInstructionSupport.cmake (provides check_simd macro)
     See also : DetectSIMD.cmake — orchestrator that includes this module
 ]]
-check_simd(HAS_AVX "-mavx" "
+check_simd(HAS_AVX "-mavx" "-mavx" "
     #include <immintrin.h>
     int main() { __m256 a = _mm256_set1_ps(1.0f); (void)_mm256_add_ps(a, a); return 0; }
 ")
@@ -30,11 +30,11 @@ check_simd(HAS_AVX "-mavx" "
     @requires HAS_AVX
 ]]
 if(HAS_AVX)
-    check_simd(HAS_F16C "-mavx -mf16c" "
+    check_simd(HAS_F16C "-mavx -mf16c" "-mf16c" "
         #include <immintrin.h>
         int main() { __m128i h = _mm_set1_epi16(0x3C00); (void)_mm_cvtph_ps(h); return 0; }
     ")
-    check_simd(HAS_FMA3 "-mavx -mfma" "
+    check_simd(HAS_FMA3 "-mavx -mfma" "-mfma" "
         #include <immintrin.h>
         int main() { __m256 a = _mm256_set1_ps(1.0f); (void)_mm256_fmadd_ps(a, a, a); return 0; }
     ")

@@ -19,22 +19,22 @@
     Requires: CheckInstructionSupport.cmake (provides check_simd macro)
     See also : DetectSIMD.cmake — orchestrator that includes this module
 ]]
-check_simd(HAS_AMX_TILE "-mamx-tile" "
+check_simd(HAS_AMX_TILE "-mamx-tile" "-mamx-tile" "
     #include <immintrin.h>
     int main() { _tile_release(); return 0; }
 ")
 
 if(HAS_AMX_TILE)
     set(HAS_AMX 1)
-    check_simd(HAS_AMX_FP16 "-mamx-tile -mamx-fp16" "
+    check_simd(HAS_AMX_FP16 "-mamx-tile -mamx-fp16" "-mamx-fp16" "
         #include <immintrin.h>
         int main() { _tile_release(); _tile_dpfp16ps(0, 1, 2); _tile_release(); return 0; }
     ")
-    check_simd(HAS_AMX_BF16 "-mamx-tile -mamx-bf16" "
+    check_simd(HAS_AMX_BF16 "-mamx-tile -mamx-bf16" "-mamx-bf16" "
         #include <immintrin.h>
         int main() { _tile_release(); _tile_dpbf16ps(0, 1, 2); _tile_release(); return 0; }
     ")
-    check_simd(HAS_AMX_INT8 "-mamx-tile -mamx-int8" "
+    check_simd(HAS_AMX_INT8 "-mamx-tile -mamx-int8" "-mamx-int8" "
         #include <immintrin.h>
         int main() { _tile_release(); _tile_dpbusd(0, 1, 2); _tile_release(); return 0; }
     ")
