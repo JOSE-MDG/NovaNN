@@ -34,6 +34,12 @@
 
     See also : NovaNNRuntime.cmake — orchestrator that includes this module
 ]]
+function(novaNN_configure_cuda_target TARGET)
+    if(NOT NOVA_HAS_CUDA)
+        return()
+    endif()
+endfunction()
+
 if(DEFINED NOVA_HAS_CUDA)
     return()
 endif()

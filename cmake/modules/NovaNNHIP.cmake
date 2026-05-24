@@ -10,11 +10,9 @@
       - Defines rejected gfx prefixes (Polaris, Vega, GCN, RDNA1) for
         validation in the configure function.
 
-    @note Unlike NovaNNCUDA.cmake, DetectPThreads.cmake, and
-          DetectOpenMP.cmake, this module does NOT have a
-          multiple-inclusion guard (`if(DEFINED NOVA_HAS_HIP) return()`).
-          Inclusion currently happens only once via NovaNNRuntime.cmake,
-          so this is safe but inconsistent with sibling modules.
+    @note The target configuration function is defined before backend
+          detection so downstream CMakeLists can call it even when ROCm is
+          unavailable; in that case it is a no-op.
 
     Target configuration (public function):
 
@@ -44,6 +42,12 @@
 
     See also : NovaNNRuntime.cmake — orchestrator that includes this module
 ]]
+function(novaNN_configure_hip_target TARGET)
+    if(NOT NOVA_HAS_HIP)
+        return()
+    endif()
+endfunction()
+
 if(DEFINED HIP_ROOT_DIR)
     list(APPEND CMAKE_PREFIX_PATH "${HIP_ROOT_DIR}")
 endif()
