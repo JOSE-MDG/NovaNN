@@ -35,7 +35,7 @@
 
 set(SIMD_FLAGS "")
 
-include("${CMAKE_CURRENT_LIST_DIR}/../utils/CheckInstructionSupport.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/../../utils/CheckInstructionSupport.cmake")
 
 include("${CMAKE_CURRENT_LIST_DIR}/../cpu/DetectSSE.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/../cpu/DetectAVX.cmake")
