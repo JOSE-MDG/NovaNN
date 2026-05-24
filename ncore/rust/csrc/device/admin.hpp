@@ -10,7 +10,6 @@
 #pragma once
 
 #include <cstdint>
-#include <ncore/device.h>
 
 /**
  * @brief Identifies the active GPU compute backend.

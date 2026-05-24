@@ -38,9 +38,9 @@ autograd::Tensor::Tensor() noexcept {
  * @param requires_grad If true, an unallocated gradient tensor is created.
  */
 autograd::Tensor::Tensor(const std::vector<size_t> &shape, DType_ dtype,
-                         Device device, bool requires_grad)
+                         Device device, bool requires_grad, bool pin_memory)
     : c_tensor_(create_tensor(shape.data(), dtype, device, requires_grad,
-                              shape.size())) {
+                              pin_memory, shape.size())) {
   sync_metadata_();
 }
 
@@ -55,8 +55,9 @@ autograd::Tensor::Tensor(const std::vector<size_t> &shape, DType_ dtype,
  * @param requires_grad If true, an unallocated gradient tensor is created.
  */
 autograd::Tensor::Tensor(std::initializer_list<size_t> shape, DType_ dtype,
-                         Device device, bool requires_grad)
-    : Tensor(std::vector<size_t>(shape), dtype, device, requires_grad) {}
+                         Device device, bool requires_grad, bool pin_memory)
+    : Tensor(std::vector<size_t>(shape), dtype, device, requires_grad,
+             pin_memory) {}
 
 /**
  * @brief Destructor. Recursively releases storage and gradient sub-graph.

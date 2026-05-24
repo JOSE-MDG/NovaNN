@@ -9,6 +9,9 @@
  * device_release reads the device_kind field and calls the matching backend
  * free routine. device_memcpy queries the active backend and forwards the
  * copy request without exposing CUDA or HIP runtime enums to callers.
+ * device_memcpy_c is an extern-"C" wrapper that accepts the C-side
+ * TransferKind enum and converts it to DeviceMemcpyKind before
+ * dispatching, making it directly usable from pure-C translation units.
  */
 
 #include "ffi.hpp"
@@ -18,6 +21,7 @@
 #include "device/hip/hip_io.hpp"
 #include <cstdlib>
 #include <cstring>
+#include <ncore/cpp_ffi.h>
 
 /**
  * @brief Template helper that calls a backend-specific reserve function
@@ -146,6 +150,45 @@ DeviceStatus_t device_memcpy(const void *src, void *dst, bool is_pinned,
   }
   if (device == DeviceKind_t::DeviceHIP) {
     HipStatus_t hstatus = hip_memcpy(bytes, kind, src, dst, is_pinned);
+    status.code = hstatus.code;
+    status.message = hstatus.msg;
+    return status;
+  }
+  status.code = -1;
+  status.message = "No device was found";
+  return status;
+}
+
+/**
+ * @brief Copy bytes through the active GPU backend (C-callable wrapper).
+ *
+ * Dispatches to cuda_memcpy or hip_memcpy according to get_device_backend().
+ * Converts the C-side TransferKind enum to DeviceMemcpyKind for the
+ * C++ backend functions.  If no backend is available the returned status
+ * has code -1 and a descriptive message.
+ *
+ * @param src       Source pointer.
+ * @param dst       Destination pointer.
+ * @param is_pinned Whether the host-side pointer is pinned/page-locked.
+ * @param kind      Device-agnostic copy direction (TransferKind).
+ * @param bytes     Number of bytes to copy.
+ * @return DeviceStatus with code 0 on success, or an error status.
+ */
+DeviceStatus device_memcpy_c(const void *src, void *dst, bool is_pinned,
+                             TransferKind kind, size_t bytes) {
+  DeviceStatus status = {};
+  DeviceKind_t device = get_device_backend();
+
+  if (device == DeviceKind_t::DeviceCUDA) {
+    CudaStatus_t cstatus = cuda_memcpy(
+        bytes, static_cast<DeviceMemcpyKind>(kind), src, dst, is_pinned);
+    status.code = cstatus.code;
+    status.message = cstatus.msg;
+    return status;
+  }
+  if (device == DeviceKind_t::DeviceHIP) {
+    HipStatus_t hstatus = hip_memcpy(bytes, static_cast<DeviceMemcpyKind>(kind),
+                                     src, dst, is_pinned);
     status.code = hstatus.code;
     status.message = hstatus.msg;
     return status;

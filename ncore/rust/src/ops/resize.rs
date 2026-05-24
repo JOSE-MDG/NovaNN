@@ -23,7 +23,9 @@ use crate::manager::StorageManager;
 /// the registry, [`StorageError::InvalidSize`] if `new_size` is zero,
 /// or [`StorageError::ResizeFailed`] if the reallocation fails.
 pub fn resize_op(handle: &mut RustHandle, new_size: usize) -> Result<(), StorageError> {
-    StorageManager::with(handle.id, |s| s.resize(new_size))??;
+    StorageManager::with(handle.id, |s: &mut crate::storage::RustStorage| {
+        s.resize(new_size)
+    })??;
     handle.size_bytes = new_size;
     Ok(())
 }
