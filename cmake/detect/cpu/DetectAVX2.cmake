@@ -15,7 +15,7 @@
     Requires: CheckInstructionSupport.cmake (provides check_simd macro)
     See also : DetectSIMD.cmake — orchestrator that includes this module
 ]]
-check_simd(HAS_AVX2 "-mavx2" "
+check_simd(HAS_AVX2 "-mavx2" "-mavx2" "
     #include <immintrin.h>
     int main() { __m256i a = _mm256_set1_epi32(1); (void)_mm256_add_epi32(a, a); return 0; }
 ")
@@ -26,7 +26,7 @@ if(HAS_AVX2)
         @brief AVX2-VNNI (integer dot-product via AVXVNNI extension)
         @requires HAS_AVX2
     ]]
-    check_simd(HAS_AVX2_VNNI "-mavx2 -mavxvnni" "
+    check_simd(HAS_AVX2_VNNI "-mavx2 -mavxvnni" "-mavxvnni" "
         #include <immintrin.h>
         int main() {
             __m256i a = _mm256_set1_epi8(1), b = _mm256_set1_epi8(1), c = _mm256_set1_epi32(0);

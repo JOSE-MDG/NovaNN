@@ -13,7 +13,7 @@
     Requires: CheckInstructionSupport.cmake (provides check_simd macro)
     See also : DetectSIMD.cmake — orchestrator that includes this module
 ]]
-check_simd(HAS_SSE4_2 "-msse4.2" "
+check_simd(HAS_SSE4_2 "-msse4.2" "-msse4.2" "
     #include <nmmintrin.h>
     int main() { (void)_mm_crc32_u32(0, 1); return 0; }
 ")
