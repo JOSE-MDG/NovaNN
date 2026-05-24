@@ -15,6 +15,12 @@ pub enum StorageError {
     ManagerPoisoned,
     /// Received null pointer.
     NullPointer,
+    /// Device string was not `"cpu"` or `"device"`.
+    InvalidDevice,
+    /// Cannot combine pinned host memory with a GPU device allocation.
+    PinnedMemoryOnDevice,
+    /// An error returned by the C++ device-memory FFI layer.
+    DeviceError(String),
 }
 
 impl std::fmt::Display for StorageError {
@@ -27,6 +33,11 @@ impl std::fmt::Display for StorageError {
             Self::ResizeFailed => write!(f, "Memory reallocation failed"),
             Self::ManagerPoisoned => write!(f, "Storage manager mutex was poisoned"),
             Self::NullPointer => write!(f, "Received null pointer"),
+            Self::InvalidDevice => write!(f, "Device must be \"cpu\" or \"device\""),
+            Self::PinnedMemoryOnDevice => {
+                write!(f, "Pinned memory is not supported on GPU device")
+            }
+            Self::DeviceError(msg) => write!(f, "Device memory error: {msg}"),
         }
     }
 }

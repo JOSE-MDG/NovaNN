@@ -57,12 +57,19 @@ typedef struct {
 } RustHandle;
 
 /**
- * @brief Allocate a new buffer via the Rust memory allocator.
- * @param size  Requested size in bytes.
- * @param align Required alignment (must be a power of two).
+ * @brief Allocate a buffer on the specified memory device.
+ *
+ * Supports CPU host RAM (`"cpu"`), GPU device VRAM (`"device"`), and
+ * pinned (page-locked) host memory via the active GPU backend.
+ *
+ * @param size       Requested size in bytes.
+ * @param device     Target device: `"cpu"` or `"device"`.
+ * @param pin_memory If true and device is `"cpu"`, allocate page-locked
+ *                   host memory.  Must be `false` when device is `"device"`.
+ * @param align      Required alignment (must be a power of two).
  * @return A valid RustHandle on success, or a handle with id == 0 on failure.
  */
-RustHandle reserve(size_t size, size_t align);
+RustHandle reserve(size_t size, const char *device, bool pin_memory, size_t align);
 
 /**
  * @brief Increment the reference count of a Rust allocation.
@@ -98,6 +105,31 @@ void *get_data_from(RustHandle *handle);
  * @return true if the handle is valid, false otherwise.
  */
 bool is_valid_handle(RustHandle *handle);
+
+/**
+ * @brief Obtain the allocation alignment recorded for a Rust allocation.
+ * @param handle Pointer to the RustHandle to query.
+ * @return Alignment in bytes, or 0 if the handle is NULL / invalid.
+ */
+size_t get_align_from(RustHandle *handle);
+
+/**
+ * @brief Check whether a Rust allocation is backed by device-managed memory.
+ *
+ * Pinned host allocations also return true because they are allocated through
+ * the active GPU backend.
+ *
+ * @param handle Pointer to the RustHandle to query.
+ * @return true for device-backed storage, false otherwise.
+ */
+bool is_device_memory_handle(RustHandle *handle);
+
+/**
+ * @brief Check whether a Rust allocation is pinned host memory.
+ * @param handle Pointer to the RustHandle to query.
+ * @return true for pinned host memory, false otherwise.
+ */
+bool is_pinned_handle(RustHandle *handle);
 
 /**
  * @brief Complete tensor storage descriptor.

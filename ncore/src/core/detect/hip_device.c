@@ -82,16 +82,24 @@ int get_hip_device_id(void) { return active_device_id; }
 
 /**
  * @brief Fallback HIP availability probe when HIP headers are unavailable.
+ *
+ * @param log Ignored in the stub; accepted for interface compatibility.
+ * @return Always false.
  */
 bool is_hip_device_available(bool log) { return false; }
 
 /**
  * @brief Fallback HIP unavailability probe when HIP headers are unavailable.
+ *
+ * @param log Ignored in the stub; accepted for interface compatibility.
+ * @return Always true.
  */
 bool is_hip_device_not_available(bool log) { return true; }
 
 /**
  * @brief Fallback HIP device id when HIP headers are unavailable.
+ *
+ * @return Always -1.
  */
 int get_hip_device_id(void) { return -1; }
 #endif

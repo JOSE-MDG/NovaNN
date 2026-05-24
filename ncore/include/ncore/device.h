@@ -1,11 +1,14 @@
 /**
  * @file device.h
- * @brief Device abstraction for tensor placement and backend transfers.
+ * @brief Public C API for device placement, backend queries, and GPU memory
+ *        transfers.
  *
  * @details
- * Defines the Device enumeration and the API for querying the current
- * compute backend, checking runtime availability, and dispatching memory
- * transfers through CUDA or HIP.
+ * Defines the Device and DeviceKind enumerations, the TransferKind copy
+ * direction enum, the DeviceStatus result type, and declares the full set
+ * of backend-availability probes as well as transfer_to() and
+ * device_memcpy_c() for dispatching inter-backend memory copies through
+ * either CUDA or HIP at run time.
  *
  * ## Device Tiers
  * | Device     | Value | Description                        |
@@ -18,7 +21,7 @@
  * without allocating actual data buffers.
  *
  * @see tensor.h  Tensor structure embedding a Device field.
- * @see backend.h Backend-specific GPU implementations.
+ * @see cpp_ffi.h C-callable device-memory copy wrapper.
  */
 
 #pragma once
@@ -72,6 +75,17 @@ typedef enum ATTR(packed) {
   deviceMemcpyDeviceToDevice = 3
 } TransferKind;
 
+/**
+ * @brief Result type returned by device memory operations.
+ *
+ * @var code     Zero on success, a positive error code on failure.
+ * @var message  Human-readable error description.
+ */
+typedef struct {
+  int code;
+  const char *message;
+} DeviceStatus;
+
 struct Tensor;
 typedef struct Tensor Tensor;
 typedef Tensor *TensorGrad;
@@ -100,16 +114,21 @@ bool is_cuda_available(void);
 bool is_hip_available(void);
 
 /**
- * @brief Transfer a memory buffer to the target device backend.
+ * @brief Transfer memory between device backends.
  *
- * @param targe_device Target tensor-placement device.
- * @param kind Transfer direction.
- * @param src_buf Source buffer.
- * @param dst_buf Destination buffer.
- * @return 0 on success, or a backend-specific error code.
+ * Looks up the correct copy direction from the dispatch table
+ * (transf_dispatch) and forwards the request to device_memcpy_c.
+ *
+ * @param dst       Target device placement.
+ * @param src       Source device placement.
+ * @param src_buf   Pointer to the source buffer.
+ * @param dst_buf   Pointer to the destination buffer.
+ * @param is_pinned Whether the host-side buffer is pinned/page-locked.
+ * @param bytes     Number of bytes to transfer.
+ * @return DeviceStatus with code 0 on success, or an error status.
  */
-int transfer_to(Device targe_device, TransferKind kind, const void *src_buf,
-                void *dst_buf);
+DeviceStatus transfer_to(Device dst, Device src, const void *src_buf,
+                         void *dst_buf, bool is_pinned, size_t bytes);
 
 /**
  * @brief Probe HIP runtime availability.
