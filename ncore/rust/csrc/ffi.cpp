@@ -91,17 +91,27 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
                               DeviceKind_t kind) {
   DeviceStatus_t dstatus = {};
   if (kind == DeviceKind_t::DeviceCUDA) {
+#if NOVA_CUDA
     auto *cbuf = new CudaBuffer_t{};
     CudaStatus_t cstatus = {};
     device_reserve_dispatch<CudaBuffer_t, CudaStatus_t, cuda_reserve,
                             DeviceKind_t::DeviceCUDA>(
         bytes, pinned, align, out_buf, cbuf, &dstatus, &cstatus);
+#else
+    dstatus.code = -1;
+    dstatus.message = "CUDA backend was not built";
+#endif
   } else {
+#if NOVA_HIP
     auto *hbuf = new HipBuffer_t{};
     HipStatus_t hstatus = {};
     device_reserve_dispatch<HipBuffer_t, HipStatus_t, hip_reserve,
                             DeviceKind_t::DeviceHIP>(
         bytes, pinned, align, out_buf, hbuf, &dstatus, &hstatus);
+#else
+    dstatus.code = -1;
+    dstatus.message = "HIP backend was not built";
+#endif
   }
   return dstatus;
 }
@@ -120,17 +130,27 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
 DeviceStatus_t device_release(DeviceBuffer_t *buf) {
   DeviceStatus_t dstatus = {};
   if (buf->device_kind == DeviceKind_t::DeviceCUDA) {
+#if NOVA_CUDA
     auto *backend_buf = static_cast<CudaBuffer_t *>(buf->device_buf_ptr);
     CudaStatus_t cstatus = cuda_release(backend_buf);
     dstatus.code = cstatus.code;
     dstatus.message = cstatus.msg;
     delete backend_buf;
+#else
+    dstatus.code = -1;
+    dstatus.message = "CUDA backend was not built";
+#endif
   } else {
+#if NOVA_HIP
     auto *backend_buf = static_cast<HipBuffer_t *>(buf->device_buf_ptr);
     HipStatus_t hstatus = hip_release(backend_buf);
     dstatus.code = hstatus.code;
     dstatus.message = hstatus.msg;
     delete backend_buf;
+#else
+    dstatus.code = -1;
+    dstatus.message = "HIP backend was not built";
+#endif
   }
 
   if (dstatus.code == 0) {
@@ -160,16 +180,28 @@ DeviceStatus_t device_memcpy(const void *src, void *dst, bool is_pinned,
   DeviceKind_t device = get_device_backend();
 
   if (device == DeviceKind_t::DeviceCUDA) {
+#if NOVA_CUDA
     CudaStatus_t cstatus = cuda_memcpy(bytes, kind, src, dst, is_pinned);
     status.code = cstatus.code;
     status.message = cstatus.msg;
     return status;
+#else
+    status.code = -1;
+    status.message = "CUDA backend was not built";
+    return status;
+#endif
   }
   if (device == DeviceKind_t::DeviceHIP) {
+#if NOVA_HIP
     HipStatus_t hstatus = hip_memcpy(bytes, kind, src, dst, is_pinned);
     status.code = hstatus.code;
     status.message = hstatus.msg;
     return status;
+#else
+    status.code = -1;
+    status.message = "HIP backend was not built";
+    return status;
+#endif
   }
   status.code = -1;
   status.message = "No device was found";
@@ -197,18 +229,30 @@ DeviceStatus device_memcpy_c(const void *src, void *dst, bool is_pinned,
   DeviceKind_t device = get_device_backend();
 
   if (device == DeviceKind_t::DeviceCUDA) {
+#if NOVA_CUDA
     CudaStatus_t cstatus = cuda_memcpy(
         bytes, static_cast<DeviceMemcpyKind>(kind), src, dst, is_pinned);
     status.code = cstatus.code;
     status.message = cstatus.msg;
     return status;
+#else
+    status.code = -1;
+    status.message = "CUDA backend was not built";
+    return status;
+#endif
   }
   if (device == DeviceKind_t::DeviceHIP) {
+#if NOVA_HIP
     HipStatus_t hstatus = hip_memcpy(bytes, static_cast<DeviceMemcpyKind>(kind),
                                      src, dst, is_pinned);
     status.code = hstatus.code;
     status.message = hstatus.msg;
     return status;
+#else
+    status.code = -1;
+    status.message = "HIP backend was not built";
+    return status;
+#endif
   }
   status.code = -1;
   status.message = "No device was found";

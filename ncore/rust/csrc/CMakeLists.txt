@@ -63,6 +63,11 @@ target_compile_options(rustcsrc PRIVATE
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
 )
 
+target_compile_definitions(rustcsrc PRIVATE
+    NOVA_CUDA=${NOVA_HAS_CUDA}
+    NOVA_HIP=${NOVA_HAS_HIP}
+)
+
 novaNN_configure_cpu_target(rustcsrc)
 novaNN_configure_cuda_target(rustcsrc)
 novaNN_configure_hip_target(rustcsrc)
