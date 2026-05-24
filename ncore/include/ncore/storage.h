@@ -107,6 +107,31 @@ void *get_data_from(RustHandle *handle);
 bool is_valid_handle(RustHandle *handle);
 
 /**
+ * @brief Obtain the allocation alignment recorded for a Rust allocation.
+ * @param handle Pointer to the RustHandle to query.
+ * @return Alignment in bytes, or 0 if the handle is NULL / invalid.
+ */
+size_t get_align_from(RustHandle *handle);
+
+/**
+ * @brief Check whether a Rust allocation is backed by device-managed memory.
+ *
+ * Pinned host allocations also return true because they are allocated through
+ * the active GPU backend.
+ *
+ * @param handle Pointer to the RustHandle to query.
+ * @return true for device-backed storage, false otherwise.
+ */
+bool is_device_memory_handle(RustHandle *handle);
+
+/**
+ * @brief Check whether a Rust allocation is pinned host memory.
+ * @param handle Pointer to the RustHandle to query.
+ * @return true for pinned host memory, false otherwise.
+ */
+bool is_pinned_handle(RustHandle *handle);
+
+/**
  * @brief Complete tensor storage descriptor.
  *
  * Bundles the typed pointer, byte count, alignment, and the Rust-side

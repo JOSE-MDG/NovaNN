@@ -11,7 +11,7 @@
 //! | [`reserve`]   | `reserve(size, device, pin_memory, align)`               |
 //! | [`lifecycle`] | `retain`, `release`                                      |
 //! | [`resize`]    | `resize`                                                 |
-//! | [`query`]     | `get_data_from`, `is_valid_handle`                       |
+//! | [`query`]     | `get_data_from`, `is_valid_handle`, metadata queries     |
 
 pub mod cpp;
 pub mod lifecycle;
@@ -24,6 +24,8 @@ pub use cpp::{
     device_reserve, get_device_backend,
 };
 pub use lifecycle::{release, retain};
-pub use query::{get_data_from, is_valid_handle};
+pub use query::{
+    get_align_from, get_data_from, is_device_memory_handle, is_pinned_handle, is_valid_handle,
+};
 pub use reserve::reserve;
 pub use resize::resize;
