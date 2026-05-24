@@ -3,9 +3,9 @@
  * @brief Dispatch layer that routes memory requests to the CUDA or HIP
  *        backend at run time.
  *
- * device_reserve instantiates a backend-specific buffer descriptor on the
- * stack, calls the corresponding reserve function, and copies the result
- * into the generic DeviceBuffer_t / DeviceStatus_t structures.
+ * device_reserve allocates a backend-specific buffer descriptor, calls the
+ * corresponding reserve function, and copies the result into the generic
+ * DeviceBuffer_t / DeviceStatus_t structures.
  * device_release reads the device_kind field and calls the matching backend
  * free routine. device_memcpy queries the active backend and forwards the
  * copy request without exposing CUDA or HIP runtime enums to callers.
@@ -39,7 +39,8 @@
  * @param pinned  Whether to allocate pinned (page-locked) host memory.
  * @param align   Alignment requirement.
  * @param[out] dbuf    Generic device-buffer descriptor to fill.
- * @param[out] buf     Backend-specific buffer descriptor (also filled).
+ * @param[out] buf     Backend-specific buffer descriptor (also filled). On
+ *                     success ownership is moved to dbuf->device_buf_ptr.
  * @param[out] dstatus Generic status descriptor to fill.
  * @param[out] status  Backend-specific status descriptor (also filled).
  */
@@ -53,6 +54,16 @@ device_reserve_dispatch(std::size_t bytes, bool pinned, std::size_t align,
 
   dstatus->code = status->code;
   dstatus->message = status->msg;
+
+  if (status->code != 0) {
+    dbuf->ptr = nullptr;
+    dbuf->bytes = 0;
+    dbuf->is_pinned = false;
+    dbuf->device_kind = DeviceKind_t::DeviceNull;
+    dbuf->device_buf_ptr = nullptr;
+    delete buf;
+    return;
+  }
 
   dbuf->ptr = buf->ptr;
   dbuf->bytes = buf->bytes;
@@ -80,17 +91,17 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
                               DeviceKind_t kind) {
   DeviceStatus_t dstatus = {};
   if (kind == DeviceKind_t::DeviceCUDA) {
-    CudaBuffer_t cbuf = {};
+    auto *cbuf = new CudaBuffer_t{};
     CudaStatus_t cstatus = {};
     device_reserve_dispatch<CudaBuffer_t, CudaStatus_t, cuda_reserve,
                             DeviceKind_t::DeviceCUDA>(
-        bytes, pinned, align, out_buf, &cbuf, &dstatus, &cstatus);
+        bytes, pinned, align, out_buf, cbuf, &dstatus, &cstatus);
   } else {
-    HipBuffer_t hbuf = {};
+    auto *hbuf = new HipBuffer_t{};
     HipStatus_t hstatus = {};
     device_reserve_dispatch<HipBuffer_t, HipStatus_t, hip_reserve,
                             DeviceKind_t::DeviceHIP>(
-        bytes, pinned, align, out_buf, &hbuf, &dstatus, &hstatus);
+        bytes, pinned, align, out_buf, hbuf, &dstatus, &hstatus);
   }
   return dstatus;
 }
@@ -109,15 +120,21 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
 DeviceStatus_t device_release(DeviceBuffer_t *buf) {
   DeviceStatus_t dstatus = {};
   if (buf->device_kind == DeviceKind_t::DeviceCUDA) {
-    CudaStatus_t cstatus =
-        cuda_release(static_cast<CudaBuffer_t *>(buf->device_buf_ptr));
+    auto *backend_buf = static_cast<CudaBuffer_t *>(buf->device_buf_ptr);
+    CudaStatus_t cstatus = cuda_release(backend_buf);
     dstatus.code = cstatus.code;
     dstatus.message = cstatus.msg;
+    delete backend_buf;
   } else {
-    HipStatus_t hstatus =
-        hip_release(static_cast<HipBuffer_t *>(buf->device_buf_ptr));
+    auto *backend_buf = static_cast<HipBuffer_t *>(buf->device_buf_ptr);
+    HipStatus_t hstatus = hip_release(backend_buf);
     dstatus.code = hstatus.code;
     dstatus.message = hstatus.msg;
+    delete backend_buf;
+  }
+
+  if (dstatus.code == 0) {
+    *buf = DeviceBuffer_t{};
   }
 
   return dstatus;
