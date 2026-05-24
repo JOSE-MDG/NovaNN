@@ -7,6 +7,7 @@
  */
 
 #include "admin.hpp"
+#include <ncore/device.h>
 
 /**
  * @brief Return the first available device backend.
