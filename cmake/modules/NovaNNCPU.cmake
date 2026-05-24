@@ -9,8 +9,8 @@
     which applies three layers to the given CMake target:
       1. SIMD_FLAGS       — compiler flags for detected SIMD extensions
       2. pthreads          — links Threads::Threads if NOVA_HAS_PTHREADS
-      3. OpenMP            — links OpenMP::OpenMP_C / OpenMP::OpenMP_CXX
-                            per compile language; defines NOVA_OPENMP=1 or 0
+      3. OpenMP            — links the C and/or C++ OpenMP target required by
+                            the target sources; defines NOVA_OPENMP=1 or 0
 
     Detects threading back-ends (pthreads, OpenMP) on every call if not
     already cached.  Both detectors have multiple-inclusion guards.
@@ -34,12 +34,28 @@ function(novaNN_configure_cpu_target TARGET)
         target_link_libraries(${TARGET} PRIVATE Threads::Threads)
     endif()
 
-    # OpenMP — C kernels and C++ autograd separately
+    # OpenMP
     if(NOVA_HAS_OPENMP)
-        target_link_libraries(${TARGET} PRIVATE
-            $<$<COMPILE_LANGUAGE:C>:OpenMP::OpenMP_C>
-            $<$<COMPILE_LANGUAGE:CXX>:OpenMP::OpenMP_CXX>
-        )
+        get_target_property(_target_sources ${TARGET} SOURCES)
+        set(_has_c OFF)
+        set(_has_cxx OFF)
+
+        foreach(_source IN LISTS _target_sources)
+            if(_source MATCHES "\\.c$")
+                set(_has_c ON)
+            elseif(_source MATCHES "\\.(cc|cpp|cxx|c\\+\\+)$")
+                set(_has_cxx ON)
+            endif()
+        endforeach()
+
+        if(_has_c)
+            target_link_libraries(${TARGET} PRIVATE OpenMP::OpenMP_C)
+        endif()
+
+        if(_has_cxx OR (NOT _has_c AND NOT _has_cxx))
+            target_link_libraries(${TARGET} PRIVATE OpenMP::OpenMP_CXX)
+        endif()
+
         target_compile_definitions(${TARGET} PRIVATE NOVA_OPENMP=1)
     else()
         target_compile_definitions(${TARGET} PRIVATE NOVA_OPENMP=0)
