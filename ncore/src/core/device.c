@@ -13,7 +13,7 @@
 #include <ncore/cpp_ffi.h>
 #include <ncore/device.h>
 
-TransferKind transf_dispatch[3][3] = {NULL};
+TransferKind transf_dispatch[3][3] = {0};
 
 __attribute__((constructor)) static inline void init_transf_dispatch() {
 
