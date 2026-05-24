@@ -51,7 +51,7 @@ public:
    * @param requires_grad If true, an unallocated gradient tensor is created.
    */
   Tensor(const std::vector<size_t> &shape, DType_ dtype, Device device,
-         bool requires_grad = false);
+         bool requires_grad = false, bool pin_memory = false);
 
   /**
    * @brief Construct an allocated tensor from an initializer list.
@@ -62,7 +62,7 @@ public:
    * @param requires_grad If true, an unallocated gradient tensor is created.
    */
   Tensor(std::initializer_list<size_t> shape, DType_ dtype, Device device,
-         bool requires_grad = false);
+         bool requires_grad = false, bool pin_memory = false);
 
   /**
    * @brief Destructor. Recursively releases storage and gradient sub-graph.
