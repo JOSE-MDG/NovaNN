@@ -2,7 +2,8 @@
 name = "ncore-memory"
 version = "0.1.0"
 edition = "2024"
+build = "build.rs"
 
 [lib]
 name = "ncore_memory"
-crate-type = ["cdylib", "staticlib"]
+crate-type = ["staticlib"]
