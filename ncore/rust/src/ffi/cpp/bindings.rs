@@ -53,7 +53,7 @@ pub struct DeviceStatus {
     pub message: *const c_char,
 }
 
-extern "C" {
+unsafe extern "C" {
     /// Allocate a device or pinned-host buffer through the active backend.
     ///
     /// # Safety
