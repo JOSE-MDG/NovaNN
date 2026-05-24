@@ -5,18 +5,24 @@
 //! a C FFI. Each submodule mirrors the corresponding [`ops`]
 //! submodule.
 //!
-//! | Submodule     | FFI Functions                                |
-//! |---------------|----------------------------------------------|
-//! | [`reserve`]   | `reserve`                                    |
-//! | [`lifecycle`] | `retain`, `release`                          |
-//! | [`resize`]    | `resize`                                     |
-//! | [`query`]     | `get_data_from`, `is_valid_handle`           |
+//! | Submodule     | FFI Functions                                            |
+//! |---------------|----------------------------------------------------------|
+//! | [`cpp`]       | `device_reserve`, `device_release`, `device_memcpy`, `get_device_backend` |
+//! | [`reserve`]   | `reserve(size, device, pin_memory, align)`               |
+//! | [`lifecycle`] | `retain`, `release`                                      |
+//! | [`resize`]    | `resize`                                                 |
+//! | [`query`]     | `get_data_from`, `is_valid_handle`                       |
 
+pub mod cpp;
 pub mod lifecycle;
 pub mod query;
 pub mod reserve;
 pub mod resize;
 
+pub use cpp::{
+    DeviceBuffer, DeviceKind, DeviceMemcpyKind, DeviceStatus, device_memcpy, device_release,
+    device_reserve, get_device_backend,
+};
 pub use lifecycle::{release, retain};
 pub use query::{get_data_from, is_valid_handle};
 pub use reserve::reserve;
