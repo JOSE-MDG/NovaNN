@@ -1,10 +1,12 @@
 /**
  * @file ffi.hpp
- * @brief C-FFI boundary for device-agnostic memory management.
+ * @brief C++-side FFI declarations for device-agnostic memory management.
  *
- * Provides a unified interface that dispatches to either the CUDA or
- * the HIP backend at run time. Client code may allocate, release, and copy
- * device memory without including CUDA or HIP runtime headers directly.
+ * Provides the C++ type definitions (DeviceBuffer_t, DeviceStatus_t,
+ * DeviceMemcpyKind) and the extern-"C" function declarations for
+ * device_reserve, device_release, and device_memcpy.  The corresponding
+ * C-callable wrapper device_memcpy_c (which uses TransferKind instead of
+ * DeviceMemcpyKind) is declared in cpp_ffi.h.
  */
 
 #pragma once
