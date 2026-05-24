@@ -46,6 +46,7 @@ pub fn reserve_op(
     };
 
     let id = next_id();
+    let size_bytes = storage.size_bytes;
     StorageManager::insert(id, storage)?;
-    Ok(RustHandle::new(id, storage.size_bytes, align))
+    Ok(RustHandle::new(id, size_bytes, align))
 }
