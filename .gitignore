@@ -16,11 +16,9 @@ notebooks/
 .coveragerc
 htmlcov/
 
-<<<<<<< HEAD
-# Build and Distribution
-=======
 # Build directories
 build/
+docs/_build/
 
 # Compiled files
 *.so
@@ -28,7 +26,6 @@ build/
 *.o
 
 # Wheels
->>>>>>> dev
 dist/
 
 # Cache
