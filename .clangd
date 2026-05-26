@@ -64,4 +64,3 @@ If:
 CompileFlags:
   Compiler: g++
   Add: [-std=c++23]
-
