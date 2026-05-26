@@ -46,4 +46,3 @@ CheckOptions:
   readability-identifier-naming.VariableCase: "lower_case"
   readability-identifier-naming.MacroDefinitionCase: "UPPER_CASE"
   readability-braces-around-statements.ShortStatementLines: 1
-
