@@ -2,8 +2,8 @@
  * @file hip_allocator.hpp
  * @brief Device memory allocator for HIP (ROCm) buffers.
  *
- * Provides a thin wrapper around hipMalloc / hipMallocHost and
- * hipFree / hipFreeHost, with alignment support and descriptive
+ * Provides a thin wrapper around hipMalloc / hipHostMalloc and
+ * hipFree / hipHostFree, with alignment support and descriptive
  * error reporting via HipStatus_t.
  */
 
@@ -25,7 +25,7 @@ struct HipBuffer_t {
 };
 
 /**
- * @brief Result type returned by hip_reserve and hip_release.
+ * @brief Result type returned by hip_reserve, hip_realloc and hip_release.
  *
  * @var code  Zero on success, a positive error code on failure
  *            (1 = invalid value, 2 = allocation failure, -1 = unknown).
@@ -75,3 +75,27 @@ HipStatus_t hip_reserve(std::size_t bytes, std::size_t align, bool pinned,
  *         with a descriptive message on failure.
  */
 HipStatus_t hip_release(HipBuffer_t *buf);
+
+/**
+ * @brief Reallocate a HIP buffer to a new size, preserving content.
+ *
+ * Allocates a new buffer of @p new_bytes (rounded up to @p align),
+ * copies min(old_bytes, new_bytes) from the old buffer, frees the old
+ * buffer, and updates the descriptor.
+ *
+ * For device memory the sequence uses hipMalloc, hipMemcpy(DeviceToDevice)
+ * and hipFree — all synchronous.  For pinned host memory it uses
+ * hipHostMalloc, host-side memcpy, and hipHostFree.
+ *
+ * On any failure the original buffer descriptor is left unchanged and
+ * all newly-allocated resources are cleaned up before returning.
+ *
+ * @param buf       Pointer to the buffer descriptor to reallocate.
+ *                  Must have been previously allocated with hip_reserve.
+ * @param new_bytes Target size in bytes (before alignment rounding).
+ * @param align     Alignment requirement (power of two, or 1 for default).
+ * @return HIP_OK on success, or a HipStatus_t with a positive error
+ *         code and a descriptive message on failure.
+ */
+HipStatus_t hip_realloc(HipBuffer_t *buf, std::size_t new_bytes,
+                        std::size_t align);

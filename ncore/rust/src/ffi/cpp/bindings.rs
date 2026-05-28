@@ -61,7 +61,7 @@ unsafe extern "C" {
     /// `out_buf` must be non-null and point to a valid, writable
     /// [`DeviceBuffer`]. The caller is responsible for eventually freeing
     /// the buffer with [`device_release`].
-    pub fn device_reserve(
+    pub unsafe fn device_reserve(
         bytes: usize,
         out_buf: *mut DeviceBuffer,
         pinned: bool,
@@ -75,7 +75,24 @@ unsafe extern "C" {
     ///
     /// `buf` must be non-null, point to a buffer previously returned by
     /// [`device_reserve`], and must not have been freed already.
-    pub fn device_release(buf: *mut DeviceBuffer) -> DeviceStatus;
+    pub unsafe fn device_release(buf: *mut DeviceBuffer) -> DeviceStatus;
+
+    /// Reallocate a device or pinned-host buffer, preserving content.
+    ///
+    /// Allocates a new buffer of `new_bytes` (rounded up to `align`),
+    /// copies the minimum of the old and new sizes, frees the old buffer,
+    /// and updates [`DeviceBuffer::ptr`] and [`DeviceBuffer::bytes`]
+    /// in-place on success.
+    ///
+    /// # Safety
+    ///
+    /// `buf` must be non-null, point to a buffer previously returned by
+    /// [`device_reserve`], and must not have been freed already.
+    pub unsafe fn device_realloc(
+        buf: *mut DeviceBuffer,
+        new_bytes: usize,
+        align: usize,
+    ) -> DeviceStatus;
 
     /// Copy memory through the active GPU backend.
     ///
@@ -87,7 +104,7 @@ unsafe extern "C" {
     ///
     /// `src` and `dst` must be valid pointers for `bytes` in the
     /// respective memory spaces implied by `kind`.
-    pub fn device_memcpy(
+    pub unsafe fn device_memcpy(
         src: *const c_void,
         dst: *mut c_void,
         is_pinned: bool,
@@ -101,5 +118,5 @@ unsafe extern "C" {
     /// [`DeviceKind::Null`] according to runtime detection.
     ///
     /// Corresponds to `get_device_backend()` in `device/admin.hpp`.
-    pub fn get_device_backend() -> DeviceKind;
+    pub unsafe fn get_device_backend() -> DeviceKind;
 }
