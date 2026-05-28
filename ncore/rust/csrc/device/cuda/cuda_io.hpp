@@ -30,8 +30,7 @@ CudaStatus_t cuda_memcpy_host2device(std::size_t bytes, const void *src,
 /**
  * @brief Copy bytes from host to device (async when pinned).
  *
- * If @p pinned is false, the stream is destroyed and the copy falls back
- * to the synchronous variant.
+ * Delegates to cuda_memcpy with the HostToDevice direction.
  *
  * @param bytes  Number of bytes to copy.
  * @param src    Source pointer in host memory.
@@ -56,8 +55,7 @@ CudaStatus_t cuda_memcpy_device2host(std::size_t bytes, const void *src,
 /**
  * @brief Copy bytes from device to host (async when pinned).
  *
- * When the host buffer is pinned, performs an async copy; otherwise the
- * copy falls back to the synchronous variant.
+ * Delegates to cuda_memcpy with the DeviceToHost direction.
  *
  * @param bytes Number of bytes to copy.
  * @param src   Source pointer in device memory.
@@ -70,6 +68,8 @@ CudaStatus_t cuda_memcpy_device2host_async(std::size_t bytes, const void *src,
 /**
  * @brief Copy bytes from device to device (async).
  *
+ * Delegates to cuda_memcpy with the DeviceToDevice direction.
+ *
  * @param bytes Number of bytes to copy.
  * @param src   Source pointer in device memory.
  * @param dst   Destination pointer in device memory.
@@ -79,11 +79,12 @@ CudaStatus_t cuda_memcpy_device2device(std::size_t bytes, const void *src,
                                        void *dst);
 
 /**
- * @brief Copy bytes based on DeviceMemcpyKind with optional pinned-host async.
+ * @brief Unified copy entry point — owns the full stream lifetime.
  *
- * Creates a stream, dispatches to one of the helpers above, and synchronizes
- * the stream before returning. Stream creation and synchronization errors are
- * mapped to CudaStatus_t.
+ * Creates a stream, dispatches to the appropriate internal helper based on
+ * @p kind, then synchronises and destroys the stream unconditionally before
+ * returning.  A sync or destroy error takes priority over a copy error only
+ * when the copy itself succeeded.
  *
  * @param bytes     Number of bytes to copy.
  * @param kind      Copy direction.
