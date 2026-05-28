@@ -6,7 +6,7 @@
 
 use crate::error::StorageError;
 use crate::ffi::cpp::{
-    DeviceBuffer, DeviceKind, device_release, device_reserve, get_device_backend,
+    DeviceBuffer, DeviceKind, device_realloc, device_release, device_reserve, get_device_backend,
 };
 use std::alloc::{Layout, alloc, dealloc, realloc};
 use std::ffi::CStr;
@@ -150,40 +150,66 @@ impl RustStorage {
 
     /// Resizes the allocated memory to the new size, preserving existing data.
     ///
+    /// For CPU storage the underlying [`realloc`] is used; for GPU storage the
+    /// operation is forwarded to [`device_realloc`] which allocates a new
+    /// buffer, copies the minimum of the old and new sizes, and frees the old
+    /// buffer atomically on the device stream.
+    ///
     /// # Errors
     ///
-    /// Returns [`StorageError::ResizeFailed`] for GPU-allocated storage
-    /// (not yet supported). Returns [`StorageError::InvalidSize`] when
-    /// `new_size` is zero.
+    /// Returns [`StorageError::InvalidSize`] when `new_size` is zero,
+    /// [`StorageError::InvalidAlignment`] when the new layout is misaligned
+    /// (CPU only), [`StorageError::ResizeFailed`] when the system realloc
+    /// returns null, or [`StorageError::DeviceError`] with the backend error
+    /// message when the GPU realloc fails.
     pub fn resize(&mut self, new_size: usize) -> Result<(), StorageError> {
         if new_size == 0 {
             return Err(StorageError::InvalidSize);
         }
 
-        // Extract the CPU layout (if any) so we can mutate self later.
-        let cpu_layout = match &self.alloc {
-            Allocation::Cpu { layout } => Some(*layout),
-            Allocation::Gpu { .. } => None,
-        };
-
-        match cpu_layout {
-            Some(layout) => {
+        match &mut self.alloc {
+            Allocation::Cpu { layout } => {
                 let new_layout = Layout::from_size_align(new_size, layout.align())
                     .map_err(|_| StorageError::InvalidAlignment)?;
 
                 // SAFETY: ptr was allocated with `layout` and is still valid.
-                let new_ptr = unsafe { realloc(self.ptr, layout, new_size) };
+                let new_ptr = unsafe { realloc(self.ptr, *layout, new_size) };
 
                 if new_ptr.is_null() {
                     return Err(StorageError::ResizeFailed);
                 }
 
                 self.ptr = new_ptr;
-                self.alloc = Allocation::Cpu { layout: new_layout };
+                *layout = new_layout;
                 self.size_bytes = new_size;
                 Ok(())
             }
-            None => Err(StorageError::ResizeFailed),
+            Allocation::Gpu {
+                device_buf,
+                alignment,
+            } => {
+                // SAFETY: device_buf was returned by a previous
+                // device_reserve call and has not been freed yet.
+                let status = unsafe {
+                    device_realloc(device_buf as *mut DeviceBuffer, new_size, *alignment)
+                };
+
+                if status.code != 0 {
+                    let msg = if status.message.is_null() {
+                        "Unknown device error".into()
+                    } else {
+                        // SAFETY: message points to a static C string literal.
+                        unsafe { CStr::from_ptr(status.message) }
+                            .to_string_lossy()
+                            .into_owned()
+                    };
+                    return Err(StorageError::DeviceError(msg));
+                }
+
+                self.ptr = device_buf.ptr as *mut u8;
+                self.size_bytes = device_buf.bytes;
+                Ok(())
+            }
         }
     }
 

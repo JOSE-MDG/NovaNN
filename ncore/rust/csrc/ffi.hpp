@@ -4,9 +4,9 @@
  *
  * Provides the C++ type definitions (DeviceBuffer_t, DeviceStatus_t,
  * DeviceMemcpyKind) and the extern-"C" function declarations for
- * device_reserve, device_release, and device_memcpy.  The corresponding
- * C-callable wrapper device_memcpy_c (which uses TransferKind instead of
- * DeviceMemcpyKind) is declared in cpp_ffi.h.
+ * device_reserve, device_realloc, device_release, and device_memcpy.
+ * The corresponding C-callable wrapper device_memcpy_c (which uses
+ * TransferKind instead of DeviceMemcpyKind) is declared in cpp_ffi.h.
  */
 
 #pragma once
@@ -63,22 +63,18 @@ enum class DeviceMemcpyKind : std::int8_t {
 extern "C" {
 
 /**
- * @brief Allocate a device or pinned-host buffer through the active
- *        backend (CUDA or HIP).
+ * @brief Allocate a device or pinned-host buffer through the active backend.
  *
- * The chosen backend is determined by the @p kind parameter.  The
- * requested size is rounded up to the next multiple of @p align when
- * @p align > 1.
+ * Dispatches to cuda_reserve or hip_reserve depending on @p kind.
  *
  * @param bytes   Minimum number of bytes to allocate.
- * @param out_buf Output buffer descriptor (valid only when the returned
- *                status has code == 0).
- * @param pinned  If true, allocate page-locked host memory; otherwise
- *                allocate device memory.
- * @param align   Alignment requirement (must be a power of two).
+ * @param out_buf [out] Output buffer descriptor (valid only when the
+ *                      returned status has code == 0).
+ * @param pinned  If true, allocate page-locked host memory.
+ * @param align   Alignment requirement (power of two).
  * @param kind    Target backend (DeviceCUDA or DeviceHIP).
- * @return DeviceStatus_t with code 0 on success, or a positive error
- *         code with a descriptive message on failure.
+ * @return DeviceStatus_t with code 0 on success, or a positive error code
+ *         with a descriptive message on failure.
  */
 DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
                               bool pinned = false, std::size_t align = 512,
@@ -88,14 +84,34 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
  * @brief Free a buffer previously allocated with device_reserve.
  *
  * Dispatches to cuda_release or hip_release based on the buffer's
- * device_kind field.  The buffer descriptor is zeroed on success.
+ * device_kind field.  The backend buffer descriptor (device_buf_ptr) is
+ * deleted and the generic descriptor is zeroed on success.
  *
- * @param buf Pointer to the buffer descriptor to free.  If buf or
- *            buf->ptr is NULL the function returns an error status.
- * @return DeviceStatus_t with code 0 on success, or a positive error
- *         code with a descriptive message on failure.
+ * @param buf Pointer to the buffer descriptor to free.  The descriptor
+ *            is zeroed out on success.
+ * @return DeviceStatus_t with code 0 on success, or a positive error code
+ *         with a descriptive message on failure.
  */
 DeviceStatus_t device_release(DeviceBuffer_t *buf);
+
+/**
+ * @brief Reallocate a device or pinned-host buffer, preserving content.
+ *
+ * Dispatches to cuda_realloc or hip_realloc based on the buffer's
+ * device_kind field.  Allocates a new buffer of @p new_bytes (rounded
+ * up to @p align), copies the minimum of the old and new sizes, and
+ * frees the old buffer.  On success the generic buffer descriptor is
+ * updated with the new pointer and size; on failure it is left unchanged.
+ *
+ * @param buf       Pointer to the buffer descriptor to reallocate.
+ *                  Must have been previously allocated with device_reserve.
+ * @param new_bytes Target size in bytes.
+ * @param align     Alignment requirement (must be a power of two).
+ * @return DeviceStatus_t with code 0 on success, or a positive error code
+ *         with a descriptive message on failure.
+ */
+DeviceStatus_t device_realloc(DeviceBuffer_t *buf, std::size_t new_bytes,
+                              std::size_t align);
 
 /**
  * @brief Copy memory through the active backend.
