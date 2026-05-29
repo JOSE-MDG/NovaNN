@@ -3,6 +3,7 @@ __pycache__/
 .pytest_cache/
 
 # Environments and IDEs
+.env
 .venv/
 .vscode/
 .DS_Store
