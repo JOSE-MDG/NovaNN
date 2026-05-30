@@ -16,12 +16,12 @@
  * synchronises and destroys the stream it created before returning.
  */
 
-#include "hip_io.hpp"
-
+#ifdef NOVA_HAS_HIP
 #if __has_include(<hip/hip_runtime_api.h>)
 #if !defined(__HIP_PLATFORM_AMD__) && !defined(__HIP_PLATFORM_NVIDIA__)
 #define __HIP_PLATFORM_AMD__ 1
 #endif
+#include "hip_io.hpp"
 #include <hip/hip_runtime_api.h>
 
 /**
@@ -380,3 +380,4 @@ HipStatus_t hip_memcpy(std::size_t, DeviceMemcpyKind, const void *, void *,
 }
 
 #endif
+#endif /* NOVA_HAS_HIP */
