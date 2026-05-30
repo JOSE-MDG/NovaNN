@@ -30,6 +30,8 @@ file(GLOB_RECURSE CORE_SOURCES
     "${CMAKE_SOURCE_DIR}/ncore/src/core/*.c"
 )
 
+list(REMOVE_ITEM CORE_SOURCES "${CMAKE_SOURCE_DIR}/ncore/src/core/main.c")
+
 add_library(ncore_core_obj OBJECT ${CORE_SOURCES})
 
 set_target_properties(ncore_core_obj PROPERTIES
@@ -47,6 +49,11 @@ target_compile_options(ncore_core_obj PRIVATE
     ${SIMD_FLAGS}
     $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
+)
+
+target_compile_definitions(ncore_core_obj PRIVATE
+    NOVA_COMPILE_CUDA=$<BOOL:${USE_CUDA}>
+    NOVA_COMPILE_HIP=$<BOOL:${USE_HIP}>
 )
 
 novaNN_configure_cpu_target(ncore_core_obj)
@@ -73,6 +80,11 @@ target_compile_options(ncore_autograd_obj PRIVATE
     ${SIMD_FLAGS}
     $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
+)
+
+target_compile_definitions(ncore_autograd_obj PRIVATE
+    NOVA_COMPILE_CUDA=$<BOOL:${USE_CUDA}>
+    NOVA_COMPILE_HIP=$<BOOL:${USE_HIP}>
 )
 
 novaNN_configure_cpu_target(ncore_autograd_obj)
