@@ -1,30 +1,32 @@
+=======================
 Rust / C++ FFI Bridge
----------------------
+=======================
 
-:files: ``ncore/rust/CMakeLists.txt``, ``ncore/rust/csrc/CMakeLists.txt``,
-        ``ncore/rust/build.rs``
+:files:  ``ncore/rust/CMakeLists.txt``, ``ncore/rust/csrc/CMakeLists.txt``,
+         ``ncore/rust/build.rs``
 :requires: Cargo, Rust toolchain (edition 2024)
 :output: ``libncore_memory.a`` (via ``librustcsrc.a``)
 
 Overview
-~~~~~~~~
+--------
 
 The Rust memory crate (``ncore_memory``) is the lowest-level memory manager.
 It calls into a C++ FFI static library (``rustcsrc``) for GPU VRAM operations.
 
-The build pipeline is:
+The build pipeline:
 
-#. ``csrc/CMakeLists.txt`` compiles the C++ FFI and device back-ends into
+1. ``csrc/CMakeLists.txt`` compiles the C++ FFI and device back-ends into
    ``librustcsrc.a``.
-#. The parent ``CMakeLists.txt`` invokes ``cargo build`` via a custom target,
-   passing the location of ``librustcsrc.a`` in the environment.
-#. Cargo compiles the Rust crate and statically links ``librustcsrc.a``,
+2. The parent ``CMakeLists.txt`` invokes ``cargo build`` via a custom target,
+   passing the location of ``librustcsrc.a`` and backend selection options in
+   the environment.
+3. Cargo compiles the Rust crate and statically links ``librustcsrc.a``,
    producing ``libncore_memory.a``.
-#. An ``IMPORTED STATIC`` target wraps the ``.a`` and exposes its link
+4. An ``IMPORTED STATIC`` target wraps the ``.a`` and exposes its link
    dependencies (pthreads, dl, m) transitively.
 
 Files
-~~~~~
+-----
 
 .. list-table::
    :header-rows: 1
@@ -41,7 +43,7 @@ Files
      - Crate manifest (name = ``ncore_memory``, type = ``staticlib``).
 
 Environment Variables
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 Set by CMake before ``cargo build``:
 
@@ -61,9 +63,15 @@ Set by CMake before ``cargo build``:
    * - ``RUSTCSRC_NAME``
      - ``rustcsrc``
      - Library name (without prefix / extension)
+   * - ``USE_CUDA``
+     - ``${USE_CUDA}``
+     - Forwarded from root CMake option
+   * - ``USE_HIP``
+     - ``${USE_HIP}``
+     - Forwarded from root CMake option
 
 C++ FFI Sources (``csrc/CMakeLists.txt``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------------
 
 Always compiled:
 
@@ -76,40 +84,43 @@ Conditionally compiled (guarded by ``NOVA_HAS_CUDA`` / ``NOVA_HAS_HIP``):
 - ``device/cuda/cuda_allocator.cpp``, ``cuda_io.cpp``
 - ``device/hip/hip_allocator.cpp``, ``hip_io.cpp``
 
+The ``rustcsrc`` target also receives ``novaNN_configure_cpu_target()``,
+``novaNN_configure_cuda_target()``, and ``novaNN_configure_hip_target()``.
+
 build.rs Triggers
-~~~~~~~~~~~~~~~~~
+-----------------
 
 Cargo watches all ``csrc/`` files for changes via ``cargo:rerun-if-changed``.
 Any modification to a C++ source or header triggers a rebuild of
 ``libncore_memory.a``.
 
 Dependency Chain
-~~~~~~~~~~~~~~~~
+----------------
 
 ::
 
-   csrc/CMakeLists.txt         →  librustcsrc.a
-            ↓ (DEPENDS)
-   ncore_memory_cargo (custom) →  cargo build → libncore_memory.a
-            ↓ (add_dependencies)
-   ncore_memory (IMPORTED)     →  linked into libncore.so (WHOLE_ARCHIVE)
+   csrc/CMakeLists.txt         ->  librustcsrc.a
+            | (DEPENDS)
+   ncore_memory_cargo (custom) ->  cargo build -> libncore_memory.a
+            | (add_dependencies)
+   ncore_memory (IMPORTED)     ->  linked into libnova.so (WHOLE_ARCHIVE)
 
 Source: ``ncore/rust/CMakeLists.txt``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------
 
 .. literalinclude:: ../../ncore/rust/CMakeLists.txt
    :language: cmake
    :linenos:
 
 Source: ``ncore/rust/csrc/CMakeLists.txt``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------
 
 .. literalinclude:: ../../ncore/rust/csrc/CMakeLists.txt
    :language: cmake
    :linenos:
 
 Source: ``ncore/rust/build.rs``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------
 
 .. literalinclude:: ../../ncore/rust/build.rs
    :language: rust

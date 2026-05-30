@@ -6,7 +6,7 @@
 
 use crate::error::StorageError;
 use crate::ffi::cpp::{
-    DeviceBuffer, DeviceKind, device_realloc, device_release, device_reserve, get_device_backend,
+    DeviceBuffer, DeviceKind, device_release, device_reserve, device_resize, get_device_backend,
 };
 use std::alloc::{Layout, alloc, dealloc, realloc};
 use std::ffi::CStr;
@@ -151,7 +151,7 @@ impl RustStorage {
     /// Resizes the allocated memory to the new size, preserving existing data.
     ///
     /// For CPU storage the underlying [`realloc`] is used; for GPU storage the
-    /// operation is forwarded to [`device_realloc`] which allocates a new
+    /// operation is forwarded to [`device_resize`] which allocates a new
     /// buffer, copies the minimum of the old and new sizes, and frees the old
     /// buffer atomically on the device stream.
     ///
@@ -190,9 +190,8 @@ impl RustStorage {
             } => {
                 // SAFETY: device_buf was returned by a previous
                 // device_reserve call and has not been freed yet.
-                let status = unsafe {
-                    device_realloc(device_buf as *mut DeviceBuffer, new_size, *alignment)
-                };
+                let status =
+                    unsafe { device_resize(device_buf as *mut DeviceBuffer, new_size, *alignment) };
 
                 if status.code != 0 {
                     let msg = if status.message.is_null() {

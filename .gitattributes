@@ -8,6 +8,7 @@
 *.rs linguist-language=Rust
 *.py linguist-language=Python
 *.c linguist-language=C
+*.h linguist-language=C
 *.cpp linguist-language=C++
 *.hpp linguist-language=C++
 *.cmake linguist-language=CMake
