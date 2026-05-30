@@ -25,7 +25,7 @@ struct CudaBuffer_t {
 };
 
 /**
- * @brief Result type returned by cuda_reserve, cuda_realloc and cuda_release.
+ * @brief Result type returned by cuda_reserve, cuda_resize and cuda_release.
  *
  * @var code  Zero on success, a positive error code on failure
  *            (1 = invalid value, 2 = allocation failure, -1 = unknown).
@@ -97,5 +97,5 @@ CudaStatus_t cuda_release(CudaBuffer_t *buf);
  * @return CUDA_OK on success, or a CudaStatus_t with a positive error
  *         code and a descriptive message on failure.
  */
-CudaStatus_t cuda_realloc(CudaBuffer_t *buf, std::size_t new_bytes,
-                          std::size_t align);
+CudaStatus_t cuda_resize(CudaBuffer_t *buf, std::size_t new_bytes,
+                         std::size_t align);

@@ -2,7 +2,7 @@
  * @file cuda_allocator.cpp
  * @brief Backend implementation of CUDA device/pinned-host memory allocation.
  *
- * Implements cuda_reserve, cuda_realloc and cuda_release by wrapping the
+ * Implements cuda_reserve, cuda_resize and cuda_release by wrapping the
  * CUDA Runtime API (cudaMallocAsync / cudaMallocHost / cudaFreeAsync /
  * cudaFreeHost / cudaMemcpyAsync) with alignment rounding, descriptive
  * error reporting, and a mapping from CUDA runtime error codes to
@@ -13,7 +13,7 @@
  * operations are fully synchronous (cudaMallocHost / cudaFreeHost / memcpy)
  * and therefore never require a stream.
  *
- * cuda_realloc allocates a new buffer of the requested size, copies the
+ * cuda_resize allocates a new buffer of the requested size, copies the
  * minimum of the old and new sizes into it, frees the old buffer, and
  * updates the descriptor — cleaning up all intermediate resources on any
  * failure so that the original descriptor is always left untouched.
@@ -316,11 +316,11 @@ CudaStatus_t cuda_release(CudaBuffer_t *buf) {
  * @return CUDA_OK on success, or a CudaStatus_t with a positive error
  *         code and a descriptive message on failure.
  */
-CudaStatus_t cuda_realloc(CudaBuffer_t *buf, std::size_t new_bytes,
-                          std::size_t align) {
+CudaStatus_t cuda_resize(CudaBuffer_t *buf, std::size_t new_bytes,
+                         std::size_t align) {
   if (buf == nullptr || buf->ptr == nullptr) {
     return CudaStatus_t{.code = 1,
-                        .msg = "cuda_realloc: buf or buf->ptr is null"
+                        .msg = "cuda_resize: buf or buf->ptr is null"
                                " — nothing to reallocate"};
   }
 
@@ -420,7 +420,7 @@ CudaStatus_t cuda_release(CudaBuffer_t *) {
 /**
  * @brief Fallback realloc entry point when CUDA headers are unavailable.
  */
-CudaStatus_t cuda_realloc(CudaBuffer_t *, std::size_t, std::size_t) {
+CudaStatus_t cuda_resize(CudaBuffer_t *, std::size_t, std::size_t) {
   return CudaStatus_t{.code = -1,
                       .msg = "CUDA runtime headers not available at"
                              " build/lint time"};
