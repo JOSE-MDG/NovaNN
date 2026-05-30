@@ -1,15 +1,16 @@
+=================
 config.h Template
------------------
+=================
 
-:file: ``cmake/config.h.in``
+:file:  ``cmake/config.h.in``
 :output: ``${CMAKE_BINARY_DIR}/config.h``
 
 Overview
-~~~~~~~~
+--------
 
-CMake configuration template consumed by ``configure_file()``.  Every
+CMake configuration template consumed by ``configure_file()``. Every
 ``@VAR@`` placeholder is substituted with the corresponding CMake variable
-at configure time.  The resulting ``config.h`` is included by C/C++ source
+at configure time. The resulting ``config.h`` is included by C/C++ source
 files (via private include path) to conditionally enable SIMD paths and
 feature gates.
 
@@ -17,7 +18,7 @@ The template exposes the project version and all ``HAS_*`` capability flags
 set by the :doc:`DetectSIMD` and :doc:`cpu_detect` modules.
 
 Variables
-~~~~~~~~~
+---------
 
 .. list-table::
    :header-rows: 1
@@ -66,7 +67,7 @@ Variables
      - AMX extensions
 
 Source
-~~~~~~
+------
 
 .. literalinclude:: ../../cmake/config.h.in
    :language: c

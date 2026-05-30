@@ -1,46 +1,53 @@
+==================
 Root CMakeLists.txt
--------------------
+==================
 
-:file: ``CMakeLists.txt`` (root)
+:file:  ``CMakeLists.txt`` (root)
 :version: 5.0.0
 :requires: CMake 3.27+, C23, C++23
-:output: ``libncore.so``
+:output: ``libnova.so``
 
 Overview
-~~~~~~~~
+--------
 
-Top-level build configuration that sets project metadata, C/C++ language
-standards, compile flags, and builds the ``ncore`` shared library.
+Top-level build configuration. Sets project metadata, language standards,
+compile flags, backend selection options, and builds the ``nova`` shared
+library.
 
-The root CMakeLists.txt is responsible for:
+Responsibilities
+^^^^^^^^^^^^^^^^
 
-#. Including the runtime-detection orchestrator (``NovaNNRuntime``).
-#. Generating ``config.h`` from ``cmake/config.h.in``.
-#. Defining common compile flags (``COMPILE_FLAGS``, ``DEBUG_FLAGS``,
+1. Declares ``option(USE_CUDA ON)`` and ``option(USE_HIP ON)`` for GPU
+   backend selection.
+2. Includes the runtime-detection orchestrator (``NovaNNRuntime``).
+3. Generates ``config.h`` from ``cmake/config.h.in``.
+4. Defines common compile flags (``COMPILE_FLAGS``, ``DEBUG_FLAGS``,
    ``RELEASE_FLAGS``).
-#. Building ``libncore.so`` by merging two object libraries and
+5. Builds ``libnova.so`` by merging two object libraries and
    whole-archiving the Rust memory crate.
-#. Applying GPU back-end configuration (CUDA / HIP) to the final target.
+6. Applies CPU / CUDA / HIP target configuration functions.
+7. Sets preprocessor definitions ``NOVA_COMPILE_CUDA`` and
+   ``NOVA_COMPILE_HIP`` based on the ``USE_*`` options.
 
 Targets
-~~~~~~~
+-------
 
-``ncore`` — Shared Library
+``nova`` — Shared Library
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - **Type:** SHARED
-- **Output:** ``libncore.so``
+- **Output:** ``libnova.so``
 - **Version:** 5.0.0 (SOVERSION 5)
 
 Composition:
 
-======================  ===================================
+======================  ================================
 Component               Source
-======================  ===================================
+======================  ================================
 ``ncore_core_obj``      C sources (object library)
 ``ncore_autograd_obj``  C++ autograd (object library)
 ``ncore_memory``        Rust memory crate (whole-archive)
-======================  ===================================
+======================  ================================
 
 Linked libraries:
 
@@ -49,9 +56,14 @@ Linked libraries:
 
 Back-end configuration applied:
 
-- ``novaNN_configure_cpu_target(ncore)``
-- ``novaNN_configure_cuda_target(ncore)``
-- ``novaNN_configure_hip_target(ncore)``
+- ``novaNN_configure_cpu_target(nova)``
+- ``novaNN_configure_cuda_target(nova)``
+- ``novaNN_configure_hip_target(nova)``
+
+Compile definitions:
+
+- ``NOVA_COMPILE_CUDA=$<BOOL:${USE_CUDA}>``
+- ``NOVA_COMPILE_HIP=$<BOOL:${USE_HIP}>``
 
 Include directories:
 
@@ -59,7 +71,7 @@ Include directories:
 - ``${CMAKE_BINARY_DIR}`` (private — for generated ``config.h``)
 
 Configuration
-~~~~~~~~~~~~~
+-------------
 
 Language Standards
 ^^^^^^^^^^^^^^^^^^
@@ -76,6 +88,27 @@ Language Standards
    * - C++
      - C++23
      - Yes
+
+Backend Options
+^^^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+
+   * - Option
+     - Default
+     - Description
+   * - ``USE_CUDA``
+     - ``ON``
+     - Enable NVIDIA CUDA support
+   * - ``USE_HIP``
+     - ``ON``
+     - Enable AMD HIP/ROCm support
+
+When a backend option is ``OFF``, its corresponding
+``novaNN_configure_*_target`` function becomes a no-op and the runtime
+module reports "Disabled by user". CPU is always compiled as the mandatory
+baseline.
 
 Compile Flags
 ^^^^^^^^^^^^^
@@ -106,7 +139,7 @@ symbols are visible to the Rust ``build.rs`` regardless of linker
 garbage-collection.
 
 Source
-~~~~~~
+------
 
 .. literalinclude:: ../../CMakeLists.txt
    :language: cmake
