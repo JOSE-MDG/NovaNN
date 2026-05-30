@@ -64,8 +64,8 @@ target_compile_options(rustcsrc PRIVATE
 )
 
 target_compile_definitions(rustcsrc PRIVATE
-    NOVA_CUDA=${NOVA_HAS_CUDA}
-    NOVA_HIP=${NOVA_HAS_HIP}
+    NOVA_COMPILE_CUDA=${NOVA_HAS_CUDA}
+    NOVA_COMPILE_HIP=${NOVA_HAS_HIP}
 )
 
 novaNN_configure_cpu_target(rustcsrc)
