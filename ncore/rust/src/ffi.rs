@@ -8,7 +8,7 @@
 //! | Submodule     | FFI Functions                                            |
 //! |---------------|----------------------------------------------------------|
 //! | [`cpp`]       | `device_reserve`, `device_release`, `device_memcpy`,     |
-//! |               | `device_realloc` `get_device_backend`                    |
+//! |               | `device_resize` `get_device_backend`                    |
 //! | [`reserve`]   | `reserve(size, device, pin_memory, align)`               |
 //! | [`lifecycle`] | `retain`, `release`                                      |
 //! | [`resize`]    | `resize`                                                 |
@@ -21,8 +21,8 @@ pub mod reserve;
 pub mod resize;
 
 pub use cpp::{
-    DeviceBuffer, DeviceKind, DeviceMemcpyKind, DeviceStatus, device_memcpy, device_realloc,
-    device_release, device_reserve, get_device_backend,
+    DeviceBuffer, DeviceKind, DeviceMemcpyKind, DeviceStatus, device_memcpy, device_release,
+    device_reserve, device_resize, get_device_backend,
 };
 pub use lifecycle::{release, retain};
 pub use query::{
