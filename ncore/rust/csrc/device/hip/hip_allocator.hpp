@@ -25,7 +25,7 @@ struct HipBuffer_t {
 };
 
 /**
- * @brief Result type returned by hip_reserve, hip_realloc and hip_release.
+ * @brief Result type returned by hip_reserve, hip_resize and hip_release.
  *
  * @var code  Zero on success, a positive error code on failure
  *            (1 = invalid value, 2 = allocation failure, -1 = unknown).
@@ -83,9 +83,9 @@ HipStatus_t hip_release(HipBuffer_t *buf);
  * copies min(old_bytes, new_bytes) from the old buffer, frees the old
  * buffer, and updates the descriptor.
  *
- * For device memory the sequence uses hipMalloc, hipMemcpy(DeviceToDevice)
- * and hipFree — all synchronous.  For pinned host memory it uses
- * hipHostMalloc, host-side memcpy, and hipHostFree.
+ * For device memory the sequence uses hipMallocAasync,
+ * hipMemcpyAsync(DeviceToDevice) and hipFreeAsync — all asynchronous.  For
+ * pinned host memory it uses hipHostMalloc, host-side memcpy, and hipHostFree.
  *
  * On any failure the original buffer descriptor is left unchanged and
  * all newly-allocated resources are cleaned up before returning.
@@ -97,5 +97,5 @@ HipStatus_t hip_release(HipBuffer_t *buf);
  * @return HIP_OK on success, or a HipStatus_t with a positive error
  *         code and a descriptive message on failure.
  */
-HipStatus_t hip_realloc(HipBuffer_t *buf, std::size_t new_bytes,
-                        std::size_t align);
+HipStatus_t hip_resize(HipBuffer_t *buf, std::size_t new_bytes,
+                       std::size_t align);
