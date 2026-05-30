@@ -131,6 +131,13 @@ DeviceStatus transfer_to(Device dst, Device src, const void *src_buf,
                          void *dst_buf, bool is_pinned, size_t bytes);
 
 /**
+ * @brief Return the active device id (CUDA/HIP).
+ *
+ * @return Device id, or -1 when is unavailable
+ */
+int get_device_id(void);
+
+/**
  * @brief Probe HIP runtime availability.
  * @param log If true, print runtime error details.
  * @return true when a HIP device is available.
@@ -157,19 +164,6 @@ extern bool is_cuda_device_not_available(bool log);
  * @return true when a CUDA device is available.
  */
 extern bool is_cuda_device_available(bool log);
-
-/**
- * @brief Return the active HIP device id.
- * @return Device id, or -1 when HIP is unavailable.
- */
-extern int get_hip_device_id(void);
-
-/**
- * @brief Return the active CUDA device id.
- * @return Device id, or -1 when CUDA is unavailable.
- */
-extern int get_cuda_device_id(void);
-
 #ifdef __cplusplus
 }
 #endif
