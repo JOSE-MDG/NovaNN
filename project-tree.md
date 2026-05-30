@@ -1,9 +1,16 @@
 # File Tree: NovaNN
 
-**Generated:** 4/24/2026, 1:18:51 AM
+**Generated:** 5/30/2026, 12:29:53 PM
 
 ```
-NovaNN
+├── .agents
+├── .opencode
+│   ├── skills
+│   │   └── conventional-commit
+│   │       └── SKILL.md
+│   ├── .gitignore
+│   ├── package-lock.json
+│   └── package.json
 ├── benchmarks
 │   ├── autograd
 │   │   ├── backward_overhead.py
@@ -19,6 +26,47 @@ NovaNN
 │   │   └── timing.py
 │   ├── README.es.md
 │   └── README.md
+├── bindings
+│   └── cython
+│       └── lib
+├── cmake
+│   ├── config
+│   │   ├── GenerateBackendConfig.cmake
+│   │   ├── GenerateCapabilityReport.cmake
+│   │   └── GenerateKernelRegistry.cmake
+│   ├── detect
+│   │   ├── cpu
+│   │   │   ├── DetectAMX.cmake
+│   │   │   ├── DetectAVX.cmake
+│   │   │   ├── DetectAVX2.cmake
+│   │   │   ├── DetectAVX512.cmake
+│   │   │   └── DetectSSE.cmake
+│   │   ├── simd
+│   │   │   └── DetectSIMD.cmake
+│   │   └── threading
+│   │       ├── DetectOpenMP.cmake
+│   │       └── DetectPThreads.cmake
+│   ├── modules
+│   │   ├── NovaNNCPU.cmake
+│   │   ├── NovaNNCUDA.cmake
+│   │   ├── NovaNNHIP.cmake
+│   │   └── NovaNNRuntime.cmake
+│   ├── utils
+│   │   └── CheckInstructionSupport.cmake
+│   └── config.h.in
+├── docs
+│   ├── cmake
+│   │   ├── DetectSIMD.rst
+│   │   ├── config_h.rst
+│   │   ├── cpu_detect.rst
+│   │   ├── index.rst
+│   │   ├── modules.rst
+│   │   ├── ncore.rst
+│   │   ├── root.rst
+│   │   ├── rust.rst
+│   │   └── threading.rst
+│   ├── conf.py
+│   └── index.rst
 ├── examples
 │   ├── binary_classification.py
 │   ├── conv_example.py
@@ -60,6 +108,141 @@ NovaNN
 │   │       └── optimizer_comparison.png
 │   ├── NovaNN Banners.png
 │   └── graph.png
+├── ncore
+│   ├── backends
+│   ├── generated
+│   ├── include
+│   │   ├── autograd
+│   │   │   ├── node.hpp
+│   │   │   └── tensor.hpp
+│   │   └── ncore
+│   │       ├── headeronly
+│   │       │   ├── cast.h
+│   │       │   └── tensor_utils.h
+│   │       ├── repr
+│   │       │   ├── repr_context.h
+│   │       │   ├── repr_options.h
+│   │       │   └── tensor_repr.h
+│   │       ├── tables
+│   │       │   ├── cast_tables.h
+│   │       │   └── dtype_tables.h
+│   │       ├── alloc.h
+│   │       ├── backend.h
+│   │       ├── copy.h
+│   │       ├── cpp_ffi.h
+│   │       ├── device.h
+│   │       ├── dtype.h
+│   │       ├── macros.h
+│   │       ├── simd.h
+│   │       ├── storage.h
+│   │       └── tensor.h
+│   ├── rust
+│   │   ├── csrc
+│   │   │   ├── device
+│   │   │   │   ├── cuda
+│   │   │   │   │   ├── cuda_allocator.cpp
+│   │   │   │   │   ├── cuda_allocator.hpp
+│   │   │   │   │   ├── cuda_io.cpp
+│   │   │   │   │   └── cuda_io.hpp
+│   │   │   │   ├── hip
+│   │   │   │   │   ├── hip_allocator.cpp
+│   │   │   │   │   ├── hip_allocator.hpp
+│   │   │   │   │   ├── hip_io.cpp
+│   │   │   │   │   └── hip_io.hpp
+│   │   │   │   ├── admin.cpp
+│   │   │   │   └── admin.hpp
+│   │   │   ├── CMakeLists.txt
+│   │   │   ├── ffi.cpp
+│   │   │   └── ffi.hpp
+│   │   ├── src
+│   │   │   ├── ffi
+│   │   │   │   ├── cpp
+│   │   │   │   │   └── bindings.rs
+│   │   │   │   ├── cpp.rs
+│   │   │   │   ├── lifecycle.rs
+│   │   │   │   ├── query.rs
+│   │   │   │   ├── reserve.rs
+│   │   │   │   └── resize.rs
+│   │   │   ├── ops
+│   │   │   │   ├── lifecycle.rs
+│   │   │   │   ├── query.rs
+│   │   │   │   ├── reserve.rs
+│   │   │   │   └── resize.rs
+│   │   │   ├── pool
+│   │   │   │   └── caching.rs
+│   │   │   ├── error.rs
+│   │   │   ├── ffi.rs
+│   │   │   ├── handle.rs
+│   │   │   ├── id.rs
+│   │   │   ├── lib.rs
+│   │   │   ├── manager.rs
+│   │   │   ├── ops.rs
+│   │   │   ├── pool.rs
+│   │   │   └── storage.rs
+│   │   ├── CMakeLists.txt
+│   │   ├── Cargo.toml
+│   │   └── build.rs
+│   ├── src
+│   │   ├── autograd
+│   │   │   ├── threadPool
+│   │   │   ├── engine.cpp
+│   │   │   ├── main.cpp
+│   │   │   ├── node.cpp
+│   │   │   └── tensor.cpp
+│   │   ├── core
+│   │   │   ├── detect
+│   │   │   │   ├── cuda_device.c
+│   │   │   │   └── hip_device.c
+│   │   │   ├── tables
+│   │   │   │   ├── cast_dispatch_tables.c
+│   │   │   │   ├── cast_tables.c
+│   │   │   │   └── dtype_tables.c
+│   │   │   ├── alloc.c
+│   │   │   ├── copy.c
+│   │   │   ├── device.c
+│   │   │   ├── dtype.c
+│   │   │   ├── main.c
+│   │   │   ├── simd.c
+│   │   │   └── tensor.c
+│   │   ├── dtypes
+│   │   ├── ops
+│   │   │   ├── asm
+│   │   │   │   └── kernels
+│   │   │   ├── fused
+│   │   │   └── transformers
+│   │   └── repr
+│   │       ├── api
+│   │       │   └── tensor_repr.c
+│   │       ├── context
+│   │       │   └── repr_context.c
+│   │       ├── formatters
+│   │       │   ├── element_fmt.c
+│   │       │   ├── element_fmt.h
+│   │       │   ├── float_formatter.c
+│   │       │   ├── float_formatter.h
+│   │       │   ├── int_formatter.c
+│   │       │   ├── int_formatter.h
+│   │       │   ├── qint_formatter.c
+│   │       │   └── qint_formatter.h
+│   │       ├── layouts
+│   │       │   ├── dense_layout.c
+│   │       │   ├── dense_layout.h
+│   │       │   ├── strided_layout.c
+│   │       │   └── summarized_layout.c
+│   │       ├── metadata
+│   │       │   ├── metadata_fmt.c
+│   │       │   └── metadata_fmt.h
+│   │       ├── options
+│   │       │   └── repr_options.c
+│   │       ├── string_builder
+│   │       │   ├── string_builder.c
+│   │       │   └── string_builder.h
+│   │       └── traversal
+│   │           ├── tensor_iterator.c
+│   │           └── tensor_iterator.h
+│   ├── tests
+│   ├── CMakeLists.txt
+│   └── PANORAMA.md
 ├── nova
 │   ├── _interfaces
 │   │   ├── README.es.md
@@ -266,16 +449,27 @@ NovaNN
 │   ├── test_preprocessing.py
 │   ├── test_registry.py
 │   └── test_timing_decorators.py
+├── thirdParty
+│   └── sleef
+├── tools
+│   └── codegen
+│       ├── rules
+│       ├── templates
+│       └── engine.py
+├── .clang-format
+├── .clang-tidy
+├── .clangd
+├── .gitattributes
 ├── .gitignore
 ├── CHANGELOG.es.md
 ├── CHANGELOG.md
+├── CMakeLists.txt
 ├── CONTRIBUTING.es.md
 ├── CONTRIBUTING.md
 ├── LICENCE
 ├── README.es.md
 ├── README.md
-├── poetry.lock
 ├── project-tree.md
 ├── pyproject.toml
-└── v5-spec.md
+└── uv.lock
 ```

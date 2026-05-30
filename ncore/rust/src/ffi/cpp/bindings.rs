@@ -88,7 +88,7 @@ unsafe extern "C" {
     ///
     /// `buf` must be non-null, point to a buffer previously returned by
     /// [`device_reserve`], and must not have been freed already.
-    pub unsafe fn device_realloc(
+    pub unsafe fn device_resize(
         buf: *mut DeviceBuffer,
         new_bytes: usize,
         align: usize,

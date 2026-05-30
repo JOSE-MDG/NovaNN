@@ -1,28 +1,29 @@
+===========================
 SIMD Detection — DetectSIMD
-----------------------------
+===========================
 
-:file: ``cmake/detect/simd/DetectSIMD.cmake``
+:file:  ``cmake/detect/simd/DetectSIMD.cmake``
 :requires: CMake 3.15+, ``CheckCXXSourceRuns``
 :output: ``SIMD_FLAGS``, all ``HAS_*`` capability variables
 
 Overview
-~~~~~~~~
+--------
 
-Orchestrates SIMD instruction-set detection.  Initialises ``SIMD_FLAGS``,
+Orchestrates SIMD instruction-set detection. Initialises ``SIMD_FLAGS``,
 includes the shared :doc:`cpu_detect` utility, then runs every CPU-family
 detector in dependency order:
 
-#. ``DetectSSE.cmake`` — SSE4.2 (CRC32)
-#. ``DetectAVX.cmake`` — AVX, F16C, FMA3
-#. ``DetectAVX2.cmake`` — AVX2, AVX2-VNNI, AVX2-INT8
-#. ``DetectAVX512.cmake`` — AVX-512F, BW, DQ, VL, VNNI, FP16, BF16
-#. ``DetectAMX.cmake`` — AMX-Tile, AMX-FP16, AMX-BF16, AMX-INT8
+1. ``DetectSSE.cmake`` — SSE4.2 (CRC32)
+2. ``DetectAVX.cmake`` — AVX, F16C, FMA3
+3. ``DetectAVX2.cmake`` — AVX2, AVX2-VNNI, AVX2-INT8
+4. ``DetectAVX512.cmake`` — AVX-512F, BW, DQ, VL, VNNI, FP16, BF16
+5. ``DetectAMX.cmake`` — AMX-Tile, AMX-FP16, AMX-BF16, AMX-INT8
 
 Also sets the aggregate variable ``HAS_VNNI`` (true if either
 ``HAS_AVX2_VNNI`` or ``HAS_AVX512_VNNI`` is true).
 
 Output Variables
-~~~~~~~~~~~~~~~~
+----------------
 
 .. cmake:variable:: SIMD_FLAGS
 
@@ -84,7 +85,7 @@ Output Variables
      - Advanced matrix extensions base
    * - ``HAS_AMX``
      - AMX (aggregate)
-     - Same as HAS_AMX_TILE
+     - Same as ``HAS_AMX_TILE``
    * - ``HAS_AMX_FP16``
      - AMX-FP16
      - Tile FP16 (requires AMX-Tile)
@@ -99,7 +100,7 @@ Output Variables
      - AVX2-VNNI or AVX512-VNNI
 
 Source
-~~~~~~
+------
 
 .. literalinclude:: ../../cmake/detect/simd/DetectSIMD.cmake
    :language: cmake

@@ -7,6 +7,6 @@
 pub mod bindings;
 
 pub use bindings::{
-    DeviceBuffer, DeviceKind, DeviceMemcpyKind, DeviceStatus, device_memcpy, device_realloc,
-    device_release, device_reserve, get_device_backend,
+    DeviceBuffer, DeviceKind, DeviceMemcpyKind, DeviceStatus, device_memcpy, device_release,
+    device_reserve, device_resize, get_device_backend,
 };

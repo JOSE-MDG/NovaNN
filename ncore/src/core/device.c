@@ -13,6 +13,23 @@
 #include <ncore/cpp_ffi.h>
 #include <ncore/device.h>
 
+/**
+ * @brief Return the active HIP device id.
+ * @return Device id, or -1 when HIP is unavailable.
+ */
+extern int get_hip_device_id(void);
+
+/**
+ * @brief Return the active CUDA device id.
+ * @return Device id, or -1 when CUDA is unavailable.
+ */
+extern int get_cuda_device_id(void);
+
+/**
+ * @brief Lookup table to dispatch the type of transfer according to the type of
+ * attribute of the device.
+ *
+ */
 TransferKind transf_dispatch[3][3] = {0};
 
 __attribute__((constructor)) static inline void init_transf_dispatch() {
@@ -73,4 +90,19 @@ DeviceStatus transfer_to(Device dst, Device src, const void *src_buf,
                          void *dst_buf, bool is_pinned, size_t bytes) {
   TransferKind kind = transf_dispatch[dst][src];
   return device_memcpy_c(src_buf, dst_buf, is_pinned, kind, bytes);
+}
+
+/**
+ * @brief Return the active device id (CUDA/HIP).
+ *
+ * @return Device id, or -1 when is unavailable
+ */
+int get_device_id(void) {
+  if (is_cuda_available()) {
+    return get_cuda_device_id();
+  }
+  if (is_hip_available()) {
+    return get_hip_device_id();
+  }
+  return -1;
 }

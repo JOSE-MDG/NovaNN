@@ -2,7 +2,7 @@
  * @file hip_allocator.cpp
  * @brief Backend implementation of HIP device/pinned-host memory allocation.
  *
- * Implements hip_reserve, hip_realloc and hip_release by wrapping the
+ * Implements hip_reserve, hip_resize and hip_release by wrapping the
  * HIP Runtime API (hipMalloc / hipHostMalloc / hipFree / hipHostFree /
  * hipMemcpy) with alignment rounding, descriptive error reporting, and a
  * mapping from HIP runtime error codes to application-level status codes.
@@ -12,7 +12,7 @@
  * hipMemcpy calls, which are themselves blocking and do not require an
  * explicit stream.
  *
- * hip_realloc allocates a new buffer of the requested size, copies the
+ * hip_resize allocates a new buffer of the requested size, copies the
  * minimum of the old and new sizes into it, frees the old buffer, and
  * updates the descriptor — cleaning up all intermediate resources on any
  * failure so that the original descriptor is always left untouched.
@@ -30,12 +30,29 @@
 #include <hip/hip_runtime_api.h>
 
 /**
+ * @brief Macro to check the status of asynchronous memory release using
+ * hipFreeAsync()
+ *
+ */
+#define FREE_ASYNC_CHECK(ptr, stream, status)                                  \
+  do {                                                                         \
+    const hipError_t free_async_err = hipFreeAsync((ptr), stream);             \
+                                                                               \
+    if (free_async_err != hipSuccess) {                                        \
+      (status).code = map_hip_error(free_async_err);                           \
+      (status).msg = hipGetErrorString(free_async_err);                        \
+      return status;                                                           \
+    }                                                                          \
+  } while (0);
+
+/**
  * @brief Map a HIP runtime error to an application-level status code.
  *
  * @param err HIP error value returned by the runtime API.
  * @return 0  (hipSuccess),
  *         1  (hipErrorInvalidValue),
- *         2  (hipErrorMemoryAllocation),
+ *         2  (hipErrorNotSupported),
+ *         3  (hipErrorOutOfMemory),
  *        -1  (any other error).
  */
 static int map_hip_error(hipError_t err) {
@@ -44,8 +61,67 @@ static int map_hip_error(hipError_t err) {
     return 0;
   case hipErrorInvalidValue:
     return 1;
-  case hipErrorMemoryAllocation:
+  case hipErrorNotSupported:
     return 2;
+  case hipErrorOutOfMemory:
+    return 3;
+  default:
+    return -1;
+  }
+}
+
+/**
+ * @brief Map a HIP stream-creation error to an application-level code.
+ *
+ * @param err CUDA error value from hipStreamCreate.
+ * @return 0  (hipSuccess),
+ *         1  (hipErrorInvalidValue)
+ *        -1  (any other error).
+ */
+static int map_hip_stream_error(hipError_t err) {
+  switch (err) {
+  case hipSuccess:
+    return 0;
+  case hipErrorInvalidValue:
+    return 1;
+  default:
+    return -1;
+  }
+}
+
+/**
+ * @brief Map a HIP stream-destroy error to an application-level code.
+ *
+ * @param err hip error value from hipStreamDestroy.
+ * @return 0  (hipSuccess),
+ *         1  (hipErrorInvalidHandle),
+ *        -1  (any other error).
+ */
+static int map_hip_destroy_error(hipError_t err) {
+  switch (err) {
+  case hipSuccess:
+    return 0;
+  case hipErrorInvalidHandle:
+    return 1;
+  default:
+    return -1;
+  }
+}
+
+/**
+ * @brief Map a HIP stream-synchronise error to an application-level code.
+ *
+ * @param err hip error value from hipStreamSynchronize.
+ * @return 0  (hipSuccess),
+ *         1  (hipErrorInvalidHandle),
+ *        -1  (any other error).
+ */
+static int map_hip_sync_error(hipError_t err) {
+  switch (err) {
+  case hipSuccess:
+    return 0;
+  case hipErrorInvalidHandle:
+    return 1;
   default:
     return -1;
   }
@@ -61,6 +137,57 @@ static int map_hip_error(hipError_t err) {
 static constexpr std::size_t align_up(std::size_t bytes,
                                       std::size_t align) noexcept {
   return (bytes + (align - 1)) & ~(align - 1);
+}
+
+/**
+ * @brief Create a HIP stream, populating @p status on failure.
+ *
+ * @param[out] stream  Receives the new stream handle on success.
+ * @param[out] status  Populated with a non-zero code and message on failure.
+ * @return true on success, false on failure.
+ */
+static bool stream_create(hipStream_t *stream, HipStatus_t *status) {
+  const hipError_t err = hipStreamCreate(stream);
+  if (err != hipSuccess) {
+    status->code = map_hip_stream_error(err);
+    status->msg = hipGetErrorString(err);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @brief Synchronise @p stream, populating @p status on failure.
+ *
+ * @param stream  Stream to synchronise.
+ * @param[out] status  Populated with a non-zero code and message on failure.
+ * @return true on success, false on failure.
+ */
+static bool stream_sync(hipStream_t stream, HipStatus_t *status) {
+  const hipError_t err = hipStreamSynchronize(stream);
+  if (err != hipSuccess) {
+    status->code = map_hip_sync_error(err);
+    status->msg = hipGetErrorString(err);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @brief Destroy @p stream, populating @p status on failure.
+ *
+ * @param stream       Stream to destroy.
+ * @param[out] status  Populated with a non-zero code and message on failure.
+ * @return true on success, false on failure.
+ */
+static bool stream_destroy(hipStream_t stream, HipStatus_t *status) {
+  const hipError_t err = hipStreamDestroy(stream);
+  if (err != hipSuccess) {
+    status->code = map_hip_destroy_error(err);
+    status->msg = hipGetErrorString(err);
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -80,19 +207,55 @@ static constexpr std::size_t align_up(std::size_t bytes,
  */
 HipStatus_t hip_reserve(std::size_t bytes, std::size_t align, bool pinned,
                         HipBuffer_t *out) {
+
+  HipStatus_t status = {};
   const std::size_t alloc_bytes = (align > 1) ? align_up(bytes, align) : bytes;
   void *ptr = nullptr;
 
-  const hipError_t err =
-      pinned ? hipHostMalloc(&ptr, alloc_bytes, hipHostMallocDefault)
-             : hipMalloc(&ptr, alloc_bytes);
+  if (pinned) {
 
-  const int code = map_hip_error(err);
-  if (code != 0) {
-    return HipStatus_t{.code = code, .msg = hipGetErrorString(err)};
+    const hipError_t err =
+        hipHostMalloc(&ptr, alloc_bytes, hipHostMallocDefault);
+    if (err != hipSuccess) {
+      status.code = map_hip_error(err);
+      status.msg = hipGetErrorString(err);
+      return status;
+    }
+
+  } else {
+    hipStream_t stream = nullptr;
+    if (!stream_create(&stream, &status)) {
+      return status;
+    }
+
+    const hipError_t err = hipMallocAsync(&ptr, alloc_bytes, stream);
+    if (err != hipSuccess) {
+      if (!stream_destroy(stream, &status)) {
+        return status;
+      }
+
+      status.code = map_hip_error(err);
+      status.msg = hipGetErrorString(err);
+      return status;
+    }
+
+    if (!stream_sync(stream, &status)) {
+      const hipError_t stream_err = hipStreamDestroy(stream);
+      if (stream_err != hipSuccess) {
+        status.code = map_hip_destroy_error(stream_err);
+        status.msg = hipGetErrorString(stream_err);
+        return status;
+      }
+      return status;
+    }
+    if (!stream_destroy(stream, &status)) {
+      return status;
+    }
   }
 
-  *out = HipBuffer_t{.ptr = ptr, .bytes = alloc_bytes, .is_pinned = pinned};
+  out->ptr = ptr;
+  out->bytes = alloc_bytes;
+  out->is_pinned = pinned;
   return HIP_OK;
 }
 
@@ -116,15 +279,51 @@ HipStatus_t hip_release(HipBuffer_t *buf) {
                               " — nothing to free"};
   }
 
-  const hipError_t err =
-      buf->is_pinned ? hipHostFree(buf->ptr) : hipFree(buf->ptr);
+  HipStatus_t status = {};
 
-  const int code = map_hip_error(err);
-  if (code != 0) {
-    return HipStatus_t{.code = code, .msg = hipGetErrorString(err)};
+  if (buf->is_pinned) {
+
+    const hipError_t err = hipFreeHost(buf->ptr);
+    if (err != hipSuccess) {
+      status.code = map_hip_error(err);
+      status.msg = hipGetErrorString(err);
+      return status;
+    }
+  } else {
+
+    hipStream_t stream = nullptr;
+    if (!stream_create(&stream, &status)) {
+      return status;
+    }
+
+    const hipError_t err = hipFreeAsync(buf->ptr, stream);
+    if (err != hipSuccess) {
+      if (!stream_destroy(stream, &status)) {
+        return status;
+      }
+      status.code = map_hip_error(err);
+      status.msg = hipGetErrorString(err);
+      return status;
+    }
+
+    if (!stream_sync(stream, &status)) {
+      const hipError_t stream_err = hipStreamDestroy(stream);
+      if (stream_err != hipSuccess) {
+        status.code = map_hip_destroy_error(stream_err);
+        status.msg = hipGetErrorString(stream_err);
+        return status;
+      }
+      return status;
+    }
+    if (!stream_destroy(stream, &status)) {
+      return status;
+    }
   }
 
-  *buf = HipBuffer_t{};
+  buf->ptr = nullptr;
+  buf->bytes = 0;
+  buf->is_pinned = false;
+
   return HIP_OK;
 }
 
@@ -135,9 +334,9 @@ HipStatus_t hip_release(HipBuffer_t *buf) {
  * copies min(old_bytes, new_bytes) from the old buffer, frees the old
  * buffer, and updates the descriptor.
  *
- * For device memory the sequence uses hipMalloc, hipMemcpy(DeviceToDevice)
- * and hipFree — all synchronous.  For pinned host memory it uses
- * hipHostMalloc, host-side memcpy, and hipHostFree.
+ * For device memory the sequence uses hipMallocAasync,
+ * hipMemcpyAsync(DeviceToDevice) and hipFreeAsync — all asynchronous.  For
+ * pinned host memory it uses hipHostMalloc, host-side memcpy, and hipHostFree.
  *
  * On any failure the original buffer descriptor is left unchanged and
  * all newly-allocated resources are cleaned up before returning.
@@ -149,56 +348,109 @@ HipStatus_t hip_release(HipBuffer_t *buf) {
  * @return HIP_OK on success, or a HipStatus_t with a positive error
  *         code and a descriptive message on failure.
  */
-HipStatus_t hip_realloc(HipBuffer_t *buf, std::size_t new_bytes,
-                        std::size_t align) {
+HipStatus_t hip_resize(HipBuffer_t *buf, std::size_t new_bytes,
+                       std::size_t align) {
   if (buf == nullptr || buf->ptr == nullptr) {
     return HipStatus_t{.code = 1,
-                       .msg = "hip_realloc: buf or buf->ptr is null"
+                       .msg = "hip_resize: buf or buf->ptr is null"
                               " — nothing to reallocate"};
   }
 
+  HipStatus_t status = {};
   const std::size_t alloc_bytes =
       (align > 1) ? align_up(new_bytes, align) : new_bytes;
+
   const std::size_t copy_bytes =
-      buf->bytes < alloc_bytes ? buf->bytes : alloc_bytes;
+      (buf->bytes < alloc_bytes) ? buf->bytes : alloc_bytes;
+
   void *new_ptr = nullptr;
 
-  hipError_t err = buf->is_pinned ? hipHostMalloc(&new_ptr, alloc_bytes,
-                                                  hipHostMallocDefault)
-                                  : hipMalloc(&new_ptr, alloc_bytes);
-  {
-    const int code = map_hip_error(err);
-    if (code != 0) {
-      return HipStatus_t{.code = code, .msg = hipGetErrorString(err)};
-    }
-  }
-
   if (buf->is_pinned) {
-    std::memcpy(new_ptr, buf->ptr, copy_bytes);
-  } else {
-    err = hipMemcpy(new_ptr, buf->ptr, copy_bytes, hipMemcpyDeviceToDevice);
-    const int code = map_hip_error(err);
-    if (code != 0) {
-      hipFree(new_ptr);
-      return HipStatus_t{.code = code, .msg = hipGetErrorString(err)};
-    }
-  }
 
-  err = buf->is_pinned ? hipHostFree(buf->ptr) : hipFree(buf->ptr);
-  {
-    const int code = map_hip_error(err);
-    if (code != 0) {
-      if (buf->is_pinned) {
-        hipHostFree(new_ptr);
-      } else {
-        hipFree(new_ptr);
+    const hipError_t err =
+        hipHostMalloc(&new_ptr, alloc_bytes, hipHostMallocDefault);
+    if (err != hipSuccess) {
+      status.code = map_hip_error(err);
+      status.msg = hipGetErrorString(err);
+      return status;
+    }
+
+    std::memcpy(new_ptr, buf->ptr, copy_bytes);
+
+    const hipError_t free_err = hipFreeHost(buf->ptr);
+    if (free_err != hipSuccess) {
+      const int code = map_hip_error(free_err);
+      const int inner_code = map_hip_error(hipFreeHost(new_ptr));
+      status.code = (inner_code != 0) ? inner_code : code;
+      status.msg = hipGetErrorString(free_err);
+      return status;
+    }
+
+  } else {
+
+    hipStream_t stream = nullptr;
+    if (!stream_create(&stream, &status)) {
+      return status;
+    }
+
+    hipError_t err = hipMallocAsync(&new_ptr, alloc_bytes, stream);
+    if (err != hipSuccess) {
+      if (!stream_destroy(stream, &status)) {
+        return status;
       }
-      return HipStatus_t{.code = code, .msg = hipGetErrorString(err)};
+
+      status.code = map_hip_error(err);
+      status.msg = hipGetErrorString(err);
+      return status;
+    }
+
+    err = hipMemcpyAsync(new_ptr, buf->ptr, copy_bytes, hipMemcpyDeviceToDevice,
+                         stream);
+
+    if (err != hipSuccess) {
+      FREE_ASYNC_CHECK(new_ptr, stream, status);
+
+      if (!stream_sync(stream, &status)) {
+        return status;
+      }
+
+      if (!stream_destroy(stream, &status)) {
+        return status;
+      }
+
+      status.code = map_hip_error(err);
+      status.msg = hipGetErrorString(err);
+      return status;
+    }
+
+    err = hipFreeAsync(buf->ptr, stream);
+    if (err != hipSuccess) {
+      FREE_ASYNC_CHECK(new_ptr, stream, status);
+      if (!stream_sync(stream, &status)) {
+        return status;
+      }
+
+      if (!stream_destroy(stream, &status)) {
+        return status;
+      }
+
+      status.code = map_hip_error(err);
+      status.msg = hipGetErrorString(err);
+      return status;
+    }
+
+    if (!stream_sync(stream, &status)) {
+      return status;
+    }
+
+    if (!stream_destroy(stream, &status)) {
+      return status;
     }
   }
 
   buf->ptr = new_ptr;
   buf->bytes = alloc_bytes;
+
   return HIP_OK;
 }
 
@@ -225,7 +477,7 @@ HipStatus_t hip_release(HipBuffer_t *) {
 /**
  * @brief Fallback realloc entry point when HIP headers are unavailable.
  */
-HipStatus_t hip_realloc(HipBuffer_t *, std::size_t, std::size_t) {
+HipStatus_t hip_resize(HipBuffer_t *, std::size_t, std::size_t) {
   return HipStatus_t{.code = -1,
                      .msg = "HIP runtime headers not available at"
                             " build/lint time"};

@@ -1,11 +1,12 @@
+=====================
 Threading Detection
-===================
+=====================
 
 .. contents::
    :local:
    :depth: 1
 
-----------
+--------
 
 DetectPThreads
 --------------
@@ -18,10 +19,12 @@ Guarded against multiple inclusion (returns early if ``NOVA_HAS_PTHREADS``
 is already defined).
 
 Variables set:
-   - ``NOVA_HAS_PTHREADS`` — 1 if pthreads are available, 0 otherwise
+
+- ``NOVA_HAS_PTHREADS`` — 1 if pthreads are available, 0 otherwise
 
 Targets exposed:
-   - ``Threads::Threads`` — always available after this module runs
+
+- ``Threads::Threads`` — always available after this module runs
 
 Usage::
 
@@ -34,7 +37,7 @@ Source
    :language: cmake
    :linenos:
 
-----------
+--------
 
 DetectOpenMP
 ------------
@@ -47,12 +50,14 @@ Detects OpenMP support for both C and C++ via
 Guarded against multiple inclusion.
 
 Variables set:
-   - ``NOVA_HAS_OPENMP`` — 1 if OpenMP is available for both C and CXX,
-     0 otherwise
+
+- ``NOVA_HAS_OPENMP`` — 1 if OpenMP is available for both C and CXX,
+  0 otherwise
 
 Targets exposed (conditional):
-   - ``OpenMP::OpenMP_C``
-   - ``OpenMP::OpenMP_CXX``
+
+- ``OpenMP::OpenMP_C``
+- ``OpenMP::OpenMP_CXX``
 
 Usage::
 
