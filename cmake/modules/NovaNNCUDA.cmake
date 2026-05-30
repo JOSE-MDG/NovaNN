@@ -13,7 +13,7 @@
         novaNN_configure_cuda_target(<target>)
 
       - No-op if NOVA_HAS_CUDA is 0.
-      - Defines NOVA_CUDA=1 and NOVA_CUDA_MIN_SM=75 on the target.
+      - Defines NOVA_HAS_CUDA=1 and NOVA_CUDA_MIN_SM=75 on the target.
       - Links CUDA::cudart and CUDA::cuda_driver.
       - Enables separable compilation.
       - When CMAKE_CUDA_ARCHITECTURES is user-defined, validates it — any
@@ -86,7 +86,7 @@ function(novaNN_configure_cuda_target TARGET)
     endif()
 
     target_compile_definitions(${TARGET} PRIVATE
-        NOVA_CUDA=1
+        NOVA_HAS_CUDA=1
         NOVA_CUDA_MIN_SM=75 # Turing minimum
     )
 

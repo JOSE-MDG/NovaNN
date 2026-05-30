@@ -21,7 +21,7 @@
       - No-op if NOVA_HAS_HIP is 0.
       - Validates AMDGPU_TARGETS (if user-overridden) against rejected
         prefixes; falls back to NOVA_HIP_ARCHITECTURES if unset.
-      - Defines NOVA_HIP=1 and NOVA_ROCM_MIN_GFX=1030 on the target.
+      - Defines NOVA_HAS_HIP=1 and NOVA_ROCM_MIN_GFX=1030 on the target.
       - Links hip::host.
       - Sets HIP_STANDARD=17 and AMDGPU_TARGETS target property.
 
@@ -129,7 +129,7 @@ function(novaNN_configure_hip_target TARGET)
     endif()
 
     target_compile_definitions(${TARGET} PRIVATE
-        NOVA_HIP=1
+        NOVA_HAS_HIP=1
         NOVA_ROCM_MIN_GFX=1030 # RDNA2 consumer minimum
     )
 

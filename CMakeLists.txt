@@ -96,11 +96,6 @@ novaNN_configure_cpu_target(nova)
 novaNN_configure_cuda_target(nova)
 novaNN_configure_hip_target(nova)
 
-target_compile_definitions(nova PRIVATE
-    NOVA_COMPILE_CUDA=$<BOOL:${USE_CUDA}>
-    NOVA_COMPILE_HIP=$<BOOL:${USE_HIP}>
-)
-
 set_target_properties(nova PROPERTIES
     OUTPUT_NAME "nova"
     VERSION ${PROJECT_VERSION}

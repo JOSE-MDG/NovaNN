@@ -37,6 +37,8 @@ fn main() {
 
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=RUSTCSRC_DIR");
+    println!("cargo:rerun-if-env-changed=NOVA_HAS_CUDA");
+    println!("cargo:rerun-if-env-changed=NOVA_HAS_HIP");
 
     // FFI layer
     println!("cargo:rerun-if-changed=csrc/ffi.cpp");

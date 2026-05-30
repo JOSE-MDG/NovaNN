@@ -18,15 +18,15 @@
  * failure so that the original descriptor is always left untouched.
  */
 
-#include "hip_allocator.hpp"
-#include <cstring>
-
+#ifdef NOVA_HAS_HIP
 #if __has_include(<hip/hip_runtime_api.h>)
 // clangd/clang-tidy runs may not define a HIP platform macro, but the HIP
 // headers require exactly one platform to be set.
 #if !defined(__HIP_PLATFORM_AMD__) && !defined(__HIP_PLATFORM_NVIDIA__)
 #define __HIP_PLATFORM_AMD__ 1
 #endif
+#include "hip_allocator.hpp"
+#include <cstring>
 #include <hip/hip_runtime_api.h>
 
 /**
@@ -484,3 +484,4 @@ HipStatus_t hip_resize(HipBuffer_t *, std::size_t, std::size_t) {
 }
 
 #endif
+#endif /* NOVA_HAS_HIP */

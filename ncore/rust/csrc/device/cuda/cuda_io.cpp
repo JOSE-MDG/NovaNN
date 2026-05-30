@@ -17,10 +17,10 @@
  * synchronises and destroys the stream it created before returning.
  */
 
-#include "cuda_io.hpp"
-
+#ifdef NOVA_HAS_CUDA
 #if __has_include(<cuda_runtime_api.h>)
 #include <cuda_runtime_api.h>
+#include "cuda_io.hpp"
 
 /**
  * @brief Map a CUDA runtime error to a CudaStatus_t code/message pair.
@@ -379,3 +379,4 @@ CudaStatus_t cuda_memcpy(std::size_t, DeviceMemcpyKind, const void *, void *,
 }
 
 #endif
+#endif /* NOVA_HAS_CUDA */

@@ -45,8 +45,8 @@ add_custom_target(ncore_memory_cargo
     "RUSTFLAGS=${RUSTFLAGS}"
     "RUSTCSRC_DIR=$<TARGET_FILE_DIR:rustcsrc>"
     "RUSTCSRC_NAME=rustcsrc"
-    "USE_CUDA=${USE_CUDA}"
-    "USE_HIP=${USE_HIP}"
+    "NOVA_HAS_CUDA=${NOVA_HAS_CUDA}"
+    "NOVA_HAS_HIP=${NOVA_HAS_HIP}"
     cargo build ${CARGO_PROFILE}
     --manifest-path "${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml"
     BYPRODUCTS ${RUST_LIB}

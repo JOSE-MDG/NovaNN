@@ -19,12 +19,11 @@
  * failure so that the original descriptor is always left untouched.
  */
 
+#ifdef NOVA_HAS_CUDA
+#if __has_include(<cuda_runtime_api.h>)
 #include "cuda_allocator.hpp"
 #include <cstring>
-
-#if __has_include(<cuda_runtime_api.h>)
 #include <cuda_runtime_api.h>
-
 /**
  * @brief Map a CUDA runtime error to an application-level status code.
  *
@@ -427,3 +426,4 @@ CudaStatus_t cuda_resize(CudaBuffer_t *, std::size_t, std::size_t) {
 }
 
 #endif
+#endif /* NOVA_HAS_CUDA */
