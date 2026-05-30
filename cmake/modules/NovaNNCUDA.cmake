@@ -4,7 +4,7 @@
 
     Detection (runs once, guarded by `if(DEFINED NOVA_HAS_CUDA)`):
       - Searches for CUDAToolkit via find_package (QUIET).
-      - Rejects toolkits older than 12.3 (FATAL_ERROR).
+      - Rejects toolkits older than 12.6 (FATAL_ERROR).
       - On success: enables the CUDA language, sets NOVA_HAS_CUDA=1, and
         registers supported SM architectures (75, 80, 86, 89, 90, 100).
 
@@ -15,8 +15,13 @@
       - No-op if NOVA_HAS_CUDA is 0.
       - Defines NOVA_CUDA=1 and NOVA_CUDA_MIN_SM=75 on the target.
       - Links CUDA::cudart and CUDA::cuda_driver.
-      - Enables separable compilation and sets CUDA_ARCHITECTURES.
-      - Validates CMAKE_CUDA_ARCHITECTURES — any SM < 75 triggers FATAL_ERROR.
+      - Enables separable compilation.
+      - When CMAKE_CUDA_ARCHITECTURES is user-defined, validates it — any
+        SM < 75 triggers FATAL_ERROR.
+      - When CMAKE_CUDA_ARCHITECTURES is NOT user-defined, sets the target
+        property to "native" for rapid prototyping optimization to reduce
+        compilation time and host memory overhead (compiles only for the
+        local host GPU).
 
     Supported SM list:
       - SM_75  (Turing)     — RTX 2000 series
@@ -34,12 +39,6 @@
 
     See also : NovaNNRuntime.cmake — orchestrator that includes this module
 ]]
-function(novaNN_configure_cuda_target TARGET)
-    if(NOT NOVA_HAS_CUDA)
-        return()
-    endif()
-endfunction()
-
 if(DEFINED NOVA_HAS_CUDA)
     return()
 endif()
@@ -53,7 +52,7 @@ if(NOT CUDAToolkit_FOUND)
 endif()
 
 # Version guard
-set(NOVA_CUDA_MIN_VERSION "12.3")
+set(NOVA_CUDA_MIN_VERSION "12.6")
 if(CUDAToolkit_VERSION VERSION_LESS NOVA_CUDA_MIN_VERSION)
     message(FATAL_ERROR
         "CUDA ${CUDAToolkit_VERSION} is too old. "
@@ -98,18 +97,29 @@ function(novaNN_configure_cuda_target TARGET)
 
     set_target_properties(${TARGET} PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
-        CUDA_ARCHITECTURES "${NOVA_CUDA_ARCHITECTURES}"
     )
 
-    # Reject builds targeting unsupported legacy SMs if someone
-    # passes -DCMAKE_CUDA_ARCHITECTURES manually
-    foreach(SM IN LISTS CMAKE_CUDA_ARCHITECTURES)
-        if(SM LESS 75)
-            message(FATAL_ERROR
-                "CUDA SM ${SM} is not supported by NovaNN. "
-                "Minimum is SM 75 (Turing). "
-                "Remove SM ${SM} from CMAKE_CUDA_ARCHITECTURES."
-            )
-        endif()
-    endforeach()
+    if(DEFINED CMAKE_CUDA_ARCHITECTURES AND CMAKE_CUDA_ARCHITECTURES)
+        # User explicitly passed -DCMAKE_CUDA_ARCHITECTURES=...
+        # Validate — reject SM < 75
+        foreach(SM IN LISTS CMAKE_CUDA_ARCHITECTURES)
+            if(SM LESS 75)
+                message(FATAL_ERROR
+                    "CUDA SM ${SM} is not supported by NovaNN. "
+                    "Minimum is SM 75 (Turing). "
+                    "Remove SM ${SM} from CMAKE_CUDA_ARCHITECTURES."
+                )
+            endif()
+        endforeach()
+        set_target_properties(${TARGET} PROPERTIES
+            CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
+        )
+    else()
+        # No user override — compile native only.
+        # This enables rapid prototyping optimization to reduce compilation
+        # time and host memory overhead by targeting only the local host GPU.
+        set_target_properties(${TARGET} PROPERTIES
+            CUDA_ARCHITECTURES "native"
+        )
+    endif()
 endfunction()
