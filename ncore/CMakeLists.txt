@@ -55,14 +55,6 @@ novaNN_configure_cpu_target(ncore_core_obj)
 novaNN_configure_cuda_target(ncore_core_obj)
 novaNN_configure_hip_target(ncore_core_obj)
 
-# GPU include dirs — needed for __has_include() guards in detect/*.c
-if(NOVA_HAS_CUDA)
-    target_include_directories(ncore_core_obj PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
-endif()
-if(NOVA_HAS_HIP)
-    target_include_directories(ncore_core_obj PRIVATE ${HIP_INCLUDE_DIRS})
-endif()
-
 # Autograd C++ implementation
 file(GLOB_RECURSE AUTOGRAD_SOURCES
     "${CMAKE_SOURCE_DIR}/ncore/src/autograd/*.cpp"
