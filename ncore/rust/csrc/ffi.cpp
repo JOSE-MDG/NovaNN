@@ -95,7 +95,7 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
                               DeviceKind_t kind) {
   DeviceStatus_t dstatus = {};
   if (kind == DeviceKind_t::DeviceCUDA) {
-#if NOVA_COMPILE_CUDA
+#if NOVA_HAS_CUDA
     device_reserve_dispatch<CudaBuffer_t, CudaStatus_t, cuda_reserve,
                             DeviceKind_t::DeviceCUDA>(bytes, pinned, align,
                                                       out_buf, &dstatus);
@@ -104,7 +104,7 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
     dstatus.message = "CUDA backend was not built";
 #endif
   } else if (kind == DeviceKind_t::DeviceHIP) {
-#if NOVA_COMPILE_HIP
+#if NOVA_HAS_HIP
     device_reserve_dispatch<HipBuffer_t, HipStatus_t, hip_reserve,
                             DeviceKind_t::DeviceHIP>(bytes, pinned, align,
                                                      out_buf, &dstatus);
@@ -134,7 +134,7 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
 DeviceStatus_t device_release(DeviceBuffer_t *buf) {
   DeviceStatus_t dstatus = {};
   if (buf->device_kind == DeviceKind_t::DeviceCUDA) {
-#if NOVA_COMPILE_CUDA
+#if NOVA_HAS_CUDA
     auto backend_buf = std::unique_ptr<CudaBuffer_t>(
         static_cast<CudaBuffer_t *>(buf->device_buf_ptr));
     CudaStatus_t cstatus = cuda_release(backend_buf.get());
@@ -145,7 +145,7 @@ DeviceStatus_t device_release(DeviceBuffer_t *buf) {
     dstatus.message = "CUDA backend was not built";
 #endif
   } else if (buf->device_kind == DeviceKind_t::DeviceHIP) {
-#if NOVA_COMPILE_HIP
+#if NOVA_HAS_HIP
     auto backend_buf = std::unique_ptr<HipBuffer_t>(
         static_cast<HipBuffer_t *>(buf->device_buf_ptr));
     HipStatus_t hstatus = hip_release(backend_buf.get());
@@ -187,7 +187,7 @@ DeviceStatus_t device_resize(DeviceBuffer_t *buf, std::size_t new_bytes,
                              std::size_t align) {
   DeviceStatus_t dstatus = {};
   if (buf->device_kind == DeviceKind_t::DeviceCUDA) {
-#if NOVA_COMPILE_CUDA
+#if NOVA_HAS_CUDA
     auto *backend_buf = static_cast<CudaBuffer_t *>(buf->device_buf_ptr);
     CudaStatus_t cstatus = cuda_resize(backend_buf, new_bytes, align);
     dstatus.code = cstatus.code;
@@ -201,7 +201,7 @@ DeviceStatus_t device_resize(DeviceBuffer_t *buf, std::size_t new_bytes,
     dstatus.message = "CUDA backend was not built";
 #endif
   } else if (buf->device_kind == DeviceKind_t::DeviceHIP) {
-#if NOVA_COMPILE_HIP
+#if NOVA_HAS_HIP
     auto *backend_buf = static_cast<HipBuffer_t *>(buf->device_buf_ptr);
     HipStatus_t hstatus = hip_resize(backend_buf, new_bytes, align);
     dstatus.code = hstatus.code;
@@ -241,7 +241,7 @@ DeviceStatus_t device_memcpy(const void *src, void *dst, bool is_pinned,
   DeviceKind_t device = get_device_backend();
 
   if (device == DeviceKind_t::DeviceCUDA) {
-#if NOVA_COMPILE_CUDA
+#if NOVA_HAS_CUDA
     CudaStatus_t cstatus = cuda_memcpy(bytes, kind, src, dst, is_pinned);
     status.code = cstatus.code;
     status.message = cstatus.msg;
@@ -253,7 +253,7 @@ DeviceStatus_t device_memcpy(const void *src, void *dst, bool is_pinned,
 #endif
   }
   if (device == DeviceKind_t::DeviceHIP) {
-#if NOVA_COMPILE_HIP
+#if NOVA_HAS_HIP
     HipStatus_t hstatus = hip_memcpy(bytes, kind, src, dst, is_pinned);
     status.code = hstatus.code;
     status.message = hstatus.msg;
@@ -290,7 +290,7 @@ DeviceStatus device_memcpy_c(const void *src, void *dst, bool is_pinned,
   DeviceKind_t device = get_device_backend();
 
   if (device == DeviceKind_t::DeviceCUDA) {
-#if NOVA_COMPILE_CUDA
+#if NOVA_HAS_CUDA
     CudaStatus_t cstatus = cuda_memcpy(
         bytes, static_cast<DeviceMemcpyKind>(kind), src, dst, is_pinned);
     status.code = cstatus.code;
@@ -303,7 +303,7 @@ DeviceStatus device_memcpy_c(const void *src, void *dst, bool is_pinned,
 #endif
   }
   if (device == DeviceKind_t::DeviceHIP) {
-#if NOVA_COMPILE_HIP
+#if NOVA_HAS_HIP
     HipStatus_t hstatus = hip_memcpy(bytes, static_cast<DeviceMemcpyKind>(kind),
                                      src, dst, is_pinned);
     status.code = hstatus.code;
