@@ -9,7 +9,7 @@
  * All transfers that involve device memory go through cuda_memcpy, which
  * owns the stream lifetime: it creates the stream, dispatches to one of the
  * internal static helpers, synchronises, and destroys the stream before
- * returning — even on error paths.  The static helpers never touch stream
+ * returning — even on error paths. The static helpers never touch stream
  * lifetime; they only issue the async API call and return its status.
  *
  * When the host buffer is not pinned, host↔device transfers fall back to the
@@ -129,7 +129,7 @@ static cudaMemcpyKind map_cuda_memcpy_kind(DeviceMemcpyKind kind) {
  * @brief Internal: issue a host-to-device copy on @p stream (pinned) or
  *        fall back to the synchronous variant (non-pinned).
  *
- * Does NOT own or modify stream lifetime.  The caller (cuda_memcpy) is
+ * Does NOT own or modify stream lifetime. The caller (cuda_memcpy) is
  * responsible for synchronising and destroying the stream.
  *
  * @param bytes  Number of bytes to copy.
@@ -152,7 +152,7 @@ static CudaStatus_t cuda_memcpy_h2d(std::size_t bytes, cudaStream_t stream,
  * @brief Internal: issue a device-to-host copy on @p stream (pinned) or
  *        fall back to the synchronous variant (non-pinned).
  *
- * Does NOT own or modify stream lifetime.  The caller (cuda_memcpy) is
+ * Does NOT own or modify stream lifetime. The caller (cuda_memcpy) is
  * responsible for synchronising and destroying the stream.
  *
  * @param bytes  Number of bytes to copy.
@@ -174,7 +174,7 @@ static CudaStatus_t cuda_memcpy_d2h(std::size_t bytes, cudaStream_t stream,
 /**
  * @brief Internal: issue an async device-to-device copy on @p stream.
  *
- * Does NOT own or modify stream lifetime.  The caller (cuda_memcpy) is
+ * Does NOT own or modify stream lifetime. The caller (cuda_memcpy) is
  * responsible for synchronising and destroying the stream.
  *
  * @param bytes  Number of bytes to copy.
