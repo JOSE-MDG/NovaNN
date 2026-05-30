@@ -4,7 +4,7 @@
  *
  * Provides the C++ type definitions (DeviceBuffer_t, DeviceStatus_t,
  * DeviceMemcpyKind) and the extern-"C" function declarations for
- * device_reserve, device_realloc, device_release, and device_memcpy.
+ * device_reserve, device_resize, device_release, and device_memcpy.
  * The corresponding C-callable wrapper device_memcpy_c (which uses
  * TransferKind instead of DeviceMemcpyKind) is declared in cpp_ffi.h.
  */
@@ -110,8 +110,8 @@ DeviceStatus_t device_release(DeviceBuffer_t *buf);
  * @return DeviceStatus_t with code 0 on success, or a positive error code
  *         with a descriptive message on failure.
  */
-DeviceStatus_t device_realloc(DeviceBuffer_t *buf, std::size_t new_bytes,
-                              std::size_t align);
+DeviceStatus_t device_resize(DeviceBuffer_t *buf, std::size_t new_bytes,
+                             std::size_t align);
 
 /**
  * @brief Copy memory through the active backend.

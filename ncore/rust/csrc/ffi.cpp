@@ -6,7 +6,7 @@
  * device_reserve allocates a backend-specific buffer descriptor, calls the
  * corresponding reserve function, and copies the result into the generic
  * DeviceBuffer_t / DeviceStatus_t structures.
- * device_realloc dispatches to cuda_realloc or hip_realloc based on
+ * device_resize dispatches to cuda_realloc or hip_realloc based on
  * the buffer's device_kind and updates the generic descriptor on success.
  * device_release reads the device_kind field and calls the matching backend
  * free routine. device_memcpy queries the active backend and forwards the
@@ -183,13 +183,13 @@ DeviceStatus_t device_release(DeviceBuffer_t *buf) {
  * @return DeviceStatus_t with code 0 on success, or a positive error code
  *         with a descriptive message on failure.
  */
-DeviceStatus_t device_realloc(DeviceBuffer_t *buf, std::size_t new_bytes,
-                              std::size_t align) {
+DeviceStatus_t device_resize(DeviceBuffer_t *buf, std::size_t new_bytes,
+                             std::size_t align) {
   DeviceStatus_t dstatus = {};
   if (buf->device_kind == DeviceKind_t::DeviceCUDA) {
 #if NOVA_CUDA
     auto *backend_buf = static_cast<CudaBuffer_t *>(buf->device_buf_ptr);
-    CudaStatus_t cstatus = cuda_realloc(backend_buf, new_bytes, align);
+    CudaStatus_t cstatus = cuda_resize(backend_buf, new_bytes, align);
     dstatus.code = cstatus.code;
     dstatus.message = cstatus.msg;
     if (dstatus.code == 0) {
@@ -203,7 +203,7 @@ DeviceStatus_t device_realloc(DeviceBuffer_t *buf, std::size_t new_bytes,
   } else if (buf->device_kind == DeviceKind_t::DeviceHIP) {
 #if NOVA_HIP
     auto *backend_buf = static_cast<HipBuffer_t *>(buf->device_buf_ptr);
-    HipStatus_t hstatus = hip_realloc(backend_buf, new_bytes, align);
+    HipStatus_t hstatus = hip_resize(backend_buf, new_bytes, align);
     dstatus.code = hstatus.code;
     dstatus.message = hstatus.msg;
     if (dstatus.code == 0) {
