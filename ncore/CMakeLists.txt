@@ -52,6 +52,8 @@ target_compile_options(ncore_core_obj PRIVATE
 )
 
 novaNN_configure_cpu_target(ncore_core_obj)
+novaNN_configure_cuda_target(ncore_core_obj)
+novaNN_configure_hip_target(ncore_core_obj)
 
 # Autograd C++ implementation
 file(GLOB_RECURSE AUTOGRAD_SOURCES
@@ -77,9 +79,6 @@ target_compile_options(ncore_autograd_obj PRIVATE
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
 )
 
-target_compile_definitions(ncore_autograd_obj PRIVATE
-    NOVA_COMPILE_CUDA=$<BOOL:${USE_CUDA}>
-    NOVA_COMPILE_HIP=$<BOOL:${USE_HIP}>
-)
-
 novaNN_configure_cpu_target(ncore_autograd_obj)
+novaNN_configure_cuda_target(ncore_autograd_obj)
+novaNN_configure_hip_target(ncore_autograd_obj)
