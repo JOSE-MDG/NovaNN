@@ -173,3 +173,14 @@
 #define NOVA_SIMD_QS8_WITH_AVX512F 64
 #define NOVA_SIMD_QU8_WITH_AVX512F 64
 ///@}
+
+/** @name ANSI colour codes
+ *  Subtle terminal colours inspired by cmake build output.
+ *  Prefix green, values cyan, emphasis bold.
+ */
+///@{
+#define NCORE_LOG_PREFIX "\033[32m--\033[0m"
+#define NCORE_LOG_BOLD "\033[1m"
+#define NCORE_LOG_VALUE "\033[36m"
+#define NCORE_LOG_RESET "\033[0m"
+///@}
