@@ -197,7 +197,7 @@ static void format_cuda_version(char *buf, size_t bufsize, int version) {
  *                     `false`, print the two-line summary.
  */
 void print_cuda_device_info(bool verbose) {
-  cudaDeviceProp prop;
+  struct cudaDeviceProp prop;
   cudaError_t err = cudaGetDeviceProperties(&prop, 0);
   NOVA_INTERNAL_ASSERT(
       err == cudaSuccess,
