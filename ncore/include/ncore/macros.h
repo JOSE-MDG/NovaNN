@@ -3,23 +3,35 @@
  * @brief Core macros, constants, and SIMD lane-count definitions.
  *
  * @details
- * Provides foundational preprocessor definitions used throughout NovaNN:
- * alignment attributes, dimension limits, type-count constants, an
- * internal assertion helper, and per-datatype SIMD lane counts for
- * SSE, AVX/AVX2, and AVX-512F instruction sets.
+ * Foundational preprocessor definitions used throughout the entire
+ * NovaNN codebase.  Every public and internal header includes this
+ * file.
  *
- * ## Assertion
- * NOVA_INTERNAL_ASSERT is a fatal assertion macro that prints a
- * formatted message to stderr and calls exit() on failure.  It
- * supports variadic format arguments.
+ * ## Contents
+ */
+// clang-format off
+/**
+ * | Category            | Symbols                                            |
+ * |---------------------|----------------------------------------------------|
+ * | Portability         | `restrict`, `ALIGN`, `ATTR`                        |
+ * | Limits              | `NOVA_MAX_DIMS`, `NUM_DTYPES`, `NUM_BACKENDS`, …   |
+ * | Assertion           | `NOVA_INTERNAL_ASSERT`                             |
+ * | SIMD lane counts    | `NOVA_SIMD_*_WITH_SSE`, `…_WITH_AVX_AVX2`, `…_WITH_AVX512F` |
+ * | Terminal colours    | `NCORE_LOG_PREFIX`, `NCORE_LOG_BOLD`, …            |
+ */
+// clang-format on
+/**
+ * ## Design rules
  *
- * ## SIMD Lane Counts
- * Each NOVA_SIMD_* constant gives the number of elements of a given
- * datatype that fit in one vector register for the indicated ISA.
- * These are used for loop unrolling and vectorisation decisions.
+ * - **No function definitions.**  This file is purely preprocessor
+ *   constants and macros.
+ * - **No dependencies.**  Only standard C headers (`<stdio.h>`,
+ *   `<stdlib.h>`, `<stdbool.h>`, `<stdalign.h>`).
+ * - **C and C++ compatible.**  The `restrict` keyword is mapped to
+ *   `__restrict__` when compiling as C++.
  *
- * @see dtype.h Data type identifiers referenced by these constants.
- * @see simd.h Runtime SIMD capability detection.
+ * @see dtype.h   DType_ enum referenced by `NUM_DTYPES` etc.
+ * @see simd.h    Runtime SIMD capability detection.
  */
 
 #pragma once
@@ -29,88 +41,163 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// C99 `restrict` is not a C++ keyword. Some public headers use `restrict`
-// in their API, so provide a portable definition when compiling as C++.
 #if defined(__cplusplus) && !defined(restrict)
 #define restrict __restrict__
 #endif
 
 /**
- * @brief Align a struct or variable to N bytes.
+ * @def restrict
+ * @brief Portable `restrict` qualifier for C++ compatibility.
  *
- * Expands to __attribute__((aligned(N))).  Used to enforce
- * cache-line alignment (64 bytes) for tensor hot fields.
+ * @details
+ * C99 `restrict` is not a keyword in C++.  When compiling as C++
+ * (detected via `__cplusplus`), this maps `restrict` to the
+ * compiler-specific `__restrict__` extension.  In C mode the
+ * standard `restrict` is used unchanged.
+ *
+ * @see ALIGN(N)   Another portability macro.
+ */
+
+/**
+ * @def ALIGN(N)
+ * @brief Align a type or variable to @p N bytes.
+ *
+ * @details
+ * Expands to `__attribute__((aligned(N)))` on GCC/Clang.  Used
+ * extensively to enforce cache-line alignment (64 bytes) for
+ * tensor hot fields and SIMD-friendly data structures.
+ *
+ * @param N  Alignment boundary in bytes.  Must be a power of two.
+ *
+ * @code{.c}
+ * struct ALIGN(64) Tensor { ... };   // cache-line aligned
+ * @endcode
+ *
+ * @see ATTR(mode)  Mode-based type attribute.
  */
 #define ALIGN(N) __attribute__((aligned(N)))
 
 /**
+ * @def ATTR(mode)
+ * @brief Apply a GCC/Clang type attribute.
+ *
+ * @details
+ * Expands to `__attribute__((mode))`.  Used for mode-based type
+ * specifications such as pointer-sized integers.
+ *
+ * @param mode  Attribute mode name (e.g., `SI` for 32-bit int).
+ */
+#define ATTR(mode) __attribute__((mode))
+
+/**
+ * @def NOVA_MAX_DIMS
  * @brief Maximum number of tensor dimensions supported.
+ *
+ * @details
+ * Fixed at 64 — well beyond the typical 4–8 dimensions used in
+ * deep learning.  Used to size the `shape_t` and `strides_t`
+ * fixed arrays in @ref Tensor.
+ *
+ * @see shape_t   Fixed-size shape array.
+ * @see strides_t Fixed-size strides array.
  */
 #define NOVA_MAX_DIMS 64
 
 /**
+ * @def NUM_DTYPES
  * @brief Total number of supported data types.
+ *
+ * @details
+ * Equals 12, covering Float32, Float64, Float16, BFloat16,
+ * Signed8, UnSigned8, QSigned8, QUnSigned8, Signed32,
+ * UnSigned32, Signed64, and UnSigned64.
+ *
+ * @see DType_ enum in dtype.h.
  */
 #define NUM_DTYPES 12
 
 /**
+ * @def NUM_FLOATS
  * @brief Number of floating-point data types (f32, f64, f16, bf16).
  */
 #define NUM_FLOATS 4
 
 /**
- * @brief Total number of integer data types (signed + unsigned).
+ * @def NUM_INTEGERS
+ * @brief Total number of integer data types (signed + unsigned,
+ *        including quantised).
  */
 #define NUM_INTEGERS 8
 
 /**
- * @brief Number of signed integer data types.
+ * @def NUM_SIGNED_INTEGERS
+ * @brief Number of signed integer data types (s8, s32, s64,
+ *        qs8).
  */
 #define NUM_SIGNED_INTEGERS 4
 
 /**
- * @brief Number of unsigned integer data types.
+ * @def NUM_UNSIGNED_INTEGERS
+ * @brief Number of unsigned integer data types (u8, u32, u64,
+ *        qu8).
  */
 #define NUM_UNSIGNED_INTEGERS 4
 
 /**
+ * @def NUM_QUANTIZED_INTEGERS
  * @brief Total number of quantised integer data types.
  */
 #define NUM_QUANTIZED_INTEGERS 2
 
 /**
- * @brief Number of signed quantised integer data types.
+ * @def NUM_QUANTIZED_SIGNED_INTEGERS
+ * @brief Number of signed quantised integer data types (qs8).
  */
 #define NUM_QUANTIZED_SIGNED_INTEGERS 1
 
 /**
- * @brief Number of unsigned quantised integer data types.
+ * @def NUM_QUANTIZED_UNSIGNED_INTEGERS
+ * @brief Number of unsigned quantised integer data types (qu8).
  */
 #define NUM_QUANTIZED_UNSIGNED_INTEGERS 1
 
 /**
- * @brief Number of supported backend implementations.
+ * @def NUM_BACKENDS
+ * @brief Number of supported compute backends.
+ *
+ * @details
+ * Equals 5: CUDA, ROCm, oneDNN, Generic, and Meta.
+ *
+ * @see Backend enum in backend.h.
  */
 #define NUM_BACKENDS 5
 
 /**
- * @brief Apply a GCC/Clang type attribute.
+ * @def NOVA_INTERNAL_ASSERT(assertion, msg, ...)
+ * @brief Fatal assertion for internal invariants.
  *
- * Expands to __attribute__((mode)).  Used for mode-based type
- * specifications (e.g. pointer-sized integers).
- */
-#define ATTR(mode) __attribute__((mode))
-
-/**
- * @brief Assertion macro for internal invariants.
+ * @details
+ * If @p assertion evaluates to false, a formatted message is
+ * written to `stderr` and the process exits with
+ * `EXIT_FAILURE`.  Uses `__VA_OPT__` for clean expansion when
+ * no variadic arguments are provided.
  *
- * If the assertion evaluates to false, a formatted message is
- * written to stderr and the process exits with EXIT_FAILURE.
- * Supports printf-style variadic format arguments.
+ * This macro is **not** a debugging aid — it guards
+ * invariants that, if violated, indicate a bug in NovaNN
+ * itself (e.g., null storage after a successful allocation).
  *
- * @param assertion Boolean expression to test.
- * @param msg       Format string for the error message.
- * @param ...       Optional format arguments.
+ * @param assertion  Boolean expression to test.
+ * @param msg        `printf`-style format string for the error
+ *                   message.
+ * @param ...        Optional format arguments.
+ *
+ * @code{.c}
+ * NOVA_INTERNAL_ASSERT(ptr != NULL,
+ *                      "[ALLOC] malloc returned NULL\n");
+ * @endcode
+ *
+ * @note The message should include a module tag in brackets
+ *       (e.g., `[STORAGE]`, `[GRAD]`) for easy identification.
  */
 #define NOVA_INTERNAL_ASSERT(assertion, msg, ...)                              \
   do {                                                                         \
@@ -120,67 +207,121 @@
     }                                                                          \
   } while (0)
 
+/**
+ * @defgroup SIMD_LANES SIMD lane counts
+ * @{
+ * @brief Number of elements of each datatype that fit in one SIMD
+ *        vector register for a given ISA.
+ *
+ * @details
+ * These constants are used for:
+ * - Loop unrolling and vectorisation factor selection.
+ * - Buffer sizing for SIMD-aligned temporary storage.
+ * - Compile-time assertions that tensor sizes are multiples of
+ *   the vector width.
+ *
+ * The naming convention is `NOVA_SIMD_{TYPE}_WITH_{ISA}`.
+ */
+
 /** @name SIMD lane counts — SSE
- *  Number of elements per SSE vector register for each datatype.
+ *  128-bit register width.
  */
 ///@{
-#define NOVA_SIMD_F32_WITH_SSE 4
-#define NOVA_SIMD_F64_WITH_SSE 2
-#define NOVA_SIMD_FP16_WITH_SSE 8
-#define NOVA_SIMD_BF16_WITH_SSE 8
-#define NOVA_SIMD_S8_WITH_SSE 16
-#define NOVA_SIMD_U8_WITH_SSE 16
-#define NOVA_SIMD_S32_WITH_SSE 4
-#define NOVA_SIMD_U32_WITH_SSE 4
-#define NOVA_SIMD_S64_WITH_SSE 2
-#define NOVA_SIMD_U64_WITH_SSE 2
-#define NOVA_SIMD_QS8_WITH_SSE 16
-#define NOVA_SIMD_QU8_WITH_SSE 16
+#define NOVA_SIMD_F32_WITH_SSE 4       ///< float32:   128 / 32 = 4
+#define NOVA_SIMD_F64_WITH_SSE 2       ///< float64:   128 / 64 = 2
+#define NOVA_SIMD_FP16_WITH_SSE 8      ///< float16:   128 / 16 = 8
+#define NOVA_SIMD_BF16_WITH_SSE 8      ///< bfloat16:  128 / 16 = 8
+#define NOVA_SIMD_S8_WITH_SSE 16       ///< int8:      128 / 8  = 16
+#define NOVA_SIMD_U8_WITH_SSE 16       ///< uint8:     128 / 8  = 16
+#define NOVA_SIMD_S32_WITH_SSE 4       ///< int32:     128 / 32 = 4
+#define NOVA_SIMD_U32_WITH_SSE 4       ///< uint32:    128 / 32 = 4
+#define NOVA_SIMD_S64_WITH_SSE 2       ///< int64:     128 / 64 = 2
+#define NOVA_SIMD_U64_WITH_SSE 2       ///< uint64:    128 / 64 = 2
+#define NOVA_SIMD_QS8_WITH_SSE 16      ///< qint8:     128 / 8  = 16
+#define NOVA_SIMD_QU8_WITH_SSE 16      ///< quint8:    128 / 8  = 16
 ///@}
 
 /** @name SIMD lane counts — AVX / AVX2
- *  Number of elements per AVX/AVX2 vector register for each datatype.
+ *  256-bit register width.
  */
 ///@{
-#define NOVA_SIMD_F32_WITH_AVX_AVX2 8
-#define NOVA_SIMD_F64_WITH_AVX_AVX2 4
-#define NOVA_SIMD_FP16_WITH_AVX_AVX2 16
-#define NOVA_SIMD_BF16_WITH_AVX_AVX2 16
-#define NOVA_SIMD_S8_WITH_AVX_AVX2 32
-#define NOVA_SIMD_U8_WITH_AVX_AVX2 32
-#define NOVA_SIMD_S32_WITH_AVX_AVX2 8
-#define NOVA_SIMD_U32_WITH_AVX_AVX2 8
-#define NOVA_SIMD_S64_WITH_AVX_AVX2 4
-#define NOVA_SIMD_U64_WITH_AVX_AVX2 4
-#define NOVA_SIMD_QS8_WITH_AVX_AVX2 32
-#define NOVA_SIMD_QU8_WITH_AVX_AVX2 32
+#define NOVA_SIMD_F32_WITH_AVX_AVX2 8  ///< float32:   256 / 32 = 8
+#define NOVA_SIMD_F64_WITH_AVX_AVX2 4  ///< float64:   256 / 64 = 4
+#define NOVA_SIMD_FP16_WITH_AVX_AVX2 16 ///< float16:  256 / 16 = 16
+#define NOVA_SIMD_BF16_WITH_AVX_AVX2 16 ///< bfloat16: 256 / 16 = 16
+#define NOVA_SIMD_S8_WITH_AVX_AVX2 32  ///< int8:      256 / 8  = 32
+#define NOVA_SIMD_U8_WITH_AVX_AVX2 32  ///< uint8:     256 / 8  = 32
+#define NOVA_SIMD_S32_WITH_AVX_AVX2 8  ///< int32:     256 / 32 = 8
+#define NOVA_SIMD_U32_WITH_AVX_AVX2 8  ///< uint32:    256 / 32 = 8
+#define NOVA_SIMD_S64_WITH_AVX_AVX2 4  ///< int64:     256 / 64 = 4
+#define NOVA_SIMD_U64_WITH_AVX_AVX2 4  ///< uint64:    256 / 64 = 4
+#define NOVA_SIMD_QS8_WITH_AVX_AVX2 32 ///< qint8:     256 / 8  = 32
+#define NOVA_SIMD_QU8_WITH_AVX_AVX2 32 ///< quint8:    256 / 8  = 32
 ///@}
 
 /** @name SIMD lane counts — AVX-512F
- *  Number of elements per AVX-512F vector register for each datatype.
+ *  512-bit register width.
  */
 ///@{
-#define NOVA_SIMD_F32_WITH_AVX512F 16
-#define NOVA_SIMD_F64_WITH_AVX512F 8
-#define NOVA_SIMD_FP16_WITH_AVX512F 32
-#define NOVA_SIMD_BF16_WITH_AVX512F 32
-#define NOVA_SIMD_S8_WITH_AVX512F 64
-#define NOVA_SIMD_U8_WITH_AVX512F 64
-#define NOVA_SIMD_S32_WITH_AVX512F 16
-#define NOVA_SIMD_U32_WITH_AVX512F 16
-#define NOVA_SIMD_S64_WITH_AVX512F 8
-#define NOVA_SIMD_U64_WITH_AVX512F 8
-#define NOVA_SIMD_QS8_WITH_AVX512F 64
-#define NOVA_SIMD_QU8_WITH_AVX512F 64
+#define NOVA_SIMD_F32_WITH_AVX512F 16  ///< float32:   512 / 32 = 16
+#define NOVA_SIMD_F64_WITH_AVX512F 8   ///< float64:   512 / 64 = 8
+#define NOVA_SIMD_FP16_WITH_AVX512F 32 ///< float16:   512 / 16 = 32
+#define NOVA_SIMD_BF16_WITH_AVX512F 32 ///< bfloat16:  512 / 16 = 32
+#define NOVA_SIMD_S8_WITH_AVX512F 64   ///< int8:      512 / 8  = 64
+#define NOVA_SIMD_U8_WITH_AVX512F 64   ///< uint8:     512 / 8  = 64
+#define NOVA_SIMD_S32_WITH_AVX512F 16  ///< int32:     512 / 32 = 16
+#define NOVA_SIMD_U32_WITH_AVX512F 16  ///< uint32:    512 / 32 = 16
+#define NOVA_SIMD_S64_WITH_AVX512F 8   ///< int64:     512 / 64 = 8
+#define NOVA_SIMD_U64_WITH_AVX512F 8   ///< uint64:    512 / 64 = 8
+#define NOVA_SIMD_QS8_WITH_AVX512F 64  ///< qint8:     512 / 8  = 64
+#define NOVA_SIMD_QU8_WITH_AVX512F 64  ///< quint8:    512 / 8  = 64
 ///@}
 
-/** @name ANSI colour codes
- *  Subtle terminal colours inspired by cmake build output.
- *  Prefix green, values cyan, emphasis bold.
+/** @} */
+
+/**
+ * @defgroup LOG_COLOURS Terminal colour codes
+ * @{
+ * @brief ANSI escape sequences for subtle, cmake-style terminal
+ *        output.
+ *
+ * @details
+ * Used by `print_*` functions in `device.c`, `alloc.c`, etc.
+ * The colour palette is intentionally muted:
+ * - **Green prefix** (`--`): status messages.
+ * - **Cyan values**: highlighted data (device names, sizes).
+ * - **Bold**: section headings or emphasis.
+ * - **Reset**: restores default terminal colour.
  */
-///@{
+
+/**
+ * @def NCORE_LOG_PREFIX
+ * @brief Green `--` prefix for log messages.
+ *
+ * @code{.c}
+ * printf(NCORE_LOG_PREFIX " Detecting CUDA devices\n");
+ * // Output: -- Detecting CUDA devices  (green --)
+ * @endcode
+ */
 #define NCORE_LOG_PREFIX "\033[32m--\033[0m"
+
+/**
+ * @def NCORE_LOG_BOLD
+ * @brief Bold text start.  Must be paired with
+ *        @ref NCORE_LOG_RESET.
+ */
 #define NCORE_LOG_BOLD "\033[1m"
+
+/**
+ * @def NCORE_LOG_VALUE
+ * @brief Cyan colour for highlighted values.
+ */
 #define NCORE_LOG_VALUE "\033[36m"
+
+/**
+ * @def NCORE_LOG_RESET
+ * @brief Reset to default terminal colour.
+ */
 #define NCORE_LOG_RESET "\033[0m"
-///@}
+
+/** @} */
