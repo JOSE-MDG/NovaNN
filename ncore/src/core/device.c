@@ -42,10 +42,19 @@
  *   the constructor) and is read-only thereafter.  All public
  *   functions that read it are safe to call concurrently.
  * - @ref is_device_available() delegates to thread-safe backend
- *   detection functions.
+ *   detection functions and caches the result behind a mutex.
  * - @ref get_device_id() delegates to thread-safe backend accessors.
  * - @ref print_device_info() delegates to thread-safe backend print
  *   functions.
+ *
+ * ## One-shot Caching
+ *
+ * Device detection is performed once and cached in the module-level
+ * variables @ref device_detection_done and @ref detected_device_kind.
+ * This avoids repeated runtime API calls during training, where only
+ * a single GPU vendor (CUDA _or_ HIP) is ever used.  The cache is
+ * protected by a C11 `mtx_t` mutex and a `call_once` initialisation
+ * guard to ensure thread safety.
  *
  * @see device.h       Public API declarations.
  * @see cuda_device.c  CUDA detection implementation.
@@ -56,6 +65,65 @@
 #include <ncore/cpp_ffi.h>
 #include <ncore/device.h>
 #include <ncore/macros.h>
+#include <stdbool.h>
+#include <threads.h>
+
+/**
+ * @var device_detection_done
+ * @brief `true` after the first successful call to a detection
+ *        function (@ref is_device_available, @ref is_cuda_available,
+ *        or @ref is_hip_available).
+ *
+ * @details
+ * Once set to `true`, all subsequent detection calls return
+ * immediately from the cache without querying the runtime API.
+ * Protected by @ref runtime_flags_mtx for thread safety.
+ */
+static bool device_detection_done = false;
+
+/**
+ * @var detected_device_kind
+ * @brief The @ref DeviceKind detected during the first probe.
+ *
+ * @details
+ * Holds `CUDA_DEVICE`, `HIP_DEVICE`, or `NULL_DEVICE` (if no GPU
+ * was found).  Written once under @ref runtime_flags_mtx and
+ * read thereafter without locking (single-writer guarantee).
+ */
+static DeviceKind detected_device_kind = NULL_DEVICE;
+
+/**
+ * @var runtime_flags_once
+ * @brief C11 `call_once` guard ensuring @ref runtime_flags_mtx is
+ *        initialised exactly once, even under concurrent access.
+ */
+static once_flag runtime_flags_once = ONCE_FLAG_INIT;
+
+/**
+ * @var runtime_flags_mtx
+ * @brief Mutex protecting writes to @ref device_detection_done and
+ *        @ref detected_device_kind.
+ *
+ * @details
+ * Initialised lazily via @ref init_runtime_flags_lock() through
+ * C11 `call_once`.  Only taken for write operations; reads are
+ * safe without locking due to the single-writer pattern.
+ */
+static mtx_t runtime_flags_mtx;
+
+/**
+ * @brief Lazy initialiser for @ref runtime_flags_mtx.
+ *
+ * @details
+ * Passed to C11 `call_once` so that the mutex is created exactly
+ * once, regardless of how many threads race to call detection
+ * functions.  The return value of `mtx_init` is discarded
+ * (`(void)` cast) because the C11 mutex API does not provide a
+ * meaningful error path for `mtx_plain`.
+ */
+static void init_runtime_flags_lock(void) {
+  (void)mtx_init(&runtime_flags_mtx, mtx_plain);
+}
 
 #ifdef NOVA_HAS_HIP
 
@@ -105,6 +173,9 @@ extern bool is_hip_device_available(bool log, bool verbose);
  *
  * @param[in] verbose  If `true`, print detailed block.  If `false`,
  *                     print concise summary.
+ *
+ * @see print_device_info()  Public dispatcher that calls this.
+ * @see hip_device.c         HIP detection implementation.
  */
 extern void print_hip_device_info(bool verbose);
 #endif /* NOVA_HAS_HIP */
@@ -156,6 +227,9 @@ extern bool is_cuda_device_available(bool log, bool verbose);
  *
  * @param[in] verbose  If `true`, print detailed block.  If `false`,
  *                     print concise summary.
+ *
+ * @see print_device_info()  Public dispatcher that calls this.
+ * @see cuda_device.c        CUDA detection implementation.
  */
 extern void print_cuda_device_info(bool verbose);
 #endif /* NOVA_HAS_CUDA */
@@ -166,7 +240,7 @@ extern void print_cuda_device_info(bool verbose);
  *        the source and destination device types.
  *
  * @details
- * A 3×3 matrix indexed by `[dst][src]` where each index is a
+ * A 3×3 matrix indexed by `[src][dst]` where each index is a
  * @ref Device value (`DEVICE_CPU=0`, `DEVICE_GPU=1`,
  * `DEVICE_META=2`).  Each entry is a @ref TransferKind value that
  * encodes the correct copy direction for the given `(src, dst)` pair.
@@ -177,10 +251,10 @@ extern void print_cuda_device_info(bool verbose);
  *
  * ## Initialised Entries
  *
- * | `[dst]`      | `[src]`      | Value                             |
+ * | `[src]`      | `[dst]`      | Value                             |
  * |--------------|--------------|-----------------------------------|
- * | `DEVICE_GPU` | `DEVICE_CPU` | `deviceMemcpyHostToDevice`        |
- * | `DEVICE_CPU` | `DEVICE_GPU` | `deviceMemcpyDeviceToHost`        |
+ * | `DEVICE_CPU` | `DEVICE_GPU` | `deviceMemcpyHostToDevice`        |
+ * | `DEVICE_GPU` | `DEVICE_CPU` | `deviceMemcpyDeviceToHost`        |
  * | `DEVICE_GPU` | `DEVICE_GPU` | `deviceMemcpyDeviceToDevice`      |
  *
  * All other entries remain `0` (zero-initialised).  Calling
@@ -216,7 +290,7 @@ TransferKind transf_dispatch[3][3] = {0};
  * @see transf_dispatch
  * @see transfer_to()
  */
-ATTR(constructor) static inline void init_transf_dispatch() {
+ATTR(constructor) static inline void init_transf_dispatch(void) {
 
   transf_dispatch[DEVICE_GPU][DEVICE_CPU] = deviceMemcpyDeviceToHost;
   transf_dispatch[DEVICE_CPU][DEVICE_GPU] = deviceMemcpyHostToDevice;
@@ -240,6 +314,14 @@ ATTR(constructor) static inline void init_transf_dispatch() {
  * the function always has a well-defined result even on systems
  * without GPU support.
  *
+ * ## One-shot caching
+ *
+ * The first call to this function performs the actual runtime probe
+ * and stores the result in @ref device_detection_done and
+ * @ref detected_device_kind.  Subsequent calls return immediately
+ * from the cache.  This eliminates redundant runtime API calls in
+ * long-running processes (e.g., training loops).
+ *
  * @param[in] kind     Requested backend kind.  Must be a valid
  *                     @ref DeviceKind value.
  * @param[in] verbose  If `true`, backend probes may print runtime
@@ -250,16 +332,27 @@ ATTR(constructor) static inline void init_transf_dispatch() {
  *         device.  `false` otherwise.
  *
  * @note Thread-safe.  Delegates to thread-safe backend detection
- *       functions.
+ *       functions.  The cache write is protected by
+ *       @ref runtime_flags_mtx.
  *
  * @see is_cuda_available()   Convenience wrapper for `CUDA_DEVICE`.
  * @see is_hip_available()    Convenience wrapper for `HIP_DEVICE`.
+ * @see get_detected_device_kind()  Returns the cached backend.
+ * @see was_device_detection_done()  Checks if detection ran.
  * @see DeviceKind            Enum identifying backends.
  */
 bool is_device_available(DeviceKind kind, bool verbose) {
+  if (device_detection_done && detected_device_kind != NULL_DEVICE) {
+    return (kind == detected_device_kind);
+  }
+  call_once(&runtime_flags_once, init_runtime_flags_lock);
   switch (kind) {
   case CUDA_DEVICE: {
 #ifdef NOVA_HAS_CUDA
+    mtx_lock(&runtime_flags_mtx);
+    device_detection_done = true;
+    detected_device_kind = CUDA_DEVICE;
+    mtx_unlock(&runtime_flags_mtx);
     return is_cuda_device_available(verbose, verbose);
 #else
     return false;
@@ -267,6 +360,10 @@ bool is_device_available(DeviceKind kind, bool verbose) {
   }
   case HIP_DEVICE: {
 #ifdef NOVA_HAS_HIP
+    mtx_lock(&runtime_flags_mtx);
+    device_detection_done = true;
+    detected_device_kind = HIP_DEVICE;
+    mtx_unlock(&runtime_flags_mtx);
     return is_hip_device_available(verbose, verbose);
 #else
     return false;
@@ -291,6 +388,10 @@ bool is_device_available(DeviceKind kind, bool verbose) {
  * This function is provided as a shorthand for code paths that only
  * need a boolean yes/no answer without diagnostics.
  *
+ * Respects the one-shot caching mechanism: returns the cached result
+ * if detection has already been performed (see
+ * @ref is_device_available()).
+ *
  * @return `true` when CUDA reports an available device.  `false` if
  *         CUDA is unavailable or `NOVA_HAS_CUDA` is not defined.
  *
@@ -302,7 +403,18 @@ bool is_device_available(DeviceKind kind, bool verbose) {
  * @see DeviceKind
  */
 bool is_cuda_available(void) {
+
+  if (device_detection_done && detected_device_kind != NULL_DEVICE) {
+    return (CUDA_DEVICE == detected_device_kind);
+  }
+
+  call_once(&runtime_flags_once, init_runtime_flags_lock);
+
 #ifdef NOVA_HAS_CUDA
+  mtx_lock(&runtime_flags_mtx);
+  device_detection_done = true;
+  detected_device_kind = CUDA_DEVICE;
+  mtx_unlock(&runtime_flags_mtx);
   return is_cuda_device_available(false, false);
 #else
   return false;
@@ -322,6 +434,10 @@ bool is_cuda_available(void) {
  * This function is provided as a shorthand for code paths that only
  * need a boolean yes/no answer without diagnostics.
  *
+ * Respects the one-shot caching mechanism: returns the cached result
+ * if detection has already been performed (see
+ * @ref is_device_available()).
+ *
  * @return `true` when HIP reports an available device.  `false` if
  *         HIP is unavailable or `NOVA_HAS_HIP` is not defined.
  *
@@ -333,7 +449,17 @@ bool is_cuda_available(void) {
  * @see DeviceKind
  */
 bool is_hip_available(void) {
+
+  if (device_detection_done && detected_device_kind != NULL_DEVICE) {
+    return (HIP_DEVICE == detected_device_kind);
+  }
+
+  call_once(&runtime_flags_once, init_runtime_flags_lock);
 #ifdef NOVA_HAS_HIP
+  mtx_lock(&runtime_flags_mtx);
+  device_detection_done = true;
+  detected_device_kind = HIP_DEVICE;
+  mtx_unlock(&runtime_flags_mtx);
   return is_hip_device_available(false, false);
 #else
   return false;
@@ -347,7 +473,7 @@ bool is_hip_available(void) {
  * High-level memory transfer function that routes the copy through the
  * correct backend at run time.  The function:
  * 1. Looks up the @ref TransferKind from @ref transf_dispatch using
- *    the `(dst, src)` pair as indices (`transf_dispatch[dst][src]`).
+ *    the `(src, dst)` pair as indices (`transf_dispatch[src][dst]`).
  * 2. Forwards the request to `device_memcpy_c()` (declared in
  *    @ref cpp_ffi.h) with the resolved transfer kind.
  *
@@ -355,10 +481,10 @@ bool is_hip_available(void) {
  * @ref init_transf_dispatch(), so it is always ready when this
  * function is called.
  *
- * @param[in]  dst       Target device placement.  Determines the
- *                       destination memory space.
  * @param[in]  src       Source device placement.  Determines the
  *                       source memory space.
+ * @param[in]  dst       Target device placement.  Determines the
+ *                       destination memory space.
  * @param[in]  src_buf   Pointer to the source buffer.  Must be valid
  *                       for at least @p bytes bytes in the source
  *                       memory space.
@@ -377,7 +503,7 @@ bool is_hip_available(void) {
  * @pre  Both @p src_buf and @p dst_buf must point to valid memory
  *       regions of at least @p bytes.
  * @pre  @p bytes must be greater than zero.
- * @pre  The `(dst, src)` pair must have a valid entry in
+ * @pre  The `(src, dst)` pair must have a valid entry in
  *       @ref transf_dispatch (i.e., not a host-to-host or META pair).
  * @post On success, @p dst_buf contains a copy of @p src_buf.
  * @post On failure, the source and destination buffers are unchanged.
@@ -396,9 +522,9 @@ bool is_hip_available(void) {
  *                         transfer directions.
  * @see TransferKind       Enum encoding copy directions.
  */
-DeviceStatus transfer_to(Device dst, Device src, const void *src_buf,
+DeviceStatus transfer_to(Device src, Device dst, const void *src_buf,
                          void *dst_buf, bool is_pinned, size_t bytes) {
-  TransferKind kind = transf_dispatch[dst][src];
+  TransferKind kind = transf_dispatch[src][dst];
   return device_memcpy_c(src_buf, dst_buf, is_pinned, kind, bytes);
 }
 
@@ -498,3 +624,36 @@ void print_device_info(DeviceKind kind, bool verbose) {
     break;
   }
 }
+
+/**
+ * @brief Return the cached device kind from the last detection.
+ *
+ * @details
+ * Returns the @ref DeviceKind value stored by the first call to
+ * @ref is_device_available(), @ref is_cuda_available(), or
+ * @ref is_hip_available().  If detection has not been performed
+ * yet, returns `NULL_DEVICE`.
+ *
+ * @return The detected @ref DeviceKind, or `NULL_DEVICE` if no
+ *         detection has occurred.
+ *
+ * @see was_device_detection_done()
+ * @see is_device_available()
+ */
+DeviceKind get_detected_device_kind(void) { return detected_device_kind; }
+
+/**
+ * @brief Check whether device detection has already been performed.
+ *
+ * @details
+ * Returns `true` after the first detection call has completed.
+ * Useful for guarding one-time initialisation that depends on the
+ * detection result.
+ *
+ * @return `true` if detection has been performed at least once,
+ *         `false` otherwise.
+ *
+ * @see get_detected_device_kind()
+ * @see is_device_available()
+ */
+bool was_device_detection_done(void) { return device_detection_done; }
