@@ -12,7 +12,9 @@
  *
  * ## SIMD Support Tiers
  * The detection follows a hierarchical model:
- *
+ */
+// clang-format off
+/**
  * | Tier        | Feature      | Width   | Typical Use          |
  * |-------------|--------------|---------|----------------------|
  * | SSE4.2      | sse4_2_      | 128-bit | Basic vectorization  |
@@ -20,7 +22,9 @@
  * | AVX2        | avx2_        | 256-bit | Integer SIMD         |
  * | AVX-512     | avx512_*     | 512-bit | High-throughput      |
  * | AMX         | amx_*        | Tile    | Matrix ops           |
- *
+ */
+// clang-format on
+/**
  * ## Usage
  * @code{.c}
  * const Capabilities_ *caps = get_cpu_capabilities();
@@ -115,7 +119,7 @@ typedef struct {
  *         and must not be freed by the caller.
  *
  * @note This function is thread-safe. The detection is performed at most
- *       once using C23 call_once().
+ *       once using C11 call_once().
  *
  * @par Example:
  * @code{.c}
