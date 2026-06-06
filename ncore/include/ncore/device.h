@@ -25,31 +25,35 @@
  *   active device id for the detected backend.
  *
  * ## Device Tiers
- *
+ */
+// clang-format off
+/**
  * | Device      | Value | Description                         |
  * |-------------|-------|-------------------------------------|
  * | `DEVICE_CPU`  | 0   | Host memory (default).              |
  * | `DEVICE_GPU`  | 1   | Accelerator memory (CUDA/ROCm).     |
  * | `DEVICE_META` | 2   | Placeholder with no backing storage.|
- *
+ */
+// clang-format on
+/**
  * META tensors are used for shape inference and graph construction
  * without allocating actual data buffers.  They carry dtype and shape
  * metadata but no memory.
  *
  * ## Usage Example
  *
- * @code{.c}
+ * @code{.cpp}
  * #include <ncore/device.h>
  *
  * // Check if any GPU backend is available.
  * if (is_device_available(CUDA_DEVICE, true)) {
- *     printf("CUDA device found\\n");
+ *     std::cout << "CUDA device found" << "\n";
  * }
  *
  * // Transfer a buffer from host to device.
- * DeviceStatus status = transfer_to(DEVICE_GPU, HOST, src, dst, true, n);
+ * DeviceStatus status = transfer_to(DEVICE_CPU, DEVICE_GPU, src, dst, true, n);
  * if (status.code != 0) {
- *     fprintf(stderr, "Transfer failed: %s\\n", status.message);
+ *     std::cout << "Transfer failed: " << status.message << "\n";
  * }
  * @endcode
  *
@@ -96,9 +100,9 @@ extern "C" {
  * @see DeviceStatus   Result type for device memory operations.
  */
 typedef enum ATTR(packed) {
-  DEVICE_CPU = 0,  ///< Host memory; accessible by all CPU kernels.
-  DEVICE_GPU = 1,  ///< Accelerator memory; requires GPU-capable backend.
-  DEVICE_META = 2  ///< Placeholder; no data buffer is allocated.
+  DEVICE_CPU = 0, ///< Host memory; accessible by all CPU kernels.
+  DEVICE_GPU = 1, ///< Accelerator memory; requires GPU-capable backend.
+  DEVICE_META = 2 ///< Placeholder; no data buffer is allocated.
 } Device;
 
 /**
@@ -124,9 +128,9 @@ typedef enum ATTR(packed) {
  * @see is_hip_available()
  */
 typedef enum ATTR(packed) {
-  CUDA_DEVICE = 0,  ///< NVIDIA CUDA runtime backend.
-  HIP_DEVICE = 1,   ///< AMD ROCm HIP runtime backend.
-  NULL_DEVICE = 2   ///< No supported GPU backend detected.
+  CUDA_DEVICE = 0, ///< NVIDIA CUDA runtime backend.
+  HIP_DEVICE = 1,  ///< AMD ROCm HIP runtime backend.
+  NULL_DEVICE = 2  ///< No supported GPU backend detected.
 } DeviceKind;
 
 /**
@@ -152,9 +156,9 @@ typedef enum ATTR(packed) {
  * @see transf_dispatch  Lookup table mapping device pairs to directions.
  */
 typedef enum ATTR(packed) {
-  deviceMemcpyHostToDevice = 1,    ///< Copy from host memory into device memory.
-  deviceMemcpyDeviceToHost = 2,    ///< Copy from device memory into host memory.
-  deviceMemcpyDeviceToDevice = 3   ///< Copy between two device-memory buffers.
+  deviceMemcpyHostToDevice = 1,  ///< Copy from host memory into device memory.
+  deviceMemcpyDeviceToHost = 2,  ///< Copy from device memory into host memory.
+  deviceMemcpyDeviceToDevice = 3 ///< Copy between two device-memory buffers.
 } TransferKind;
 
 /**
@@ -183,7 +187,7 @@ typedef enum ATTR(packed) {
  * @see device_memcpy_c()  Low-level wrapper that returns a DeviceStatus.
  */
 typedef struct {
-  int code;           ///< Zero on success, positive error code on failure.
+  int code;            ///< Zero on success, positive error code on failure.
   const char *message; ///< Human-readable error description.
 } DeviceStatus;
 
@@ -194,7 +198,7 @@ typedef struct {
  * @details
  * The Tensor struct is defined in `tensor.h` and carries a @ref Device
  * field indicating where its data resides.  This forward declaration
- * allows @ref DeviceStatus and related functions to reference Tensor
+ * allows @ref TensorGrad (used for gradient tensors) to be defined
  * without pulling in the full tensor header.
  */
 struct Tensor;
@@ -221,6 +225,15 @@ typedef Tensor *TensorGrad;
  * `NOVA_HAS_HIP`) is not defined, the function returns `false`
  * without querying the runtime.
  *
+ * ## One-shot caching
+ *
+ * The first call to this function performs the actual runtime probe
+ * and caches the result.  Subsequent calls — regardless of the
+ * requested @p kind — return immediately from the cache without
+ * touching the runtime API.  This design assumes a single GPU
+ * vendor per process (CUDA _or_ HIP, never both), which is the
+ * standard constraint in deep-learning workloads.
+ *
  * @param[in] kind     Requested backend kind.  Must be a valid
  *                     @ref DeviceKind value.
  * @param[in] verbose  If `true`, backend detection may print runtime
@@ -231,10 +244,13 @@ typedef Tensor *TensorGrad;
  *         device.  `false` otherwise.
  *
  * @note Thread-safe.  Delegates to thread-safe backend detection
- *       functions.
+ *       functions.  The cached result is protected by a mutex and
+ *       a `call_once` initialisation guard.
  *
  * @see is_cuda_available()   Convenience wrapper for `CUDA_DEVICE`.
  * @see is_hip_available()    Convenience wrapper for `HIP_DEVICE`.
+ * @see get_detected_device_kind()  Returns the cached backend.
+ * @see was_device_detection_done()  Checks if detection ran.
  * @see DeviceKind            Enum identifying backends.
  */
 bool is_device_available(DeviceKind kind, bool verbose);
@@ -245,7 +261,7 @@ bool is_device_available(DeviceKind kind, bool verbose);
  * @details
  * Convenience wrapper that calls @ref is_device_available() with
  * `CUDA_DEVICE`.  Equivalent to:
- * @code{.c}
+ * @code{.cpp}
  * is_device_available(CUDA_DEVICE, false);
  * @endcode
  *
@@ -288,7 +304,7 @@ bool is_hip_available(void);
  * High-level memory transfer function that routes the copy through the
  * correct backend at run time.  The function:
  * 1. Looks up the @ref TransferKind from @ref transf_dispatch using
- *    the `(dst, src)` pair as indices.
+ *    the `(src, dst)` pair as indices.
  * 2. Forwards the request to `device_memcpy_c()` (declared in
  *    @ref cpp_ffi.h) with the resolved transfer kind.
  *
@@ -296,10 +312,10 @@ bool is_hip_available(void);
  * `__attribute__((constructor))` function in @ref device.c, so it is
  * always ready when this function is called.
  *
- * @param[in]  dst       Target device placement.  Determines the
- *                       destination memory space.
  * @param[in]  src       Source device placement.  Determines the
  *                       source memory space.
+ * @param[in]  dst       Target device placement.  Determines the
+ *                       destination memory space.
  * @param[in]  src_buf   Pointer to the source buffer.  Must be valid
  *                       for at least @p bytes bytes in the source
  *                       memory space.
@@ -322,9 +338,9 @@ bool is_hip_available(void);
  * @post On failure, the source and destination buffers are unchanged.
  *
  * @warning If @p src and @p dst are both `DEVICE_CPU`, the dispatch
- *          table entry is `0` (uninitialised), which may cause
- *          undefined behaviour.  Use `memcpy()` for host-to-host
- *          copies.
+ *          table entry is `0` (zero-initialised but invalid), which
+ *          may cause undefined behaviour.  Use `memcpy()` or
+ *          @ref deepcopy() for host-to-host copies.
  *
  * @note Thread-safe.  The dispatch table is read-only after
  *       initialisation, and `device_memcpy_c()` is expected to be
@@ -335,7 +351,7 @@ bool is_hip_available(void);
  *                         transfer directions.
  * @see TransferKind       Enum encoding copy directions.
  */
-DeviceStatus transfer_to(Device dst, Device src, const void *src_buf,
+DeviceStatus transfer_to(Device src, Device dst, const void *src_buf,
                          void *dst_buf, bool is_pinned, size_t bytes);
 
 /**
@@ -370,13 +386,14 @@ int get_device_id(void);
  *
  * @details
  * Queries the specified backend for device 0 properties and prints
- * them to stdout using ANSI colour codes (cmake-build style).
+ * them to stdout using ANSI colour codes.
  *
  * When @p verbose is `false`, a concise two-line summary is printed
  * per device:
  * @code
- * -- [CUDA] Device 0: NVIDIA GeForce RTX 3090 | Compute 8.6 | 24.0 GiB | 82 SMs
- * -- [CUDA] Driver v12.3 | Runtime v12.3
+ * -- [CUDA] Device 0: NVIDIA GeForce RTX 5070 | Compute 12.0 | 12.0 GiB | 48
+ * SMs
+ * -- [CUDA] Driver v13.3 | Runtime v13.3
  * @endcode
  *
  * When @p verbose is `true`, a detailed multi-line block is printed
@@ -399,6 +416,45 @@ int get_device_id(void);
  * @see is_hip_available()
  */
 void print_device_info(DeviceKind kind, bool verbose);
+
+/**
+ * @brief Return the cached device kind from the last detection.
+ *
+ * @details
+ * After @ref is_device_available() has been called at least once,
+ * this function returns the @ref DeviceKind that was detected
+ * (e.g., `CUDA_DEVICE` or `HIP_DEVICE`).  If detection has not
+ * been performed yet, or if no GPU was found, returns
+ * `NULL_DEVICE`.
+ *
+ * The returned value is the cached result of the one-shot
+ * detection performed by @ref is_device_available().
+ *
+ * @return The detected @ref DeviceKind, or `NULL_DEVICE` if no
+ *         detection has occurred or no GPU was found.
+ *
+ * @see is_device_available()
+ * @see was_device_detection_done()
+ * @see DeviceKind
+ */
+DeviceKind get_detected_device_kind(void);
+
+/**
+ * @brief Check whether device detection has already been performed.
+ *
+ * @details
+ * Returns `true` after the first call to @ref is_device_available()
+ * (or its convenience wrappers @ref is_cuda_available() /
+ * @ref is_hip_available()) has completed.  Useful for guarding
+ * one-time initialisation that depends on the detection result.
+ *
+ * @return `true` if detection has been performed at least once,
+ *         `false` otherwise.
+ *
+ * @see is_device_available()
+ * @see get_detected_device_kind()
+ */
+bool was_device_detection_done(void);
 
 #ifdef __cplusplus
 }
