@@ -1,6 +1,7 @@
 /**
  * @file simd.c
- * @brief CPU SIMD capability detection and runtime feature detection implementation.
+ * @brief CPU SIMD capability detection and runtime feature detection
+ * implementation.
  *
  * @details
  * This module provides runtime detection of CPU SIMD (Single Instruction,
@@ -9,7 +10,7 @@
  * sets on both x86_64 Linux and Windows platforms.
  *
  * The detected capabilities are cached in a thread-safe singleton pattern
- * using C23 threads support (call_once) to ensure the detection is
+ * using C11 threads support (call_once) to ensure the detection is
  * performed only once, even when called from multiple threads.
  *
  * ## Architecture
@@ -197,7 +198,7 @@ static inline void init_once() { detect_cpu_capabilities_(&Caps_); }
  *         and must not be freed by the caller.
  *
  * @note This function is thread-safe. The detection is performed at most
- *       once using C23 call_once().
+ *       once using C11 call_once().
  *
  * @par Example:
  * @code{.c}
