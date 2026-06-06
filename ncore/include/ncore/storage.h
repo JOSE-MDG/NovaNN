@@ -132,6 +132,22 @@ bool is_device_memory_handle(RustHandle *handle);
 bool is_pinned_handle(RustHandle *handle);
 
 /**
+ * @brief Retrieve the last error message from a failed reserve() call.
+ *
+ * Returns a pointer to a thread-local string describing the most recent
+ * error.  The pointer is valid until the next call to reserve() on the
+ * same thread.  Returns NULL if the last reserve() succeeded.
+ *
+ * @return Null-terminated error string, or NULL on success.
+ */
+const char *get_last_reserve_error(void);
+
+/**
+ * @brief Return the length of the last reserve() error message, or 0.
+ */
+int get_last_reserve_error_len(void);
+
+/**
  * @brief Complete tensor storage descriptor.
  *
  * Bundles the typed pointer, byte count, alignment, and the Rust-side
