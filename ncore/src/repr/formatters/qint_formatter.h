@@ -19,12 +19,12 @@
 /**
  * @brief Format a quantized element.
  *
- * @param buf              Output buffer.
- * @param buf_size         Buffer size.
- * @param raw_val          Raw quantized integer value.
- * @param scale            Quantization scale factor.
- * @param zero_point       Quantization zero-point.
- * @param show_dequantized If true and scale > 0, append " (%.4f)".
+ * @param[out] buf              Output buffer.
+ * @param[in]  buf_size         Buffer size.
+ * @param[in]  raw_val          Raw quantized integer value.
+ * @param[in]  scale            Quantization scale factor.
+ * @param[in]  zero_point       Quantization zero-point.
+ * @param[in]  show_dequantized If true and scale > 0, append " (%.4f)".
  * @return Number of chars written (excl. null).
  */
 int qint_format_value(char *buf, size_t buf_size, int raw_val, float scale,
