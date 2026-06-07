@@ -20,8 +20,16 @@
 #include <ncore/dtype.h>
 #include <ncore/tensor.h>
 
-/* ---- Float handlers ---- */
-
+/**
+ * @brief Format a Float32 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the float value.
+ * @param[in]  ten      Owning tensor (unused).
+ * @param[in]  ctx      ReprContext with sci/precision settings.
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_float32(char *buf, size_t cap, const void *ptr,
                        const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
@@ -29,6 +37,16 @@ static int fmt_float32(char *buf, size_t cap, const void *ptr,
                             ctx->effective_precision);
 }
 
+/**
+ * @brief Format a Float64 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the double value.
+ * @param[in]  ten      Owning tensor (unused).
+ * @param[in]  ctx      ReprContext with sci/precision settings.
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_float64(char *buf, size_t cap, const void *ptr,
                        const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
@@ -36,6 +54,16 @@ static int fmt_float64(char *buf, size_t cap, const void *ptr,
                             ctx->effective_precision);
 }
 
+/**
+ * @brief Format a Float16 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the float16 value.
+ * @param[in]  ten      Owning tensor (unused).
+ * @param[in]  ctx      ReprContext with sci/precision settings.
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_float16(char *buf, size_t cap, const void *ptr,
                        const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
@@ -43,6 +71,16 @@ static int fmt_float16(char *buf, size_t cap, const void *ptr,
                             ctx->use_sci, ctx->effective_precision);
 }
 
+/**
+ * @brief Format a BFloat16 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the bfloat16 value.
+ * @param[in]  ten      Owning tensor (unused).
+ * @param[in]  ctx      ReprContext with sci/precision settings.
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_bfloat16(char *buf, size_t cap, const void *ptr,
                         const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
@@ -50,8 +88,16 @@ static int fmt_bfloat16(char *buf, size_t cap, const void *ptr,
                             ctx->use_sci, ctx->effective_precision);
 }
 
-/* ---- Integer handlers ---- */
-
+/**
+ * @brief Format a Signed8 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the int8_t value.
+ * @param[in]  ten      Owning tensor (unused).
+ * @param[in]  ctx      ReprContext (unused).
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_signed8(char *buf, size_t cap, const void *ptr,
                        const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
@@ -59,6 +105,16 @@ static int fmt_signed8(char *buf, size_t cap, const void *ptr,
   return int_format_value(buf, cap, (int64_t)*(const int8_t *)ptr);
 }
 
+/**
+ * @brief Format an UnSigned8 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the uint8_t value.
+ * @param[in]  ten      Owning tensor (unused).
+ * @param[in]  ctx      ReprContext (is_bool flag).
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_unsigned8(char *buf, size_t cap, const void *ptr,
                          const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
@@ -66,6 +122,16 @@ static int fmt_unsigned8(char *buf, size_t cap, const void *ptr,
                            ctx->is_bool);
 }
 
+/**
+ * @brief Format a Signed32 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the int32_t value.
+ * @param[in]  ten      Owning tensor (unused).
+ * @param[in]  ctx      ReprContext (unused).
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_signed32(char *buf, size_t cap, const void *ptr,
                         const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
@@ -73,6 +139,16 @@ static int fmt_signed32(char *buf, size_t cap, const void *ptr,
   return int_format_value(buf, cap, (int64_t)*(const int32_t *)ptr);
 }
 
+/**
+ * @brief Format an UnSigned32 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the uint32_t value.
+ * @param[in]  ten      Owning tensor (unused).
+ * @param[in]  ctx      ReprContext (unused).
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_unsigned32(char *buf, size_t cap, const void *ptr,
                           const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
@@ -80,6 +156,16 @@ static int fmt_unsigned32(char *buf, size_t cap, const void *ptr,
   return uint_format_value(buf, cap, (uint64_t)*(const uint32_t *)ptr, false);
 }
 
+/**
+ * @brief Format a Signed64 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the int64_t value.
+ * @param[in]  ten      Owning tensor (unused).
+ * @param[in]  ctx      ReprContext (unused).
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_signed64(char *buf, size_t cap, const void *ptr,
                         const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
@@ -87,6 +173,16 @@ static int fmt_signed64(char *buf, size_t cap, const void *ptr,
   return int_format_value(buf, cap, *(const int64_t *)ptr);
 }
 
+/**
+ * @brief Format an UnSigned64 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the uint64_t value.
+ * @param[in]  ten      Owning tensor (unused).
+ * @param[in]  ctx      ReprContext (unused).
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_unsigned64(char *buf, size_t cap, const void *ptr,
                           const Tensor *ten, const ReprContext *ctx) {
   (void)ten;
@@ -94,14 +190,32 @@ static int fmt_unsigned64(char *buf, size_t cap, const void *ptr,
   return uint_format_value(buf, cap, *(const uint64_t *)ptr, false);
 }
 
-/* ---- Quantized handlers ---- */
-
+/**
+ * @brief Format a QSigned8 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the int8_t value.
+ * @param[in]  ten      Owning tensor (scale_/zero_point_).
+ * @param[in]  ctx      ReprContext (show_dequantized flag).
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_qsigned8(char *buf, size_t cap, const void *ptr,
                         const Tensor *ten, const ReprContext *ctx) {
   return qint_format_value(buf, cap, (int)*(const int8_t *)ptr, ten->scale_,
                            ten->zero_point_, ctx->options.show_dequantized);
 }
 
+/**
+ * @brief Format a QUnSigned8 element.
+ *
+ * @param[out] buf      Output buffer.
+ * @param[in]  cap      Buffer capacity.
+ * @param[in]  ptr      Pointer to the uint8_t value.
+ * @param[in]  ten      Owning tensor (scale_/zero_point_).
+ * @param[in]  ctx      ReprContext (show_dequantized flag).
+ * @return Number of chars written (excl. null).
+ */
 static int fmt_qunsigned8(char *buf, size_t cap, const void *ptr,
                           const Tensor *ten, const ReprContext *ctx) {
   return qint_format_value(buf, cap, (int)*(const uint8_t *)ptr, ten->scale_,
