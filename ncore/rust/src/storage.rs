@@ -137,13 +137,16 @@ impl RustStorage {
             return Err(StorageError::DeviceError(msg));
         }
 
+        // Get bytes before device_buf move
+        let bytes = device_buf.bytes;
+
         Ok(Self {
             ptr: device_buf.ptr as *mut u8,
             alloc: Allocation::Gpu {
                 device_buf,
                 alignment,
             },
-            size_bytes: device_buf.bytes,
+            size_bytes: bytes,
             ref_count: 1,
         })
     }
