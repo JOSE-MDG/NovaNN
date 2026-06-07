@@ -28,6 +28,7 @@ extern "C" {
 #endif
 
 /**
+ * @struct ReprContext
  * @brief Carries all derived state needed by layout and formatter layers.
  */
 typedef struct {
@@ -41,15 +42,15 @@ typedef struct {
   bool is_summarized;      ///< ten->size > options.threshold.
 
   /* ---- Dtype category shortcuts ---- */
-  bool is_float;     ///< Float32/64/16/BFloat16. */
-  bool is_integer;   ///< Any non-quantized integer type. */
-  bool is_quantized; ///< QSigned8 or QUnSigned8. */
-  bool is_bool;      ///< Copied from options.is_bool. */
-  bool is_scalar;    ///< ten->ndims == 0. */
+  bool is_float;     ///< Float32/64/16/BFloat16.
+  bool is_integer;   ///< Any non-quantized integer type.
+  bool is_quantized; ///< QSigned8 or QUnSigned8.
+  bool is_bool;      ///< Copied from options.is_bool.
+  bool is_scalar;    ///< ten->ndims == 0.
 
   /* ---- Device / allocation state ---- */
-  bool is_meta; ///< ten->device == DEVICE_META. */
-  bool is_gpu;  ///< ten->device == DEVICE_GPU. */
+  bool is_meta; ///< ten->device == DEVICE_META.
+  bool is_gpu;  ///< ten->device == DEVICE_GPU.
 } ReprContext;
 
 /**
@@ -59,8 +60,8 @@ typedef struct {
  * for float types, whether scientific notation should be enabled via the
  * PyTorch heuristic.  Meta and GPU tensors skip the data scan.
  *
- * @param ten  Tensor to render (must not be NULL).
- * @param opts Options (NULL = use repr_default_options()).
+ * @param[in]  ten  Tensor to render (must not be NULL).
+ * @param[in]  opts Options (NULL = use repr_default_options()).
  * @return Fully populated ReprContext.
  */
 ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts);
