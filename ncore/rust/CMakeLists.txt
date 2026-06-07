@@ -1,57 +1,78 @@
-#[[
-    @file ncore/rust/CMakeLists.txt
-    @brief Rust / C++ FFI bridge build orchestration.
+#[=======================================================================[.rst:
+.. module:: ncore_rust
+   :synopsis: Rust memory subsystem build configuration.
 
-    Pipeline:
-      1. add_subdirectory(csrc) compiles the C++ FFI + device back-ends into
-         the static library librustcsrc.a.
-      2. An add_custom_target (ncore_memory_cargo) invokes Cargo, passing:
-         - RUSTCSRC_DIR — location of librustcsrc.a (CMake generator expression)
-         - RUSTCSRC_NAME — library name ("rustcsrc")
-         - RUSTFLAGS — tuned per build type (debuginfo / optimisation)
-         - CARGO_PROFILE — empty (debug) or --release
-      3. Cargo produces libncore_memory.a (a staticlib that links rustcsrc).
-      4. An IMPORTED STATIC target ncore_memory wraps the .a and exposes
-         rustcsrc, Threads::Threads, dl, and m as INTERFACE link requirements.
+Builds the ``ncore_memory`` Rust crate as a static library using Cargo
+and makes it available as an imported CMake target.
 
-    CMake → Cargo dependency: ncore_memory_cargo DEPENDS rustcsrc, so the
-    C++ static library is always up-to-date before Cargo links against it.
+**Targets:**
 
-    @note If CMAKE_BUILD_TYPE is unset, the Release branch is taken.
-    @note build.rs reads RUSTCSRC_DIR and RUSTCSRC_NAME from the environment.
+- ``memory_cargo`` — Custom target that runs ``cargo build`` for the
+  ``ncore_memory`` crate.
+- ``ncore_memory`` — IMPORTED STATIC library pointing to the Cargo
+  output (``libncore_memory.a``).
 
-    Requires : CMake 3.27+, Cargo, Rust toolchain
-    Depends  : ncore/rust/csrc/ (librustcsrc.a producer)
-    Outputs  : ncore_memory (imported static library target)
-    See also : build.rs — Rust-side linkage of librustcsrc.a
-]]
+**Build modes:**
+
+- **Debug:** ``-C debuginfo=2 -C opt-level=0``
+- **Release:** ``-C target-cpu=native -C opt-level=3 -C codegen-units=1 -C panic=abort``
+
+**Output:**
+
+- **Linux:** ``libncore_memory.a``
+- **Windows (MinGW/MSYS2):** ``libncore_memory.a``
+
+**Environment variables forwarded to Cargo:**
+
+- ``RUSTCSRC_DIR``  — Path to the compiled C++ FFI bridge (``rustcsrc``).
+- ``RUSTCSRC_NAME`` — Name of the static library (``rustcsrc``).
+- ``NOVA_HAS_CUDA`` — CUDA backend availability (``0`` or ``1``).
+- ``NOVA_HAS_HIP``  — HIP backend availability (``0`` or ``1``).
+- ``CARGO_TARGET_DIR`` — Cargo output directory.
+
+**Dependencies:**
+
+- ``rustcsrc`` — C++ FFI bridge from ``csrc/CMakeLists.txt``.
+- ``Threads::Threads``, ``dl``, ``m`` — System libraries (linked as
+  INTERFACE dependencies of ``ncore_memory``).
+
+**Subdirectories:**
+
+- ``csrc/`` — Builds the ``rustcsrc`` static library.
+#]=======================================================================]
 
 add_subdirectory(csrc)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(RUSTFLAGS "-C debuginfo=2 -C opt-level=0")
     set(CARGO_PROFILE "")
-    set(RUST_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target/debug")
+    set(RUST_BUILD_SUBDIR "debug")
 else()
     set(RUSTFLAGS "-C target-cpu=native -C opt-level=3 -C codegen-units=1 -C panic=abort")
     set(CARGO_PROFILE "--release")
-    set(RUST_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target/release")
+    set(RUST_BUILD_SUBDIR "release")
 endif()
 
-set(RUST_LIB "${RUST_LIB_DIR}/libncore_memory.a")
+set(CARGO_TARGET_DIR "${CMAKE_BINARY_DIR}/cargo")
+set(RUST_LIB "${CARGO_TARGET_DIR}/${RUST_BUILD_SUBDIR}/libncore_memory.a")
 
-add_custom_target(ncore_memory_cargo
+add_custom_target(memory_cargo
     COMMAND ${CMAKE_COMMAND} -E env
     "RUSTFLAGS=${RUSTFLAGS}"
     "RUSTCSRC_DIR=$<TARGET_FILE_DIR:rustcsrc>"
     "RUSTCSRC_NAME=rustcsrc"
     "NOVA_HAS_CUDA=${NOVA_HAS_CUDA}"
     "NOVA_HAS_HIP=${NOVA_HAS_HIP}"
+    "CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
     cargo build ${CARGO_PROFILE}
     --manifest-path "${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml"
     BYPRODUCTS ${RUST_LIB}
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    COMMENT "Building Rust crate ncore_memory (${CMAKE_BUILD_TYPE})"
+    COMMENT "Building Rust crate ncore_memory"
     DEPENDS rustcsrc
 )
 
@@ -59,7 +80,7 @@ add_library(ncore_memory STATIC IMPORTED GLOBAL)
 set_target_properties(ncore_memory PROPERTIES
     IMPORTED_LOCATION ${RUST_LIB}
 )
-add_dependencies(ncore_memory ncore_memory_cargo)
+add_dependencies(ncore_memory memory_cargo)
 
 target_link_libraries(ncore_memory INTERFACE
     rustcsrc
