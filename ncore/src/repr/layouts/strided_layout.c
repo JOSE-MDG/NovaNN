@@ -19,6 +19,11 @@
 
 /**
  * @brief Write a string to the builder, right-padded to a fixed width.
+ *
+ * @param[in] sb     Output StringBuilder.
+ * @param[in] val    String value to append.
+ * @param[in] len    Length of the string (excl. null).
+ * @param[in] width  Desired minimum width (padding added before val).
  */
 static void pad_and_append(StringBuilder *sb, const char *val, int len,
                            size_t width) {
@@ -30,11 +35,16 @@ static void pad_and_append(StringBuilder *sb, const char *val, int len,
 
 /**
  * @brief Format and append one element accessed via byte offset.
+ *
+ * @param[in] sb       Output StringBuilder.
+ * @param[in] ctx      ReprContext.
+ * @param[in] ten      The tensor.
+ * @param[in] byte_off Byte offset into tensor storage.
  */
 static void append_elem_at(StringBuilder *sb, const ReprContext *ctx,
                            const Tensor *ten, size_t byte_off) {
   char buf[128];
-  void *ptr = (uint8_t *)ten->data.data + byte_off;
+  void *ptr = ten->data.u8 + byte_off;
   int len = format_element(buf, sizeof(buf), ptr, ten, ctx);
   if (ten->ndims > 1) {
     pad_and_append(sb, buf, len, ctx->element_width);
@@ -45,6 +55,12 @@ static void append_elem_at(StringBuilder *sb, const ReprContext *ctx,
 
 /**
  * @brief Recursively render dimensions via TensorIterator.
+ *
+ * @param[in] sb     Output StringBuilder.
+ * @param[in] ctx    ReprContext.
+ * @param[in] dim    Current dimension index (0 = outermost).
+ * @param[in] indent Column position of the opening `[`.
+ * @param[in] it     TensorIterator for byte-offset computation.
  */
 static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
                        int indent, TensorIterator *it) {
@@ -81,6 +97,12 @@ static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
   sb_append_char(sb, ']');
 }
 
+/**
+ * @brief Render a view tensor using strided iteration.
+ *
+ * @param[in] ctx ReprContext (must not be NULL).
+ * @param[in] sb  Output StringBuilder (must not be NULL).
+ */
 void strided_layout_render(const ReprContext *ctx, StringBuilder *sb) {
   TensorIterator it;
   iter_init(&it, ctx->tensor);

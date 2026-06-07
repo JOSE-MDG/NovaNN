@@ -12,21 +12,29 @@
 #include "dense_layout.h"
 #include "repr/formatters/element_fmt.h"
 #include <ncore/dtype.h>
+#include <ncore/headeronly/tensor_utils.h>
 #include <ncore/macros.h>
 #include <string.h>
 
 /**
  * @brief Compute a byte pointer to an element from its coordinates.
+ *
+ * @param[in] ten    The tensor.
+ * @param[in] coords Multi-dimensional coordinate array.
+ * @return Byte pointer to the element in tensor storage.
  */
-static void *elem_ptr(const Tensor *ten, const size_t *coords) {
-  size_t off = ten->offset;
-  for (size_t d = 0; d < ten->ndims; d++)
-    off += coords[d] * ten->strides[d];
-  return (uint8_t *)ten->data.data + off;
+static void *elem_ptr(const Tensor *ten, coords_t coords) {
+  size_t off = compute_linear_byte_offset(coords, ten->ndims, ten->strides);
+  return ten->data.u8 + off;
 }
 
 /**
  * @brief Write a string to the builder, right-padded to a fixed width.
+ *
+ * @param[in] sb     Output StringBuilder.
+ * @param[in] val    String value to append.
+ * @param[in] len    Length of the string (excl. null).
+ * @param[in] width  Desired minimum width (padding added before val).
  */
 static void pad_and_append(StringBuilder *sb, const char *val, int len,
                            size_t width) {
@@ -37,6 +45,11 @@ static void pad_and_append(StringBuilder *sb, const char *val, int len,
 
 /**
  * @brief Format one element and append it (padded for 2D+, raw for 1D).
+ *
+ * @param[in] sb  Output StringBuilder.
+ * @param[in] ctx ReprContext.
+ * @param[in] ten The tensor.
+ * @param[in] ptr Pointer to the element in storage.
  */
 static void append_elem(StringBuilder *sb, const ReprContext *ctx,
                         const Tensor *ten, const void *ptr) {
@@ -52,14 +65,19 @@ static void append_elem(StringBuilder *sb, const ReprContext *ctx,
 /**
  * @brief Recursively render dimensions dim .. ndims-1.
  *
- * @param sb      Output builder.
- * @param ctx     ReprContext.
- * @param dim     Current dimension index (0 = outermost).
- * @param indent  Column position of the opening `[`.
- * @param coords  Coordinate array (updated in place).
+ * Separator conventions:
+ *   - Last dimension:  ", " between elements.
+ *   - Second-to-last:  ",\\n" + indent between 2D slices.
+ *   - Other dims:      ",\\n\\n" + indent between higher-d slices.
+ *
+ * @param[in] sb     Output StringBuilder.
+ * @param[in] ctx    ReprContext.
+ * @param[in] dim    Current dimension index (0 = outermost).
+ * @param[in] indent Column position of the opening `[`.
+ * @param[in] coords Coordinate array (updated in place).
  */
 static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
-                       int indent, size_t *coords) {
+                       int indent, coords_t coords) {
   const Tensor *ten = ctx->tensor;
   sb_append_char(sb, '[');
 
@@ -95,6 +113,12 @@ static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
   sb_append_char(sb, ']');
 }
 
+/**
+ * @brief Render a contiguous, non-summarised tensor.
+ *
+ * @param[in] ctx ReprContext (must not be NULL).
+ * @param[in] sb  Output StringBuilder (must not be NULL).
+ */
 void dense_layout_render(const ReprContext *ctx, StringBuilder *sb) {
   size_t coords[NOVA_MAX_DIMS] = {0};
   render_dim(sb, ctx, 0, 7, coords);
