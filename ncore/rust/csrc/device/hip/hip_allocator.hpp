@@ -1,10 +1,20 @@
 /**
  * @file hip_allocator.hpp
- * @brief Device memory allocator for HIP (ROCm) buffers.
+ * @brief HIP memory allocation types and operations.
  *
- * Provides a thin wrapper around hipMalloc / hipHostMalloc and
- * hipFree / hipHostFree, with alignment support and descriptive
- * error reporting via HipStatus_t.
+ * @details
+ * Declares the @ref HipBuffer_t descriptor, the @ref HipStatus_t
+ * result type, and the three core allocation functions
+ * (@ref hip_reserve, @ref hip_release, @ref hip_resize) that
+ * manage HIP device and pinned-host memory.
+ *
+ * This header is the HIP counterpart of `cuda_allocator.hpp` and
+ * provides an identical API surface.  The dispatch layer in
+ * `ffi.cpp` selects between CUDA and HIP at runtime.
+ *
+ * @see hip_allocator.cpp  Implementation of the allocation functions.
+ * @see hip_io.hpp         HIP data transfer functions.
+ * @see ffi.hpp            Device-agnostic FFI layer that wraps these.
  */
 
 #pragma once
@@ -12,90 +22,139 @@
 #include <cstddef>
 
 /**
- * @brief Descriptor for an allocated HIP buffer.
+ * @struct HipBuffer_t
+ * @brief Descriptor for a HIP-allocated memory region.
  *
- * @var ptr       Pointer to the device (or pinned host) memory.
- * @var bytes     Usable size of the allocation in bytes (after alignment).
- * @var is_pinned true if the buffer lives in pinned (page-locked) host memory.
+ * @details
+ * Tracks the raw pointer, usable size, and allocation type
+ * (device or pinned-host).  The @ref ptr member is the pointer
+ * returned by the HIP runtime; callers never touch the HIP
+ * API directly.
  */
 struct HipBuffer_t {
-  void *ptr = nullptr;
-  std::size_t bytes = 0;
-  bool is_pinned = false;
+  void *ptr = nullptr;    ///< Device or pinned-host pointer.
+  std::size_t bytes = 0;  ///< Usable size in bytes.
+  bool is_pinned = false; ///< Page-locked host memory flag.
 };
 
 /**
- * @brief Result type returned by hip_reserve, hip_resize and hip_release.
+ * @struct HipStatus_t
+ * @brief Result type for HIP allocation and copy operations.
  *
- * @var code  Zero on success, a positive error code on failure
- *            (1 = invalid value, 2 = allocation failure, -1 = unknown).
- * @var msg   Human-readable error description (valid even on success).
+ * @details
+ * Carries a numeric error code and a human-readable message.
+ * A @ref code of `0` indicates success.  The @ref msg member
+ * points to a string literal or a HIP error string; it is
+ * valid for the lifetime of the program.
+ *
+ * Provides an `explicit operator bool()` for convenient
+ * success/failure checking:
+ *
+ * @code{.cpp}
+ * HipStatus_t status = hip_reserve(...);
+ * if (!status) {
+ *     // handle error using status.code and status.msg
+ * }
+ * @endcode
  */
 struct HipStatus_t {
-  int code = 0;
-  const char *msg = "ok";
-
-  /** @brief Explicit conversion to bool for checking success status. */
+  int code = 0;           ///< Zero on success, positive on failure.
+  const char *msg = "ok"; ///< Human-readable error description.
   explicit operator bool() const noexcept { return code == 0; }
 };
 
-/** @brief Shorthand for a successful HipStatus_t. */
+/**
+ * @var HIP_OK
+ * @brief Sentinel value representing a successful HIP operation.
+ */
 inline constexpr HipStatus_t HIP_OK{.code = 0, .msg = "ok"};
 
 /**
- * @brief Allocate a HIP buffer.
+ * @brief Allocate a HIP memory buffer.
  *
- * Wraps hipMalloc (device memory) or hipMallocHost (pinned host memory).
- * The requested size is rounded up to the next multiple of @p align when
- * @p align > 1.
+ * @details
+ * For pinned (page-locked) allocations, uses `hipHostMalloc`.
+ * For device allocations, creates a temporary HIP stream, calls
+ * `hipMallocAsync`, synchronises, and destroys the stream.
  *
- * @param bytes  Minimum number of bytes to allocate.
- * @param align  Alignment requirement (must be a power of two, or 1 for
- *               default alignment).
- * @param pinned If true, allocate page-locked host memory via
- *               hipMallocHost; otherwise allocate device memory via
- *               hipMalloc.
- * @param out    Output buffer descriptor (only valid when the returned
- *               status is HIP_OK).
- * @return HipStatus_t with code 0 on success, or a positive error code
- *         with a descriptive message on failure.
+ * @param[in]  bytes  Requested allocation size in bytes.
+ * @param[in]  align  Required alignment in bytes.  If `> 1`, the
+ *                    allocated size is rounded up to the next
+ *                    multiple of @p align.
+ * @param[in]  pinned If `true`, allocate page-locked host memory
+ *                    via `hipHostMalloc`.
+ * @param[out] out    Receives the allocated buffer descriptor on
+ *                    success.
+ *
+ * @return @ref HIP_OK on success, or an error status with a
+ *         descriptive message.
+ *
+ * @pre  @p bytes must be greater than zero.
+ * @post On success, @p out->ptr points to a valid HIP memory
+ *       region of at least @p bytes (aligned to @p align).
+ *
+ * @see hip_release()  Frees a buffer allocated by this function.
+ * @see hip_resize()   Resizes an existing buffer.
  */
 HipStatus_t hip_reserve(std::size_t bytes, std::size_t align, bool pinned,
                         HipBuffer_t *out);
 
 /**
- * @brief Free a HIP buffer previously allocated with hip_reserve.
+ * @brief Free a HIP memory buffer previously allocated by
+ *        @ref hip_reserve.
  *
- * Wraps hipFreeHost or hipFree depending on the buffer's is_pinned flag.
- * The buffer descriptor is zeroed out on success.
+ * @details
+ * For pinned memory, calls `hipFreeHost`.  For device memory,
+ * creates a temporary stream, calls `hipFreeAsync`, synchronises,
+ * and destroys the stream.  On success, the buffer descriptor
+ * is zeroed.
  *
- * @param buf Pointer to the buffer descriptor to free.  If buf or
- *            buf->ptr is NULL the function returns an error status.
- * @return HipStatus_t with code 0 on success, or a positive error code
- *         with a descriptive message on failure.
+ * @param[in,out] buf  Pointer to the buffer descriptor to free.
+ *                     Must not be null, and @p buf->ptr must be
+ *                     valid.
+ *
+ * @return @ref HIP_OK on success, or an error status.
+ *
+ * @pre  @p buf must point to a valid @ref HipBuffer_t whose
+ *       @ref ptr member was returned by @ref hip_reserve.
+ * @post On success, @p buf is zeroed (ptr = nullptr, bytes = 0,
+ *       is_pinned = false).
+ *
+ * @note Safe to call with a null @p buf or null @p buf->ptr;
+ *       returns a non-zero status without crashing.
+ *
+ * @see hip_reserve()  Allocates the buffer freed here.
  */
 HipStatus_t hip_release(HipBuffer_t *buf);
 
 /**
- * @brief Reallocate a HIP buffer to a new size, preserving content.
+ * @brief Resize an existing HIP memory buffer.
  *
- * Allocates a new buffer of @p new_bytes (rounded up to @p align),
- * copies min(old_bytes, new_bytes) from the old buffer, frees the old
- * buffer, and updates the descriptor.
+ * @details
+ * Allocates a new buffer of @p new_bytes (aligned to @p align),
+ * copies `min(old_size, new_size)` bytes from the old buffer to
+ * the new one, then frees the old buffer.  For pinned memory the
+ * copy uses `std::memcpy`; for device memory it uses
+ * `hipMemcpyAsync` on a temporary stream.
  *
- * For device memory the sequence uses hipMallocAasync,
- * hipMemcpyAsync(DeviceToDevice) and hipFreeAsync — all asynchronous.  For
- * pinned host memory it uses hipHostMalloc, host-side memcpy, and hipHostFree.
+ * @param[in,out] buf       Pointer to the buffer descriptor to
+ *                          resize.  Must not be null.
+ * @param[in]     new_bytes New size in bytes.
+ * @param[in]     align     Required alignment in bytes.
  *
- * On any failure the original buffer descriptor is left unchanged and
- * all newly-allocated resources are cleaned up before returning.
+ * @return @ref HIP_OK on success, or an error status.
  *
- * @param buf       Pointer to the buffer descriptor to reallocate.
- *                  Must have been previously allocated with hip_reserve.
- * @param new_bytes Target size in bytes (before alignment rounding).
- * @param align     Alignment requirement (power of two, or 1 for default).
- * @return HIP_OK on success, or a HipStatus_t with a positive error
- *         code and a descriptive message on failure.
+ * @pre  @p buf must point to a valid @ref HipBuffer_t whose
+ *       @ref ptr member was returned by @ref hip_reserve.
+ * @post On success, @p buf->ptr and @p buf->bytes are updated to
+ *       reflect the new allocation.
+ *
+ * @warning On failure the original buffer may already be freed
+ *          (e.g., if the copy succeeded but the free failed).
+ *          Do not use the old @p buf->ptr after a failed resize.
+ *
+ * @see hip_reserve()  Initial allocation.
+ * @see hip_release()  Explicit deallocation.
  */
 HipStatus_t hip_resize(HipBuffer_t *buf, std::size_t new_bytes,
                        std::size_t align);
