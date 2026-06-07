@@ -1,22 +1,30 @@
 /**
  * @file cuda_allocator.cpp
- * @brief Backend implementation of CUDA device/pinned-host memory allocation.
+ * @brief CUDA memory allocation, release, and resize implementation.
  *
- * Implements cuda_reserve, cuda_resize and cuda_release by wrapping the
- * CUDA Runtime API (cudaMallocAsync / cudaMallocHost / cudaFreeAsync /
- * cudaFreeHost / cudaMemcpyAsync) with alignment rounding, descriptive
- * error reporting, and a mapping from CUDA runtime error codes to
- * application-level status codes.
+ * @details
+ * Implements the three core allocation primitives used by the
+ * device-agnostic FFI layer (`ffi.cpp`).  All device-memory
+ * operations use a temporary CUDA stream for async allocation
+ * and synchronise before returning.
  *
- * Device-memory operations are all issued onto a temporary per-call stream
- * so that they can be awaited before the stream is torn down.  Pinned-host
- * operations are fully synchronous (cudaMallocHost / cudaFreeHost / memcpy)
- * and therefore never require a stream.
+ * The file is conditionally compiled behind `NOVA_HAS_CUDA` and
+ * `__has_include(<cuda_runtime_api.h>)`.  When CUDA headers are
+ * unavailable (e.g., during linting), stub functions that return
+ * an error status are provided.
  *
- * cuda_resize allocates a new buffer of the requested size, copies the
- * minimum of the old and new sizes into it, frees the old buffer, and
- * updates the descriptor — cleaning up all intermediate resources on any
- * failure so that the original descriptor is always left untouched.
+ * ## Error Mapping
+ *
+ * Each CUDA error code is mapped to an integer:
+ * - `0` — success
+ * - `1` — invalid value
+ * - `2` — memory allocation failure (reserve only)
+ * - `3` — not supported / invalid resource handle
+ * - `-1` — unrecognised error
+ *
+ * @see cuda_allocator.hpp  Type declarations and function signatures.
+ * @see cuda_io.cpp         CUDA data transfer implementation.
+ * @see ffi.cpp             Dispatch layer that calls into this file.
  */
 
 #ifdef NOVA_HAS_CUDA
@@ -24,15 +32,15 @@
 #include "cuda_allocator.hpp"
 #include <cstring>
 #include <cuda_runtime_api.h>
+
 /**
- * @brief Map a CUDA runtime error to an application-level status code.
+ * @brief Map a CUDA error code to an integer error code.
  *
- * @param err CUDA error value returned by the runtime API.
- * @return 0  (cudaSuccess),
- *         1  (cudaErrorInvalidValue),
- *         2  (cudaErrorMemoryAllocation),
- *         3  (cudaErrorNotSupported),
- *        -1  (any other error).
+ * @param[in] err  The CUDA error to map.
+ *
+ * @return `0` for success, `1` for invalid value, `2` for memory
+ *         allocation failure, `3` for not supported, `-1` for
+ *         unrecognised errors.
  */
 static int map_cuda_error(cudaError_t err) {
   switch (err) {
@@ -50,13 +58,12 @@ static int map_cuda_error(cudaError_t err) {
 }
 
 /**
- * @brief Map a CUDA stream-creation error to an application-level code.
+ * @brief Map a CUDA stream operation error to an integer code.
  *
- * @param err CUDA error value from cudaStreamCreate.
- * @return 0  (cudaSuccess),
- *         1  (cudaErrorInvalidValue),
- *         2  (cudaErrorExternalDevice),
- *        -1  (any other error).
+ * @param[in] err  The CUDA error from a stream operation.
+ *
+ * @return `0` for success, `1` for invalid value, `2` for
+ *         external device error, `-1` for unrecognised errors.
  */
 static int map_cuda_stream_error(cudaError_t err) {
   switch (err) {
@@ -72,14 +79,13 @@ static int map_cuda_stream_error(cudaError_t err) {
 }
 
 /**
- * @brief Map a CUDA stream-destroy error to an application-level code.
+ * @brief Map a CUDA stream destruction error to an integer code.
  *
- * @param err CUDA error value from cudaStreamDestroy.
- * @return 0  (cudaSuccess),
- *         1  (cudaErrorInvalidValue),
- *         3  (cudaErrorInvalidResourceHandle),
- *         4  (cudaErrorExternalDevice),
- *        -1  (any other error).
+ * @param[in] err  The CUDA error from stream destruction.
+ *
+ * @return `0` for success, `1` for invalid value, `3` for
+ *         invalid resource handle, `4` for external device
+ *         error, `-1` for unrecognised errors.
  */
 static int map_cuda_destroy_error(cudaError_t err) {
   switch (err) {
@@ -97,12 +103,12 @@ static int map_cuda_destroy_error(cudaError_t err) {
 }
 
 /**
- * @brief Map a CUDA stream-synchronise error to an application-level code.
+ * @brief Map a CUDA stream synchronisation error to an integer code.
  *
- * @param err CUDA error value from cudaStreamSynchronize.
- * @return 0  (cudaSuccess),
- *         1  (cudaErrorInvalidResourceHandle),
- *        -1  (any other error).
+ * @param[in] err  The CUDA error from stream synchronisation.
+ *
+ * @return `0` for success, `1` for invalid resource handle,
+ *         `-1` for unrecognised errors.
  */
 static int map_cuda_sync_error(cudaError_t err) {
   switch (err) {
@@ -116,11 +122,13 @@ static int map_cuda_sync_error(cudaError_t err) {
 }
 
 /**
- * @brief Round @p bytes up to the next multiple of @p align.
+ * @brief Round @p bytes up to the nearest multiple of @p align.
  *
- * @param bytes Size to round.
- * @param align Alignment boundary (must be a power of two).
- * @return The smallest multiple of @p align that is >= @p bytes.
+ * @param[in] bytes  The value to align.
+ * @param[in] align  The alignment (must be a power of two).
+ *
+ * @return The smallest value >= @p bytes that is a multiple of
+ *         @p align.
  */
 static constexpr std::size_t align_up(std::size_t bytes,
                                       std::size_t align) noexcept {
@@ -128,11 +136,12 @@ static constexpr std::size_t align_up(std::size_t bytes,
 }
 
 /**
- * @brief Create a CUDA stream, populating @p status on failure.
+ * @brief Create a CUDA stream.
  *
- * @param[out] stream  Receives the new stream handle on success.
- * @param[out] status  Populated with a non-zero code and message on failure.
- * @return true on success, false on failure.
+ * @param[out] stream  Receives the new stream handle.
+ * @param[out] status  Receives the error status on failure.
+ *
+ * @return `true` on success, `false` on failure.
  */
 static bool stream_create(cudaStream_t *stream, CudaStatus_t *status) {
   const cudaError_t err = cudaStreamCreate(stream);
@@ -145,11 +154,12 @@ static bool stream_create(cudaStream_t *stream, CudaStatus_t *status) {
 }
 
 /**
- * @brief Synchronise @p stream, populating @p status on failure.
+ * @brief Block until all work on @p stream has completed.
  *
- * @param stream  Stream to synchronise.
- * @param[out] status  Populated with a non-zero code and message on failure.
- * @return true on success, false on failure.
+ * @param[in]  stream  The stream to synchronise.
+ * @param[out] status  Receives the error status on failure.
+ *
+ * @return `true` on success, `false` on failure.
  */
 static bool stream_sync(cudaStream_t stream, CudaStatus_t *status) {
   const cudaError_t err = cudaStreamSynchronize(stream);
@@ -162,11 +172,12 @@ static bool stream_sync(cudaStream_t stream, CudaStatus_t *status) {
 }
 
 /**
- * @brief Destroy @p stream, populating @p status on failure.
+ * @brief Destroy a CUDA stream.
  *
- * @param stream       Stream to destroy.
- * @param[out] status  Populated with a non-zero code and message on failure.
- * @return true on success, false on failure.
+ * @param[in]  stream  The stream to destroy.
+ * @param[out] status  Receives the error status on failure.
+ *
+ * @return `true` on success, `false` on failure.
  */
 static bool stream_destroy(cudaStream_t stream, CudaStatus_t *status) {
   const cudaError_t err = cudaStreamDestroy(stream);
@@ -179,19 +190,23 @@ static bool stream_destroy(cudaStream_t stream, CudaStatus_t *status) {
 }
 
 /**
- * @brief Allocate a CUDA buffer with optional alignment.
+ * @brief Allocate a CUDA memory buffer.
  *
- * Uses cudaMallocAsync on a temporary stream for device memory, or
- * cudaMallocHost for pinned host memory.  The stream is created, used,
- * synchronised and destroyed within the call.
+ * @details
+ * For pinned memory, calls `cudaMallocHost`.  For device memory,
+ * creates a temporary stream, calls `cudaMallocAsync`,
+ * synchronises, and destroys the stream.
  *
- * @param bytes  Minimum number of bytes to allocate.
- * @param align  Alignment requirement (power of two, or 1 for default).
- * @param pinned If true, allocate page-locked host memory; otherwise
- *               allocate device memory.
- * @param out    Output buffer descriptor (valid only when code == 0).
- * @return CUDA_OK on success, or a CudaStatus_t with a positive error
- *         code and a descriptive message on failure.
+ * @param[in]  bytes  Requested size in bytes.
+ * @param[in]  align  Alignment in bytes.  If `> 1`, the allocation
+ *                    is rounded up to the next multiple.
+ * @param[in]  pinned If `true`, allocate page-locked host memory.
+ * @param[out] out    Receives the buffer descriptor on success.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
+ *
+ * @pre  @p bytes must be greater than zero.
+ * @post On success, @p out->ptr points to valid CUDA memory.
  */
 CudaStatus_t cuda_reserve(std::size_t bytes, std::size_t align, bool pinned,
                           CudaBuffer_t *out) {
@@ -236,17 +251,18 @@ CudaStatus_t cuda_reserve(std::size_t bytes, std::size_t align, bool pinned,
 }
 
 /**
- * @brief Free a CUDA buffer previously allocated with cuda_reserve().
+ * @brief Free a CUDA memory buffer.
  *
- * Uses cudaFreeAsync on a temporary stream for device memory, or
- * cudaFreeHost for pinned host memory.  On success the descriptor is
- * zeroed so that a subsequent release is a safe no-op.
+ * @details
+ * For pinned memory, calls `cudaFreeHost`.  For device memory,
+ * creates a temporary stream, calls `cudaFreeAsync`, synchronises,
+ * and destroys the stream.  On success, the buffer is zeroed.
  *
- * @param buf Pointer to the buffer descriptor to free.  If @p buf or
- *            @p buf->ptr is NULL the function returns an error status
- *            without calling any CUDA API.
- * @return CUDA_OK on success, or a CudaStatus_t with a positive error
- *         code and a descriptive message on failure.
+ * @param[in,out] buf  Buffer descriptor to free.  Must not be null.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
+ *
+ * @post On success, @p buf is zeroed.
  */
 CudaStatus_t cuda_release(CudaBuffer_t *buf) {
   if (buf == nullptr || buf->ptr == nullptr) {
@@ -294,26 +310,23 @@ CudaStatus_t cuda_release(CudaBuffer_t *buf) {
 }
 
 /**
- * @brief Reallocate a CUDA buffer to a new size, preserving content.
+ * @brief Resize a CUDA memory buffer.
  *
- * Allocates a new buffer of @p new_bytes (rounded up to @p align),
- * copies min(old_bytes, new_bytes) from the old buffer, frees the old
- * buffer, and updates the descriptor.
+ * @details
+ * Allocates a new buffer, copies `min(old, new)` bytes, then frees
+ * the old buffer.  For pinned memory the copy uses
+ * `std::memcpy`; for device memory it uses `cudaMemcpyAsync` on a
+ * temporary stream.
  *
- * For device memory all three operations (alloc, copy, free) are issued
- * onto a single temporary stream, which is then synchronised and destroyed.
- * For pinned host memory the allocation and copy use synchronous host-side
- * operations (cudaMallocHost / memcpy / cudaFreeHost); no stream is needed.
+ * @param[in,out] buf       Buffer descriptor to resize.
+ * @param[in]     new_bytes New size in bytes.
+ * @param[in]     align     Alignment in bytes.
  *
- * On any failure the original buffer descriptor is left unchanged and
- * all newly-allocated resources are cleaned up before returning.
+ * @return @ref CUDA_OK on success, or an error status.
  *
- * @param buf       Pointer to the buffer descriptor to reallocate.
- *                  Must have been previously allocated with cuda_reserve.
- * @param new_bytes Target size in bytes (before alignment rounding).
- * @param align     Alignment requirement (power of two, or 1 for default).
- * @return CUDA_OK on success, or a CudaStatus_t with a positive error
- *         code and a descriptive message on failure.
+ * @post On success, @p buf->ptr and @p buf->bytes are updated.
+ *
+ * @warning On failure the original buffer may be freed.
  */
 CudaStatus_t cuda_resize(CudaBuffer_t *buf, std::size_t new_bytes,
                          std::size_t align) {
@@ -398,27 +411,21 @@ CudaStatus_t cuda_resize(CudaBuffer_t *buf, std::size_t new_bytes,
 
 #else // !__has_include(<cuda_runtime_api.h>)
 
-/**
- * @brief Fallback allocation entry point when CUDA headers are unavailable.
- */
+/** @brief Stub: CUDA runtime headers not available. */
 CudaStatus_t cuda_reserve(std::size_t, std::size_t, bool, CudaBuffer_t *) {
   return CudaStatus_t{.code = -1,
                       .msg = "CUDA runtime headers not available at"
                              " build/lint time"};
 }
 
-/**
- * @brief Fallback release entry point when CUDA headers are unavailable.
- */
+/** @brief Stub: CUDA runtime headers not available. */
 CudaStatus_t cuda_release(CudaBuffer_t *) {
   return CudaStatus_t{.code = -1,
                       .msg = "CUDA runtime headers not available at"
                              " build/lint time"};
 }
 
-/**
- * @brief Fallback realloc entry point when CUDA headers are unavailable.
- */
+/** @brief Stub: CUDA runtime headers not available. */
 CudaStatus_t cuda_resize(CudaBuffer_t *, std::size_t, std::size_t) {
   return CudaStatus_t{.code = -1,
                       .msg = "CUDA runtime headers not available at"
