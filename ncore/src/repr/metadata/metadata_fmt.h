@@ -26,7 +26,7 @@
  * The suffix is appended after the data-block closing `)` has already
  * been placed by the layout code.
  *
- * @param ctx ReprContext (mode, tensor pointer, etc.).
- * @param sb  Output builder.
+ * @param[in] ctx ReprContext (mode, tensor pointer, etc.).
+ * @param[in] sb  Output builder.
  */
 void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb);
