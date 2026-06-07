@@ -1,10 +1,21 @@
 /**
  * @file admin.hpp
- * @brief Runtime device-backend detection and enumeration.
+ * @brief GPU backend identification for the device-agnostic FFI layer.
  *
- * Defines the DeviceKind_t enum shared by all backend-specific allocator
- * modules and exposes a C-FFI function to query the active GPU runtime
- * (CUDA vs. HIP) at run time.
+ * @details
+ * Declares the @ref DeviceKind_t enumeration and the runtime probe
+ * function @ref get_device_backend().  The rest of the csrc module
+ * uses these to dispatch memory and copy operations to the correct
+ * GPU runtime (CUDA or HIP).
+ *
+ * The detected backend is determined once at process start by
+ * probing CUDA and HIP runtime availability via
+ * @ref is_cuda_available() and @ref is_hip_available() from
+ * `<ncore/device.h>`.
+ *
+ * @see admin.cpp       Implementation of the runtime probe.
+ * @see ffi.hpp         Top-level FFI dispatch that consumes this enum.
+ * @see ncore/device.h  Backend availability query functions.
  */
 
 #pragma once
@@ -12,25 +23,40 @@
 #include <cstdint>
 
 /**
- * @brief Identifies the active GPU compute backend.
+ * @enum DeviceKind_t
+ * @brief Identifies which GPU runtime (if any) is available on the
+ *        current system.
  *
- * @var DeviceCUDA NVIDIA CUDA runtime.
- * @var DeviceHIP  AMD ROCm HIP runtime.
- * @var DeviceNull No supported GPU runtime detected.
+ * @details
+ * Used throughout the csrc module to route memory allocations and
+ * data transfers to the correct backend.  The value is determined
+ * at runtime by @ref get_device_backend().
+ *
+ * @see get_device_backend()  Returns the active backend.
  */
 enum class DeviceKind_t : std::int8_t {
-  DeviceCUDA = 0,
-  DeviceHIP = 1,
-  DeviceNull = 3
+  DeviceCUDA = 0, ///< NVIDIA CUDA runtime detected.
+  DeviceHIP = 1,  ///< AMD ROCm HIP runtime detected.
+  DeviceNull = 2  ///< No supported GPU runtime detected.
 };
 
 extern "C" {
 
 /**
- * @brief Query the active device backend.
+ * @brief Query the system to determine which GPU runtime is
+ *        available.
  *
- * @return DeviceKind_t value indicating the runtime that was detected
- *         during library initialisation.
+ * @details
+ * Probes CUDA and HIP runtime availability in order.  The first
+ * runtime found wins:
+ * 1. CUDA — returns @ref DeviceKind_t::DeviceCUDA.
+ * 2. HIP  — returns @ref DeviceKind_t::DeviceHIP.
+ * 3. Neither — returns @ref DeviceKind_t::DeviceNull.
+ *
+ * @return The detected GPU backend.
+ *
+ * @see is_cuda_available()  CUDA runtime probe.
+ * @see is_hip_available()   HIP runtime probe.
  */
 DeviceKind_t get_device_backend(void);
 }

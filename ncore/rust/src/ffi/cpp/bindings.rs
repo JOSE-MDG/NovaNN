@@ -16,7 +16,7 @@ use std::ffi::c_void;
 pub enum DeviceKind {
     CUDA = 0,
     HIP = 1,
-    Null = 3,
+    Null = 2,
 }
 
 /// Device-agnostic memory copy direction.
