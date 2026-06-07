@@ -3,7 +3,7 @@
  * @brief Implementation of the standard-malloc string builder.
  *
  * @details
- * Uses malloc/realloc for all internal buffer management — never the
+ * Uses malloc/realloc for all internal buffer management -- never the
  * Rust FFI allocator.  The buffer doubles in size whenever appending
  * would exceed capacity.
  *
@@ -17,6 +17,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Initialise a new StringBuilder.
+ *
+ * @param[out] sb          Uninitialised struct.
+ * @param[in]  initial_cap Suggested: 256.
+ */
 void sb_init(StringBuilder *sb, size_t initial_cap) {
   sb->buf = (char *)malloc(initial_cap);
   if (sb->buf) {
@@ -31,6 +37,9 @@ void sb_init(StringBuilder *sb, size_t initial_cap) {
 
 /**
  * @brief Grow the buffer so that at least `needed` bytes are available.
+ *
+ * @param[in] sb     Output StringBuilder.
+ * @param[in] needed Minimum required capacity.
  */
 static void sb_grow(StringBuilder *sb, size_t needed) {
   if (sb->cap == 0) {
@@ -53,6 +62,12 @@ static void sb_grow(StringBuilder *sb, size_t needed) {
   }
 }
 
+/**
+ * @brief Append a null-terminated string.
+ *
+ * @param[in] sb  Output StringBuilder.
+ * @param[in] str Null-terminated string to append (may be NULL).
+ */
 void sb_append(StringBuilder *sb, const char *str) {
   if (!str) {
     return;
@@ -67,6 +82,15 @@ void sb_append(StringBuilder *sb, const char *str) {
   }
 }
 
+/**
+ * @brief Append a printf-formatted string.
+ *
+ * Uses a two-phase approach: first vsnprintf with NULL to measure length,
+ * then vsnprintf into the buffer after ensuring sufficient capacity.
+ *
+ * @param[in] sb  Output StringBuilder.
+ * @param[in] fmt printf format string.
+ */
 void sb_appendf(StringBuilder *sb, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
@@ -87,6 +111,12 @@ void sb_appendf(StringBuilder *sb, const char *fmt, ...) {
   }
 }
 
+/**
+ * @brief Append a single character.
+ *
+ * @param[in] sb Output StringBuilder.
+ * @param[in] c  Character to append.
+ */
 void sb_append_char(StringBuilder *sb, char c) {
   if (sb->len + 2 > sb->cap) {
     sb_grow(sb, sb->len + 2);
@@ -97,6 +127,13 @@ void sb_append_char(StringBuilder *sb, char c) {
   }
 }
 
+/**
+ * @brief Append a character repeated N times.
+ *
+ * @param[in] sb Output StringBuilder.
+ * @param[in] c  Character to repeat.
+ * @param[in] n  Number of repetitions.
+ */
 void sb_append_repeated(StringBuilder *sb, char c, size_t n) {
   if (n == 0) {
     return;
@@ -111,6 +148,12 @@ void sb_append_repeated(StringBuilder *sb, char c, size_t n) {
   }
 }
 
+/**
+ * @brief Transfer buffer ownership to the caller.
+ *
+ * @param[in] sb Output StringBuilder.
+ * @return Heap-allocated null-terminated string.
+ */
 char *sb_build(StringBuilder *sb) {
   char *result = sb->buf;
   sb->buf = NULL;
@@ -119,6 +162,11 @@ char *sb_build(StringBuilder *sb) {
   return result;
 }
 
+/**
+ * @brief Free the internal buffer without transferring ownership.
+ *
+ * @param[in] sb Output StringBuilder.
+ */
 void sb_free(StringBuilder *sb) {
   free(sb->buf);
   sb->buf = NULL;

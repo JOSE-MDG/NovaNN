@@ -11,13 +11,10 @@
  * memory management internally and write directly to stdout.
  *
  * ## Typical usage
- * @code
+ * @code{.cpp}
  * Tensor t = create_tensor(...);
- * char *s = tensor_repr(&t);
- * if (s) {
- *   printf("%s\n", s);
- *   free(s);
- * }
+ * tensor_print(&t);
+ *
  * collect(&t);
  * @endcode
  *
@@ -40,7 +37,7 @@ extern "C" {
  * Shows data values.  A dtype suffix is appended only when the dtype
  * is not the default (Float32).
  *
- * @param ten Tensor to render.
+ * @param[in] ten Tensor to render.
  * @return Heap-allocated string (caller must free()), or NULL on
  *         allocation failure.
  */
@@ -52,7 +49,7 @@ char *tensor_repr(const Tensor *ten);
  * Shows data values followed by dtype, shape, device, and gradient
  * information (requires_grad or grad_fn).
  *
- * @param ten Tensor to render.
+ * @param[in] ten Tensor to render.
  * @return Heap-allocated string (caller must free()), or NULL on
  *         allocation failure.
  */
@@ -61,9 +58,9 @@ char *tensor_repr_debug(const Tensor *ten);
 /**
  * @brief Produce a string representation with full control.
  *
- * @param ten  Tensor to render.
- * @param opts Pointer to a ReprOptions struct.  If NULL, defaults are
- *             used (equivalent to tensor_repr()).
+ * @param[in]  ten  Tensor to render.
+ * @param[in]  opts Pointer to a ReprOptions struct.  If NULL, defaults are
+ *                  used (equivalent to tensor_repr()).
  * @return Heap-allocated string (caller must free()), or NULL on
  *         allocation failure.
  */
@@ -75,7 +72,7 @@ char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts);
  * Internally calls tensor_repr(), prints the result, and frees the
  * memory.  Safe to call on any valid tensor.
  *
- * @param ten Tensor to print.
+ * @param[in] ten Tensor to print.
  */
 void tensor_print(const Tensor *ten);
 
@@ -85,7 +82,7 @@ void tensor_print(const Tensor *ten);
  * Internally calls tensor_repr_debug(), prints the result, and frees
  * the memory.
  *
- * @param ten Tensor to print.
+ * @param[in] ten Tensor to print.
  */
 void tensor_print_debug(const Tensor *ten);
 

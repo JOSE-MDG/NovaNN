@@ -12,6 +12,16 @@
 #include <math.h>
 #include <stdio.h>
 
+/**
+ * @brief Format a float value into a buffer.
+ *
+ * @param[out] buf       Output buffer.
+ * @param[in]  buf_size  Buffer size.
+ * @param[in]  val       The float value (double precision).
+ * @param[in]  sci       If true, use %e notation; otherwise %f.
+ * @param[in]  precision Decimal places (passed to printf).
+ * @return Number of chars written (excl. null), or negative on error.
+ */
 int float_format_value(char *buf, size_t buf_size, double val, bool sci,
                        int precision) {
   if (isnan(val)) {

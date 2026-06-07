@@ -1,27 +1,38 @@
 /**
  * @file hip_allocator.cpp
- * @brief Backend implementation of HIP device/pinned-host memory allocation.
+ * @brief HIP memory allocation, release, and resize implementation.
  *
- * Implements hip_reserve, hip_resize and hip_release by wrapping the
- * HIP Runtime API (hipMalloc / hipHostMalloc / hipFree / hipHostFree /
- * hipMemcpy) with alignment rounding, descriptive error reporting, and a
- * mapping from HIP runtime error codes to application-level status codes.
+ * @details
+ * Implements the three core allocation primitives used by the
+ * device-agnostic FFI layer (`ffi.cpp`).  All device-memory
+ * operations use a temporary HIP stream for async allocation
+ * and synchronise before returning.
  *
- * Pinned-host operations are fully synchronous (hipHostMalloc / hipHostFree /
- * memcpy).  Device operations use the synchronous hipMalloc / hipFree /
- * hipMemcpy calls, which are themselves blocking and do not require an
- * explicit stream.
+ * The file is conditionally compiled behind `NOVA_HAS_HIP` and
+ * `__has_include(<hip/hip_runtime_api.h>)`.  When HIP headers are
+ * unavailable (e.g., during linting), stub functions that return
+ * an error status are provided.
  *
- * hip_resize allocates a new buffer of the requested size, copies the
- * minimum of the old and new sizes into it, frees the old buffer, and
- * updates the descriptor — cleaning up all intermediate resources on any
- * failure so that the original descriptor is always left untouched.
+ * A `__HIP_PLATFORM_AMD__` macro is defined when neither AMD nor
+ * NVIDIA platform macros are set, ensuring clangd and clang-tidy
+ * can parse the HIP headers correctly.
+ *
+ * ## Error Mapping
+ *
+ * Each HIP error code is mapped to an integer:
+ * - `0` — success
+ * - `1` — invalid value
+ * - `2` — not supported
+ * - `3` — out of memory / invalid handle
+ * - `-1` — unrecognised error
+ *
+ * @see hip_allocator.hpp  Type declarations and function signatures.
+ * @see hip_io.cpp         HIP data transfer implementation.
+ * @see ffi.cpp            Dispatch layer that calls into this file.
  */
 
 #ifdef NOVA_HAS_HIP
 #if __has_include(<hip/hip_runtime_api.h>)
-// clangd/clang-tidy runs may not define a HIP platform macro, but the HIP
-// headers require exactly one platform to be set.
 #if !defined(__HIP_PLATFORM_AMD__) && !defined(__HIP_PLATFORM_NVIDIA__)
 #define __HIP_PLATFORM_AMD__ 1
 #endif
@@ -29,11 +40,6 @@
 #include <cstring>
 #include <hip/hip_runtime_api.h>
 
-/**
- * @brief Macro to check the status of asynchronous memory release using
- * hipFreeAsync()
- *
- */
 #define FREE_ASYNC_CHECK(ptr, stream, status)                                  \
   do {                                                                         \
     const hipError_t free_async_err = hipFreeAsync((ptr), stream);             \
@@ -46,14 +52,12 @@
   } while (0);
 
 /**
- * @brief Map a HIP runtime error to an application-level status code.
+ * @brief Map a HIP error code to an integer error code.
  *
- * @param err HIP error value returned by the runtime API.
- * @return 0  (hipSuccess),
- *         1  (hipErrorInvalidValue),
- *         2  (hipErrorNotSupported),
- *         3  (hipErrorOutOfMemory),
- *        -1  (any other error).
+ * @param[in] err  The HIP error to map.
+ *
+ * @return `0` for success, `1` for invalid value, `2` for not
+ *         supported, `3` for out of memory, `-1` otherwise.
  */
 static int map_hip_error(hipError_t err) {
   switch (err) {
@@ -71,12 +75,12 @@ static int map_hip_error(hipError_t err) {
 }
 
 /**
- * @brief Map a HIP stream-creation error to an application-level code.
+ * @brief Map a HIP stream operation error to an integer code.
  *
- * @param err CUDA error value from hipStreamCreate.
- * @return 0  (hipSuccess),
- *         1  (hipErrorInvalidValue)
- *        -1  (any other error).
+ * @param[in] err  The HIP error from a stream operation.
+ *
+ * @return `0` for success, `1` for invalid value, `-1`
+ *         otherwise.
  */
 static int map_hip_stream_error(hipError_t err) {
   switch (err) {
@@ -90,12 +94,12 @@ static int map_hip_stream_error(hipError_t err) {
 }
 
 /**
- * @brief Map a HIP stream-destroy error to an application-level code.
+ * @brief Map a HIP stream destruction error to an integer code.
  *
- * @param err hip error value from hipStreamDestroy.
- * @return 0  (hipSuccess),
- *         1  (hipErrorInvalidHandle),
- *        -1  (any other error).
+ * @param[in] err  The HIP error from stream destruction.
+ *
+ * @return `0` for success, `1` for invalid handle, `-1`
+ *         otherwise.
  */
 static int map_hip_destroy_error(hipError_t err) {
   switch (err) {
@@ -109,12 +113,12 @@ static int map_hip_destroy_error(hipError_t err) {
 }
 
 /**
- * @brief Map a HIP stream-synchronise error to an application-level code.
+ * @brief Map a HIP stream synchronisation error to an integer code.
  *
- * @param err hip error value from hipStreamSynchronize.
- * @return 0  (hipSuccess),
- *         1  (hipErrorInvalidHandle),
- *        -1  (any other error).
+ * @param[in] err  The HIP error from stream synchronisation.
+ *
+ * @return `0` for success, `1` for invalid handle, `-1`
+ *         otherwise.
  */
 static int map_hip_sync_error(hipError_t err) {
   switch (err) {
@@ -128,11 +132,13 @@ static int map_hip_sync_error(hipError_t err) {
 }
 
 /**
- * @brief Round @p bytes up to the next multiple of @p align.
+ * @brief Round @p bytes up to the nearest multiple of @p align.
  *
- * @param bytes Size to round.
- * @param align Alignment boundary (must be a power of two).
- * @return The smallest multiple of @p align that is >= @p bytes.
+ * @param[in] bytes  The value to align.
+ * @param[in] align  The alignment (must be a power of two).
+ *
+ * @return The smallest value >= @p bytes that is a multiple of
+ *         @p align.
  */
 static constexpr std::size_t align_up(std::size_t bytes,
                                       std::size_t align) noexcept {
@@ -140,11 +146,12 @@ static constexpr std::size_t align_up(std::size_t bytes,
 }
 
 /**
- * @brief Create a HIP stream, populating @p status on failure.
+ * @brief Create a HIP stream.
  *
- * @param[out] stream  Receives the new stream handle on success.
- * @param[out] status  Populated with a non-zero code and message on failure.
- * @return true on success, false on failure.
+ * @param[out] stream  Receives the new stream handle.
+ * @param[out] status  Receives the error status on failure.
+ *
+ * @return `true` on success, `false` on failure.
  */
 static bool stream_create(hipStream_t *stream, HipStatus_t *status) {
   const hipError_t err = hipStreamCreate(stream);
@@ -157,11 +164,12 @@ static bool stream_create(hipStream_t *stream, HipStatus_t *status) {
 }
 
 /**
- * @brief Synchronise @p stream, populating @p status on failure.
+ * @brief Block until all work on @p stream has completed.
  *
- * @param stream  Stream to synchronise.
- * @param[out] status  Populated with a non-zero code and message on failure.
- * @return true on success, false on failure.
+ * @param[in]  stream  The stream to synchronise.
+ * @param[out] status  Receives the error status on failure.
+ *
+ * @return `true` on success, `false` on failure.
  */
 static bool stream_sync(hipStream_t stream, HipStatus_t *status) {
   const hipError_t err = hipStreamSynchronize(stream);
@@ -174,11 +182,12 @@ static bool stream_sync(hipStream_t stream, HipStatus_t *status) {
 }
 
 /**
- * @brief Destroy @p stream, populating @p status on failure.
+ * @brief Destroy a HIP stream.
  *
- * @param stream       Stream to destroy.
- * @param[out] status  Populated with a non-zero code and message on failure.
- * @return true on success, false on failure.
+ * @param[in]  stream  The stream to destroy.
+ * @param[out] status  Receives the error status on failure.
+ *
+ * @return `true` on success, `false` on failure.
  */
 static bool stream_destroy(hipStream_t stream, HipStatus_t *status) {
   const hipError_t err = hipStreamDestroy(stream);
@@ -191,19 +200,22 @@ static bool stream_destroy(hipStream_t stream, HipStatus_t *status) {
 }
 
 /**
- * @brief Allocate a HIP buffer with optional alignment.
+ * @brief Allocate a HIP memory buffer.
  *
- * Uses hipMalloc for device memory or hipHostMalloc for pinned host memory.
- * If @p align > 1 the allocation size is rounded up so that the returned
- * buffer satisfies the alignment constraint.
+ * @details
+ * For pinned memory, calls `hipHostMalloc`.  For device memory,
+ * creates a temporary stream, calls `hipMallocAsync`,
+ * synchronises, and destroys the stream.
  *
- * @param bytes  Minimum number of bytes to allocate.
- * @param align  Alignment requirement (power of two, or 1 for default).
- * @param pinned If true, allocate page-locked host memory via hipHostMalloc;
- *               otherwise allocate device memory via hipMalloc.
- * @param out    Output buffer descriptor (valid only when code == 0).
- * @return HIP_OK on success, or a HipStatus_t with a positive error
- *         code and a descriptive message on failure.
+ * @param[in]  bytes  Requested size in bytes.
+ * @param[in]  align  Alignment in bytes.
+ * @param[in]  pinned If `true`, allocate page-locked host memory.
+ * @param[out] out    Receives the buffer descriptor on success.
+ *
+ * @return @ref HIP_OK on success, or an error status.
+ *
+ * @pre  @p bytes must be greater than zero.
+ * @post On success, @p out->ptr points to valid HIP memory.
  */
 HipStatus_t hip_reserve(std::size_t bytes, std::size_t align, bool pinned,
                         HipBuffer_t *out) {
@@ -260,17 +272,18 @@ HipStatus_t hip_reserve(std::size_t bytes, std::size_t align, bool pinned,
 }
 
 /**
- * @brief Free a HIP buffer previously allocated with hip_reserve().
+ * @brief Free a HIP memory buffer.
  *
- * Uses hipFree for device memory or hipHostFree for pinned host memory.
- * On success the descriptor is zeroed so that a subsequent release is a
- * safe no-op.
+ * @details
+ * For pinned memory, calls `hipFreeHost`.  For device memory,
+ * creates a temporary stream, calls `hipFreeAsync`, synchronises,
+ * and destroys the stream.  On success, the buffer is zeroed.
  *
- * @param buf Pointer to the buffer descriptor to free.  If @p buf or
- *            @p buf->ptr is NULL the function returns an error status
- *            without calling any HIP API.
- * @return HIP_OK on success, or a HipStatus_t with a positive error
- *         code and a descriptive message on failure.
+ * @param[in,out] buf  Buffer descriptor to free.
+ *
+ * @return @ref HIP_OK on success, or an error status.
+ *
+ * @post On success, @p buf is zeroed.
  */
 HipStatus_t hip_release(HipBuffer_t *buf) {
   if (buf == nullptr || buf->ptr == nullptr) {
@@ -328,25 +341,23 @@ HipStatus_t hip_release(HipBuffer_t *buf) {
 }
 
 /**
- * @brief Reallocate a HIP buffer to a new size, preserving content.
+ * @brief Resize a HIP memory buffer.
  *
- * Allocates a new buffer of @p new_bytes (rounded up to @p align),
- * copies min(old_bytes, new_bytes) from the old buffer, frees the old
- * buffer, and updates the descriptor.
+ * @details
+ * Allocates a new buffer, copies `min(old, new)` bytes, then frees
+ * the old buffer.  For pinned memory the copy uses
+ * `std::memcpy`; for device memory it uses `hipMemcpyAsync` on a
+ * temporary stream.
  *
- * For device memory the sequence uses hipMallocAasync,
- * hipMemcpyAsync(DeviceToDevice) and hipFreeAsync — all asynchronous.  For
- * pinned host memory it uses hipHostMalloc, host-side memcpy, and hipHostFree.
+ * @param[in,out] buf       Buffer descriptor to resize.
+ * @param[in]     new_bytes New size in bytes.
+ * @param[in]     align     Alignment in bytes.
  *
- * On any failure the original buffer descriptor is left unchanged and
- * all newly-allocated resources are cleaned up before returning.
+ * @return @ref HIP_OK on success, or an error status.
  *
- * @param buf       Pointer to the buffer descriptor to reallocate.
- *                  Must have been previously allocated with hip_reserve.
- * @param new_bytes Target size in bytes (before alignment rounding).
- * @param align     Alignment requirement (power of two, or 1 for default).
- * @return HIP_OK on success, or a HipStatus_t with a positive error
- *         code and a descriptive message on failure.
+ * @post On success, @p buf->ptr and @p buf->bytes are updated.
+ *
+ * @warning On failure the original buffer may be freed.
  */
 HipStatus_t hip_resize(HipBuffer_t *buf, std::size_t new_bytes,
                        std::size_t align) {
@@ -456,27 +467,21 @@ HipStatus_t hip_resize(HipBuffer_t *buf, std::size_t new_bytes,
 
 #else // !__has_include(<hip/hip_runtime_api.h>)
 
-/**
- * @brief Fallback allocation entry point when HIP headers are unavailable.
- */
+/** @brief Stub: HIP runtime headers not available. */
 HipStatus_t hip_reserve(std::size_t, std::size_t, bool, HipBuffer_t *) {
   return HipStatus_t{.code = -1,
                      .msg = "HIP runtime headers not available at"
                             " build/lint time"};
 }
 
-/**
- * @brief Fallback release entry point when HIP headers are unavailable.
- */
+/** @brief Stub: HIP runtime headers not available. */
 HipStatus_t hip_release(HipBuffer_t *) {
   return HipStatus_t{.code = -1,
                      .msg = "HIP runtime headers not available at"
                             " build/lint time"};
 }
 
-/**
- * @brief Fallback realloc entry point when HIP headers are unavailable.
- */
+/** @brief Stub: HIP runtime headers not available. */
 HipStatus_t hip_resize(HipBuffer_t *, std::size_t, std::size_t) {
   return HipStatus_t{.code = -1,
                      .msg = "HIP runtime headers not available at"

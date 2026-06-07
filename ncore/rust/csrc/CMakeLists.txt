@@ -1,26 +1,37 @@
-#[[
-    @file ncore/rust/csrc/CMakeLists.txt
-    @brief C++ FFI + device back-end static library (librustcsrc.a).
+#[=======================================================================[.rst:
+.. module:: ncore_rust_csrc
+   :synopsis: C++ FFI bridge between Rust memory subsystem and NovaNN.
 
-    Always compiled:
-      - ffi.cpp          — extern "C" bridge: reserve / release / memcpy wrappers
-      - device/admin.cpp — back-end admin: get_device_backend(), device_reserve(),
-                           device_release(), device_memcpy()
+Defines the ``rustcsrc`` static library containing the C++ side of the
+FFI layer.  Conditionally compiles CUDA or HIP device sources based on
+backend availability.
 
-    Conditionally included (guarded by NOVA_HAS_CUDA / NOVA_HAS_HIP):
-      - device/cuda/     — cuda_allocator.cpp, cuda_io.cpp
-      - device/hip/      — hip_allocator.cpp, hip_io.cpp
+**Targets:**
 
-    The resulting librustcsrc.a is consumed by build.rs via the RUSTCSRC_DIR
-    and RUSTCSRC_NAME environment variables set in the parent CMakeLists.txt.
+- ``rustcsrc`` — STATIC library with ``POSITION_INDEPENDENT_CODE ON``
+  and C++23 required.
 
-    Compile flags (COMPILE_FLAGS, SIMD_FLAGS) and target configurations
-    (novaNN_configure_cpu/cuda/hip_target) are inherited from the root scope.
+**Sources:**
 
-    Requires : NOVA_HAS_CUDA, NOVA_HAS_HIP (set by NovaNNRuntime.cmake)
-    Outputs  : librustcsrc.a (static library target: rustcsrc)
-    See also : ncore/rust/CMakeLists.txt — Cargo integration with rustcsrc
-]]
+Always compiled:
+
+- ``ffi.cpp``             — Top-level FFI dispatch.
+- ``device/admin.cpp``    — Device administration.
+
+Conditionally compiled:
+
+- ``device/cuda/cuda_allocator.cpp`` — CUDA memory allocation.
+- ``device/cuda/cuda_io.cpp``        — CUDA memory transfer.
+  (Only if ``NOVA_HAS_CUDA`` is ``1``.)
+- ``device/hip/hip_allocator.cpp``   — HIP memory allocation.
+- ``device/hip/hip_io.cpp``          — HIP memory transfer.
+  (Only if ``NOVA_HAS_HIP`` is ``1``.)
+
+**Include directories:**
+
+- ``PUBLIC:`` ``ncore/include`` (project-wide headers).
+- ``PRIVATE:`` ``ncore/rust/csrc`` and current source directory.
+#]=======================================================================]
 
 set(RUSTCSRC_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/ffi.cpp"
@@ -47,13 +58,13 @@ set_target_properties(rustcsrc PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
-    OUTPUT_NAME rustcsrc # produces librustcsrc.a
+    OUTPUT_NAME rustcsrc
 )
 
 target_include_directories(rustcsrc
-    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
-    PRIVATE "${CMAKE_SOURCE_DIR}/ncore/include"
-    "${CMAKE_BINARY_DIR}"
+    PUBLIC "${CMAKE_SOURCE_DIR}/ncore/include"
+    PRIVATE "${CMAKE_SOURCE_DIR}/ncore/rust/csrc"
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 target_compile_options(rustcsrc PRIVATE
@@ -63,6 +74,12 @@ target_compile_options(rustcsrc PRIVATE
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
 )
 
-novaNN_configure_cpu_target(rustcsrc)
-novaNN_configure_cuda_target(rustcsrc)
-novaNN_configure_hip_target(rustcsrc)
+nova_configure_cpu_target(rustcsrc)
+
+if(NOVA_HAS_CUDA)
+    nova_configure_cuda_target(rustcsrc)
+endif()
+
+if(NOVA_HAS_HIP)
+    nova_configure_hip_target(rustcsrc)
+endif()

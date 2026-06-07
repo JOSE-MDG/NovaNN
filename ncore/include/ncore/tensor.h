@@ -1,14 +1,39 @@
 /**
  * @file tensor.h
- * @brief Core Tensor type — the fundamental n-dimensional array with autograd.
+ * @brief Core Tensor type — the fundamental n-dimensional array with
+ *        autograd support.
  *
  * @details
- * Defines the Tensor struct, its associated typedefs (shape_t, strides_t,
- * TensorGrad), and the public API for creation, views, memory management,
- * and scalar/alignment/collected query predicates.  All cache-line aligned
- * fields (ALIGN(64)) are padded for optimal SIMD vectorization.
+ * Defines the @ref Tensor struct, its associated typedefs
+ * (@ref shape_t, @ref strides_t, @ref TensorGrad), and the public
+ * API for creation, views, memory management, and query predicates.
+ * All cache-line aligned fields (`ALIGN(64)`) are padded for optimal
+ * SIMD vectorisation.
  *
- * @see dtype.h, storage.h, simd.h
+ * ## Architecture
+ *
+ * A Tensor bundles:
+ * - **Metadata** — shape, strides, dtype, device, ndims, size, etc.
+ * - **Storage** — a reference-counted @ref TensorStorage owned by the
+ *   Rust allocator.  Multiple tensors (views) can share the same
+ *   storage via `retain()` / `release()`.
+ * - **Autograd** — optional gradient tensor (@ref TensorGrad) and
+ *   backward function node (@ref BackwardNode) for automatic
+ *   differentiation.
+ * - **Quantisation** — scale and zero-point fields for quantised
+ *   inference.
+ *
+ * ## Lifecycle
+ *
+ * 1. Create via @ref create_tensor() or @ref create_scalar_tensor().
+ * 2. Use in computations; views share storage via @ref create_view().
+ * 3. Release via @ref collect() — decrements reference count and
+ *    recursively frees gradients.
+ *
+ * @see dtype.h      Data-type definitions and DType_ enum.
+ * @see storage.h    TensorStorage, RustHandle, and FFI allocation.
+ * @see device.h     Device placement and memory transfers.
+ * @see alloc.h      Typed buffer allocation functions.
  */
 
 #pragma once
@@ -26,90 +51,145 @@ extern "C" {
 #endif
 
 /**
- * @brief Backward pass node for automatic differentiation.
- */
-struct Node;
-typedef struct Node Node;
-typedef Node *BackwardNode;
-
-/**
- * @brief Multi-dimensional array with automatic differentiation support.
+ * @typedef shape_t
+ * @brief Fixed-size array for tensor dimension sizes.
  *
- * Core tensor structure used throughout NovaNN for storing n-dimensional
- * data with support for:
- * - Multiple data types (float, int, quantized)
- * - Multiple devices (CPU, GPU)
- * - Automatic gradient computation
- * - Quantization (scale/zero_point)
- */
-struct Tensor;
-typedef struct Tensor Tensor;
-
-///< Gradient tensor alias.
-typedef Tensor *TensorGrad;
-
-/**
- * @brief Fixed-size array for tensor shape dimensions.
+ * @details
+ * Holds up to @ref NOVA_MAX_DIMS elements.  Only the first `ndims`
+ * entries are meaningful.  For a scalar, all entries are 0.
  *
- * Contains the size of each dimension up to NOVA_MAX_DIMS.
- * Example: shape[0]=2, shape[1]=3, shape[2]=4 represents a 2x3x4 tensor.
+ * Example: `shape = {2, 3, 4}` with `ndims = 3` represents a
+ * 2×3×4 tensor.
  */
 typedef size_t shape_t[NOVA_MAX_DIMS] ALIGN(64);
 
 /**
- * @brief Fixed-size array for tensor stride values.
+ * @typedef strides_t
+ * @brief Fixed-size array for tensor byte strides.
  *
- * Stride represents bytes to skip in the data buffer to reach the next
- * element along each dimension. For a contiguous tensor, stride[i] equals
- * the product of shape[i+1] * item_size.
+ * @details
+ * `strides[i]` is the number of bytes to advance in the data
+ * buffer to reach the next element along dimension `i`.  For a
+ * contiguous tensor, `strides[i] = item_size × product(shape[i+1..])`.
+ *
+ * Example: for a contiguous float32 tensor with shape `{2, 3, 4}`,
+ * strides are `{48, 16, 4}`.
  */
 typedef size_t strides_t[NOVA_MAX_DIMS] ALIGN(64);
 
 /**
- * @brief Tensor structure.
+ * @struct Node
+ * @brief Backward pass node for automatic differentiation.
  *
- * @note Fields with ALIGN(64) are cache-line aligned for SIMD operations.
+ * @details
+ * Opaque type representing a node in the computational graph.
+ * Each operation that requires gradient tracking stores a
+ * @ref BackwardNode in the output tensor's `grad_fn_` field.
  */
-struct ALIGN(64) Tensor {
-  size_t item_size;       ///< Size of each element in bytes
-  size_t offset;          ///< Offset into the storage buffer
-  size_t ndims;           ///< Number of dimensions
-  size_t size;            ///< Total number of elements (product of shape)
-  DType_ dtype;           ///< Data type (e.g., float, int32)
-  Device device;          ///< Device where tensor resides (CPU, GPU)
-  shape_t shape;          ///< Size of each dimension
-  strides_t strides;      ///< Stride for each dimension (bytes)
-  TensorStorage *storage; ///< Pointer to underlying storage buffer
-  data_ptr data;   ///< Pointer to data buffer (relative to storage + offset)
-  TensorGrad grad; ///< Gradient tensor (null if no gradient)
-  BackwardNode grad_fn_; ///< Backward function node for gradient computation
-  bool requires_grad_;   ///< If true, track gradients during backward pass
-  bool retain_grad_;     ///< If true, retain gradient for non-leaf tensors
-  bool is_view_;         ///< If true, tensor is a view of another tensor
-  bool is_leaf_;         ///< If true, tensor is a leaf in computation graph
-  bool is_allocated_;    ///< If true, tensor is allocated in memory
-  bool is_pinned; ///< If true, tensor is allocated to a paged-memory location
-  float scale_;   ///< Quantization scale (0 if not quantized)
-  int32_t zero_point_; ///< Quantization zero point (0 if not quantized)
-  int64_t version_;    ///< Mutation counter; incremented on every in-place
-                       ///< operation for version-tracking and alias detection.
-};
+struct Node;
+typedef struct Node Node;
+
+/** @brief Pointer-to-Node type alias used in @ref Tensor::grad_fn_. */
+typedef Node *BackwardNode;
 
 /**
- * @brief Create a fully allocated tensor.
+ * @struct Tensor
+ * @brief Multi-dimensional array with automatic differentiation
+ *        support.
  *
- * Initialises shape, strides, size, and dtype metadata, allocates a
- * data buffer on the specified device, and optionally creates an
+ * @details
+ * Core data structure used throughout NovaNN.  Every tensor
+ * carries:
+ * - Shape, strides, and total element count for layout.
+ * - A @ref DType_ and @ref Device for type and placement.
+ * - A reference-counted @ref TensorStorage for the backing buffer.
+ * - Optional gradient fields for autograd.
+ * - Quantisation parameters (scale, zero-point).
+ *
+ * The struct is cache-line aligned (`ALIGN(64)`) to enable
+ * efficient SIMD operations on the metadata fields.
+ *
+ * ## Field Groups
+ */
+// clang-format off
+/**
+ * | Group          | Fields                                                  |
+ * |----------------|---------------------------------------------------------|
+ * | Layout         | `shape`, `strides`, `ndims`, `size`, `item_size`, `offset` |
+ * | Type/Device    | `dtype`, `device`                                       |
+ * | Storage        | `storage`, `data`, `is_allocated_`, `is_pinned`         |
+ * | Autograd       | `grad`, `grad_fn_`, `requires_grad_`, `retain_grad_`, `is_leaf_`, `is_view_` |
+ * | Quantisation   | `scale_`, `zero_point_`                                 |
+ * | Mutation track | `version_`                                              |
+ */
+// clang-format on
+/**
+ * @see shape_t      Fixed-size shape array.
+ * @see strides_t    Fixed-size strides array.
+ * @see TensorGrad   Gradient tensor alias.
+ */
+struct ALIGN(64) Tensor {
+  size_t item_size;       ///< Bytes per element (from @ref dtype_size).
+  size_t offset;          ///< Byte offset into the storage buffer.
+  size_t ndims;           ///< Number of dimensions (0 for scalars).
+  size_t size;            ///< Total element count (product of shape).
+  DType_ dtype;           ///< Element data type (@ref DType_ enum).
+  Device device;          ///< Placement device (@ref Device enum).
+  shape_t shape;          ///< Dimension sizes (up to @ref NOVA_MAX_DIMS).
+  strides_t strides;      ///< Byte strides per dimension.
+  TensorStorage *storage; ///< Reference-counted backing buffer (NULL for META).
+  data_ptr data;          ///< Typed pointer into `storage` (offset-adjusted).
+  TensorGrad grad;        ///< Gradient tensor (NULL if no gradient tracked).
+  BackwardNode grad_fn_;  ///< Backward graph node (NULL for leaves).
+  bool requires_grad_;    ///< If `true`, track gradients during backward.
+  bool retain_grad_;      ///< If `true`, retain gradient for non-leaf nodes.
+  bool is_view_;          ///< If `true`, shares storage with another tensor.
+  bool is_leaf_;          ///< If `true`, leaf node in the computation graph.
+  bool is_allocated_;     ///< If `true`, `storage` and `data` are valid.
+  bool is_pinned;         ///< If `true`, page-locked host memory.
+  float scale_;           ///< Quantisation scale (1.0 if not quantised).
+  int32_t zero_point_;    ///< Quantisation zero point (0 if not quantised).
+  int64_t version_;       ///< Mutation counter for in-place alias detection.
+};
+
+/** @brief Gradient tensor type alias — a pointer to a @ref Tensor. */
+typedef Tensor *TensorGrad;
+
+/**
+ * @brief Create a fully allocated n-dimensional tensor.
+ *
+ * @details
+ * Zero-initialises the @ref Tensor struct, copies the shape, computes
+ * `size` and `strides`, allocates a data buffer via
+ * @ref allocate_tensor_buffer(), and optionally creates an
  * unallocated gradient tensor for autograd tracking.
  *
- * @param shape         Dimension sizes.
- * @param dtype         Element data type.
- * @param device        Target device (CPU, GPU, or META).
- * @param requires_grad If true, an unallocated gradient tensor is created.
- * @param pin_memory If true, request page-locked host memory when supported.
- * @param ndims         Number of dimensions.
- * @return Initialised Tensor with backing storage (or NULL storage for
- *         DEVICE_META).
+ * For `DEVICE_META`, the function returns a tensor with NULL storage
+ * and `is_allocated_ = false`.  The Rust allocator is never called.
+ *
+ * @param[in]  shape         Dimension sizes (only first `ndims`
+ *                           entries are read).
+ * @param[in]  dtype         Element data type (@ref DType_).
+ * @param[in]  device        Target device (`DEVICE_CPU`,
+ *                           `DEVICE_GPU`, or `DEVICE_META`).
+ * @param[in]  requires_grad If `true`, creates an unallocated
+ *                           gradient tensor in `grad`.
+ * @param[in]  pin_memory    If `true`, request page-locked host
+ *                           memory (CPU only).
+ * @param[in]  ndims         Number of dimensions.  Must be <=
+ *                           @ref NOVA_MAX_DIMS.
+ *
+ * @return Initialised @ref Tensor with valid backing storage, or a
+ *         META tensor with NULL storage.
+ *
+ * @pre  @p ndims must not exceed @ref NOVA_MAX_DIMS.
+ * @pre  `product(shape[0..ndims])` must be > 0 for non-META.
+ * @post On success, `is_allocated_ == true` (unless META).
+ * @post If `requires_grad`, `grad` points to an unallocated tensor.
+ *
+ * @see create_scalar_tensor()   Scalar (0-D) variant.
+ * @see create_tensor_like()     Clone metadata from an existing tensor.
+ * @see allocate_tensor_buffer() Underlying allocation.
  */
 Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
                      bool requires_grad, bool pin_memory, size_t ndims);
@@ -117,146 +197,259 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
 /**
  * @brief Create a fully allocated 0-dimensional (scalar) tensor.
  *
- * Allocates a single-element data buffer on the specified device.
- * Shape and strides are zeroed and ndims is set to 0.
+ * @details
+ * Allocates a single-element data buffer.  Shape and strides are
+ * zeroed, `ndims` is set to 0, and `size` is set to 1.
  *
- * @param dtype         Element data type.
- * @param device        Target device (CPU, GPU, or META).
- * @param requires_grad If true, an unallocated gradient tensor is created.
- * @param pin_memory If true, request page-locked host memory when supported.
- * @return Initialised scalar Tensor with backing storage.
+ * @param[in]  dtype         Element data type (@ref DType_).
+ * @param[in]  device        Target device (`DEVICE_CPU`,
+ *                           `DEVICE_GPU`, or `DEVICE_META`).
+ * @param[in]  requires_grad If `true`, creates an unallocated
+ *                           scalar gradient tensor.
+ * @param[in]  pin_memory    If `true`, request page-locked host
+ *                           memory (CPU only).
+ *
+ * @return Initialised scalar @ref Tensor with backing storage.
+ *
+ * @see create_tensor()        N-dimensional variant.
+ * @see is_scalar()            Query predicate.
  */
 Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad,
                             bool pin_memory);
 
 /**
+ * @brief Create a tensor with the same metadata as an existing one.
+ *
+ * @details
+ * Inspects the source tensor and produces a new tensor with
+ * identical shape, dtype, device, requires_grad, and pin_memory.
+ * If the source is allocated, the result is also allocated;
+ * otherwise an unallocated tensor is returned.  Scalar tensors are
+ * handled via @ref create_scalar_tensor() or
+ * @ref create_unallocated_scalar_tensor().
+ *
+ * @param[in] ten  Source tensor to copy metadata from.  Must not be
+ *                 `NULL`.
+ *
+ * @return New @ref Tensor with matching metadata and allocation
+ *         state.
+ *
+ * @see create_tensor()
+ * @see create_unallocated_tensor()
+ */
+Tensor create_tensor_like(const Tensor *ten);
+
+/**
  * @brief Create a view of an existing tensor with a new shape.
  *
- * Shares the underlying storage (incrementing the reference count),
- * recomputes strides, and marks the result as a non-leaf view.
+ * @details
+ * Shares the same underlying storage (incrementing the Rust-side
+ * reference count via @ref retain()), recomputes strides for the
+ * new shape, and marks the result as a non-leaf view.  The
+ * original data buffer is not copied.
  *
- * @param src       Source tensor to view (must outlive the view).
- * @param new_shape New dimension sizes.  Product must equal src->size.
- * @param new_ndims Number of dimensions in the new shape.
- * @return View tensor sharing src's storage.
+ * If the source has a gradient, an unallocated gradient tensor is
+ * created for the view.
+ *
+ * @param[in]  src        Source tensor to view.  Must outlive the
+ *                        view.  Must have non-NULL storage.
+ * @param[in]  new_shape  New dimension sizes.  Product must equal
+ *                        `src->size`.
+ * @param[in]  new_ndims  Number of dimensions in @p new_shape.
+ *
+ * @return View @ref Tensor sharing @p src's storage.
+ *
+ * @pre  `product(new_shape[0..new_ndims])` must equal `src->size`.
+ * @pre  `src->storage` must not be NULL.
+ * @post The returned tensor has `is_view_ = true` and
+ *       `is_leaf_ = false`.
+ * @post The Rust reference count is incremented by one.
+ *
+ * @see retain()        Increments the storage reference count.
+ * @see is_view()       Query predicate.
  */
 Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
                    size_t new_ndims);
 
 /**
- * @brief Check whether a tensor's data buffer is contiguous.
- *
- * A tensor is contiguous when elements are stored in row-major order
- * without gaps, i.e. strides are strictly decreasing by shape[dim].
- *
- * @param ten Tensor to check.
- * @return true if the tensor is contiguous, false otherwise.
- */
-bool is_contiguous(const Tensor *restrict ten);
-
-/**
  * @brief Move ownership of tensor resources from src to dst.
  *
- * Collects dst, transfers src's contents, then resets src to a hollow
- * shell (storage/data/grad set to NULL).
+ * @details
+ * Collects any existing resources in @p dst, then performs a
+ * bitwise copy of @p src into @p dst.  @p src is then zeroed
+ * (storage, data, grad, grad_fn_ set to NULL) so that a
+ * subsequent @ref collect() on @p src is a no-op.
  *
- * @param dst Destination tensor (previous resources are freed).
- * @param src Source tensor (ownership transferred; src invalidated).
+ * @param[in,out] dst  Destination tensor (previous resources are
+ *                     freed via @ref collect()).
+ * @param[in,out] src  Source tensor (ownership transferred; @p src
+ *                     becomes a hollow shell).
+ *
+ * @pre  @p dst and @p src must not be `NULL`.
+ * @post @p dst owns all resources previously held by @p src.
+ * @post @p src is in a valid but unallocated state.
+ *
+ * @see collect()  Frees the destination before the move.
  */
 void move_tensor(Tensor *restrict dst, Tensor *restrict src);
 
 /**
  * @brief Recursively release tensor memory and gradients.
  *
- * Decrements the storage reference count, freeing it when it reaches
- * zero, then recursively frees the gradient sub-graph.
+ * @details
+ * Decrements the reference count of the tensor's storage via
+ * @ref release().  When the count reaches zero, the storage is
+ * freed with `free()`.  The gradient sub-graph is then traversed
+ * and freed recursively via self-recursive calls.
  *
- * @param ten Tensor to collect (may be NULL).
+ * Safe to call with `NULL` (no-op).
+ *
+ * @param[in,out] ten  Tensor to collect.  May be `NULL`.
+ *
+ * @post @p ten's storage reference count is decremented.
+ * @post If the count reaches zero, `storage` and `data` are set
+ *       to NULL and `is_allocated_` to `false`.
+ * @post The gradient sub-graph is recursively freed.
+ *
+ * @see release()    Decrements the Rust reference count.
+ * @see is_collected()  Query predicate after collection.
  */
 void collect(Tensor *ten);
 
 /**
+ * @brief Check whether a tensor is contiguous in memory.
+ *
+ * @details
+ * A tensor is contiguous when elements are stored in row-major
+ * order without gaps — strides are strictly decreasing by
+ * `shape[dim] × item_size` for each dimension.
+ *
+ * @param[in] ten  Tensor to check.  Must not be `NULL`.
+ *
+ * @return `true` if the tensor is contiguous, `false` otherwise.
+ *
+ * @see strides_t    Stride array.
+ */
+bool is_contiguous(const Tensor *restrict ten);
+
+/**
  * @brief Check whether a tensor is 0-dimensional (scalar).
  *
- * @param ten Tensor to check.
- * @return true if the tensor is a scalar, false otherwise.
+ * @details
+ * A tensor is a scalar when `ndims == 0`, `shape[0] == 0`,
+ * `strides[0] == 0`, and `size == 1`.
+ *
+ * @param[in] ten  Tensor to check.  Must not be `NULL`.
+ *
+ * @return `true` if the tensor is a scalar, `false` otherwise.
+ *
+ * @see is_scalar_grad()  Gradient variant.
+ * @see create_scalar_tensor()
  */
 bool is_scalar(const Tensor *ten);
 
 /**
  * @brief Check whether a gradient tensor is 0-dimensional (scalar).
  *
- * @param grad Gradient tensor to check.
- * @return true if the gradient is a scalar, false otherwise.
+ * @param[in] grad  Gradient tensor to check.  May be `NULL`.
+ *
+ * @return `true` if the gradient is a scalar, `false` otherwise
+ *         (including when @p grad is `NULL`).
+ *
+ * @see is_scalar()  Tensor variant.
  */
 bool is_scalar_grad(TensorGrad grad);
 
 /**
- * @brief Check whether a tensor's data buffer is 64-byte aligned.
+ * @brief Check whether a tensor's data buffer is properly aligned.
  *
- * 64-byte alignment is required for optimal SIMD vectorization.
+ * @details
+ * GPU tensors are expected to be 512-byte aligned; CPU tensors are
+ * expected to be 64-byte aligned.  The check uses the appropriate
+ * threshold based on @ref Tensor::is_pinned.
  *
- * @param ten Tensor to check.
- * @return true if the data pointer is 64-byte aligned, false otherwise.
+ * @param[in] ten  Tensor to check.  Must not be `NULL`.
+ *
+ * @return `true` if the data pointer meets the alignment
+ *         requirement, `false` otherwise.
+ *
+ * @pre  `ten->storage` must not be `NULL`.
+ *
+ * @see is_grad_aligned()  Gradient variant.
  */
 bool is_aligned(const Tensor *ten);
 
 /**
- * @brief Check whether a gradient tensor's data buffer is 64-byte aligned.
+ * @brief Check whether a gradient tensor's data buffer is aligned.
  *
- * @param grad Gradient tensor to check.
- * @return true if the gradient data pointer is 64-byte aligned, false
- *         otherwise.
+ * @param[in] grad  Gradient tensor to check.  Must not be `NULL`.
+ *
+ * @return `true` if the gradient data pointer meets the alignment
+ *         requirement, `false` otherwise.
+ *
+ * @pre  `grad->storage` must not be `NULL`.
+ *
+ * @see is_aligned()  Tensor variant.
  */
 bool is_grad_aligned(TensorGrad grad);
 
 /**
  * @brief Check whether a tensor has been collected (freed).
  *
- * @param ten Tensor to check.
- * @return true if the tensor has been collected, false otherwise.
+ * @details
+ * A tensor is considered collected when `data.data == NULL`,
+ * `storage == NULL`, and `is_allocated_ == false`.  This is the
+ * state after @ref collect() has fully released the tensor.
+ *
+ * @param[in] ten  Tensor to check.  Must not be `NULL`.
+ *
+ * @return `true` if the tensor has been collected, `false`
+ *         otherwise.
+ *
+ * @see collect()
+ * @see is_grad_collected()  Gradient variant.
  */
 bool is_collected(const Tensor *ten);
 
 /**
- * @brief Check whether a gradient tensor has been collected (freed).
+ * @brief Check whether a gradient tensor has been collected.
  *
- * @param grad Gradient tensor to check.
- * @return true if the gradient has been collected, false otherwise.
+ * @param[in] grad  Gradient tensor to check.  May be `NULL`.
+ *
+ * @return `true` if the gradient has been collected (or is
+ *         `NULL`), `false` otherwise.
+ *
+ * @see is_collected()  Tensor variant.
  */
 bool is_grad_collected(TensorGrad grad);
 
 /**
  * @brief Check whether a tensor's data buffer has been allocated.
  *
- * @param ten Tensor to check.
- * @return true if the tensor has a valid backing storage, false otherwise.
+ * @details
+ * Returns `true` when both `is_allocated_` and `data.data` are
+ * non-NULL, indicating the tensor has a valid backing buffer.
+ *
+ * @param[in] ten  Tensor to check.  Must not be `NULL`.
+ *
+ * @return `true` if the tensor is allocated, `false` otherwise.
+ *
+ * @see is_grad_allocated()  Gradient variant.
+ * @see is_collected()       Inverse check.
  */
 bool is_allocated(const Tensor *ten);
 
 /**
- * @brief Check whether a gradient tensor's data buffer has been allocated.
+ * @brief Check whether a gradient tensor has been allocated.
  *
- * Returns false if grad is NULL.
+ * @param[in] grad  Gradient tensor to check.  May be `NULL`.
  *
- * @param grad Gradient tensor to check.
- * @return true if the gradient has a valid backing storage, false otherwise.
+ * @return `true` if the gradient has a valid backing buffer,
+ *         `false` otherwise (including when @p grad is `NULL`).
+ *
+ * @see is_allocated()  Tensor variant.
  */
 bool is_grad_allocated(TensorGrad grad);
-
-/**
- * @brief Create a tensor with the same shape, dtype, and device as another.
- *
- * Inspects the source tensor and produces a new tensor with identical
- * metadata.  If the source is allocated, the result is also allocated;
- * otherwise an unallocated tensor is returned.  Scalar tensors are
- * handled specially via create_scalar_tensor /
- * create_unallocated_scalar_tensor.
- *
- * @param ten Source tensor to copy metadata from.
- * @return New tensor with matching shape, dtype, device, and requires_grad.
- */
-Tensor create_tensor_like(const Tensor *ten);
 
 #ifdef __cplusplus
 }
