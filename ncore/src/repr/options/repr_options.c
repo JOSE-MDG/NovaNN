@@ -16,6 +16,14 @@
 
 #include <ncore/repr/repr_options.h>
 
+/**
+ * @brief Return a ReprOptions struct with sensible defaults.
+ *
+ * All fields are set to PyTorch-compatible values.  Callers may
+ * override any field after obtaining the result.
+ *
+ * @return Default-initialised ReprOptions.
+ */
 ReprOptions repr_default_options(void) {
   ReprOptions opts;
   opts.mode = REPR_MODE_NORMAL;

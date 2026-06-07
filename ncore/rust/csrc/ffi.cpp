@@ -1,19 +1,33 @@
 /**
  * @file ffi.cpp
- * @brief Dispatch layer that routes memory requests to the CUDA or HIP
- *        backend at run time.
+ * @brief Device-agnostic FFI dispatch implementation.
  *
- * device_reserve allocates a backend-specific buffer descriptor, calls the
- * corresponding reserve function, and copies the result into the generic
- * DeviceBuffer_t / DeviceStatus_t structures.
- * device_resize dispatches to cuda_realloc or hip_realloc based on
- * the buffer's device_kind and updates the generic descriptor on success.
- * device_release reads the device_kind field and calls the matching backend
- * free routine. device_memcpy queries the active backend and forwards the
- * copy request without exposing CUDA or HIP runtime enums to callers.
- * device_memcpy_c is an extern-"C" wrapper that accepts the C-side
- * TransferKind enum and converts it to DeviceMemcpyKind before
- * dispatching, making it directly usable from pure-C translation units.
+ * @details
+ * Implements the top-level `extern "C"` functions declared in
+ * `ffi.hpp`.  Each function dispatches to the correct backend
+ * (CUDA or HIP) based on the @ref DeviceKind_t tag stored in
+ * the buffer descriptor or detected at runtime.
+ *
+ * Backend availability is gated at two levels:
+ * 1. **Compile-time**: `NOVA_HAS_CUDA` / `NOVA_HAS_HIP`
+ *    preprocessor macros control whether backend code is
+ *    compiled.
+ * 2. **Runtime**: @ref get_device_backend() probes CUDA and
+ *    HIP runtime availability.
+ *
+ * ## Dispatch Strategy
+ *
+ * - **Allocation** (`device_reserve`): The caller specifies the
+ *   target backend via the @p kind parameter.
+ * - **Release and resize**: The backend is read from the buffer
+ *   descriptor's @ref DeviceBuffer_t::device_kind field.
+ * - **Memcpy**: The backend is auto-detected via
+ *   @ref get_device_backend().
+ *
+ * @see ffi.hpp            Function declarations and type definitions.
+ * @see device/admin.cpp   Runtime backend detection.
+ * @see device/cuda/       CUDA backend implementation.
+ * @see device/hip/        HIP backend implementation.
  */
 
 #include "ffi.hpp"
@@ -27,27 +41,25 @@
 #include <ncore/cpp_ffi.h>
 
 /**
- * @brief Template helper that calls a backend-specific reserve function
- *        and fills the generic DeviceBuffer_t / DeviceStatus_t outputs.
+ * @brief Internal template that dispatches buffer allocation to a
+ *        specific backend.
  *
- * The backend buffer is heap-allocated via a unique_ptr.  On success
- * ownership is released into dbuf->device_buf_ptr (a raw owning pointer
- * whose lifetime is managed by device_release).  On failure the
- * unique_ptr destroys the backend buffer automatically.
+ * @details
+ * Allocates a backend-specific buffer descriptor via
+ * `std::make_unique`, calls the backend allocator, and transfers
+ * ownership to @p dbuf->device_buf_ptr via `buf.release()`.
  *
- * @tparam BufKind     Backend-specific buffer type (CudaBuffer_t or
- *                     HipBuffer_t).
- * @tparam StatusKind  Backend-specific status type (CudaStatus_t or
- *                     HipStatus_t).
- * @tparam func_kind   Pointer to the backend's reserve function (cuda_reserve
- *                     or hip_reserve).
- * @tparam DeviceKind  DeviceKind_t enumerator identifying the active backend.
+ * @tparam BufKind      Backend buffer type (`CudaBuffer_t` or
+ *                      `HipBuffer_t`).
+ * @tparam StatusKind   Backend status type.
+ * @tparam func_kind    Backend allocator function pointer.
+ * @tparam DeviceKind   The `DeviceKind_t` value for this backend.
  *
- * @param bytes        Number of bytes to allocate.
- * @param pinned       Whether to allocate pinned (page-locked) host memory.
- * @param align        Alignment requirement.
- * @param[out] dbuf    Generic device-buffer descriptor to fill.
- * @param[out] dstatus Generic status descriptor to fill.
+ * @param[in]  bytes  Requested allocation size.
+ * @param[in]  pinned Whether to allocate page-locked memory.
+ * @param[in]  align  Alignment in bytes.
+ * @param[out] dbuf   Device buffer descriptor to populate.
+ * @param[out] dstatus  Status to populate on error.
  */
 template <typename BufKind, typename StatusKind, auto func_kind,
           auto DeviceKind>
@@ -77,25 +89,34 @@ device_reserve_dispatch(std::size_t bytes, bool pinned, std::size_t align,
 }
 
 /**
- * @brief Allocate a device or pinned-host buffer through the active backend.
+ * @brief Allocate a GPU or pinned-host memory buffer.
  *
- * Dispatches to cuda_reserve or hip_reserve depending on @p kind.
+ * @details
+ * Dispatches to @ref device_reserve_dispatch with the correct
+ * backend types based on @p kind.  Compile-time gated via
+ * `NOVA_HAS_CUDA` / `NOVA_HAS_HIP`.
  *
- * @param bytes   Minimum number of bytes to allocate.
- * @param out_buf [out] Output buffer descriptor (valid only when the
- *                      returned status has code == 0).
- * @param pinned  If true, allocate page-locked host memory.
- * @param align   Alignment requirement (power of two).
- * @param kind    Target backend (DeviceCUDA or DeviceHIP).
- * @return DeviceStatus_t with code 0 on success, or a positive error code
- *         with a descriptive message on failure.
+ * @param[in]  bytes  Requested allocation size.
+ * @param[out] out    Buffer descriptor to populate.
+ * @param[in]  pinned Whether to allocate page-locked memory.
+ * @param[in]  align  Alignment in bytes.
+ * @param[in]  kind   Target backend (CUDA or HIP).
+ *
+ * @return Status with `code == 0` on success.
+ *
+ * @pre  @p bytes > 0.
+ * @post On success, @p out->device_buf_ptr owns a backend
+ *       descriptor.
+ *
+ * @see device_release()  Frees the buffer.
+ * @see device_resize()   Resizes the buffer.
  */
 DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
                               bool pinned, std::size_t align,
                               DeviceKind_t kind) {
   DeviceStatus_t dstatus = {};
   if (kind == DeviceKind_t::DeviceCUDA) {
-#if NOVA_HAS_CUDA
+#ifdef NOVA_HAS_CUDA
     device_reserve_dispatch<CudaBuffer_t, CudaStatus_t, cuda_reserve,
                             DeviceKind_t::DeviceCUDA>(bytes, pinned, align,
                                                       out_buf, &dstatus);
@@ -104,7 +125,7 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
     dstatus.message = "CUDA backend was not built";
 #endif
   } else if (kind == DeviceKind_t::DeviceHIP) {
-#if NOVA_HAS_HIP
+#ifdef NOVA_HAS_HIP
     device_reserve_dispatch<HipBuffer_t, HipStatus_t, hip_reserve,
                             DeviceKind_t::DeviceHIP>(bytes, pinned, align,
                                                      out_buf, &dstatus);
@@ -120,21 +141,24 @@ DeviceStatus_t device_reserve(std::size_t bytes, DeviceBuffer_t *out_buf,
 }
 
 /**
- * @brief Free a buffer previously allocated with device_reserve.
+ * @brief Free a GPU or pinned-host memory buffer.
  *
- * Dispatches to cuda_release or hip_release based on the buffer's
- * device_kind field.  The backend buffer descriptor (device_buf_ptr) is
- * deleted and the generic descriptor is zeroed on success.
+ * @details
+ * Casts @p buf->device_buf_ptr to the backend type, calls the
+ * backend release, and zeroes @p buf on success.
  *
- * @param buf Pointer to the buffer descriptor to free.  The descriptor
- *            is zeroed out on success.
- * @return DeviceStatus_t with code 0 on success, or a positive error code
- *         with a descriptive message on failure.
+ * @param[in,out] buf  Buffer descriptor to free.
+ *
+ * @return Status with `code == 0` on success.
+ *
+ * @post On success, @p buf is zeroed.
+ *
+ * @see device_reserve()  Allocates the buffer freed here.
  */
 DeviceStatus_t device_release(DeviceBuffer_t *buf) {
   DeviceStatus_t dstatus = {};
   if (buf->device_kind == DeviceKind_t::DeviceCUDA) {
-#if NOVA_HAS_CUDA
+#ifdef NOVA_HAS_CUDA
     auto backend_buf = std::unique_ptr<CudaBuffer_t>(
         static_cast<CudaBuffer_t *>(buf->device_buf_ptr));
     CudaStatus_t cstatus = cuda_release(backend_buf.get());
@@ -145,7 +169,7 @@ DeviceStatus_t device_release(DeviceBuffer_t *buf) {
     dstatus.message = "CUDA backend was not built";
 #endif
   } else if (buf->device_kind == DeviceKind_t::DeviceHIP) {
-#if NOVA_HAS_HIP
+#ifdef NOVA_HAS_HIP
     auto backend_buf = std::unique_ptr<HipBuffer_t>(
         static_cast<HipBuffer_t *>(buf->device_buf_ptr));
     HipStatus_t hstatus = hip_release(backend_buf.get());
@@ -168,26 +192,33 @@ DeviceStatus_t device_release(DeviceBuffer_t *buf) {
 }
 
 /**
- * @brief Reallocate a device or pinned-host buffer, preserving content.
+ * @brief Resize a GPU or pinned-host memory buffer.
  *
- * Dispatches to cuda_realloc or hip_realloc based on the buffer's
- * device_kind field.  Allocates a new buffer of @p new_bytes (rounded
- * up to @p align), copies the minimum of the old and new sizes, and
- * frees the old buffer.  On success the generic buffer descriptor is
- * updated with the new pointer and size; on failure it is left unchanged.
+ * @details
+ * Casts @p buf->device_buf_ptr to the backend type and calls the
+ * backend resize.  On success, updates @p buf->ptr and
+ * @p buf->bytes.
  *
- * @param buf       Pointer to the buffer descriptor to reallocate.
- *                  Must have been previously allocated with device_reserve.
- * @param new_bytes Target size in bytes.
- * @param align     Alignment requirement (must be a power of two).
- * @return DeviceStatus_t with code 0 on success, or a positive error code
- *         with a descriptive message on failure.
+ * @param[in,out] buf       Buffer descriptor to resize.
+ * @param[in]     new_bytes New size in bytes.
+ * @param[in]     align     Alignment in bytes.
+ *
+ * @return Status with `code == 0` on success.
+ *
+ * @post On success, @p buf->ptr and @p buf->bytes reflect the
+ *       new allocation.
+ *
+ * @warning On failure the original buffer may be in an
+ *          inconsistent state.
+ *
+ * @see device_reserve()  Initial allocation.
+ * @see device_release()  Explicit deallocation.
  */
 DeviceStatus_t device_resize(DeviceBuffer_t *buf, std::size_t new_bytes,
                              std::size_t align) {
   DeviceStatus_t dstatus = {};
   if (buf->device_kind == DeviceKind_t::DeviceCUDA) {
-#if NOVA_HAS_CUDA
+#ifdef NOVA_HAS_CUDA
     auto *backend_buf = static_cast<CudaBuffer_t *>(buf->device_buf_ptr);
     CudaStatus_t cstatus = cuda_resize(backend_buf, new_bytes, align);
     dstatus.code = cstatus.code;
@@ -201,7 +232,7 @@ DeviceStatus_t device_resize(DeviceBuffer_t *buf, std::size_t new_bytes,
     dstatus.message = "CUDA backend was not built";
 #endif
   } else if (buf->device_kind == DeviceKind_t::DeviceHIP) {
-#if NOVA_HAS_HIP
+#ifdef NOVA_HAS_HIP
     auto *backend_buf = static_cast<HipBuffer_t *>(buf->device_buf_ptr);
     HipStatus_t hstatus = hip_resize(backend_buf, new_bytes, align);
     dstatus.code = hstatus.code;
@@ -222,18 +253,22 @@ DeviceStatus_t device_resize(DeviceBuffer_t *buf, std::size_t new_bytes,
 }
 
 /**
- * @brief Copy bytes using the currently active GPU backend.
+ * @brief Copy memory between host and device.
  *
- * CUDA is used when get_device_backend() reports DeviceCUDA; HIP is used
- * when it reports DeviceHIP. If no backend is available, the returned status
- * has code -1 and a descriptive message.
+ * @details
+ * Auto-detects the backend via @ref get_device_backend() and
+ * dispatches to the appropriate backend memcpy.
  *
- * @param src       Source pointer.
- * @param dst       Destination pointer.
- * @param is_pinned Whether the host-side buffer is pinned/page-locked.
- * @param kind      Device-agnostic copy direction.
- * @param bytes     Number of bytes to copy.
- * @return DeviceStatus_t populated from the selected backend status.
+ * @param[in]  src       Source pointer.
+ * @param[out] dst       Destination pointer.
+ * @param[in]  is_pinned Whether the host-side pointer is
+ *                      page-locked.
+ * @param[in]  kind      Copy direction.
+ * @param[in]  bytes     Number of bytes.
+ *
+ * @return Status with `code == 0` on success.
+ *
+ * @see device_memcpy_c()  C-callable variant.
  */
 DeviceStatus_t device_memcpy(const void *src, void *dst, bool is_pinned,
                              DeviceMemcpyKind kind, std::size_t bytes) {
@@ -241,7 +276,7 @@ DeviceStatus_t device_memcpy(const void *src, void *dst, bool is_pinned,
   DeviceKind_t device = get_device_backend();
 
   if (device == DeviceKind_t::DeviceCUDA) {
-#if NOVA_HAS_CUDA
+#ifdef NOVA_HAS_CUDA
     CudaStatus_t cstatus = cuda_memcpy(bytes, kind, src, dst, is_pinned);
     status.code = cstatus.code;
     status.message = cstatus.msg;
@@ -253,7 +288,7 @@ DeviceStatus_t device_memcpy(const void *src, void *dst, bool is_pinned,
 #endif
   }
   if (device == DeviceKind_t::DeviceHIP) {
-#if NOVA_HAS_HIP
+#ifdef NOVA_HAS_HIP
     HipStatus_t hstatus = hip_memcpy(bytes, kind, src, dst, is_pinned);
     status.code = hstatus.code;
     status.message = hstatus.msg;
@@ -270,19 +305,23 @@ DeviceStatus_t device_memcpy(const void *src, void *dst, bool is_pinned,
 }
 
 /**
- * @brief Copy bytes through the active GPU backend (C-callable wrapper).
+ * @brief C-callable wrapper for device memcpy.
  *
- * Dispatches to cuda_memcpy or hip_memcpy according to get_device_backend().
- * Converts the C-side TransferKind enum to DeviceMemcpyKind for the
- * C++ backend functions.  If no backend is available the returned status
- * has code -1 and a descriptive message.
+ * @details
+ * Same as @ref device_memcpy but accepts a @ref TransferKind
+ * (from `ncore/cpp_ffi.h`) instead of @ref DeviceMemcpyKind,
+ * casting between the two.
  *
- * @param src       Source pointer.
- * @param dst       Destination pointer.
- * @param is_pinned Whether the host-side pointer is pinned/page-locked.
- * @param kind      Device-agnostic copy direction (TransferKind).
- * @param bytes     Number of bytes to copy.
- * @return DeviceStatus with code 0 on success, or an error status.
+ * @param[in]  src       Source pointer.
+ * @param[out] dst       Destination pointer.
+ * @param[in]  is_pinned Whether the host-side pointer is
+ *                      page-locked.
+ * @param[in]  kind      Copy direction (@ref TransferKind).
+ * @param[in]  bytes     Number of bytes.
+ *
+ * @return Status with `code == 0` on success.
+ *
+ * @see device_memcpy()  C++ variant.
  */
 DeviceStatus device_memcpy_c(const void *src, void *dst, bool is_pinned,
                              TransferKind kind, size_t bytes) {
@@ -290,7 +329,7 @@ DeviceStatus device_memcpy_c(const void *src, void *dst, bool is_pinned,
   DeviceKind_t device = get_device_backend();
 
   if (device == DeviceKind_t::DeviceCUDA) {
-#if NOVA_HAS_CUDA
+#ifdef NOVA_HAS_CUDA
     CudaStatus_t cstatus = cuda_memcpy(
         bytes, static_cast<DeviceMemcpyKind>(kind), src, dst, is_pinned);
     status.code = cstatus.code;
@@ -303,7 +342,7 @@ DeviceStatus device_memcpy_c(const void *src, void *dst, bool is_pinned,
 #endif
   }
   if (device == DeviceKind_t::DeviceHIP) {
-#if NOVA_HAS_HIP
+#ifdef NOVA_HAS_HIP
     HipStatus_t hstatus = hip_memcpy(bytes, static_cast<DeviceMemcpyKind>(kind),
                                      src, dst, is_pinned);
     status.code = hstatus.code;

@@ -1,97 +1,154 @@
 /**
  * @file cuda_io.hpp
- * @brief Convenience wrappers for CUDA memory copies.
+ * @brief CUDA data transfer functions for host-device and
+ *        device-device copies.
  *
- * Provides simple host↔device and device↔device copy helpers with optional
- * asynchronous transfers when host memory is pinned.
+ * @details
+ * Declares synchronous and asynchronous memcpy variants that
+ * move data between host and device memory, or between two
+ * device allocations.  The master dispatcher @ref cuda_memcpy
+ * routes to the correct variant based on a @ref DeviceMemcpyKind
+ * tag.
  *
- * These helpers return CudaStatus_t for consistent error reporting across
- * the CUDA backend. Runtime-specific CUDA types are intentionally kept out
- * of this header so it can be included beside HIP headers.
+ * This header is consumed by `ffi.cpp` and is never included
+ * directly from outside the csrc module.
+ *
+ * @see cuda_io.cpp        Implementation of the transfer functions.
+ * @see cuda_allocator.hpp CUDA memory allocation operations.
+ * @see ffi.hpp            Device-agnostic FFI layer that wraps these.
  */
 
 #pragma once
 
 #include "cuda_allocator.hpp"
-#include "../../ffi.hpp"
+#include "ffi.hpp"
 #include <cstddef>
 
 /**
- * @brief Copy bytes from host to device (synchronous).
+ * @brief Synchronous host-to-device memory copy.
  *
- * @param bytes Number of bytes to copy.
- * @param src   Source pointer in host memory.
- * @param dst   Destination pointer in device memory.
- * @return CudaStatus_t describing success or failure.
+ * @details
+ * Calls `cudaMemcpy` with `cudaMemcpyHostToDevice`.  The
+ * transfer blocks until complete.
+ *
+ * @param[in] bytes  Number of bytes to copy.
+ * @param[in] src    Source pointer (host memory).
+ * @param[out] dst   Destination pointer (device memory).
+ *
+ * @return @ref CUDA_OK on success, or an error status.
+ *
+ * @pre  @p src must point to valid host memory of at least
+ *       @p bytes.
+ * @pre  @p dst must point to valid device memory of at least
+ *       @p bytes.
+ *
+ * @see cuda_memcpy_host2device_async()  Async variant.
  */
 CudaStatus_t cuda_memcpy_host2device(std::size_t bytes, const void *src,
                                      void *dst);
 
 /**
- * @brief Copy bytes from host to device (async when pinned).
+ * @brief Asynchronous host-to-device memory copy.
  *
- * Delegates to cuda_memcpy with the HostToDevice direction.
+ * @details
+ * When @p pinned is `true`, uses `cudaMemcpyAsync` on a stream
+ * for non-blocking transfer.  When @p pinned is `false`, falls
+ * back to the synchronous @ref cuda_memcpy path.
  *
- * @param bytes  Number of bytes to copy.
- * @param src    Source pointer in host memory.
- * @param dst    Destination pointer in device memory.
- * @param pinned Whether the host buffer is pinned (page-locked).
- * @return CudaStatus_t describing success or failure.
+ * @param[in] bytes  Number of bytes to copy.
+ * @param[in] src    Source pointer (host memory).
+ * @param[out] dst   Destination pointer (device memory).
+ * @param[in] pinned Whether @p src is page-locked host memory.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
+ *
+ * @see cuda_memcpy_host2device()  Synchronous variant.
  */
 CudaStatus_t cuda_memcpy_host2device_async(std::size_t bytes, const void *src,
                                            void *dst, bool pinned);
 
 /**
- * @brief Copy bytes from device to host (synchronous).
+ * @brief Synchronous device-to-host memory copy.
  *
- * @param bytes Number of bytes to copy.
- * @param src   Source pointer in device memory.
- * @param dst   Destination pointer in host memory.
- * @return CudaStatus_t describing success or failure.
+ * @details
+ * Calls `cudaMemcpy` with `cudaMemcpyDeviceToHost`.  The
+ * transfer blocks until complete.
+ *
+ * @param[in] bytes  Number of bytes to copy.
+ * @param[in] src    Source pointer (device memory).
+ * @param[out] dst   Destination pointer (host memory).
+ *
+ * @return @ref CUDA_OK on success, or an error status.
+ *
+ * @see cuda_memcpy_device2host_async()  Async variant.
  */
 CudaStatus_t cuda_memcpy_device2host(std::size_t bytes, const void *src,
                                      void *dst);
 
 /**
- * @brief Copy bytes from device to host (async when pinned).
+ * @brief Asynchronous device-to-host memory copy.
  *
- * Delegates to cuda_memcpy with the DeviceToHost direction.
+ * @details
+ * When @p pinned is `true`, uses `cudaMemcpyAsync` on a stream
+ * for non-blocking transfer.  When @p pinned is `false`, falls
+ * back to the synchronous @ref cuda_memcpy path.
  *
- * @param bytes Number of bytes to copy.
- * @param src   Source pointer in device memory.
- * @param dst   Destination pointer in host memory.
- * @return CudaStatus_t describing success or failure.
+ * @param[in] bytes  Number of bytes to copy.
+ * @param[in] src    Source pointer (device memory).
+ * @param[out] dst   Destination pointer (host memory).
+ * @param[in] pinned Whether @p dst is page-locked host memory.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
+ *
+ * @see cuda_memcpy_device2host()  Synchronous variant.
  */
 CudaStatus_t cuda_memcpy_device2host_async(std::size_t bytes, const void *src,
                                            void *dst, bool pinned);
 
 /**
- * @brief Copy bytes from device to device (async).
+ * @brief Device-to-device memory copy.
  *
- * Delegates to cuda_memcpy with the DeviceToDevice direction.
+ * @details
+ * Uses @ref cuda_memcpy internally with
+ * `DeviceMemcpyKind::deviceMemcpyDeviceToDevice`.  The transfer
+ * is performed on a temporary stream and synchronised before
+ * returning.
  *
- * @param bytes Number of bytes to copy.
- * @param src   Source pointer in device memory.
- * @param dst   Destination pointer in device memory.
- * @return CudaStatus_t describing success or failure.
+ * @param[in] bytes  Number of bytes to copy.
+ * @param[in] src    Source pointer (device memory).
+ * @param[out] dst   Destination pointer (device memory).
+ *
+ * @return @ref CUDA_OK on success, or an error status.
+ *
+ * @pre  @p src and @p dst must not overlap.
  */
 CudaStatus_t cuda_memcpy_device2device(std::size_t bytes, const void *src,
                                        void *dst);
 
 /**
- * @brief Unified copy entry point — owns the full stream lifetime.
+ * @brief Master memcpy dispatcher for CUDA.
  *
- * Creates a stream, dispatches to the appropriate internal helper based on
- * @p kind, then synchronises and destroys the stream unconditionally before
- * returning.  A sync or destroy error takes priority over a copy error only
- * when the copy itself succeeded.
+ * @details
+ * Creates a temporary CUDA stream, performs the copy in the
+ * direction specified by @p kind, synchronises the stream, and
+ * destroys it before returning.  The @p is_pinned flag controls
+ * whether async transfers are used for host-side pointers.
  *
- * @param bytes     Number of bytes to copy.
- * @param kind      Copy direction.
- * @param src       Source pointer.
- * @param dst       Destination pointer.
- * @param is_pinned Whether the host buffer is pinned (page-locked).
- * @return CudaStatus_t describing success or failure.
+ * @param[in] bytes     Number of bytes to copy.
+ * @param[in] kind      Copy direction (@ref DeviceMemcpyKind).
+ * @param[in] src       Source pointer.
+ * @param[out] dst      Destination pointer.
+ * @param[in] is_pinned Whether the host-side pointer is
+ *                      page-locked.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
+ *
+ * @pre  @p src and @p dst must point to valid memory regions of
+ *       at least @p bytes.
+ * @pre  @p kind must match the actual memory types of @p src
+ *       and @p dst.
+ *
+ * @see device_memcpy()  Device-agnostic wrapper that calls this.
  */
 CudaStatus_t cuda_memcpy(std::size_t bytes, DeviceMemcpyKind kind,
                          const void *src, void *dst, bool is_pinned);

@@ -1,84 +1,89 @@
-#[[
-    @file ncore/CMakeLists.txt
-    @brief NovaNN core-library object builds.
+#[=======================================================================[.rst:
+.. module:: ncore
+   :synopsis: Core C and C++ object libraries for NovaNN.
 
-    Builds two object libraries consumed by the root CMakeLists.txt:
+Defines the two OBJECT libraries that are assembled into the final
+``nova`` shared library.
 
-      ncore_core_obj       — All C sources under ncore/src/core/ (tables/,
-                             detect/, *.c) and ncore/src/repr/ (formatting,
-                             traversal, layout).  Compiled as C23.
-      ncore_autograd_obj   — All C++ sources under ncore/src/autograd/.
-                             Compiled as CXX23.
+**Targets:**
 
-    Both targets inherit COMPILE_FLAGS, SIMD_FLAGS, DEBUG_FLAGS, and
-    RELEASE_FLAGS from the parent scope and have novaNN_configure_cpu_target()
-    applied for SIMD/pthreads/OpenMP.
+- ``ncore_obj``   — OBJECT library from all ``.c`` files in
+  ``ncore/src/repr/`` and ``ncore/src/core/``.
+- ``autograd_obj`` — OBJECT library from all ``.cpp`` files in
+  ``ncore/src/autograd/``.
 
-    @note GLOB_RECURSE patterns use `*` which matches path separators,
-          so ncore/src/repr/*.c finds .c files in all subdirectories.
+Both targets have ``POSITION_INDEPENDENT_CODE ON`` and receive the
+same compile flags, SIMD flags, and backend configuration as the
+root ``nova`` target.
 
-    Depends on: ncore/rust/ being configured first (add_subdirectory(rust))
-    Outputs   : ncore_core_obj, ncore_autograd_obj (object libraries)
-    See also  : CMakeLists.txt (root) — linker that merges these objects
-]]
+**Subdirectories:**
+
+- ``rust/`` — Builds the Rust memory subsystem.
+#]=======================================================================]
+
 add_subdirectory(rust)
 
-file(GLOB_RECURSE CORE_SOURCES
-    "${CMAKE_SOURCE_DIR}/ncore/src/core/tables/*.c"
-    "${CMAKE_SOURCE_DIR}/ncore/src/core/detect/*.c"
+file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/src/repr/*.c"
     "${CMAKE_SOURCE_DIR}/ncore/src/core/*.c"
 )
 
-list(REMOVE_ITEM CORE_SOURCES "${CMAKE_SOURCE_DIR}/ncore/src/core/main.c")
+add_library(ncore_obj OBJECT ${CORE_SOURCES})
 
-add_library(ncore_core_obj OBJECT ${CORE_SOURCES})
-
-set_target_properties(ncore_core_obj PROPERTIES
+set_target_properties(ncore_obj PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-target_include_directories(ncore_core_obj
+target_include_directories(ncore_obj
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
     PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/src>
-    ${CMAKE_BINARY_DIR}
+    PRIVATE ${CMAKE_BINARY_DIR}
 )
 
-target_compile_options(ncore_core_obj PRIVATE
+target_compile_options(ncore_obj PRIVATE
     ${COMPILE_FLAGS}
     ${SIMD_FLAGS}
     $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
 )
 
-novaNN_configure_cpu_target(ncore_core_obj)
-novaNN_configure_cuda_target(ncore_core_obj)
-novaNN_configure_hip_target(ncore_core_obj)
+nova_configure_cpu_target(ncore_obj)
+if(NOVA_HAS_CUDA)
+    nova_configure_cuda_target(ncore_obj)
+endif()
+
+if(NOVA_HAS_HIP)
+    nova_configure_hip_target(ncore_obj)
+endif()
 
 # Autograd C++ implementation
-file(GLOB_RECURSE AUTOGRAD_SOURCES
+file(GLOB_RECURSE AUTOGRAD_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/src/autograd/*.cpp"
 )
 
-add_library(ncore_autograd_obj OBJECT ${AUTOGRAD_SOURCES})
+add_library(autograd_obj OBJECT ${AUTOGRAD_SOURCES})
 
-set_target_properties(ncore_autograd_obj PROPERTIES
+set_target_properties(autograd_obj PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-target_include_directories(ncore_autograd_obj
+target_include_directories(autograd_obj
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
-    PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/src>
-    ${CMAKE_BINARY_DIR}
+    PRIVATE ${CMAKE_BINARY_DIR}
 )
 
-target_compile_options(ncore_autograd_obj PRIVATE
+target_compile_options(autograd_obj PRIVATE
     ${COMPILE_FLAGS}
     ${SIMD_FLAGS}
     $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
     $<$<CONFIG:Release>:${RELEASE_FLAGS}>
 )
 
-novaNN_configure_cpu_target(ncore_autograd_obj)
-novaNN_configure_cuda_target(ncore_autograd_obj)
-novaNN_configure_hip_target(ncore_autograd_obj)
+nova_configure_cpu_target(autograd_obj)
+if(NOVA_HAS_CUDA)
+    nova_configure_cuda_target(autograd_obj)
+endif()
+
+if(NOVA_HAS_HIP)
+    nova_configure_hip_target(autograd_obj)
+endif()

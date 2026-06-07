@@ -1,16 +1,9 @@
 # File Tree: NovaNN
 
-**Generated:** 5/30/2026, 12:29:53 PM
+**Generated:** 6/6/2026, 3:37:05 PM
 
 ```
 ├── .agents
-├── .opencode
-│   ├── skills
-│   │   └── conventional-commit
-│   │       └── SKILL.md
-│   ├── .gitignore
-│   ├── package-lock.json
-│   └── package.json
 ├── benchmarks
 │   ├── autograd
 │   │   ├── backward_overhead.py
@@ -30,11 +23,11 @@
 │   └── cython
 │       └── lib
 ├── cmake
-│   ├── config
+│   ├── Config
 │   │   ├── GenerateBackendConfig.cmake
 │   │   ├── GenerateCapabilityReport.cmake
 │   │   └── GenerateKernelRegistry.cmake
-│   ├── detect
+│   ├── Detect
 │   │   ├── cpu
 │   │   │   ├── DetectAMX.cmake
 │   │   │   ├── DetectAVX.cmake
@@ -46,27 +39,15 @@
 │   │   └── threading
 │   │       ├── DetectOpenMP.cmake
 │   │       └── DetectPThreads.cmake
-│   ├── modules
+│   ├── Modules
 │   │   ├── NovaNNCPU.cmake
 │   │   ├── NovaNNCUDA.cmake
 │   │   ├── NovaNNHIP.cmake
 │   │   └── NovaNNRuntime.cmake
-│   ├── utils
+│   ├── Utils
 │   │   └── CheckInstructionSupport.cmake
 │   └── config.h.in
 ├── docs
-│   ├── cmake
-│   │   ├── DetectSIMD.rst
-│   │   ├── config_h.rst
-│   │   ├── cpu_detect.rst
-│   │   ├── index.rst
-│   │   ├── modules.rst
-│   │   ├── ncore.rst
-│   │   ├── root.rst
-│   │   ├── rust.rst
-│   │   └── threading.rst
-│   ├── conf.py
-│   └── index.rst
 ├── examples
 │   ├── binary_classification.py
 │   ├── conv_example.py
@@ -110,6 +91,7 @@
 │   └── graph.png
 ├── ncore
 │   ├── backends
+│   ├── doxygen
 │   ├── generated
 │   ├── include
 │   │   ├── autograd
@@ -186,7 +168,6 @@
 │   │   ├── autograd
 │   │   │   ├── threadPool
 │   │   │   ├── engine.cpp
-│   │   │   ├── main.cpp
 │   │   │   ├── node.cpp
 │   │   │   └── tensor.cpp
 │   │   ├── core
@@ -201,7 +182,6 @@
 │   │   │   ├── copy.c
 │   │   │   ├── device.c
 │   │   │   ├── dtype.c
-│   │   │   ├── main.c
 │   │   │   ├── simd.c
 │   │   │   └── tensor.c
 │   │   ├── dtypes
@@ -241,8 +221,7 @@
 │   │           ├── tensor_iterator.c
 │   │           └── tensor_iterator.h
 │   ├── tests
-│   ├── CMakeLists.txt
-│   └── PANORAMA.md
+│   └── CMakeLists.txt
 ├── nova
 │   ├── _interfaces
 │   │   ├── README.es.md
@@ -407,6 +386,11 @@
 │   ├── _tensor.pyi
 │   ├── dtypes.py
 │   └── exceptions.py
+├── skills
+│   ├── conventional-commit
+│   │   └── SKILL.md
+│   └── doxygen-c-cxx-documentation
+│       └── SKILL.md
 ├── tests
 │   ├── functional
 │   │   ├── test_activation.py
@@ -469,6 +453,7 @@
 ├── LICENCE
 ├── README.es.md
 ├── README.md
+├── main.cpp
 ├── project-tree.md
 ├── pyproject.toml
 └── uv.lock
