@@ -1,19 +1,25 @@
 /**
  * @file hip_io.cpp
- * @brief Implementation of HIP memory copy helpers.
+ * @brief HIP data transfer implementation.
  *
- * Mirrors the CUDA helper implementation in cuda_io.cpp, but using the HIP
- * Runtime API (hipMemcpy / hipMemcpyAsync / hipStream*).
+ * @details
+ * Implements synchronous and asynchronous memcpy operations for
+ * host-to-device, device-to-host, and device-to-device copies.
+ * The master dispatcher @ref hip_memcpy owns the stream lifecycle
+ * (create, copy, synchronise, destroy).
  *
- * All transfers that involve device memory go through hip_memcpy, which
- * owns the stream lifetime: it creates the stream, dispatches to one of the
- * internal static helpers, synchronises, and destroys the stream before
- * returning — even on error paths. The static helpers never touch stream
- * lifetime; they only issue the async API call and return its status.
+ * The file is conditionally compiled behind `NOVA_HAS_HIP` and
+ * `__has_include(<hip/hip_runtime_api.h>)`.  When HIP headers are
+ * unavailable, stub functions returning an error status are
+ * provided.
  *
- * When the host buffer is not pinned, host↔device transfers fall back to the
- * synchronous hipMemcpy variants (no stream required); hip_memcpy still
- * synchronises and destroys the stream it created before returning.
+ * A `__HIP_PLATFORM_AMD__` macro is defined when neither AMD nor
+ * NVIDIA platform macros are set, ensuring clangd and clang-tidy
+ * can parse the HIP headers correctly.
+ *
+ * @see hip_io.hpp        Function declarations.
+ * @see hip_allocator.cpp HIP memory allocation implementation.
+ * @see ffi.cpp           Dispatch layer that calls into this file.
  */
 
 #ifdef NOVA_HAS_HIP
@@ -25,11 +31,12 @@
 #include <hip/hip_runtime_api.h>
 
 /**
- * @brief Map a HIP runtime error to a HipStatus_t code/message pair.
+ * @brief Map a HIP error to a @ref HipStatus_t.
  *
- * @param err HIP error value returned by the runtime API.
- * @return HipStatus_t with code 0 on success, or an application-level code
- *         describing the failure class.
+ * @param[in] err  The HIP error to map.
+ *
+ * @return Status with code `0` on success, `1` for invalid value,
+ *         `2` for invalid memcpy direction, `-1` otherwise.
  */
 static HipStatus_t map_hip_error(hipError_t err) {
   HipStatus_t status = {};
@@ -54,11 +61,12 @@ static HipStatus_t map_hip_error(hipError_t err) {
 }
 
 /**
- * @brief Map a HIP stream-creation or stream-destruction error to a
- *        HipStatus_t code/message pair.
+ * @brief Map a HIP stream error to a @ref HipStatus_t.
  *
- * @param err HIP error value returned by hipStreamCreate / hipStreamDestroy.
- * @return HipStatus_t with code 0 on success, or an application-level code.
+ * @param[in] err  The HIP error from a stream operation.
+ *
+ * @return Status with code `0` on success, `1` for invalid value,
+ *         `2` for invalid device, `-1` otherwise.
  */
 static HipStatus_t map_hip_stream_error(hipError_t err) {
   HipStatus_t status = {};
@@ -83,11 +91,12 @@ static HipStatus_t map_hip_stream_error(hipError_t err) {
 }
 
 /**
- * @brief Map a HIP stream-synchronisation error to a HipStatus_t
- *        code/message pair.
+ * @brief Map a HIP synchronisation error to a @ref HipStatus_t.
  *
- * @param err HIP error value returned by hipStreamSynchronize.
- * @return HipStatus_t with code 0 on success, or an application-level code.
+ * @param[in] err  The HIP error from stream synchronisation.
+ *
+ * @return Status with code `0` on success, `1` for invalid
+ *         resource handle, `-1` otherwise.
  */
 static HipStatus_t map_hip_sync_error(hipError_t err) {
   HipStatus_t status = {};
@@ -108,10 +117,11 @@ static HipStatus_t map_hip_sync_error(hipError_t err) {
 }
 
 /**
- * @brief Convert the device-agnostic copy kind to HIP's runtime enum.
+ * @brief Convert @ref DeviceMemcpyKind to `hipMemcpyKind`.
  *
- * @param kind Device-agnostic copy direction.
- * @return The corresponding hipMemcpyKind value.
+ * @param[in] kind  The device-agnostic copy direction.
+ *
+ * @return The corresponding HIP memcpy kind.
  */
 static hipMemcpyKind map_hip_memcpy_kind(DeviceMemcpyKind kind) {
   switch (kind) {
@@ -127,18 +137,19 @@ static hipMemcpyKind map_hip_memcpy_kind(DeviceMemcpyKind kind) {
 }
 
 /**
- * @brief Internal: issue a host-to-device copy on @p stream (pinned) or
- *        fall back to the synchronous variant (non-pinned).
+ * @brief Perform a host-to-device copy on @p stream.
  *
- * Does NOT own or modify stream lifetime. The caller (hip_memcpy) is
- * responsible for synchronising and destroying the stream.
+ * @details
+ * Uses `hipMemcpyAsync` when @p pinned is `true`,
+ * `hipMemcpy` otherwise.
  *
- * @param bytes  Number of bytes to copy.
- * @param stream Stream to use for the async path.
- * @param src    Source pointer in host memory.
- * @param dst    Destination pointer in device memory.
- * @param pinned Whether @p src is page-locked.
- * @return HipStatus_t describing success or failure of the copy call only.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  stream The HIP stream.
+ * @param[in]  src    Source host pointer.
+ * @param[out] dst    Destination device pointer.
+ * @param[in]  pinned Whether @p src is page-locked.
+ *
+ * @return Status of the copy operation.
  */
 static HipStatus_t hip_memcpy_h2d(std::size_t bytes, hipStream_t stream,
                                   const void *src, void *dst, bool pinned) {
@@ -150,18 +161,19 @@ static HipStatus_t hip_memcpy_h2d(std::size_t bytes, hipStream_t stream,
 }
 
 /**
- * @brief Internal: issue a device-to-host copy on @p stream (pinned) or
- *        fall back to the synchronous variant (non-pinned).
+ * @brief Perform a device-to-host copy on @p stream.
  *
- * Does NOT own or modify stream lifetime. The caller (hip_memcpy) is
- * responsible for synchronising and destroying the stream.
+ * @details
+ * Uses `hipMemcpyAsync` when @p pinned is `true`,
+ * `hipMemcpy` otherwise.
  *
- * @param bytes  Number of bytes to copy.
- * @param stream Stream to use for the async path.
- * @param src    Source pointer in device memory.
- * @param dst    Destination pointer in host memory.
- * @param pinned Whether @p dst is page-locked.
- * @return HipStatus_t describing success or failure of the copy call only.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  stream The HIP stream.
+ * @param[in]  src    Source device pointer.
+ * @param[out] dst    Destination host pointer.
+ * @param[in]  pinned Whether @p dst is page-locked.
+ *
+ * @return Status of the copy operation.
  */
 static HipStatus_t hip_memcpy_d2h(std::size_t bytes, hipStream_t stream,
                                   const void *src, void *dst, bool pinned) {
@@ -173,16 +185,14 @@ static HipStatus_t hip_memcpy_d2h(std::size_t bytes, hipStream_t stream,
 }
 
 /**
- * @brief Internal: issue an async device-to-device copy on @p stream.
+ * @brief Perform a device-to-device copy on @p stream.
  *
- * Does NOT own or modify stream lifetime. The caller (hip_memcpy) is
- * responsible for synchronising and destroying the stream.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  stream The HIP stream.
+ * @param[in]  src    Source device pointer.
+ * @param[out] dst    Destination device pointer.
  *
- * @param bytes  Number of bytes to copy.
- * @param stream Stream on which to issue the copy.
- * @param src    Source pointer in device memory.
- * @param dst    Destination pointer in device memory.
- * @return HipStatus_t describing success or failure of the copy call only.
+ * @return Status of the copy operation.
  */
 static HipStatus_t hip_memcpy_d2d(std::size_t bytes, hipStream_t stream,
                                   const void *src, void *dst) {
@@ -193,10 +203,11 @@ static HipStatus_t hip_memcpy_d2d(std::size_t bytes, hipStream_t stream,
 /**
  * @brief Synchronous host-to-device copy.
  *
- * @param bytes Number of bytes to copy.
- * @param src   Source pointer in host memory.
- * @param dst   Destination pointer in device memory.
- * @return HipStatus_t describing success or failure.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  src    Source host pointer.
+ * @param[out] dst    Destination device pointer.
+ *
+ * @return @ref HIP_OK on success, or an error status.
  */
 HipStatus_t hip_memcpy_host2device(std::size_t bytes, const void *src,
                                    void *dst) {
@@ -204,15 +215,18 @@ HipStatus_t hip_memcpy_host2device(std::size_t bytes, const void *src,
 }
 
 /**
- * @brief Host-to-device copy, async when the host buffer is pinned.
+ * @brief Asynchronous host-to-device copy.
  *
- * Delegates to hip_memcpy with the HostToDevice direction.
+ * @details
+ * Delegates to @ref hip_memcpy with
+ * @ref DeviceMemcpyKind::deviceMemcpyHostToDevice.
  *
- * @param bytes  Number of bytes to copy.
- * @param src    Source pointer in host memory.
- * @param dst    Destination pointer in device memory.
- * @param pinned Whether @p src is page-locked.
- * @return HipStatus_t describing success or failure.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  src    Source host pointer.
+ * @param[out] dst    Destination device pointer.
+ * @param[in]  pinned Whether @p src is page-locked.
+ *
+ * @return @ref HIP_OK on success, or an error status.
  */
 HipStatus_t hip_memcpy_host2device_async(std::size_t bytes, const void *src,
                                          void *dst, bool pinned) {
@@ -223,10 +237,11 @@ HipStatus_t hip_memcpy_host2device_async(std::size_t bytes, const void *src,
 /**
  * @brief Synchronous device-to-host copy.
  *
- * @param bytes Number of bytes to copy.
- * @param src   Source pointer in device memory.
- * @param dst   Destination pointer in host memory.
- * @return HipStatus_t describing success or failure.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  src    Source device pointer.
+ * @param[out] dst    Destination host pointer.
+ *
+ * @return @ref HIP_OK on success, or an error status.
  */
 HipStatus_t hip_memcpy_device2host(std::size_t bytes, const void *src,
                                    void *dst) {
@@ -234,15 +249,18 @@ HipStatus_t hip_memcpy_device2host(std::size_t bytes, const void *src,
 }
 
 /**
- * @brief Device-to-host copy, async when the host buffer is pinned.
+ * @brief Asynchronous device-to-host copy.
  *
- * Delegates to hip_memcpy with the DeviceToHost direction.
+ * @details
+ * Delegates to @ref hip_memcpy with
+ * @ref DeviceMemcpyKind::deviceMemcpyDeviceToHost.
  *
- * @param bytes  Number of bytes to copy.
- * @param src    Source pointer in device memory.
- * @param dst    Destination pointer in host memory.
- * @param pinned Whether @p dst is page-locked.
- * @return HipStatus_t describing success or failure.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  src    Source device pointer.
+ * @param[out] dst    Destination host pointer.
+ * @param[in]  pinned Whether @p dst is page-locked.
+ *
+ * @return @ref HIP_OK on success, or an error status.
  */
 HipStatus_t hip_memcpy_device2host_async(std::size_t bytes, const void *src,
                                          void *dst, bool pinned) {
@@ -251,14 +269,17 @@ HipStatus_t hip_memcpy_device2host_async(std::size_t bytes, const void *src,
 }
 
 /**
- * @brief Async device-to-device copy.
+ * @brief Device-to-device copy.
  *
- * Delegates to hip_memcpy with the DeviceToDevice direction.
+ * @details
+ * Delegates to @ref hip_memcpy with
+ * @ref DeviceMemcpyKind::deviceMemcpyDeviceToDevice.
  *
- * @param bytes Number of bytes to copy.
- * @param src   Source pointer in device memory.
- * @param dst   Destination pointer in device memory.
- * @return HipStatus_t describing success or failure.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  src    Source device pointer.
+ * @param[out] dst    Destination device pointer.
+ *
+ * @return @ref HIP_OK on success, or an error status.
  */
 HipStatus_t hip_memcpy_device2device(std::size_t bytes, const void *src,
                                      void *dst) {
@@ -267,20 +288,20 @@ HipStatus_t hip_memcpy_device2device(std::size_t bytes, const void *src,
 }
 
 /**
- * @brief Unified copy entry point — owns the full stream lifetime.
+ * @brief Master memcpy dispatcher for HIP.
  *
- * Creates a stream, dispatches to the appropriate internal helper based on
- * @p kind, then synchronises and destroys the stream unconditionally before
- * returning.  A sync or destroy error takes priority over a copy error only
- * when the copy itself succeeded.
+ * @details
+ * Creates a temporary stream, performs the copy in the direction
+ * specified by @p kind, synchronises, and destroys the stream.
  *
- * @param bytes     Number of bytes to copy.
- * @param kind      Copy direction.
- * @param src       Source pointer.
- * @param dst       Destination pointer.
- * @param is_pinned Whether the host-side buffer is page-locked (only
- *                  meaningful for H2D and D2H transfers).
- * @return HipStatus_t describing success or failure.
+ * @param[in]  bytes     Number of bytes.
+ * @param[in]  kind      Copy direction.
+ * @param[in]  src       Source pointer.
+ * @param[out] dst       Destination pointer.
+ * @param[in]  is_pinned Whether the host-side pointer is
+ *                      page-locked.
+ *
+ * @return @ref HIP_OK on success, or an error status.
  */
 HipStatus_t hip_memcpy(std::size_t bytes, DeviceMemcpyKind kind,
                        const void *src, void *dst, bool is_pinned) {
@@ -305,13 +326,11 @@ HipStatus_t hip_memcpy(std::size_t bytes, DeviceMemcpyKind kind,
     break;
   }
 
-  // Synchronise unconditionally
   const hipError_t sync_err = hipStreamSynchronize(stream);
   if (sync_err != hipSuccess && status.code == 0) {
     status = map_hip_sync_error(sync_err);
   }
 
-  // Destroy unconditionally
   const hipError_t destroy_err = hipStreamDestroy(stream);
   if (destroy_err != hipSuccess && status.code == 0) {
     status = map_hip_stream_error(destroy_err);
@@ -322,18 +341,14 @@ HipStatus_t hip_memcpy(std::size_t bytes, DeviceMemcpyKind kind,
 
 #else // !__has_include(<hip/hip_runtime_api.h>)
 
-/**
- * @brief Fallback host-to-device copy when HIP headers are unavailable.
- */
+/** @brief Stub: HIP runtime headers not available. */
 HipStatus_t hip_memcpy_host2device(std::size_t, const void *, void *) {
   return HipStatus_t{.code = -1,
                      .msg = "HIP runtime headers not available at"
                             " build/lint time"};
 }
 
-/**
- * @brief Fallback host-to-device async copy when HIP headers are unavailable.
- */
+/** @brief Stub: HIP runtime headers not available. */
 HipStatus_t hip_memcpy_host2device_async(std::size_t, const void *, void *,
                                          bool) {
   return HipStatus_t{.code = -1,
@@ -341,18 +356,14 @@ HipStatus_t hip_memcpy_host2device_async(std::size_t, const void *, void *,
                             " build/lint time"};
 }
 
-/**
- * @brief Fallback device-to-host copy when HIP headers are unavailable.
- */
+/** @brief Stub: HIP runtime headers not available. */
 HipStatus_t hip_memcpy_device2host(std::size_t, const void *, void *) {
   return HipStatus_t{.code = -1,
                      .msg = "HIP runtime headers not available at"
                             " build/lint time"};
 }
 
-/**
- * @brief Fallback device-to-host async copy when HIP headers are unavailable.
- */
+/** @brief Stub: HIP runtime headers not available. */
 HipStatus_t hip_memcpy_device2host_async(std::size_t, const void *, void *,
                                          bool) {
   return HipStatus_t{.code = -1,
@@ -360,18 +371,14 @@ HipStatus_t hip_memcpy_device2host_async(std::size_t, const void *, void *,
                             " build/lint time"};
 }
 
-/**
- * @brief Fallback device-to-device copy when HIP headers are unavailable.
- */
+/** @brief Stub: HIP runtime headers not available. */
 HipStatus_t hip_memcpy_device2device(std::size_t, const void *, void *) {
   return HipStatus_t{.code = -1,
                      .msg = "HIP runtime headers not available at"
                             " build/lint time"};
 }
 
-/**
- * @brief Fallback generic copy when HIP headers are unavailable.
- */
+/** @brief Stub: HIP runtime headers not available. */
 HipStatus_t hip_memcpy(std::size_t, DeviceMemcpyKind, const void *, void *,
                        bool) {
   return HipStatus_t{.code = -1,
