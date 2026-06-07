@@ -21,6 +21,9 @@
 #include <ncore/dtype.h>
 #include <stdio.h>
 
+/**
+ * @brief String table indexed by DType_.
+ */
 static const char *g_dtype_string[NUM_DTYPES] = {
     [Float32] = "float32",   [Float64] = "float64",   [Float16] = "float16",
     [BFloat16] = "bfloat16", [Signed8] = "int8",      [UnSigned8] = "uint8",
@@ -28,19 +31,44 @@ static const char *g_dtype_string[NUM_DTYPES] = {
     [UnSigned32] = "uint32", [Signed64] = "int64",    [UnSigned64] = "uint64",
 };
 
+/**
+ * @brief String table indexed by Device enum.
+ */
 static const char *g_device_string[3] = {
     [DEVICE_CPU] = "cpu", [DEVICE_GPU] = "cuda", [DEVICE_META] = "meta"};
 
+/**
+ * @brief Look up the human-readable string for a DType.
+ *
+ * @param[in] d DType value.
+ * @return Pointer to a static string, or "unknown" if out of range.
+ */
 static const char *dtype_string(DType_ d) {
-  if (d >= NUM_DTYPES) return "unknown";
+  if (d >= NUM_DTYPES) {
+    return "unknown";
+  }
   return g_dtype_string[d];
 }
 
+/**
+ * @brief Look up the human-readable string for a Device.
+ *
+ * @param[in] d Device value.
+ * @return Pointer to a static string, or "unknown" if out of range.
+ */
 static const char *device_string(Device d) {
-  if ((int)d >= 3) return "unknown";
+  if ((int)d >= 3) {
+    return "unknown";
+  }
   return g_device_string[d];
 }
 
+/**
+ * @brief Append the metadata suffix and close the outer `)`.
+ *
+ * @param[in] ctx ReprContext (mode, tensor pointer, etc.).
+ * @param[in] sb  Output builder.
+ */
 void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
   const Tensor *ten = ctx->tensor;
   ReprMode mode = ctx->options.mode;
@@ -111,7 +139,7 @@ void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
     sb_append(sb, ", grad_fn=<BackwardNode>");
   } else {
     sb_append(sb, ", requires_grad=");
-    sb_append(sb, ten->requires_grad_ ? "True" : "False");
+    sb_append(sb, (int)ten->requires_grad_ ? "True" : "False");
   }
 
   sb_append(sb, ")");
