@@ -1,33 +1,35 @@
 /**
  * @file cuda_io.cpp
- * @brief Implementation of CUDA memory copy helpers.
+ * @brief CUDA data transfer implementation.
  *
- * Implements host↔device and device↔device copy helpers using the CUDA
- * Runtime API (cudaMemcpy / cudaMemcpyAsync / cudaStream*), returning
- * CudaStatus_t for consistent error reporting.
+ * @details
+ * Implements synchronous and asynchronous memcpy operations for
+ * host-to-device, device-to-host, and device-to-device copies.
+ * The master dispatcher @ref cuda_memcpy owns the stream lifecycle
+ * (create, copy, synchronise, destroy).
  *
- * All transfers that involve device memory go through cuda_memcpy, which
- * owns the stream lifetime: it creates the stream, dispatches to one of the
- * internal static helpers, synchronises, and destroys the stream before
- * returning — even on error paths. The static helpers never touch stream
- * lifetime; they only issue the async API call and return its status.
+ * The file is conditionally compiled behind `NOVA_HAS_CUDA` and
+ * `__has_include(<cuda_runtime_api.h>)`.  When CUDA headers are
+ * unavailable, stub functions returning an error status are
+ * provided.
  *
- * When the host buffer is not pinned, host↔device transfers fall back to the
- * synchronous cudaMemcpy variants (no stream required); cuda_memcpy still
- * synchronises and destroys the stream it created before returning.
+ * @see cuda_io.hpp        Function declarations.
+ * @see cuda_allocator.cpp CUDA memory allocation implementation.
+ * @see ffi.cpp            Dispatch layer that calls into this file.
  */
 
 #ifdef NOVA_HAS_CUDA
 #if __has_include(<cuda_runtime_api.h>)
-#include <cuda_runtime_api.h>
 #include "cuda_io.hpp"
+#include <cuda_runtime_api.h>
 
 /**
- * @brief Map a CUDA runtime error to a CudaStatus_t code/message pair.
+ * @brief Map a CUDA error to a @ref CudaStatus_t.
  *
- * @param err CUDA error value returned by the runtime API.
- * @return CudaStatus_t with code 0 on success, or an application-level code
- *         describing the failure class.
+ * @param[in] err  The CUDA error to map.
+ *
+ * @return Status with code `0` on success, `1` for invalid value,
+ *         `2` for invalid memcpy direction, `-1` otherwise.
  */
 static CudaStatus_t map_cuda_error(cudaError_t err) {
   CudaStatus_t status = {};
@@ -52,12 +54,12 @@ static CudaStatus_t map_cuda_error(cudaError_t err) {
 }
 
 /**
- * @brief Map a CUDA stream-creation or stream-destruction error to a
- *        CudaStatus_t code/message pair.
+ * @brief Map a CUDA stream error to a @ref CudaStatus_t.
  *
- * @param err CUDA error value returned by cudaStreamCreate /
- *            cudaStreamDestroy.
- * @return CudaStatus_t with code 0 on success, or an application-level code.
+ * @param[in] err  The CUDA error from a stream operation.
+ *
+ * @return Status with code `0` on success, `1` for invalid value,
+ *         `2` for external device error, `-1` otherwise.
  */
 static CudaStatus_t map_cuda_stream_error(cudaError_t err) {
   CudaStatus_t status = {};
@@ -82,11 +84,12 @@ static CudaStatus_t map_cuda_stream_error(cudaError_t err) {
 }
 
 /**
- * @brief Map a CUDA stream-synchronisation error to a CudaStatus_t
- *        code/message pair.
+ * @brief Map a CUDA synchronisation error to a @ref CudaStatus_t.
  *
- * @param err CUDA error value returned by cudaStreamSynchronize.
- * @return CudaStatus_t with code 0 on success, or an application-level code.
+ * @param[in] err  The CUDA error from stream synchronisation.
+ *
+ * @return Status with code `0` on success, `1` for invalid
+ *         resource handle, `-1` otherwise.
  */
 static CudaStatus_t map_cuda_sync_error(cudaError_t err) {
   CudaStatus_t status = {};
@@ -107,10 +110,11 @@ static CudaStatus_t map_cuda_sync_error(cudaError_t err) {
 }
 
 /**
- * @brief Convert the device-agnostic copy kind to CUDA's runtime enum.
+ * @brief Convert @ref DeviceMemcpyKind to `cudaMemcpyKind`.
  *
- * @param kind Device-agnostic copy direction.
- * @return The corresponding cudaMemcpyKind value.
+ * @param[in] kind  The device-agnostic copy direction.
+ *
+ * @return The corresponding CUDA memcpy kind.
  */
 static cudaMemcpyKind map_cuda_memcpy_kind(DeviceMemcpyKind kind) {
   switch (kind) {
@@ -126,18 +130,19 @@ static cudaMemcpyKind map_cuda_memcpy_kind(DeviceMemcpyKind kind) {
 }
 
 /**
- * @brief Internal: issue a host-to-device copy on @p stream (pinned) or
- *        fall back to the synchronous variant (non-pinned).
+ * @brief Perform a host-to-device copy on @p stream.
  *
- * Does NOT own or modify stream lifetime. The caller (cuda_memcpy) is
- * responsible for synchronising and destroying the stream.
+ * @details
+ * Uses `cudaMemcpyAsync` when @p pinned is `true`,
+ * `cudaMemcpy` otherwise.
  *
- * @param bytes  Number of bytes to copy.
- * @param stream Stream to use for the async path.
- * @param src    Source pointer in host memory.
- * @param dst    Destination pointer in device memory.
- * @param pinned Whether @p src is page-locked.
- * @return CudaStatus_t describing success or failure of the copy call only.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  stream The CUDA stream.
+ * @param[in]  src    Source host pointer.
+ * @param[out] dst    Destination device pointer.
+ * @param[in]  pinned Whether @p src is page-locked.
+ *
+ * @return Status of the copy operation.
  */
 static CudaStatus_t cuda_memcpy_h2d(std::size_t bytes, cudaStream_t stream,
                                     const void *src, void *dst, bool pinned) {
@@ -149,18 +154,19 @@ static CudaStatus_t cuda_memcpy_h2d(std::size_t bytes, cudaStream_t stream,
 }
 
 /**
- * @brief Internal: issue a device-to-host copy on @p stream (pinned) or
- *        fall back to the synchronous variant (non-pinned).
+ * @brief Perform a device-to-host copy on @p stream.
  *
- * Does NOT own or modify stream lifetime. The caller (cuda_memcpy) is
- * responsible for synchronising and destroying the stream.
+ * @details
+ * Uses `cudaMemcpyAsync` when @p pinned is `true`,
+ * `cudaMemcpy` otherwise.
  *
- * @param bytes  Number of bytes to copy.
- * @param stream Stream to use for the async path.
- * @param src    Source pointer in device memory.
- * @param dst    Destination pointer in host memory.
- * @param pinned Whether @p dst is page-locked.
- * @return CudaStatus_t describing success or failure of the copy call only.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  stream The CUDA stream.
+ * @param[in]  src    Source device pointer.
+ * @param[out] dst    Destination host pointer.
+ * @param[in]  pinned Whether @p dst is page-locked.
+ *
+ * @return Status of the copy operation.
  */
 static CudaStatus_t cuda_memcpy_d2h(std::size_t bytes, cudaStream_t stream,
                                     const void *src, void *dst, bool pinned) {
@@ -172,16 +178,14 @@ static CudaStatus_t cuda_memcpy_d2h(std::size_t bytes, cudaStream_t stream,
 }
 
 /**
- * @brief Internal: issue an async device-to-device copy on @p stream.
+ * @brief Perform a device-to-device copy on @p stream.
  *
- * Does NOT own or modify stream lifetime. The caller (cuda_memcpy) is
- * responsible for synchronising and destroying the stream.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  stream The CUDA stream.
+ * @param[in]  src    Source device pointer.
+ * @param[out] dst    Destination device pointer.
  *
- * @param bytes  Number of bytes to copy.
- * @param stream Stream on which to issue the copy.
- * @param src    Source pointer in device memory.
- * @param dst    Destination pointer in device memory.
- * @return CudaStatus_t describing success or failure of the copy call only.
+ * @return Status of the copy operation.
  */
 static CudaStatus_t cuda_memcpy_d2d(std::size_t bytes, cudaStream_t stream,
                                     const void *src, void *dst) {
@@ -192,10 +196,11 @@ static CudaStatus_t cuda_memcpy_d2d(std::size_t bytes, cudaStream_t stream,
 /**
  * @brief Synchronous host-to-device copy.
  *
- * @param bytes Number of bytes to copy.
- * @param src   Source pointer in host memory.
- * @param dst   Destination pointer in device memory.
- * @return CudaStatus_t describing success or failure.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  src    Source host pointer.
+ * @param[out] dst    Destination device pointer.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
  */
 CudaStatus_t cuda_memcpy_host2device(std::size_t bytes, const void *src,
                                      void *dst) {
@@ -203,15 +208,18 @@ CudaStatus_t cuda_memcpy_host2device(std::size_t bytes, const void *src,
 }
 
 /**
- * @brief Host-to-device copy, async when the host buffer is pinned.
+ * @brief Asynchronous host-to-device copy.
  *
- * Delegates to cuda_memcpy with the HostToDevice direction.
+ * @details
+ * Delegates to @ref cuda_memcpy with
+ * @ref DeviceMemcpyKind::deviceMemcpyHostToDevice.
  *
- * @param bytes  Number of bytes to copy.
- * @param src    Source pointer in host memory.
- * @param dst    Destination pointer in device memory.
- * @param pinned Whether @p src is page-locked.
- * @return CudaStatus_t describing success or failure.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  src    Source host pointer.
+ * @param[out] dst    Destination device pointer.
+ * @param[in]  pinned Whether @p src is page-locked.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
  */
 CudaStatus_t cuda_memcpy_host2device_async(std::size_t bytes, const void *src,
                                            void *dst, bool pinned) {
@@ -222,10 +230,11 @@ CudaStatus_t cuda_memcpy_host2device_async(std::size_t bytes, const void *src,
 /**
  * @brief Synchronous device-to-host copy.
  *
- * @param bytes Number of bytes to copy.
- * @param src   Source pointer in device memory.
- * @param dst   Destination pointer in host memory.
- * @return CudaStatus_t describing success or failure.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  src    Source device pointer.
+ * @param[out] dst    Destination host pointer.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
  */
 CudaStatus_t cuda_memcpy_device2host(std::size_t bytes, const void *src,
                                      void *dst) {
@@ -233,15 +242,18 @@ CudaStatus_t cuda_memcpy_device2host(std::size_t bytes, const void *src,
 }
 
 /**
- * @brief Device-to-host copy, async when the host buffer is pinned.
+ * @brief Asynchronous device-to-host copy.
  *
- * Delegates to cuda_memcpy with the DeviceToHost direction.
+ * @details
+ * Delegates to @ref cuda_memcpy with
+ * @ref DeviceMemcpyKind::deviceMemcpyDeviceToHost.
  *
- * @param bytes  Number of bytes to copy.
- * @param src    Source pointer in device memory.
- * @param dst    Destination pointer in host memory.
- * @param pinned Whether @p dst is page-locked.
- * @return CudaStatus_t describing success or failure.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  src    Source device pointer.
+ * @param[out] dst    Destination host pointer.
+ * @param[in]  pinned Whether @p dst is page-locked.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
  */
 CudaStatus_t cuda_memcpy_device2host_async(std::size_t bytes, const void *src,
                                            void *dst, bool pinned) {
@@ -250,14 +262,17 @@ CudaStatus_t cuda_memcpy_device2host_async(std::size_t bytes, const void *src,
 }
 
 /**
- * @brief Async device-to-device copy.
+ * @brief Device-to-device copy.
  *
- * Delegates to cuda_memcpy with the DeviceToDevice direction.
+ * @details
+ * Delegates to @ref cuda_memcpy with
+ * @ref DeviceMemcpyKind::deviceMemcpyDeviceToDevice.
  *
- * @param bytes Number of bytes to copy.
- * @param src   Source pointer in device memory.
- * @param dst   Destination pointer in device memory.
- * @return CudaStatus_t describing success or failure.
+ * @param[in]  bytes  Number of bytes.
+ * @param[in]  src    Source device pointer.
+ * @param[out] dst    Destination device pointer.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
  */
 CudaStatus_t cuda_memcpy_device2device(std::size_t bytes, const void *src,
                                        void *dst) {
@@ -266,20 +281,20 @@ CudaStatus_t cuda_memcpy_device2device(std::size_t bytes, const void *src,
 }
 
 /**
- * @brief Unified copy entry point — owns the full stream lifetime.
+ * @brief Master memcpy dispatcher for CUDA.
  *
- * Creates a stream, dispatches to the appropriate internal helper based on
- * @p kind, then synchronises and destroys the stream unconditionally before
- * returning.  A sync or destroy error takes priority over a copy error only
- * when the copy itself succeeded.
+ * @details
+ * Creates a temporary stream, performs the copy in the direction
+ * specified by @p kind, synchronises, and destroys the stream.
  *
- * @param bytes     Number of bytes to copy.
- * @param kind      Copy direction.
- * @param src       Source pointer.
- * @param dst       Destination pointer.
- * @param is_pinned Whether the host-side buffer is page-locked (only
- *                  meaningful for H2D and D2H transfers).
- * @return CudaStatus_t describing success or failure.
+ * @param[in]  bytes     Number of bytes.
+ * @param[in]  kind      Copy direction.
+ * @param[in]  src       Source pointer.
+ * @param[out] dst       Destination pointer.
+ * @param[in]  is_pinned Whether the host-side pointer is
+ *                      page-locked.
+ *
+ * @return @ref CUDA_OK on success, or an error status.
  */
 CudaStatus_t cuda_memcpy(std::size_t bytes, DeviceMemcpyKind kind,
                          const void *src, void *dst, bool is_pinned) {
@@ -304,13 +319,11 @@ CudaStatus_t cuda_memcpy(std::size_t bytes, DeviceMemcpyKind kind,
     break;
   }
 
-  // Synchronise unconditionally
   const cudaError_t sync_err = cudaStreamSynchronize(stream);
   if (sync_err != cudaSuccess && status.code == 0) {
     status = map_cuda_sync_error(sync_err);
   }
 
-  // Destroy unconditionally
   const cudaError_t destroy_err = cudaStreamDestroy(stream);
   if (destroy_err != cudaSuccess && status.code == 0) {
     status = map_cuda_stream_error(destroy_err);
@@ -321,18 +334,14 @@ CudaStatus_t cuda_memcpy(std::size_t bytes, DeviceMemcpyKind kind,
 
 #else // !__has_include(<cuda_runtime_api.h>)
 
-/**
- * @brief Fallback host-to-device copy when CUDA headers are unavailable.
- */
+/** @brief Stub: CUDA runtime headers not available. */
 CudaStatus_t cuda_memcpy_host2device(std::size_t, const void *, void *) {
   return CudaStatus_t{.code = -1,
                       .msg = "CUDA runtime headers not available at"
                              " build/lint time"};
 }
 
-/**
- * @brief Fallback host-to-device async copy when CUDA headers are unavailable.
- */
+/** @brief Stub: CUDA runtime headers not available. */
 CudaStatus_t cuda_memcpy_host2device_async(std::size_t, const void *, void *,
                                            bool) {
   return CudaStatus_t{.code = -1,
@@ -340,18 +349,14 @@ CudaStatus_t cuda_memcpy_host2device_async(std::size_t, const void *, void *,
                              " build/lint time"};
 }
 
-/**
- * @brief Fallback device-to-host copy when CUDA headers are unavailable.
- */
+/** @brief Stub: CUDA runtime headers not available. */
 CudaStatus_t cuda_memcpy_device2host(std::size_t, const void *, void *) {
   return CudaStatus_t{.code = -1,
                       .msg = "CUDA runtime headers not available at"
                              " build/lint time"};
 }
 
-/**
- * @brief Fallback device-to-host async copy when CUDA headers are unavailable.
- */
+/** @brief Stub: CUDA runtime headers not available. */
 CudaStatus_t cuda_memcpy_device2host_async(std::size_t, const void *, void *,
                                            bool) {
   return CudaStatus_t{.code = -1,
@@ -359,18 +364,14 @@ CudaStatus_t cuda_memcpy_device2host_async(std::size_t, const void *, void *,
                              " build/lint time"};
 }
 
-/**
- * @brief Fallback device-to-device copy when CUDA headers are unavailable.
- */
+/** @brief Stub: CUDA runtime headers not available. */
 CudaStatus_t cuda_memcpy_device2device(std::size_t, const void *, void *) {
   return CudaStatus_t{.code = -1,
                       .msg = "CUDA runtime headers not available at"
                              " build/lint time"};
 }
 
-/**
- * @brief Fallback generic copy when CUDA headers are unavailable.
- */
+/** @brief Stub: CUDA runtime headers not available. */
 CudaStatus_t cuda_memcpy(std::size_t, DeviceMemcpyKind, const void *, void *,
                          bool) {
   return CudaStatus_t{.code = -1,
