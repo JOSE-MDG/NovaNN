@@ -28,16 +28,34 @@
 
 #include "repr/formatters/element_fmt.h"
 
-static bool is_float_dtype(DType_ d) {
+/**
+ * @brief Check if a DType is a floating-point type.
+ *
+ * @param[in] d DType value.
+ * @return true if d is Float32, Float64, Float16, or BFloat16.
+ */
+static inline bool is_float_dtype(DType_ d) {
   return d == Float32 || d == Float64 || d == Float16 || d == BFloat16;
 }
 
-static bool is_integer_dtype(DType_ d) {
+/**
+ * @brief Check if a DType is an integer type.
+ *
+ * @param[in] d DType value.
+ * @return true if d is any signed or unsigned integer type.
+ */
+static inline bool is_integer_dtype(DType_ d) {
   return d == Signed8 || d == UnSigned8 || d == Signed32 || d == UnSigned32 ||
          d == Signed64 || d == UnSigned64;
 }
 
-static bool is_quantized_dtype(DType_ d) {
+/**
+ * @brief Check if a DType is a quantized type.
+ *
+ * @param[in] d DType value.
+ * @return true if d is QSigned8 or QUnSigned8.
+ */
+static inline bool is_quantized_dtype(DType_ d) {
   return d == QSigned8 || d == QUnSigned8;
 }
 
@@ -47,8 +65,8 @@ static bool is_quantized_dtype(DType_ d) {
  * Used only during scientific-notation auto-detection.  Keeps a small
  * switch rather than adding a second dispatch path.
  */
-static double get_float_value(const Tensor *ten, size_t idx) {
-  const size_t elem_off = ten->offset / ten->item_size + idx;
+static inline double get_float_value(const Tensor *ten, size_t idx) {
+  const size_t elem_off = (ten->offset / ten->item_size) + idx;
   switch (ten->dtype) {
   case Float32:
     return (double)ten->data.f32[elem_off];
@@ -63,16 +81,26 @@ static double get_float_value(const Tensor *ten, size_t idx) {
   }
 }
 
+/**
+ * @brief Build a ReprContext from a tensor and options.
+ *
+ * Scans up to 1000 elements to determine the maximum element width and,
+ * for float types, whether scientific notation should be enabled via the
+ * PyTorch heuristic.  Meta and GPU tensors skip the data scan.
+ *
+ * @param[in]  ten  Tensor to render (must not be NULL).
+ * @param[in]  opts Options (NULL = use repr_default_options()).
+ * @return Fully populated ReprContext.
+ */
 ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
-  ReprContext ctx;
-  memset(&ctx, 0, sizeof(ctx));
+  ReprContext ctx = {0};
   ctx.tensor = ten;
   ctx.options = opts ? *opts : repr_default_options();
   ctx.is_float = is_float_dtype(ten->dtype);
   ctx.is_integer = is_integer_dtype(ten->dtype);
   ctx.is_quantized = is_quantized_dtype(ten->dtype);
   ctx.is_bool = opts ? opts->is_bool : false;
-  ctx.is_scalar = (ten->ndims == 0);
+  ctx.is_scalar = is_scalar(ten);
   ctx.is_meta = (ten->device == DEVICE_META);
   ctx.is_gpu = (ten->device == DEVICE_GPU);
   ctx.effective_precision = opts ? opts->precision : 4;
@@ -80,6 +108,8 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   ctx.use_sci = opts ? opts->sci_mode : false;
 
   size_t n = ten->size > 1000 ? 1000 : ten->size;
+
+  // TODO: If the Tensor is on device move it to the Host
 
   if (ctx.is_meta || ctx.is_gpu) {
     ctx.element_width = 3;
@@ -129,7 +159,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   for (size_t i = 0; i < n; i++) {
     char fmt_buf[128];
     const void *ptr =
-        (const uint8_t *)ten->data.data + (ten->offset + i * ten->item_size);
+        (const uint8 *)ten->data.u8 + (ten->offset + (i * ten->item_size));
     format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &ctx);
     size_t w = strlen(fmt_buf);
     if (w > max_w) {
@@ -141,7 +171,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
     for (size_t i = ten->size - n; i < ten->size; i++) {
       char fmt_buf[128];
       const void *ptr =
-          (const uint8_t *)ten->data.data + (ten->offset + i * ten->item_size);
+          (const uint8 *)ten->data.u8 + (ten->offset + (i * ten->item_size));
       format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &ctx);
       size_t w = strlen(fmt_buf);
       if (w > max_w) {
