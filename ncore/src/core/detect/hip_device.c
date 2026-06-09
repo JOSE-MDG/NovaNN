@@ -66,7 +66,11 @@
 #include <ncore/macros.h>
 #include <stdbool.h>
 #include <stdio.h>
+#ifdef __linux__
 #include <threads.h>
+#elif defined(_WIN64)
+/* TODO: windows threading support */
+#endif
 
 /**
  * @var active_device_id
