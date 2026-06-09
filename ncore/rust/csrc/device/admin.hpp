@@ -1,10 +1,21 @@
 /**
  * @file admin.hpp
- * @brief Runtime device-backend detection and enumeration.
+ * @brief GPU backend identification for the device-agnostic FFI layer.
  *
- * Defines the DeviceKind_t enum shared by all backend-specific allocator
- * modules and exposes a C-FFI function to query the active GPU runtime
- * (CUDA vs. HIP) at run time.
+ * @details
+ * Declares the @ref DeviceKind_t enumeration and the runtime probe
+ * function @ref get_device_backend().  The rest of the csrc module
+ * uses these to dispatch memory and copy operations to the correct
+ * GPU runtime (CUDA or HIP).
+ *
+ * The detected backend is determined once at process start by
+ * probing CUDA and HIP runtime availability via
+ * @ref is_cuda_available() and @ref is_hip_available() from
+ * `<ncore/device.h>`.
+ *
+ * @see admin.cpp       Implementation of the runtime probe.
+ * @see ffi.hpp         Top-level FFI dispatch that consumes this enum.
+ * @see ncore/device.h  Backend availability query functions.
  */
 
 #pragma once
