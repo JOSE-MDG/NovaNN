@@ -28,7 +28,11 @@
  */
 
 #include <ncore/simd.h>
+#ifdef __linux__
 #include <threads.h>
+#elif defined(_WIN64)
+/* TODO: windows threading support */
+#endif
 
 #ifdef _WIN64
 /** @brief Windows intrinsics for CPUID support. */
