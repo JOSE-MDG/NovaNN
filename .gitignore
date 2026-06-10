@@ -34,8 +34,5 @@ dist/
 # Cache
 .cache/
 
-# Scripts
-examples.py
-
 # Cargo crate
 Cargo.lock
