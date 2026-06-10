@@ -39,6 +39,3 @@ examples.py
 
 # Cargo crate
 Cargo.lock
-
-# Target (compiled rust modules and releases)
-ncore/rust/target/
