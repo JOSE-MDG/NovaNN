@@ -67,12 +67,7 @@ target_include_directories(rustcsrc
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
-target_compile_options(rustcsrc PRIVATE
-    ${COMPILE_FLAGS}
-    ${SIMD_FLAGS}
-    $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
-    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
-)
+nova_configure_build_flags(rustcsrc)
 
 nova_configure_cpu_target(rustcsrc)
 
