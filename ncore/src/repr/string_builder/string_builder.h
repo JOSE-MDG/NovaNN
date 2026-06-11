@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <ncore/macros.h>
 #include <stdarg.h>
 #include <stddef.h>
 
@@ -52,6 +53,7 @@ void sb_append(StringBuilder *sb, const char *str);
  * @param[in] sb  Output StringBuilder.
  * @param[in] fmt printf format string.
  */
+ATTR(format(printf, 2, 3))
 void sb_appendf(StringBuilder *sb, const char *fmt, ...);
 
 /**

@@ -61,6 +61,7 @@ gfx1200     rdna4 (RX 9000 series)
 if(WIN32)
     set(NOVA_HAS_HIP 0 CACHE INTERNAL "HIP backend availability")
     message(STATUS "HIP: not supported on Windows — HIP backend disabled")
+
     function(nova_configure_hip_target TARGET)
     endfunction()
     return()
@@ -82,6 +83,7 @@ function(nova_configure_hip_target TARGET)
                 endif()
             endforeach()
         endforeach()
+
         set_target_properties(${TARGET} PROPERTIES HIP_ARCHITECTURES "${CMAKE_HIP_ARCHITECTURES}")
     else()
         set_target_properties(${TARGET} PROPERTIES HIP_ARCHITECTURES "${NOVA_SUPPORTED_HIP_ARCHS}")
@@ -119,6 +121,7 @@ if(NOT hip_FOUND)
 endif()
 
 set(NOVA_ROCM_MIN_VERSION "6.2")
+
 if(hip_VERSION VERSION_LESS NOVA_ROCM_MIN_VERSION)
     message(FATAL_ERROR
         "ROCm ${hip_VERSION} is too old. "

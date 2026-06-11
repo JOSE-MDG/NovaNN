@@ -5,6 +5,7 @@
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![tests](https://img.shields.io/badge/tests-pytest-orange)
 ![coverage](https://img.shields.io/badge/coverage-87%25-success)
+![v5](https://img.shields.io/badge/v5.0.0-active%20development-orange)
 
 ## 🌐 Available Languages
 

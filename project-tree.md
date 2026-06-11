@@ -1,6 +1,6 @@
 # File Tree: NovaNN
 
-**Generated:** 6/6/2026, 3:37:05 PM
+**Generated:** 6/11/2026, 7:34:04 PM
 
 ```
 ├── .agents
@@ -23,10 +23,6 @@
 │   └── cython
 │       └── lib
 ├── cmake
-│   ├── Config
-│   │   ├── GenerateBackendConfig.cmake
-│   │   ├── GenerateCapabilityReport.cmake
-│   │   └── GenerateKernelRegistry.cmake
 │   ├── Detect
 │   │   ├── cpu
 │   │   │   ├── DetectAMX.cmake
@@ -34,12 +30,17 @@
 │   │   │   ├── DetectAVX2.cmake
 │   │   │   ├── DetectAVX512.cmake
 │   │   │   └── DetectSSE.cmake
+│   │   ├── lto
+│   │   │   └── DetectLTO.cmake
+│   │   ├── sanitizers
+│   │   │   └── DetectSanitizers.cmake
 │   │   ├── simd
 │   │   │   └── DetectSIMD.cmake
 │   │   └── threading
 │   │       ├── DetectOpenMP.cmake
 │   │       └── DetectPThreads.cmake
 │   ├── Modules
+│   │   ├── NovaNNBuildFlags.cmake
 │   │   ├── NovaNNCPU.cmake
 │   │   ├── NovaNNCUDA.cmake
 │   │   ├── NovaNNHIP.cmake
@@ -47,7 +48,6 @@
 │   ├── Utils
 │   │   └── CheckInstructionSupport.cmake
 │   └── config.h.in
-├── docs
 ├── examples
 │   ├── binary_classification.py
 │   ├── conv_example.py
@@ -119,6 +119,8 @@
 │   │       ├── storage.h
 │   │       └── tensor.h
 │   ├── rust
+│   │   ├── .cargo
+│   │   │   └── config.toml
 │   │   ├── csrc
 │   │   │   ├── device
 │   │   │   │   ├── cuda
@@ -453,7 +455,9 @@
 ├── LICENCE
 ├── README.es.md
 ├── README.md
+├── main
 ├── main.cpp
+├── merge-commit.txt
 ├── project-tree.md
 ├── pyproject.toml
 └── uv.lock
