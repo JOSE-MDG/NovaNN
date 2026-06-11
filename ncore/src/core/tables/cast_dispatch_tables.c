@@ -74,7 +74,7 @@
  * @see init_cast_dispatch()  Populates the table.
  * @see castFn                Function pointer type.
  */
-castFn cast_dispatch[NUM_DTYPES][NUM_DTYPES] = {NULL};
+castFn cast_dispatch[NUM_DTYPES][NUM_DTYPES] = {{NULL}};
 
 /**
  * @brief Populate every non-trivial entry in `cast_dispatch`.
