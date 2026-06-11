@@ -1,5 +1,5 @@
 #[=======================================================================[.rst:
-.. module:: ncore_rust_csrc
+.. module:: csrc
    :synopsis: C++ FFI bridge between Rust memory subsystem and NovaNN.
 
 Defines the ``rustcsrc`` static library containing the C++ side of the
