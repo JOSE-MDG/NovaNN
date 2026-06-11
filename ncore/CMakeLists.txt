@@ -48,6 +48,7 @@ target_compile_options(ncore_obj PRIVATE
 )
 
 nova_configure_cpu_target(ncore_obj)
+
 if(NOVA_HAS_CUDA)
     nova_configure_cuda_target(ncore_obj)
 endif()
@@ -80,6 +81,7 @@ target_compile_options(autograd_obj PRIVATE
 )
 
 nova_configure_cpu_target(autograd_obj)
+
 if(NOVA_HAS_CUDA)
     nova_configure_cuda_target(autograd_obj)
 endif()
