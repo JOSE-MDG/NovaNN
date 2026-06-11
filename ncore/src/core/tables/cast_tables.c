@@ -1709,10 +1709,17 @@ tf32_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
   for (; i < n; i += step) {
     __m512 v0 = _mm512_loadu_ps(&s[i]);
     __m512 v1 = _mm512_loadu_ps(&s[i + 16]);
-    __m256i r0 =
-        _mm512_cvtps_ph(v0, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
-    __m256i r1 =
-        _mm512_cvtps_ph(v1, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+    __m256i r0 = (__m256i)_mm512_cvtps_ph(v0, _MM_FROUND_TO_NEAREST_INT |
+                                                  _MM_FROUND_NO_EXC);
+    __m256i r1 = (__m256i)_mm512_cvtps_ph(v1, _MM_FROUND_TO_NEAREST_INT |
+                                                  _MM_FROUND_NO_EXC);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
     _mm256_storeu_si256((__m256i_u *)&d[i], r0);
     _mm256_storeu_si256((__m256i_u *)&d[i + 16], r1);
   }
@@ -1883,10 +1890,17 @@ tbf16_to_fp16_avx512bf16_fp16_(const Tensor *restrict src,
     memcpy(&v1, &s[i + 16], sizeof(v1));
     __m512 f0 = _mm512_cvtpbh_ps(v0);
     __m512 f1 = _mm512_cvtpbh_ps(v1);
-    __m256i r0 =
-        _mm512_cvtps_ph(f0, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
-    __m256i r1 =
-        _mm512_cvtps_ph(f1, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+    __m256i r0 = (__m256i)_mm512_cvtps_ph(f0, _MM_FROUND_TO_NEAREST_INT |
+                                                  _MM_FROUND_NO_EXC);
+    __m256i r1 = (__m256i)_mm512_cvtps_ph(f1, _MM_FROUND_TO_NEAREST_INT |
+                                                  _MM_FROUND_NO_EXC);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
     _mm256_storeu_si256((__m256i_u *)&d[i], r0);
     _mm256_storeu_si256((__m256i_u *)&d[i + 16], r1);
   }
