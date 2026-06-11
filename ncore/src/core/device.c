@@ -53,8 +53,11 @@
  * variables @ref device_detection_done and @ref detected_device_kind.
  * This avoids repeated runtime API calls during training, where only
  * a single GPU vendor (CUDA _or_ HIP) is ever used.  The cache is
- * protected by a C11 `mtx_t` mutex and a `call_once` initialisation
- * guard to ensure thread safety.
+ * protected by a platform-specific mutex and one-shot initialisation
+ * guard to ensure thread safety:
+ * - **Linux**: C11 `mtx_t` + `call_once` from `<threads.h>`.
+ * - **Windows (_WIN64)**: `CRITICAL_SECTION` + `INIT_ONCE` from
+ *   `<windows.h>`.
  *
  * @see device.h       Public API declarations.
  * @see cuda_device.c  CUDA detection implementation.
@@ -66,7 +69,11 @@
 #include <ncore/device.h>
 #include <ncore/macros.h>
 #include <stdbool.h>
+#ifdef __linux__
 #include <threads.h>
+#elif defined(_WIN64)
+#include <windows.h>
+#endif
 
 /**
  * @var device_detection_done
@@ -92,13 +99,23 @@ static bool device_detection_done = false;
  */
 static DeviceKind detected_device_kind = NULL_DEVICE;
 
+#ifdef __linux__
 /**
  * @var runtime_flags_once
  * @brief C11 `call_once` guard ensuring @ref runtime_flags_mtx is
  *        initialised exactly once, even under concurrent access.
  */
 static once_flag runtime_flags_once = ONCE_FLAG_INIT;
+#elif defined(_WIN64)
+/**
+ * @var runtime_flags_once
+ * @brief Windows one-time initialisation guard ensuring
+ *        @ref runtime_flags_mtx is initialised exactly once.
+ */
+static INIT_ONCE runtime_flags_once = INIT_ONCE_STATIC_INIT;
+#endif
 
+#ifdef __linux__
 /**
  * @var runtime_flags_mtx
  * @brief Mutex protecting writes to @ref device_detection_done and
@@ -110,7 +127,21 @@ static once_flag runtime_flags_once = ONCE_FLAG_INIT;
  * safe without locking due to the single-writer pattern.
  */
 static mtx_t runtime_flags_mtx;
+#elif defined(_WIN64)
+/**
+ * @var runtime_flags_mtx
+ * @brief Critical section protecting writes to
+ *        @ref device_detection_done and @ref detected_device_kind.
+ *
+ * @details
+ * Initialised lazily via @ref init_runtime_flags_lock() through
+ * Windows `InitOnceExecuteOnce`.  Only taken for write operations;
+ * reads are safe without locking due to the single-writer pattern.
+ */
+static CRITICAL_SECTION runtime_flags_mtx;
+#endif
 
+#ifdef __linux__
 /**
  * @brief Lazy initialiser for @ref runtime_flags_mtx.
  *
@@ -124,6 +155,24 @@ static mtx_t runtime_flags_mtx;
 static void init_runtime_flags_lock(void) {
   (void)mtx_init(&runtime_flags_mtx, mtx_plain);
 }
+#elif defined(_WIN64)
+/**
+ * @brief Lazy initialiser for @ref runtime_flags_mtx.
+ *
+ * @details
+ * Passed to Windows `InitOnceExecuteOnce` so that the critical
+ * section is created exactly once, regardless of how many threads
+ * race to call detection functions.
+ */
+static BOOL CALLBACK init_runtime_flags_lock(PINIT_ONCE once, PVOID param,
+                                            PVOID *ctx) {
+  (void)once;
+  (void)param;
+  (void)ctx;
+  InitializeCriticalSection(&runtime_flags_mtx);
+  return TRUE;
+}
+#endif
 
 #ifdef NOVA_HAS_HIP
 
@@ -345,14 +394,25 @@ bool is_device_available(DeviceKind kind, bool verbose) {
   if (device_detection_done && detected_device_kind != NULL_DEVICE) {
     return (kind == detected_device_kind);
   }
+#ifdef __linux__
   call_once(&runtime_flags_once, init_runtime_flags_lock);
+#elif defined(_WIN64)
+  InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, NULL, NULL);
+#endif
   switch (kind) {
   case CUDA_DEVICE: {
 #ifdef NOVA_HAS_CUDA
+#ifdef __linux__
     mtx_lock(&runtime_flags_mtx);
     device_detection_done = true;
     detected_device_kind = CUDA_DEVICE;
     mtx_unlock(&runtime_flags_mtx);
+#elif defined(_WIN64)
+    EnterCriticalSection(&runtime_flags_mtx);
+    device_detection_done = true;
+    detected_device_kind = CUDA_DEVICE;
+    LeaveCriticalSection(&runtime_flags_mtx);
+#endif
     return is_cuda_device_available(verbose, verbose);
 #else
     return false;
@@ -360,10 +420,17 @@ bool is_device_available(DeviceKind kind, bool verbose) {
   }
   case HIP_DEVICE: {
 #ifdef NOVA_HAS_HIP
+#ifdef __linux__
     mtx_lock(&runtime_flags_mtx);
     device_detection_done = true;
     detected_device_kind = HIP_DEVICE;
     mtx_unlock(&runtime_flags_mtx);
+#elif defined(_WIN64)
+    EnterCriticalSection(&runtime_flags_mtx);
+    device_detection_done = true;
+    detected_device_kind = HIP_DEVICE;
+    LeaveCriticalSection(&runtime_flags_mtx);
+#endif
     return is_hip_device_available(verbose, verbose);
 #else
     return false;
@@ -408,13 +475,24 @@ bool is_cuda_available(void) {
     return (CUDA_DEVICE == detected_device_kind);
   }
 
+#ifdef __linux__
   call_once(&runtime_flags_once, init_runtime_flags_lock);
+#elif defined(_WIN64)
+  InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, NULL, NULL);
+#endif
 
 #ifdef NOVA_HAS_CUDA
+#ifdef __linux__
   mtx_lock(&runtime_flags_mtx);
   device_detection_done = true;
   detected_device_kind = CUDA_DEVICE;
   mtx_unlock(&runtime_flags_mtx);
+#elif defined(_WIN64)
+  EnterCriticalSection(&runtime_flags_mtx);
+  device_detection_done = true;
+  detected_device_kind = CUDA_DEVICE;
+  LeaveCriticalSection(&runtime_flags_mtx);
+#endif
   return is_cuda_device_available(false, false);
 #else
   return false;
@@ -454,12 +532,23 @@ bool is_hip_available(void) {
     return (HIP_DEVICE == detected_device_kind);
   }
 
+#ifdef __linux__
   call_once(&runtime_flags_once, init_runtime_flags_lock);
+#elif defined(_WIN64)
+  InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, NULL, NULL);
+#endif
 #ifdef NOVA_HAS_HIP
+#ifdef __linux__
   mtx_lock(&runtime_flags_mtx);
   device_detection_done = true;
   detected_device_kind = HIP_DEVICE;
   mtx_unlock(&runtime_flags_mtx);
+#elif defined(_WIN64)
+  EnterCriticalSection(&runtime_flags_mtx);
+  device_detection_done = true;
+  detected_device_kind = HIP_DEVICE;
+  LeaveCriticalSection(&runtime_flags_mtx);
+#endif
   return is_hip_device_available(false, false);
 #else
   return false;

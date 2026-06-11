@@ -126,7 +126,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
     bool found = false;
     for (size_t i = 0; i < n; i++) {
       double v = get_float_value(ten, i);
-      if (isinf(v) || isnan(v)) {
+      if (__builtin_isinf(v) || __builtin_isnan(v)) {
         continue;
       }
       double av = fabs(v);

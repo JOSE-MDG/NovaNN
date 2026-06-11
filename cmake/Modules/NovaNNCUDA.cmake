@@ -73,7 +73,7 @@ function(nova_configure_cuda_target TARGET)
     )
 
     set_target_properties(${TARGET} PROPERTIES
-        HIP_STANDARD 23
+        CUDA_STANDARD 23
         CUDA_SEPARABLE_COMPILATION ON
     )
 
@@ -111,6 +111,7 @@ if(NOT CUDAToolkit_FOUND)
 endif()
 
 set(NOVA_CUDA_MIN_VERSION "12.6")
+
 if(CUDAToolkit_VERSION VERSION_LESS NOVA_CUDA_MIN_VERSION)
     message(FATAL_ERROR
         "CUDA ${CUDAToolkit_VERSION} is too old. "

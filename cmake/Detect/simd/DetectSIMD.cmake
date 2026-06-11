@@ -38,9 +38,9 @@ include("${CMAKE_SOURCE_DIR}/cmake/Detect/cpu/DetectAVX512.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/Detect/cpu/DetectAMX.cmake")
 
 if(HAS_AVX2_VNNI OR HAS_AVX512_VNNI)
-    set(HAS_VNNI 1)
+  set(HAS_VNNI 1)
 else()
-    set(HAS_VNNI 0)
+  set(HAS_VNNI 0)
 endif()
 
 list(REMOVE_DUPLICATES SIMD_FLAGS)

@@ -24,10 +24,10 @@
  */
 int float_format_value(char *buf, size_t buf_size, double val, bool sci,
                        int precision) {
-  if (isnan(val)) {
+  if (__builtin_isnan(val)) {
     return snprintf(buf, buf_size, "%s", "nan");
   }
-  if (isinf(val)) {
+  if (__builtin_isinf(val)) {
     if (val > 0) {
       return snprintf(buf, buf_size, "%s", "inf");
     }

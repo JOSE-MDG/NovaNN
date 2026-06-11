@@ -23,13 +23,17 @@
  * global state.
  *
  * ## Platform Support
- *
+ */
+// clang-format off
+/**
  * | Condition                            | Behaviour |
  * |--------------------------------------|---------------------------------------------------|
- * | `NOVA_HAS_HIP` defined               | Full detection via
- * `<hip/hip_runtime_api.h>`       | | `NOVA_HAS_HIP` undefined             |
- * All functions return safe defaults (no devices)    | |
- * `<hip/hip_runtime_api.h>` missing    | Stubs return `false` / `-1` |
+ * | `NOVA_HAS_HIP` defined               | Full detection via `<hip/hip_runtime_api.h>`      |
+ * | `NOVA_HAS_HIP` undefined             | All functions return safe defaults (no devices)   |
+ * | `<hip/hip_runtime_api.h>` missing    | Stubs return `false` / `-1`                       |
+ */
+// clang-format on
+/**
  *
  * ### HIP Platform Macro Workaround
  *
@@ -66,7 +70,12 @@
 #include <ncore/macros.h>
 #include <stdbool.h>
 #include <stdio.h>
+
+#ifdef __linux__
 #include <threads.h>
+#elif defined(_WIN64)
+#include <windows.h>
+#endif
 
 /**
  * @var active_device_id
@@ -146,6 +155,7 @@ bool device_available = false;
 #endif
 #include <hip/hip_runtime_api.h>
 
+#ifdef __linux__
 /**
  * @brief Once-flag used to guarantee single initialisation of the mutex.
  *
@@ -156,7 +166,22 @@ bool device_available = false;
  * regardless of how many threads call `call_once()` concurrently.
  */
 static once_flag device_flags_once = ONCE_FLAG_INIT;
+#elif defined(_WIN64)
+/**
+ * @brief Once-flag used to guarantee single initialisation of the mutex.
+ *
+ * @details
+ * Windows equivalent of the C11 `once_flag`.  Passed to
+ * `InitOnceExecuteOnce()` at the beginning of
+ * @ref is_hip_device_available().  The Win32 API guarantees that the
+ * callback registered with an `INIT_ONCE` is invoked exactly once,
+ * regardless of how many threads call `InitOnceExecuteOnce()`
+ * concurrently.
+ */
+static INIT_ONCE device_flags_once = INIT_ONCE_STATIC_INIT;
+#endif
 
+#ifdef __linux__
 /**
  * @brief Mutex that serialises writes to the global device state.
  *
@@ -169,6 +194,20 @@ static once_flag device_flags_once = ONCE_FLAG_INIT;
  * store instructions), so contention is negligible in practice.
  */
 static mtx_t device_flags_mtx;
+#elif defined(_WIN64)
+/**
+ * @brief Mutex that serialises writes to the global device state.
+ *
+ * @details
+ * Protects concurrent modification of @ref active_device_id and
+ * @ref device_available.  The mutex is initialised lazily by
+ * @ref init_device_flags_lock() via `InitOnceExecuteOnce()`.
+ *
+ * The lock is only held for the two global assignments (a handful of
+ * store instructions), so contention is negligible in practice.
+ */
+static CRITICAL_SECTION device_flags_mtx;
+#endif
 
 /**
  * @brief Format a byte count into a human-readable memory string.
@@ -328,9 +367,20 @@ void print_hip_device_info(bool verbose) {
  * @see device_flags_once
  * @see device_flags_mtx
  */
+#ifdef __linux__
 static void init_device_flags_lock(void) {
   (void)mtx_init(&device_flags_mtx, mtx_plain);
 }
+#elif defined(_WIN64)
+static BOOL CALLBACK init_device_flags_lock(PINIT_ONCE once, PVOID param,
+                                           PVOID *ctx) {
+  (void)once;
+  (void)param;
+  (void)ctx;
+  InitializeCriticalSection(&device_flags_mtx);
+  return TRUE;
+}
+#endif
 
 /**
  * @brief Probe whether at least one HIP device is available.
@@ -392,7 +442,11 @@ static void init_device_flags_lock(void) {
  * @see device_flags_mtx
  */
 bool is_hip_device_available(bool log, bool verbose) {
+#ifdef __linux__
   call_once(&device_flags_once, init_device_flags_lock);
+#elif defined(_WIN64)
+  InitOnceExecuteOnce(&device_flags_once, init_device_flags_lock, NULL, NULL);
+#endif
 
   int count = 0;
   hipError_t err = hipGetDeviceCount(&count);
@@ -410,10 +464,18 @@ bool is_hip_device_available(bool log, bool verbose) {
     return false;
   }
 
+#ifdef __linux__
   mtx_lock(&device_flags_mtx);
   active_device_id = 0;
   device_available = true;
   mtx_unlock(&device_flags_mtx);
+#elif defined(_WIN64)
+  EnterCriticalSection(&device_flags_mtx);
+  active_device_id = 0;
+  device_available = true;
+  LeaveCriticalSection(&device_flags_mtx);
+  DeleteCriticalSection(&device_flags_mtx);
+#endif
 
   if (log) {
     print_hip_device_info(verbose);

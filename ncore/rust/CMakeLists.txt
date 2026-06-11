@@ -1,5 +1,5 @@
 #[=======================================================================[.rst:
-.. module:: ncore_rust
+.. module:: rust
    :synopsis: Rust memory subsystem build configuration.
 
 Builds the ``ncore_memory`` Rust crate as a static library using Cargo

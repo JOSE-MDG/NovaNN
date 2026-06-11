@@ -10,7 +10,8 @@
  * sets on both x86_64 Linux and Windows platforms.
  *
  * The detected capabilities are cached in a thread-safe singleton pattern
- * using C11 threads support (call_once) to ensure the detection is
+ * using platform-specific threading primitives (C11 `call_once` on Linux,
+ * Windows `InitOnceExecuteOnce` on `_WIN64`) to ensure the detection is
  * performed only once, even when called from multiple threads.
  *
  * ## Architecture
@@ -20,15 +21,21 @@
  * - **Phase 3**: Leaf 7, subleaf 1 for VNNI, BF16, FP16 extensions
  *
  * ## Platform Support
- * - **Windows (_WIN64)**: Uses __cpuid() and __cpuidex() from intrin.h
- * - **Linux/Unix**: Uses __get_cpuid() and __cpuid_count() from cpuid.h
+ * - **Windows (_WIN64)**: Uses __cpuid() and __cpuidex() from intrin.h;
+ *   threading via `INIT_ONCE` + `InitOnceExecuteOnce` from `<windows.h>`.
+ * - **Linux/Unix**: Uses __get_cpuid() and __cpuid_count() from cpuid.h;
+ *   threading via C11 `once_flag` + `call_once` from `<threads.h>`.
  *
  * @see simd.h Public interface and @ref Capabilities_ structure
  * @see get_cpu_capabilities() Thread-safe singleton accessor
  */
 
 #include <ncore/simd.h>
+#ifdef __linux__
 #include <threads.h>
+#elif defined(_WIN64)
+#include <windows.h>
+#endif
 
 #ifdef _WIN64
 /** @brief Windows intrinsics for CPUID support. */
@@ -57,6 +64,7 @@ typedef unsigned int uint;
  */
 static Capabilities_ Caps_;
 
+#ifdef __linux__
 /**
  * @var static once_flag init_flag
  * @brief Once-flag for thread-safe lazy initialization.
@@ -70,6 +78,21 @@ static Capabilities_ Caps_;
  * @see get_cpu_capabilities()
  */
 static once_flag init_flag = ONCE_FLAG_INIT;
+#elif defined(_WIN64)
+/**
+ * @var static INIT_ONCE init_flag
+ * @brief Windows one-time initialisation guard for thread-safe lazy
+ *        initialization.
+ *
+ * @details
+ * Ensures the CPU capabilities detection callback is called exactly
+ * once, even when @ref get_cpu_capabilities() is called concurrently
+ * from multiple threads.
+ *
+ * @see get_cpu_capabilities()
+ */
+static INIT_ONCE init_flag = INIT_ONCE_STATIC_INIT;
+#endif
 
 /**
  * @brief Detect CPU SIMD capabilities via CPUID instruction.
@@ -170,6 +193,7 @@ static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
   caps->vnni_ = (bool)(caps->avx512_vnni_ || caps->avx2_vnni_);
 }
 
+#ifdef __linux__
 /**
  * @brief One-time initializer for thread-safe lazy initialization.
  *
@@ -183,7 +207,31 @@ static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
  * @see init_flag
  * @see detect_cpu_capabilities_()
  */
-static inline void init_once() { detect_cpu_capabilities_(&Caps_); }
+static inline void init_once(void) { detect_cpu_capabilities_(&Caps_); }
+#elif defined(_WIN64)
+/**
+ * @brief Windows one-time initialization callback.
+ *
+ * @details
+ * This function matches the `PINIT_ONCE_FN` signature required by
+ * Windows `InitOnceExecuteOnce()`.  It delegates to
+ * @ref detect_cpu_capabilities_() to populate the global @ref Caps_
+ * structure.
+ *
+ * @return Always `TRUE` (initialisation always succeeds).
+ *
+ * @see get_cpu_capabilities()
+ * @see init_flag
+ * @see detect_cpu_capabilities_()
+ */
+static BOOL CALLBACK init_once_win(PINIT_ONCE once, PVOID param, PVOID *ctx) {
+  (void)once;
+  (void)param;
+  (void)ctx;
+  detect_cpu_capabilities_(&Caps_);
+  return TRUE;
+}
+#endif
 
 /**
  * @brief Get CPU capabilities (thread-safe singleton accessor).
@@ -215,6 +263,10 @@ static inline void init_once() { detect_cpu_capabilities_(&Caps_); }
  * @see init_once()
  */
 const Capabilities_ *get_cpu_capabilities() {
+#ifdef __linux__
   call_once(&init_flag, init_once);
+#elif defined(_WIN64)
+  InitOnceExecuteOnce(&init_flag, init_once_win, NULL, NULL);
+#endif
   return &Caps_;
 }
