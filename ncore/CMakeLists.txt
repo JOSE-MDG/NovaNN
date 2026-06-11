@@ -40,12 +40,7 @@ target_include_directories(ncore_obj
     PRIVATE ${CMAKE_BINARY_DIR}
 )
 
-target_compile_options(ncore_obj PRIVATE
-    ${COMPILE_FLAGS}
-    ${SIMD_FLAGS}
-    $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
-    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
-)
+nova_configure_build_flags(ncore_obj)
 
 nova_configure_cpu_target(ncore_obj)
 
@@ -73,12 +68,7 @@ target_include_directories(autograd_obj
     PRIVATE ${CMAKE_BINARY_DIR}
 )
 
-target_compile_options(autograd_obj PRIVATE
-    ${COMPILE_FLAGS}
-    ${SIMD_FLAGS}
-    $<$<CONFIG:Debug>:${DEBUG_FLAGS}>
-    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
-)
+nova_configure_build_flags(autograd_obj)
 
 nova_configure_cpu_target(autograd_obj)
 
