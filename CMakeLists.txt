@@ -33,6 +33,13 @@ library ``libnova.so`` (Linux) or ``nova.dll`` (Windows).
 cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 project(NovaNN VERSION 5.0.0 LANGUAGES C CXX)
 
+if(MSVC)
+    message(FATAL_ERROR
+        "MSVC is not supported. "
+        "Please use GCC, G++, Clang, or Clang++."
+    )
+endif()
+
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 23)
