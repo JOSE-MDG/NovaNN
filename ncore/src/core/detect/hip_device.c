@@ -367,13 +367,20 @@ void print_hip_device_info(bool verbose) {
  * @see device_flags_once
  * @see device_flags_mtx
  */
-static void init_device_flags_lock(void) {
 #ifdef __linux__
+static void init_device_flags_lock(void) {
   (void)mtx_init(&device_flags_mtx, mtx_plain);
-#elif defined(_WIN64)
-  (void)InitializeCriticalSection(&device_flags_mtx);
-#endif
 }
+#elif defined(_WIN64)
+static BOOL CALLBACK init_device_flags_lock(PINIT_ONCE once, PVOID param,
+                                           PVOID *ctx) {
+  (void)once;
+  (void)param;
+  (void)ctx;
+  InitializeCriticalSection(&device_flags_mtx);
+  return TRUE;
+}
+#endif
 
 /**
  * @brief Probe whether at least one HIP device is available.
