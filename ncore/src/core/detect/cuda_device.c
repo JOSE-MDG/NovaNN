@@ -23,14 +23,18 @@
  * global state.
  *
  * ## Platform Support
+ */
+// clang-format off
+/**
  *
- * | Condition                       | Behaviour |
+ * | Condition                       | Behaviour                                         |
  * |---------------------------------|---------------------------------------------------|
- * | `NOVA_HAS_CUDA` defined         | Full detection via `cuda_runtime_api.h` |
- * | `NOVA_HAS_CUDA` undefined       | All functions return safe defaults (no
- * devices)    | | `cuda_runtime_api.h` missing    | Stubs return `false` / `-1`
- * |
- *
+ * | `NOVA_HAS_CUDA` defined         | Full detection via `cuda_runtime_api.h`           |
+ * | `NOVA_HAS_CUDA` undefined       | All functions return safe defaults (no devices)   |
+ * | `cuda_runtime_api.h` missing    | Stubs return `false` / `-1`                       |
+ */
+// clang-format on
+/**
  * ## Thread Safety
  *
  * All public functions in this file are **safe to call concurrently**
@@ -55,10 +59,11 @@
 #include <ncore/macros.h>
 #include <stdbool.h>
 #include <stdio.h>
+
 #ifdef __linux__
 #include <threads.h>
 #elif defined(_WIN64)
-/* TODO: windows threading support */
+#include <windows.h>
 #endif
 
 /**
@@ -109,6 +114,7 @@ bool cuda_device_available = false;
 #if __has_include(<cuda_runtime_api.h>)
 #include <cuda_runtime_api.h>
 
+#ifdef __linux__
 /**
  * @brief Once-flag used to guarantee single initialisation of the mutex.
  *
@@ -119,7 +125,22 @@ bool cuda_device_available = false;
  * regardless of how many threads call `call_once()` concurrently.
  */
 static once_flag device_flags_once = ONCE_FLAG_INIT;
+#elif defined(_WIN64)
+/**
+ * @brief Once-flag used to guarantee single initialisation of the mutex.
+ *
+ * @details
+ * Windows equivalent of the C11 `once_flag`.  Passed to
+ * `InitOnceExecuteOnce()` at the beginning of
+ * @ref is_cuda_device_available().  The Win32 API guarantees that the
+ * callback registered with an `INIT_ONCE` is invoked exactly once,
+ * regardless of how many threads call `InitOnceExecuteOnce()`
+ * concurrently.
+ */
+static INIT_ONCE device_flags_once = INIT_ONCE_STATIC_INIT;
+#endif
 
+#ifdef __linux__
 /**
  * @brief Mutex that serialises writes to the global device state.
  *
@@ -132,6 +153,20 @@ static once_flag device_flags_once = ONCE_FLAG_INIT;
  * store instructions), so contention is negligible in practice.
  */
 static mtx_t device_flags_mtx;
+#elif defined(_WIN64)
+/**
+ * @brief Mutex that serialises writes to the global device state.
+ *
+ * @details
+ * Protects concurrent modification of @ref active_cuda_device_id and
+ * @ref cuda_device_available.  The mutex is initialised lazily by
+ * @ref init_device_flags_lock() via `InitOnceExecuteOnce()`.
+ *
+ * The lock is only held for the two global assignments (a handful of
+ * store instructions), so contention is negligible in practice.
+ */
+static CRITICAL_SECTION device_flags_mtx;
+#endif
 
 /**
  * @brief Format a byte count into a human-readable memory string.
@@ -270,27 +305,36 @@ void print_cuda_device_info(bool verbose) {
  * @brief Initialise the mutex used to protect CUDA device flags.
  *
  * @details
- * This function is registered as the callback for `call_once()` with
- * @ref device_flags_once.  It is guaranteed to be invoked exactly once,
- * even when @ref is_cuda_device_available() is called concurrently from
- * multiple threads.
+ * This function is registered as the callback for `call_once()` (POSIX/C11)
+ * or `InitOnceExecuteOnce()` (Windows) with @ref device_flags_once.  It is
+ * guaranteed to be invoked exactly once, even when
+ * @ref is_cuda_device_available() is called concurrently from multiple
+ * threads.
  *
- * The mutex is initialised in plain mode (`mtx_plain`) — no error
- * checking or recursive locking is needed because:
+ * On POSIX/C11 the mutex is initialised in plain mode (`mtx_plain`) — no
+ * error checking or recursive locking is needed because:
  * - The lock is only held for two simple assignments.
  * - No function that acquires this mutex can throw or call `longjmp`.
  *
- * @note The mutex is never explicitly destroyed (`mtx_destroy` is not
- *       called).  This is intentional: the mutex lives for the
- *       lifetime of the process, and destroying it before all threads
- *       have released it would be undefined behaviour.
+ * On Windows a `CRITICAL_SECTION` is initialised via
+ * `InitializeCriticalSection()`.
+ *
+ * @note The mutex is never explicitly destroyed (`mtx_destroy` /
+ *       `DeleteCriticalSection` is not called from this path).  This is
+ *       intentional: the mutex lives for the lifetime of the process, and
+ *       destroying it before all threads have released it would be
+ *       undefined behaviour.
  *
  * @see is_cuda_device_available()
  * @see device_flags_once
  * @see device_flags_mtx
  */
 static void init_device_flags_lock(void) {
+#ifdef __linux__
   (void)mtx_init(&device_flags_mtx, mtx_plain);
+#elif defined(_WIN64)
+  (void)InitializeCriticalSection(&device_flags_mtx);
+#endif
 }
 
 /**
@@ -336,7 +380,8 @@ static void init_device_flags_lock(void) {
  * @note Thread-safe.  The underlying CUDA query is performed at most
  *       once; the result is cached and returned on subsequent calls.
  *       Concurrent calls from multiple threads are serialised by the
- *       `call_once` mechanism.
+ *       `call_once` (POSIX/C11) or `InitOnceExecuteOnce` (Windows)
+ *       mechanism.
  *
  * @note When @p log is `true` and the CUDA API returns an error, the
  *       error message includes the function name and a descriptive
@@ -353,7 +398,11 @@ static void init_device_flags_lock(void) {
  * @see device_flags_mtx
  */
 bool is_cuda_device_available(bool log, bool verbose) {
+#ifdef __linux__
   call_once(&device_flags_once, init_device_flags_lock);
+#elif defined(_WIN64)
+  InitOnceExecuteOnce(&device_flags_once, init_device_flags_lock, NULL, NULL);
+#endif
 
   int count = 0;
   cudaError_t err = cudaGetDeviceCount(&count);
@@ -371,10 +420,18 @@ bool is_cuda_device_available(bool log, bool verbose) {
     return false;
   }
 
+#ifdef __linux__
   mtx_lock(&device_flags_mtx);
   active_cuda_device_id = 0;
   cuda_device_available = true;
   mtx_unlock(&device_flags_mtx);
+#elif defined(_WIN64)
+  EnterCriticalSection(&device_flags_mtx);
+  active_cuda_device_id = 0;
+  cuda_device_available = true;
+  LeaveCriticalSection(&device_flags_mtx);
+  DeleteCriticalSection(&device_flags_mtx);
+#endif
 
   if (log) {
     print_cuda_device_info(verbose);
