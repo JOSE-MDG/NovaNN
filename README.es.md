@@ -1,4 +1,4 @@
-![Banner](./images/NovaNN%20Banners.png)
+![Banner](./images/NovaNN%20Oficial%20Banner.jpg)
 
 ![version](https://img.shields.io/badge/version-4.0.4-blue)
 ![python](https://img.shields.io/badge/python-v3.14-brightgreen)
@@ -7,10 +7,10 @@
 ![coverage](https://img.shields.io/badge/coverage-87%25-success)
 ![v5](https://img.shields.io/badge/v5.0.0-desarrollo%20activo-orange)
 
-## 🌐 Idiomas disponibles
+## Idiomas disponibles
 
-- 🇬🇧 [English](README.md)
-- 🇪🇸 [Español](README.es.md)
+- [English](README.md)
+- [Español](README.es.md)
 
 ## Tabla de contenidos
 
@@ -20,25 +20,25 @@
 - [Objetivo educativo y técnico](#objetivo-educativo-y-técnico)
 - [Introducción](#introducción)
   - [Organización del proyecto](#organización-del-proyecto)
-- [Inicio rápido](#-inicio-rápido)
+- [Inicio rápido](#inicio-rápido)
   - [Autograd y Grafos Computacionales](#1-autograd-y-grafos-computacionales)
   - [Entrenamiento Completo de una Red Neuronal](#2-entrenamiento-completo-de-una-red-neuronal)
   - [Arquitecturas CNN para Visión Computacional](#3-arquitecturas-cnn-para-visión-computacional)
   - [Transfer Learning - Congelar Capas](#4-transfer-learning---congelar-capas)
   - [Fine-Tuning con Learning Rates Diferenciados](#5-fine-tuning-con-learning-rates-diferenciados)
   - [Guardado y Carga de Modelos](#6-guardado-y-carga-de-modelos)
-- [Tecnologías utilizadas](#️-tecnologías-utilizadas)
-- [Instalación](#-instalación)
+- [Tecnologías utilizadas](#tecnologías-utilizadas)
+- [Instalación](#instalación)
   - [Instalación desde PyPI (Recomendado)](#opción-1-instalación-desde-pypi-recomendado)
   - [Instalación desde el código fuente](#opción-2-instalación-desde-el-código-fuente)
   - [Ejecutar ejemplos](#ejecutar-ejemplos)
   - [Desinstalación](#desinstalación)
   - [Solución de problemas](#solución-de-problemas)
-- [Testing](#-testing)
+- [Testing](#testing)
   - [Ejecutar todos los tests](#ejecutar-todos-los-tests)
-- [Contribución](#-contribución)
-- [Licencia](#-licencia)
-- [Autor y Mantenedor](#-autor-y-mantenedor)
+- [Contribución](#contribución)
+- [Licencia](#licencia)
+- [Autor y Mantenedor](#autor-y-mantenedor)
 
 ## ¿Qué es NovaNN?
 
@@ -119,7 +119,7 @@ Esta estructura favorece tanto la extensibilidad como la claridad del flujo de t
   - uso de memoria y overhead computacional
     Este directorio no forma parte del runtime del framework y está pensado exclusivamente para **análisis de rendimiento, validación técnica y estudios comparativos**.
 
-## 🚀 Inicio rápido
+## Inicio rápido
 
 Construye y entrena modelos con una sintaxis que ya conoces. NovaNN se parece a PyTorch, pero se ejecuta en tu propio motor personalizado.
 
@@ -422,7 +422,7 @@ new_model = nn.Sequential(
 new_model.load_state_dict(nova.load('model_weights.pt'))
 ```
 
-## 🛠️ Tecnologías utilizadas
+## Tecnologías utilizadas
 
 El framework **NovaNN** está construido utilizando las siguientes tecnologías y librerías principales:
 
@@ -447,7 +447,7 @@ El framework **NovaNN** está construido utilizando las siguientes tecnologías 
   - `torch`: Framework de deep learning
   - `torchvision`: Paquete extra de torch para tareas de vision
 
-## 📦 Instalación
+## Instalación
 
 NovaNN está disponible en **[PyPI](https://pypi.org/)** y puede instalarse fácilmente usando `pip` o `poetry`. También puedes instalarlo desde el código fuente si quieres contribuir o explorar el framework en profundidad.
 
@@ -635,7 +635,7 @@ pip install --upgrade pip
 pip install novann --no-cache-dir
 ```
 
-## 🧪 Testing
+## Testing
 
 El framework incluye una suite completa de tests unitarios en el directorio [`tests/`](./tests/) que verifican la correcta implementación de todos los componentes cubriendo un **87%** del modulo. Para más información vaya a [Tests unitarios](./tests/README.es.md)
 
@@ -655,11 +655,11 @@ poetry run pytest --cov
 poetry run pytest --cov --cov-report=html
 ```
 
-## 🤝 Contribución
+## Contribución
 
 Para saber como contribuir a **NovaNN** puede a [contribuciones](./CONTRIBUTING.es.md)
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto está bajo la **Licencia MIT**. Ver el archivo [LICENCE](./LICENCE) para más detalles.
 
@@ -670,7 +670,7 @@ Este proyecto está bajo la **Licencia MIT**. Ver el archivo [LICENCE](./LICENCE
 - La licencia incluye derechos de autor originales
 - No hay garantía y los autores no son responsables de daños
 
-## 👤 Autor y Mantenedor
+## Autor y Mantenedor
 
 **Juan José** - Developer & Machine Learning Enthusiast (16 años)
 
