@@ -1,4 +1,4 @@
-![Banner](./images/NovaNN%20Banners.png)
+![Banner](./images/NovaNN%20Oficial%20Banner.jpg)
 
 ![version](https://img.shields.io/badge/version-4.0.4-blue)
 ![python](https://img.shields.io/badge/python-v3.14-brightgreen)
@@ -7,10 +7,10 @@
 ![coverage](https://img.shields.io/badge/coverage-87%25-success)
 ![v5](https://img.shields.io/badge/v5.0.0-active%20development-orange)
 
-## 🌐 Available Languages
+## Available Languages
 
-- 🇬🇧 [English](README.md)
-- 🇪🇸 [Español](README.es.md)
+- [English](README.md)
+- [Español](README.es.md)
 
 ## Table of Contents
 
@@ -20,25 +20,25 @@
 - [Educational and Technical Goal](#educational-and-technical-goal)
 - [Introduction](#introduction)
   - [Project Organization](#project-organization)
-- [Quick Start](#-quick-start)
+- [Quick Start](#quick-start)
   - [Autograd and Computational Graphs](#1-autograd-and-computational-graphs)
   - [Complete Neural Network Training](#2-complete-neural-network-training)
   - [CNN Architectures for Computer Vision](#3-cnn-architectures-for-computer-vision)
   - [Transfer Learning - Freezing Layers](#4-transfer-learning---freezing-layers)
   - [Fine-Tuning with Differential Learning Rates](#5-fine-tuning-with-differential-learning-rates)
   - [Model Saving and Loading](#6-model-saving-and-loading)
-- [Technologies Used](#️-technologies-used)
-- [Installation](#-installation)
+- [Technologies Used](#technologies-used)
+- [Installation](#installation)
   - [Install from PyPI (Recommended)](#option-1-install-from-pypi-recommended)
   - [Install from source](#option-2-install-from-source)
   - [Run examples](#run-examples)
   - [Uninstallation](#uninstallation)
   - [Troubleshooting](#troubleshooting)
-- [Testing](#-testing)
+- [Testing](#testing)
   - [Run All Tests](#run-all-tests)
-- [Contribution](#-contribution)
-- [License](#-license)
-- [Author and Maintainer](#-author-and-maintainer)
+- [Contribution](#contribution)
+- [License](#license)
+- [Author and Maintainer](#author-and-maintainer)
 
 ## What is NovaNN?
 
@@ -119,7 +119,7 @@ This structure favors both extensibility and clarity of workflow.
   - Memory usage and computational overhead
     This directory is not part of the framework runtime and is intended exclusively for **performance analysis, technical validation, and comparative studies**.
 
-## 🚀 Quick Start
+## Quick Start
 
 Build and train models with a syntax you already know. NovaNN looks like PyTorch, but runs on your own custom engine.
 
@@ -422,7 +422,7 @@ new_model = nn.Sequential(
 new_model.load_state_dict(nova.load('model_weights.pt'))
 ```
 
-## 🛠️ Technologies Used
+## Technologies Used
 
 The **NovaNN** framework is built using the following main technologies and libraries:
 
@@ -447,7 +447,7 @@ The **NovaNN** framework is built using the following main technologies and libr
   - `torch`: Deep learning framework
   - `torchvision`: Extra torch package for vision tasks
 
-## 📦 Installation
+## Installation
 
 NovaNN is available on **PyPI** and can be easily installed using `pip` or `poetry`. You can also install it from source if you want to contribute or explore the framework in depth.
 
@@ -635,7 +635,7 @@ pip install --upgrade pip
 pip install novann --no-cache-dir
 ```
 
-## 🧪 Testing
+## Testing
 
 The framework includes a complete unit test suite in the [`tests/`](./tests/) directory that verifies correct implementation of all components covering **87%** of the module. For more information go to [Unit Tests](./tests/README.md)
 
@@ -655,11 +655,11 @@ poetry run pytest --cov
 poetry run pytest --cov --cov-report=html
 ```
 
-## 🤝 Contribution
+## Contribution
 
 To know how to contribute to **NovaNN** go to [contributions](./CONTRIBUTING.md)
 
-## 📄 License
+## License
 
 This project is under the **MIT License**. See the [LICENCE](./LICENCE) file for more details.
 
@@ -670,7 +670,7 @@ This project is under the **MIT License**. See the [LICENCE](./LICENCE) file for
 - License includes original copyright
 - No warranty and authors are not responsible for damages
 
-## 👤 Author and Maintainer
+## Author and Maintainer
 
 **Juan José** - Developer & Machine Learning Enthusiast (16 years)
 
