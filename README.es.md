@@ -9,8 +9,8 @@
 
 ## Idiomas disponibles
 
-- 🇬🇧 [English](README.md)
-- 🇪🇸 [Español](README.es.md)
+- [English](README.md)
+- [Español](README.es.md)
 
 ## Tabla de contenidos
 
