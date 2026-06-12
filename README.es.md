@@ -1,4 +1,4 @@
-![Banner](./images/NovaNN%20Banners.png)
+![Banner](./images/NovaNN%20Oficial%20Banner.jpg)
 
 ![version](https://img.shields.io/badge/version-4.0.4-blue)
 ![python](https://img.shields.io/badge/python-v3.14-brightgreen)
