@@ -7,19 +7,19 @@
  * This translation unit implements the public device API declared in
  * @ref device.h.  It is the glue layer that:
  *
- * 1. **Delegates detection** to backend-specific modules
- *    (@ref cuda_device.c and @ref hip_device.c) via `extern`
- *    declarations.
- * 2. **Initialises the transfer dispatch table** (@ref transf_dispatch)
+ * 1. **Delegates detection**: to backend-specific modules
+ *    (`DetectCudaDevice.cpp` and `DetectHipDevice.cpp`) via native
+ *    backend headers.
+ * 2. **Initialize transfer dispatch table**: ( @ref transf_dispatch)
  *    at program startup using a `__attribute__((constructor))`
  *    function.
- * 3. **Routes memory transfers** through @ref transfer_to(), which
+ * 3. **Routes memory transfers**: through @ref transfer_to(), which
  *    resolves the copy direction from the dispatch table and forwards
  *    the request to the C-callable `device_memcpy_c()` wrapper.
- * 4. **Aggregates backend queries** through @ref is_device_available(),
+ * 4. **Aggregates backend queries**: through @ref is_device_available(),
  *    @ref is_cuda_available(), @ref is_hip_available(), and
  *    @ref get_device_id().
- * 5. **Exposes device information** through @ref print_device_info(),
+ * 5. **Exposes device information**: through @ref print_device_info(),
  *    which delegates to backend-specific print functions.
  *
  * ## Architecture
@@ -59,26 +59,123 @@
  * - **Windows (_WIN64)**: `CRITICAL_SECTION` + `INIT_ONCE` from
  *   `<windows.h>`.
  *
- * @see device.h       Public API declarations.
- * @see cuda_device.c  CUDA detection implementation.
- * @see hip_device.c   HIP detection implementation.
- * @see cpp_ffi.h      C-callable device_memcpy_c() wrapper.
+ * @see device.h              Public API declarations.
+ * @see DetectCudaDevice.cpp  CUDA detection implementation.
+ * @see DetectHipDevice.cpp   HIP detection implementation.
+ * @see cpp_ffi.h             C-callable device_memcpy_c() wrapper.
  */
 
-#include <ncore/cpp_ffi.h>
-#include <ncore/device.h>
-#include <ncore/macros.h>
+#include <ncore/core/device.h>
+#include <ncore/ffi/cpp_ffi.h>
+#include <ncore/headeronly/macros.h>
 #include <stdbool.h>
+
 #ifdef __linux__
 #include <threads.h>
 #elif defined(_WIN64)
 #include <windows.h>
 #endif
 
+#ifdef NOVA_HAS_CUDA
+
+/**
+ * @brief Probe the CUDA runtime for an available GPU device.
+ *
+ * @details
+ * Defined in `ncore/native/cuda/DetectCudaDevice.cpp`.  Queries the
+ * CUDA runtime API to determine whether a usable GPU is present.
+ *
+ * @param log      If `true`, print detection results to stdout.
+ * @param verbose  If `true`, print detailed device properties.
+ *
+ * @return `true` when a CUDA-capable device is found.
+ *
+ * @see is_device_available()
+ * @see is_cuda_available()
+ */
+extern bool is_cuda_device_available(bool log, bool verbose);
+
+/**
+ * @brief Return the 0-based device index of the detected CUDA GPU.
+ *
+ * @details
+ * Defined in `ncore/native/cuda/DetectCudaDevice.cpp`.  Returns the
+ * device id set during the most recent detection probe.
+ *
+ * @return 0-based device index, or `-1` if no CUDA device was detected.
+ *
+ * @see get_device_id()
+ */
+extern int get_cuda_device_id(void);
+
+/**
+ * @brief Print detailed CUDA device properties to stdout.
+ *
+ * @details
+ * Defined in `ncore/native/cuda/DetectCudaDeviceInfo.cpp`.  Delegates
+ * to the CUDA runtime to query and display device capabilities.
+ *
+ * @param verbose  If `true`, print the full property block.  If
+ *                 `false`, print a concise summary.
+ *
+ * @see print_device_info()
+ */
+extern void print_cuda_device_info(bool verbose);
+
+#endif /* NOVA_HAS_CUDA */
+
+#ifdef NOVA_HAS_HIP
+
+/**
+ * @brief Probe the HIP runtime for an available GPU device.
+ *
+ * @details
+ * Defined in `ncore/native/hip/DetectHipDevice.cpp`.  Queries the
+ * HIP runtime API to determine whether a usable GPU is present.
+ *
+ * @param log      If `true`, print detection results to stdout.
+ * @param verbose  If `true`, print detailed device properties.
+ *
+ * @return `true` when a HIP-capable device is found.
+ *
+ * @see is_device_available()
+ * @see is_hip_available()
+ */
+extern bool is_hip_device_available(bool log, bool verbose);
+
+/**
+ * @brief Return the 0-based device index of the detected HIP GPU.
+ *
+ * @details
+ * Defined in `ncore/native/hip/DetectHipDevice.cpp`.  Returns the
+ * device id set during the most recent detection probe.
+ *
+ * @return 0-based device index, or `-1` if no HIP device was detected.
+ *
+ * @see get_device_id()
+ */
+extern int get_hip_device_id(void);
+
+/**
+ * @brief Print detailed HIP device properties to stdout.
+ *
+ * @details
+ * Defined in `ncore/native/hip/DetectHipDeviceInfo.cpp`.  Delegates
+ * to the HIP runtime to query and display device capabilities.
+ *
+ * @param verbose  If `true`, print the full property block.  If
+ *                 `false`, print a concise summary.
+ *
+ * @see print_device_info()
+ */
+extern void print_hip_device_info(bool verbose);
+
+#endif /* NOVA_HAS_HIP */
+
 /**
  * @var device_detection_done
  * @brief `true` after the first successful call to a detection
- *        function (@ref is_device_available, @ref is_cuda_available,
+ *        function ( @ref is_device_available, @ref is_cuda_available,
  *        or @ref is_hip_available).
  *
  * @details
@@ -165,7 +262,7 @@ static void init_runtime_flags_lock(void) {
  * race to call detection functions.
  */
 static BOOL CALLBACK init_runtime_flags_lock(PINIT_ONCE once, PVOID param,
-                                            PVOID *ctx) {
+                                             PVOID *ctx) {
   (void)once;
   (void)param;
   (void)ctx;
@@ -173,115 +270,6 @@ static BOOL CALLBACK init_runtime_flags_lock(PINIT_ONCE once, PVOID param,
   return TRUE;
 }
 #endif
-
-#ifdef NOVA_HAS_HIP
-
-/**
- * @brief Return the active HIP device id.
- *
- * @details
- * Declared as `extern` because the function is defined in
- * @ref hip_device.c.  This avoids pulling the entire HIP detection
- * module into a single translation unit and keeps the linker
- * responsible for resolving the symbol.
- *
- * @return Device id (0-based), or `-1` when HIP is unavailable.
- *
- * @see get_hip_device_id()  Definition in hip_device.c.
- * @see get_device_id()      Public aggregator that calls this.
- */
-extern int get_hip_device_id(void);
-
-/**
- * @brief Probe HIP runtime availability.
- *
- * @details
- * Declared as `extern` because the function is defined in
- * @ref hip_device.c.  The `log` parameter controls whether runtime
- * errors are printed to `stdout`.  The `verbose` parameter controls
- * whether a detailed or concise device information block is printed
- * on success.
- *
- * @param[in] log      If `true`, print HIP runtime error details.
- * @param[in] verbose  If `true`, print detailed device info.
- *
- * @return `true` when a HIP device is available.
- *
- * @see is_hip_device_available()  Definition in hip_device.c.
- * @see is_device_available()      Public dispatcher that calls this.
- */
-extern bool is_hip_device_available(bool log, bool verbose);
-
-/**
- * @brief Print HIP device 0 information to stdout.
- *
- * @details
- * Declared as `extern` because the function is defined in
- * @ref hip_device.c.  Called by @ref print_device_info() when the
- * backend is `HIP_DEVICE`.
- *
- * @param[in] verbose  If `true`, print detailed block.  If `false`,
- *                     print concise summary.
- *
- * @see print_device_info()  Public dispatcher that calls this.
- * @see hip_device.c         HIP detection implementation.
- */
-extern void print_hip_device_info(bool verbose);
-#endif /* NOVA_HAS_HIP */
-
-#ifdef NOVA_HAS_CUDA
-
-/**
- * @brief Return the active CUDA device id.
- *
- * @details
- * Declared as `extern` because the function is defined in
- * @ref cuda_device.c.  This keeps the CUDA detection code in its
- * own translation unit.
- *
- * @return Device id (0-based), or `-1` when CUDA is unavailable.
- *
- * @see get_cuda_device_id()  Definition in cuda_device.c.
- * @see get_device_id()       Public aggregator that calls this.
- */
-extern int get_cuda_device_id(void);
-
-/**
- * @brief Probe CUDA runtime availability.
- *
- * @details
- * Declared as `extern` because the function is defined in
- * @ref cuda_device.c.  The `log` parameter controls whether runtime
- * errors are printed to `stdout`.  The `verbose` parameter controls
- * whether a detailed or concise device information block is printed
- * on success.
- *
- * @param[in] log      If `true`, print CUDA runtime error details.
- * @param[in] verbose  If `true`, print detailed device info.
- *
- * @return `true` when a CUDA device is available.
- *
- * @see is_cuda_device_available()  Definition in cuda_device.c.
- * @see is_device_available()       Public dispatcher that calls this.
- */
-extern bool is_cuda_device_available(bool log, bool verbose);
-
-/**
- * @brief Print CUDA device 0 information to stdout.
- *
- * @details
- * Declared as `extern` because the function is defined in
- * @ref cuda_device.c.  Called by @ref print_device_info() when the
- * backend is `CUDA_DEVICE`.
- *
- * @param[in] verbose  If `true`, print detailed block.  If `false`,
- *                     print concise summary.
- *
- * @see print_device_info()  Public dispatcher that calls this.
- * @see cuda_device.c        CUDA detection implementation.
- */
-extern void print_cuda_device_info(bool verbose);
-#endif /* NOVA_HAS_CUDA */
 
 /**
  * @var transf_dispatch
@@ -353,9 +341,9 @@ ATTR(constructor) static inline void init_transf_dispatch(void) {
  * Dispatches to the backend-specific detection function based on
  * @p kind:
  * - `CUDA_DEVICE` → `is_cuda_device_available()` (from
- *   @ref cuda_device.c), guarded by `#ifdef NOVA_HAS_CUDA`.
+ *   `DetectCudaDevice.cpp`), guarded by `#ifdef NOVA_HAS_CUDA`.
  * - `HIP_DEVICE` → `is_hip_device_available()` (from
- *   @ref hip_device.c), guarded by `#ifdef NOVA_HAS_HIP`.
+ *   `DetectHipDevice.cpp`), guarded by `#ifdef NOVA_HAS_HIP`.
  * - `NULL_DEVICE` or any other value → returns `false`.
  *
  * When the corresponding backend macro is not defined, the `#else`
@@ -673,9 +661,9 @@ int get_device_id(void) {
  * @details
  * Delegates to the backend-specific print function based on @p kind:
  * - `CUDA_DEVICE` → `print_cuda_device_info()` (from
- *   @ref cuda_device.c), guarded by `#ifdef NOVA_HAS_CUDA`.
+ *   `DetectCudaDevice.cpp`), guarded by `#ifdef NOVA_HAS_CUDA`.
  * - `HIP_DEVICE` → `print_hip_device_info()` (from
- *   @ref hip_device.c), guarded by `#ifdef NOVA_HAS_HIP`.
+ *   `DetectHipDevice.cpp`), guarded by `#ifdef NOVA_HAS_HIP`.
  * - `NULL_DEVICE` or any other value → no-op.
  *
  * When the corresponding backend macro is not defined, the function
