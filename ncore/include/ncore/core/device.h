@@ -28,11 +28,11 @@
  */
 // clang-format off
 /**
- * | Device      | Value | Description                         |
- * |-------------|-------|-------------------------------------|
- * | `DEVICE_CPU`  | 0   | Host memory (default).              |
- * | `DEVICE_GPU`  | 1   | Accelerator memory (CUDA/ROCm).     |
- * | `DEVICE_META` | 2   | Placeholder with no backing storage.|
+ * | Device        | Value | Description                         |
+ * |---------------|-------|-------------------------------------|
+ * | `DEVICE_CPU`  | 0     | Host memory (default).              |
+ * | `DEVICE_GPU`  | 1     | Accelerator memory (CUDA/ROCm).     |
+ * | `DEVICE_META` | 2     | Placeholder with no backing storage.|
  */
 // clang-format on
 /**
@@ -60,13 +60,13 @@
  * @see tensor.h      Tensor structure embedding a @ref Device field.
  * @see cpp_ffi.h     C-callable device-memory copy wrapper used by
  *                    @ref transfer_to().
- * @see cuda_device.c CUDA-specific detection implementation.
- * @see hip_device.c  HIP-specific detection implementation.
+ * @see DetectCudaDevice.cpp CUDA-specific detection implementation.
+ * @see DetectHipDevice.cpp  HIP-specific detection implementation.
  */
 
 #pragma once
 
-#include <ncore/macros.h>
+#include <ncore/headeronly/macros.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -181,7 +181,7 @@ typedef enum ATTR(packed) {
  * @brief Zero on success, a positive error code on failure.
  *
  * @var DeviceStatus::message
- * @brief Human-readable error description.  Do not free this pointer.
+ * @brief Human-readable error description.
  *
  * @see transfer_to()  Returns a DeviceStatus.
  * @see device_memcpy_c()  Low-level wrapper that returns a DeviceStatus.
@@ -215,10 +215,10 @@ typedef Tensor *TensorGrad;
  * @details
  * Dispatches to the backend-specific detection function based on
  * @p kind:
- * - `CUDA_DEVICE` → @ref is_cuda_device_available() (from
- *   @ref cuda_device.c).
- * - `HIP_DEVICE` → @ref is_hip_device_available() (from
- *   @ref hip_device.c).
+ * - `CUDA_DEVICE` -> @ref is_cuda_device_available() from the native
+ *   CUDA backend.
+ * - `HIP_DEVICE` -> @ref is_hip_device_available() from the native
+ *   HIP backend.
  * - `NULL_DEVICE` or any other value → returns `false`.
  *
  * When the corresponding backend macro (`NOVA_HAS_CUDA` or
@@ -245,7 +245,7 @@ typedef Tensor *TensorGrad;
  *
  * @note Thread-safe.  Delegates to thread-safe backend detection
  *       functions.  The cached result is protected by a mutex and
- *       a `call_once` initialisation guard.
+ *       a `call_once`/`InitOnceExecuteOnce` initialisation guard.
  *
  * @see is_cuda_available()   Convenience wrapper for `CUDA_DEVICE`.
  * @see is_hip_available()    Convenience wrapper for `HIP_DEVICE`.
@@ -268,7 +268,7 @@ bool is_device_available(DeviceKind kind, bool verbose);
  * @return `true` when CUDA reports an available device.  `false` if
  *         CUDA is unavailable or `NOVA_HAS_CUDA` is not defined.
  *
- * @note Thread-safe.  Does not print diagnostics (verbose is `false`).
+ * @note Does not print diagnostics (verbose is `false`).
  *
  * @see is_device_available()
  * @see is_hip_available()
@@ -289,7 +289,7 @@ bool is_cuda_available(void);
  * @return `true` when HIP reports an available device.  `false` if
  *         HIP is unavailable or `NOVA_HAS_HIP` is not defined.
  *
- * @note Thread-safe.  Does not print diagnostics (verbose is `false`).
+ * @note Does not print diagnostics (verbose is `false`).
  *
  * @see is_device_available()
  * @see is_cuda_available()
@@ -408,8 +408,6 @@ int get_device_id(void);
  *                     `HIP_DEVICE`.  `NULL_DEVICE` is a no-op.
  * @param[in] verbose  If `true`, print the detailed block.  If
  *                     `false`, print the concise summary.
- *
- * @note Thread-safe.  Delegates to backend-specific print functions.
  *
  * @see is_device_available()
  * @see is_cuda_available()
