@@ -74,8 +74,8 @@
 #pragma once
 
 #include <immintrin.h>
-#include <ncore/macros.h>
-#include <ncore/simd.h>
+#include <ncore/headeronly/macros.h>
+#include <ncore/simd/simd.h>
 #include <ncore/tables/cast_tables.h>
 #include <ncore/tensor.h>
 
