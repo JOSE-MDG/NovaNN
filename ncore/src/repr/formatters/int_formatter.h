@@ -1,10 +1,14 @@
 /**
  * @file int_formatter.h
- * @brief Integer element formatting.
+ * @brief Logic for formatting integer tensor elements.
  *
  * @details
- * Formats signed and unsigned integer values.  UnSigned8 can optionally
- * be rendered as True / False when the is_bool flag is set.
+ * This header defines the interface for converting signed and unsigned
+ * integers into human-readable strings. It also supports specialized
+ * boolean interpretation for unsigned 8-bit types.
+ *
+ * @see int_formatter.c Implementation details.
+ * @see element_fmt.h Higher-level dispatch table.
  */
 
 #pragma once
@@ -14,24 +18,28 @@
 #include <stdint.h>
 
 /**
- * @brief Format a signed integer.
+ * @brief Convert a signed 64-bit integer into a string.
  *
- * @param[out] buf      Output buffer.
- * @param[in]  buf_size Buffer size.
- * @param[in]  val      Signed integer value.
- * @return Number of chars written (excl. null).
+ * @param[out] buf      Target string buffer.
+ * @param[in]  buf_size Capacity of the buffer in bytes.
+ * @param[in]  val      The integer value to format.
+ *
+ * @return Number of characters written.
  */
 int int_format_value(char *buf, size_t buf_size, int64_t val);
 
 /**
- * @brief Format an unsigned integer.
+ * @brief Convert an unsigned 64-bit integer into a string.
  *
- * When is_bool is true and val is 0 or 1, writes "False" or "True".
+ * @details
+ * If the `is_bool` parameter is set, the function renders 1 as "True"
+ * and 0 as "False" instead of using numeric labels.
  *
- * @param[out] buf      Output buffer.
- * @param[in]  buf_size Buffer size.
- * @param[in]  val      Unsigned integer value.
- * @param[in]  is_bool  If true and val is 0 or 1, write "False"/"True".
- * @return Number of chars written (excl. null).
+ * @param[out] buf      Target string buffer.
+ * @param[in]  buf_size Capacity of the buffer in bytes.
+ * @param[in]  val      The unsigned integer value to format.
+ * @param[in]  is_bool  If true, use boolean labels for 0 and 1.
+ *
+ * @return Number of characters written.
  */
 int uint_format_value(char *buf, size_t buf_size, uint64_t val, bool is_bool);
