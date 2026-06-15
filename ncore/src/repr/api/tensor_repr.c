@@ -42,7 +42,7 @@
 #include <string.h>
 
 #include "repr/formatters/element_fmt.h"
-#include "repr/layouts/dense_layout.h"
+#include "repr/layouts/layouts.h"
 #include "repr/metadata/metadata_fmt.h"
 #include "repr/string_builder/string_builder.h"
 
