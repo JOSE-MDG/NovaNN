@@ -1,28 +1,34 @@
 /**
  * @file metadata_fmt.c
- * @brief Suffix formatter for tensor metadata.
+ * @brief Implementation of the tensor metadata suffix formatter.
  *
  * @details
- * Appends the closing suffix after the data-block's closing parenthesis.
+ * This module handles the generation of the metadata footer that follows
+ * the tensor's data block. It provides contextual information such as
+ * data type, shape, device placement, and autograd status, depending
+ * on the display mode (NORMAL vs DEBUG).
  *
- * Normal mode:
- *   - Suppressed entirely when dtype == Float32 and no grad info.
- *   - Meta tensors always show dtype + device.
- *   - grad_fn takes priority over requires_grad.
+ * ## Architecture
+ * - **Context Sensitivity**: Normal mode suppresses information that is
+ *   considered "default" (e.g., Float32, CPU) to reduce visual noise.
+ * - **Debug Path**: Forces emission of all metadata fields on a new line
+ *   to facilitate diagnostics.
+ * - **String Mapping**: Uses precomputed string tables for @ref DType_
+ *   and @ref Device enumeration values.
  *
- * Debug mode:
- *   Always appends:
- *     dtype=..., shape=(...), device=..., requires_grad=...
- *   on a continuation line indented to align with the data block.
+ * @see metadata_fmt.h Footer interface.
+ * @see repr_options.h Mode definitions.
  */
 
-#include "metadata_fmt.h"
-#include <ncore/device.h>
-#include <ncore/dtype.h>
+#include <ncore/core/device.h>
+#include <ncore/core/dtype.h>
 #include <stdio.h>
 
+#include "metadata_fmt.h"
+
 /**
- * @brief String table indexed by DType_.
+ * @var static const char *g_dtype_string
+ * @brief String table for mapping DType_ values to human-readable labels.
  */
 static const char *g_dtype_string[NUM_DTYPES] = {
     [Float32] = "float32",   [Float64] = "float64",   [Float16] = "float16",
@@ -32,16 +38,17 @@ static const char *g_dtype_string[NUM_DTYPES] = {
 };
 
 /**
- * @brief String table indexed by Device enum.
+ * @var static const char *g_device_string
+ * @brief String table for mapping Device values to human-readable labels.
  */
 static const char *g_device_string[3] = {
     [DEVICE_CPU] = "cpu", [DEVICE_GPU] = "cuda", [DEVICE_META] = "meta"};
 
 /**
- * @brief Look up the human-readable string for a DType.
+ * @brief Map a DType_ value to its human-readable string representation.
  *
- * @param[in] d DType value.
- * @return Pointer to a static string, or "unknown" if out of range.
+ * @param[in] d The DType to look up.
+ * @return A static string literal, or "unknown" if the type is invalid.
  */
 static const char *dtype_string(DType_ d) {
   if (d >= NUM_DTYPES) {
@@ -51,10 +58,10 @@ static const char *dtype_string(DType_ d) {
 }
 
 /**
- * @brief Look up the human-readable string for a Device.
+ * @brief Map a Device enum value to its human-readable string representation.
  *
- * @param[in] d Device value.
- * @return Pointer to a static string, or "unknown" if out of range.
+ * @param[in] d The Device to look up.
+ * @return A static string literal, or "unknown" if the device is invalid.
  */
 static const char *device_string(Device d) {
   if ((int)d >= 3) {
@@ -64,23 +71,36 @@ static const char *device_string(Device d) {
 }
 
 /**
- * @brief Append the metadata suffix and close the outer `)`.
+ * @brief Append the metadata suffix and close the outer tensor representation.
  *
- * @param[in] ctx ReprContext (mode, tensor pointer, etc.).
- * @param[in] sb  Output builder.
+ * @details
+ * This function appends the final ")" and optionally a comma-separated
+ * metadata block based on the current mode and tensor state.
+ *
+ * @param[in]     ctx Pointer to the representation context.
+ * @param[in,out] sb  Pointer to the StringBuilder.
  */
 void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
   const Tensor *ten = ctx->tensor;
   ReprMode mode = ctx->options.mode;
 
   /* ---- Normal mode ---- */
-  if (mode == REPR_MODE_NORMAL) {
+  if (mode == ReprModeNormal) {
     /* Meta tensors always show dtype + device. */
     if (ctx->is_meta) {
       sb_append(sb, ", ");
       sb_append(sb, "dtype=");
       sb_append(sb, dtype_string(ten->dtype));
       sb_append(sb, ", device=meta");
+      sb_append(sb, ")");
+      return;
+    }
+
+    if (ctx->is_gpu) {
+      sb_append(sb, ", ");
+      sb_append(sb, "dtype=");
+      sb_append(sb, dtype_string(ten->dtype));
+      sb_append(sb, ", device=cuda");
       sb_append(sb, ")");
       return;
     }
