@@ -1,18 +1,15 @@
 /**
  * @file metadata_fmt.h
- * @brief Metadata footer (dtype, shape, device, grad info).
+ * @brief Metadata suffix formatter for tensor representation.
  *
  * @details
- * Appends the closing suffix after the data block.  Behaviour depends
- * on the display mode:
+ * This header defines the interface for appending the metadata footer
+ * (dtype, shape, device, grad info) to a tensor's string representation.
+ * The footer logic is mode-sensitive, providing minimal output in
+ * normal mode and comprehensive diagnostics in debug mode.
  *
- * Normal mode:
- *   - dtype suffix omitted when dtype == Float32 and no grad info.
- *   - Meta tensors always show dtype and device.
- *   - grad_fn takes priority over requires_grad.
- *
- * Debug mode:
- *   - Always appends all fields on a continuation line.
+ * @see metadata_fmt.c Footer implementation.
+ * @see tensor_repr.h High-level API.
  */
 
 #pragma once
@@ -21,12 +18,13 @@
 #include <ncore/repr/repr_context.h>
 
 /**
- * @brief Append the metadata suffix and close the outer `)`.
+ * @brief Append the metadata suffix and finalize the tensor string.
  *
- * The suffix is appended after the data-block closing `)` has already
- * been placed by the layout code.
+ * @details
+ * Writes the closing ")" and any required metadata fields (e.g.,
+ * `dtype=float32`, `device=cuda`) to the provided builder.
  *
- * @param[in] ctx ReprContext (mode, tensor pointer, etc.).
- * @param[in] sb  Output builder.
+ * @param[in]     ctx Pointer to the representation context.
+ * @param[in,out] sb  Pointer to the StringBuilder.
  */
 void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb);
