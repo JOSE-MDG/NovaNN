@@ -1,27 +1,37 @@
 /**
  * @file repr_context.c
- * @brief ReprContext builder — scans tensor data and derives display
- * parameters.
+ * @brief Implementation of the derived display context builder.
  *
  * @details
- * Implements build_repr_context() which analyses a tensor once and
- * produces a ReprContext that layout and formatter layers consume
- * without re-scanning.  The scan computes:
- *   - dtype category flags (float / integer / quantized / bool / scalar)
- *   - device / allocation state (meta / gpu)
- *   - scientific-notation auto-detection (PyTorch heuristic)
- *   - maximum formatted element width (for column alignment)
+ * This module implements @ref build_repr_context(), which performs a one-time
+ * analysis of a tensor and its formatting options to produce a persistent
+ * @ref ReprContext. This context drives all subsequent layout and formatting
+ * operations, ensuring consistent alignment and numeric representation.
  *
- * The element-width scan uses the dispatch table from element_fmt.h
- * instead of a hand-rolled switch, keeping the formatting logic in
- * one place.
+ * The builder performs a data scan to auto-detect optimal formatting
+ * (scientific vs. decimal) and to compute the maximum string width for
+ * column alignment in multi-dimensional output.
+ *
+ * ## Architecture
+ * The context building process consists of two primary passes:
+ * 1. **Classification**: Maps the tensor's metadata (dtype, device, ndims)
+ *    to categorical flags in the context.
+ * 2. **Analysis Pass**: Samples the tensor's data (sampling up to 1000
+ *    elements from the start and end) to:
+ *    - Apply the PyTorch heuristic for scientific notation.
+ *    - Calculate the maximum formatted width of elements, accounting for
+ *      strided (view) layouts.
+ *
+ * @see repr_context.h Structure definition.
+ * @see element_fmt.h Element-wise formatting dispatch.
  */
 
 #include <math.h>
-#include <ncore/device.h>
-#include <ncore/dtype.h>
+#include <ncore/core/device.h>
+#include <ncore/core/dtype.h>
+#include <ncore/core/storage.h>
+#include <ncore/headeronly/tensor_utils.h>
 #include <ncore/repr/repr_context.h>
-#include <ncore/storage.h>
 #include <ncore/tensor.h>
 #include <stdio.h>
 #include <string.h>
@@ -29,9 +39,9 @@
 #include "repr/formatters/element_fmt.h"
 
 /**
- * @brief Check if a DType is a floating-point type.
+ * @brief Internal helper to check floating-point data types.
  *
- * @param[in] d DType value.
+ * @param[in] d DType to check.
  * @return true if d is Float32, Float64, Float16, or BFloat16.
  */
 static inline bool is_float_dtype(DType_ d) {
@@ -39,10 +49,10 @@ static inline bool is_float_dtype(DType_ d) {
 }
 
 /**
- * @brief Check if a DType is an integer type.
+ * @brief Internal helper to check integer data types.
  *
- * @param[in] d DType value.
- * @return true if d is any signed or unsigned integer type.
+ * @param[in] d DType to check.
+ * @return true if d is any non-quantized signed or unsigned integer type.
  */
 static inline bool is_integer_dtype(DType_ d) {
   return d == Signed8 || d == UnSigned8 || d == Signed32 || d == UnSigned32 ||
@@ -50,9 +60,9 @@ static inline bool is_integer_dtype(DType_ d) {
 }
 
 /**
- * @brief Check if a DType is a quantized type.
+ * @brief Internal helper to check quantized data types.
  *
- * @param[in] d DType value.
+ * @param[in] d DType to check.
  * @return true if d is QSigned8 or QUnSigned8.
  */
 static inline bool is_quantized_dtype(DType_ d) {
@@ -60,10 +70,16 @@ static inline bool is_quantized_dtype(DType_ d) {
 }
 
 /**
- * @brief Extract a float value from tensor storage as a double.
+ * @brief Extract a numeric value as double for range analysis.
  *
- * Used only during scientific-notation auto-detection.  Keeps a small
- * switch rather than adding a second dispatch path.
+ * @details
+ * This is used exclusively during the scientific notation auto-detection
+ * phase to calculate the absolute range of the tensor's elements.
+ *
+ * @param[in] ten Pointer to the tensor.
+ * @param[in] idx Linear index of the element.
+ *
+ * @return The element value converted to double.
  */
 static inline double get_float_value(const Tensor *ten, size_t idx) {
   const size_t elem_off = (ten->offset / ten->item_size) + idx;
@@ -84,49 +100,56 @@ static inline double get_float_value(const Tensor *ten, size_t idx) {
 /**
  * @brief Build a ReprContext from a tensor and options.
  *
- * Scans up to 1000 elements to determine the maximum element width and,
- * for float types, whether scientific notation should be enabled via the
- * PyTorch heuristic.  Meta and GPU tensors skip the data scan.
+ * @details
+ * Performs metadata classification and a strided-aware data scan to
+ * derive column widths and numeric notation settings. The scan is
+ * performance-gated, sampling a maximum of 2000 elements even for
+ * very large tensors.
  *
- * @param[in]  ten  Tensor to render (must not be NULL).
- * @param[in]  opts Options (NULL = use repr_default_options()).
- * @return Fully populated ReprContext.
+ * @param[in] ten Pointer to the tensor to analyze. Must not be NULL.
+ * @param[in] opts Pointer to the formatting options. May be NULL for defaults.
+ *
+ * @return A fully populated ReprContext.
  */
 ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   ReprContext ctx = {0};
   ctx.tensor = ten;
-  ctx.options = opts ? *opts : repr_default_options();
+  ctx.options = (opts != NULL) ? *opts : repr_default_options();
   ctx.is_float = is_float_dtype(ten->dtype);
   ctx.is_integer = is_integer_dtype(ten->dtype);
   ctx.is_quantized = is_quantized_dtype(ten->dtype);
-  ctx.is_bool = opts ? opts->is_bool : false;
+  ctx.is_bool = (opts != NULL) ? opts->is_bool : false;
   ctx.is_scalar = is_scalar(ten);
-  ctx.is_meta = (ten->device == DEVICE_META);
-  ctx.is_gpu = (ten->device == DEVICE_GPU);
+  ctx.is_meta = (bool)(ten->device == DEVICE_META);
+  ctx.is_gpu = (bool)(ten->device == DEVICE_GPU);
   ctx.effective_precision = opts ? opts->precision : 4;
   ctx.is_summarized = (ten->size > ctx.options.threshold);
-  ctx.use_sci = opts ? opts->sci_mode : false;
+  ctx.use_sci = (opts != NULL) ? opts->sci_mode : false;
 
   size_t n = ten->size > 1000 ? 1000 : ten->size;
 
-  // TODO: If the Tensor is on device move it to the Host
-
-  if (ctx.is_meta || ctx.is_gpu) {
+  if (ctx.is_meta) {
     ctx.element_width = 3;
     ctx.use_sci = false;
     return ctx;
   }
 
   /* --- Scientific-notation auto-detection --- */
-  const bool sci_mode_auto = opts ? opts->sci_mode_auto : true;
-  const bool sci_mode = opts ? opts->sci_mode : false;
+  const bool sci_mode_auto = (opts != NULL) ? opts->sci_mode_auto : true;
+  const bool sci_mode = (opts != NULL) ? opts->sci_mode : false;
+
   if (ctx.is_float && sci_mode_auto && !sci_mode && n > 0) {
     double max_abs = 0.0;
     double min_nonzero_abs = 1e100;
     bool found = false;
-    for (size_t i = 0; i < n; i++) {
-      double v = get_float_value(ten, i);
-      if (__builtin_isinf(v) || __builtin_isnan(v)) {
+
+    /* Scan start and end elements for the PyTorch heuristic */
+    size_t scan_count = (ten->size > 2000) ? 1000 : ten->size;
+
+    for (size_t i = 0; i < scan_count; i++) {
+      size_t idx = (i < 1000) ? i : (ten->size - (scan_count - i));
+      double v = get_float_value(ten, idx);
+      if (isinf(v) || isnan(v)) {
         continue;
       }
       double av = fabs(v);
@@ -141,6 +164,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
         min_nonzero_abs = av;
       }
     }
+
     if (found) {
       if (min_nonzero_abs < 1e-4 || max_abs >= 1e4 ||
           (min_nonzero_abs > 0 && max_abs / min_nonzero_abs > 1e3)) {
@@ -149,34 +173,34 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
     }
   }
 
-  if (n == 0) {
+  if (ten->size == 0) {
     ctx.element_width = 1;
     return ctx;
   }
 
   /* --- Compute maximum formatted element width --- */
   size_t max_w = 0;
-  for (size_t i = 0; i < n; i++) {
-    char fmt_buf[128];
-    const void *ptr =
-        (const uint8 *)ten->data.u8 + (ten->offset + (i * ten->item_size));
-    format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &ctx);
-    size_t w = strlen(fmt_buf);
-    if (w > max_w) {
-      max_w = w;
-    }
-  }
+  size_t scan_limit = (ten->size > 2000) ? 1000 : ten->size;
 
-  if (ten->size > n && n > 0) {
-    for (size_t i = ten->size - n; i < ten->size; i++) {
-      char fmt_buf[128];
-      const void *ptr =
-          (const uint8 *)ten->data.u8 + (ten->offset + (i * ten->item_size));
-      format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &ctx);
-      size_t w = strlen(fmt_buf);
-      if (w > max_w) {
-        max_w = w;
-      }
+  for (size_t i = 0; i < scan_limit; i++) {
+    size_t idx;
+    if (ten->size > 2000 && i >= 500) {
+      idx = ten->size - 1000 + i;
+    } else {
+      idx = i;
+    }
+
+    char fmt_buf[128];
+    coords_t coords;
+    compute_coords_given_linear_byte_offset_(idx * ten->item_size, ten->ndims,
+                                             coords, ten->strides);
+    const void *ptr =
+        (const uint8 *)ten->data.u8 +
+        compute_linear_byte_offset(coords, ten->ndims, ten->strides);
+
+    int w = format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &ctx);
+    if ((size_t)w > max_w) {
+      max_w = (size_t)w;
     }
   }
 
