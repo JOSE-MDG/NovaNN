@@ -1,27 +1,21 @@
+---
 Checks: >
   clang-diagnostic-*,
   clang-analyzer-*,
   bugprone-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-reserved-identifier,
   -bugprone-narrowing-conversions,
   -bugprone-implicit-widening-of-multiplication-result,
   -bugprone-casting-through-void,
-  misc-const-correctness,
-  misc-definitions-in-headers,
-  misc-header-include-cycle,
-  misc-misplaced-const,
-  misc-no-recursion,
-  misc-redundant-expression,
-  misc-static-assert,
-  modernize-*,
   -modernize-use-trailing-return-type,
   -modernize-use-auto,
   -modernize-macro-to-enum,
-  -modernize-use-nullptr,
-  performance-*,
-  portability-*,
-  readability-*,
   -readability-magic-numbers,
   -readability-function-cognitive-complexity,
   -readability-identifier-length,
@@ -36,13 +30,25 @@ WarningsAsErrors: ""
 
 HeaderFilterRegex: "ncore/.*"
 
-FormatStyle: file
+FormatStyle: llvm
 
 CheckOptions:
+  # Asserts
   bugprone-assert-side-effect.AssertMacros: "NOVA_INTERNAL_ASSERT"
   bugprone-suspicious-string-compare.WarnOnImplicitComparison: false
+
+  readability-identifier-naming.FunctionCase: "camelBack"
+  readability-identifier-naming.ClassCase: "CamelCase"
+  readability-identifier-naming.StructCase: "CamelCase"
   readability-identifier-naming.EnumCase: "CamelCase"
-  readability-identifier-naming.FunctionCase: "lower_case"
-  readability-identifier-naming.VariableCase: "lower_case"
+  readability-identifier-naming.EnumConstantCase: "CamelCase"
+  readability-identifier-naming.TypedefCase: "CamelCase"
+  readability-identifier-naming.VariableCase: "camelBack"
+  readability-identifier-naming.LocalVariableCase: "camelBack"
+  readability-identifier-naming.GlobalVariableCase: "camelBack"
+  readability-identifier-naming.MemberCase: "camelBack"
+  readability-identifier-naming.PrivateMemberPrefix: "m_"
+  readability-identifier-naming.GlobalConstantCase: "UPPER_CASE"
   readability-identifier-naming.MacroDefinitionCase: "UPPER_CASE"
+
   readability-braces-around-statements.ShortStatementLines: 1
