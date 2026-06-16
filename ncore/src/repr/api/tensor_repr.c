@@ -26,17 +26,24 @@
  *    - **Dense**: Optimized path for contiguous multi-dimensional tensors.
  * 6. **Metadata & Closure**: Appends the closing suffix and metadata footer.
  *
+ * If any step encounters a memory allocation failure, the @ref StringBuilder
+ * propagates the error via its @ref SBStatus field and the pipeline returns
+ * NULL gracefully instead of aborting.
+ *
  * @see tensor_repr.h    Public API definitions.
  * @see repr_context.h   Context and scanning logic.
- * @see string_builder.h Memory-safe string construction.
+ * @see string_builder.h Memory-safe string construction with error propagation.
  */
 
 #include <ncore/core/alloc.h>
+#include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
+#include <ncore/core/status.h>
 #include <ncore/core/storage.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/repr/repr_context.h>
 #include <ncore/repr/tensor_repr.h>
+#include <ncore/tensor.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,7 +59,9 @@
  * @details
  * This static function performs the actual orchestration of the repr
  * pipeline. It builds the context, initializes the builder, dispatches
- * to layout renderers, and appends metadata.
+ * to layout renderers, and appends metadata. If the builder encounters
+ * an allocation failure at any point, the error is propagated and NULL
+ * is returned.
  *
  * @param[in] ten  Pointer to the tensor to render. Must be host-accessible.
  * @param[in] opts Pointer to the formatting options. Must not be NULL.
@@ -68,6 +77,10 @@ static char *repr_internal(const Tensor *ten, const ReprOptions *opts) {
 
   StringBuilder sb;
   sb_init(&sb, 256);
+
+  if (sb_get_status(&sb) != SbOk) {
+    return NULL;
+  }
 
   sb_append(&sb, "tensor(");
 
@@ -90,58 +103,32 @@ static char *repr_internal(const Tensor *ten, const ReprOptions *opts) {
   }
 
   metadata_fmt_append(&ctx, &sb);
-  return sb_build(&sb);
-}
 
-/**
- * @brief Move a device-resident tensor's data to host memory for inspection.
- *
- * @details
- * Allocates a temporary buffer on the CPU and performs a asynchronous
- * device-to-host transfer. The metadata of the destination tensor
- * (including the device field) is preserved to ensure the representation
- * correctly identifies the tensor's native location.
- *
- * @param[in]     from Pointer to the source device tensor.
- * @param[in,out] dst  Pointer to the destination host-shadow tensor.
- *
- * @return @ref DeviceStatus indicating the result of the transfer.
- *         Success is indicated by a code of 0.
- *
- * @see transfer_to() Low-level memory transfer utility.
- */
-static DeviceStatus move_from_device(const Tensor *restrict from,
-                                     Tensor *restrict dst) {
-
-  dst->storage =
-      allocate_tensor_buffer(from->storage->size_bytes, DEVICE_CPU, false);
-
-  if (dst->storage != NULL) {
-    dst->data = dst->storage->ptr;
-    dst->is_allocated_ = true;
-    /* Note: We explicitly keep dst->device as from->device (GPU)
-       so that metadata formatting correctly reports the original device. */
+  if (sb_get_status(&sb) != SbOk) {
+    sb_free(&sb);
+    return NULL;
   }
-
-  DeviceStatus status =
-      transfer_to(DEVICE_GPU, DEVICE_CPU, (const void *)from->data.v,
-                  dst->data.v, from->storage->size_bytes);
-
-  return status;
+  return sb_build(&sb);
 }
 
 /**
  * @brief Produce a normal-mode string representation of a tensor.
  *
  * @details
- * Performs a standard representation. If the tensor is resident on a
- * GPU, a temporary host-side shadow is created for the data scan.
+ * Renders the tensor's data values in a bracketed, multidimensional
+ * format.  If the tensor is resident on a GPU, a temporary host-side
+ * shadow is created via @ref safe_allocator() and the data is
+ * transferred with @ref transf_tensor_from_device().  The shadow is
+ * freed after rendering.
  *
  * @param[in] ten Pointer to the tensor to render.
  *
- * @return Heap-allocated string (caller must free()), or NULL on failure.
+ * @return Heap-allocated string (caller must free()), or NULL on
+ *         failure (invalid tensor, allocation error, or transfer
+ *         error).
  *
  * @see tensor_repr_debug()
+ * @see tensor_repr_with_options()
  */
 char *tensor_repr(const Tensor *ten) {
   if (ten == NULL) {
@@ -159,8 +146,13 @@ char *tensor_repr(const Tensor *ten) {
   if (ten->device == DEVICE_GPU &&
       is_device_memory_handle(&ten->storage->handle)) {
     swapped = true;
-    DeviceStatus status = move_from_device(ten, &rten);
-    if (status.code != 0) {
+    rten.storage = NULL;
+    rten.data.data = NULL;
+    rten.is_allocated_ = false;
+    safe_allocator(ten->storage->size_bytes, DEVICE_CPU, false, NULL, &rten,
+                   true);
+    novaStatus_t status = transf_tensor_from_device(ten, &rten);
+    if (status.err != novaSuccess) {
       return NULL;
     }
   }
@@ -181,15 +173,20 @@ char *tensor_repr(const Tensor *ten) {
  * @brief Produce a debug-mode string representation of a tensor.
  *
  * @details
- * Performs a standard representation. If the tensor is resident on a
- * GPU, a temporary host-side shadow is created for the data scan.
- *
- * Sets the @ref RerpModeDebug flag before dispatching to the
- * internal representation engine.
+ * Similar to @ref tensor_repr(), but sets the @ref ReprModeDebug
+ * flag before dispatching.  If the tensor is resident on a GPU, a
+ * temporary host-side shadow is created via @ref safe_allocator()
+ * and the data is transferred with @ref transf_tensor_from_device().
+ * The shadow is freed after rendering.
  *
  * @param[in] ten Pointer to the tensor to render.
  *
- * @return Heap-allocated string (caller must free()), or NULL on failure.
+ * @return Heap-allocated string (caller must free()), or NULL on
+ *         failure (invalid tensor, allocation error, or transfer
+ *         error).
+ *
+ * @see tensor_repr()
+ * @see tensor_repr_with_options()
  */
 char *tensor_repr_debug(const Tensor *ten) {
   if (ten == NULL) {
@@ -207,8 +204,13 @@ char *tensor_repr_debug(const Tensor *ten) {
   if (ten->device == DEVICE_GPU &&
       is_device_memory_handle(&ten->storage->handle)) {
     swapped = true;
-    DeviceStatus status = move_from_device(ten, &rten);
-    if (status.code != 0) {
+    rten.storage = NULL;
+    rten.data.data = NULL;
+    rten.is_allocated_ = false;
+    safe_allocator(ten->storage->size_bytes, DEVICE_CPU, false, NULL, &rten,
+                   true);
+    novaStatus_t status = transf_tensor_from_device(ten, &rten);
+    if (status.err != novaSuccess) {
       return NULL;
     }
   }
@@ -230,14 +232,25 @@ char *tensor_repr_debug(const Tensor *ten) {
  * @brief Produce a string representation with full control via options.
  *
  * @details
- * Performs a standard representation. If the tensor is resident on a
- * GPU, a temporary host-side shadow is created for the data scan.
+ * Advanced entry point that accepts a @ref ReprOptions struct to
+ * customize thresholds, precision, scientific notation, and other
+ * formatting parameters.  If @p opts is NULL, defaults are used
+ * (equivalent to @ref tensor_repr()).  If the tensor is resident on
+ * a GPU, a temporary host-side shadow is created via
+ * @ref safe_allocator() and the data is transferred with
+ * @ref transf_tensor_from_device().  The shadow is freed after
+ * rendering.
  *
  * @param[in]  ten  Pointer to the tensor to render.
- * @param[in]  opts Pointer to a @ref ReprOptions struct. If NULL, defaults
- *                  are used.
+ * @param[in]  opts Pointer to a @ref ReprOptions struct.  If NULL,
+ *                  defaults are used.
  *
- * @return Heap-allocated string (caller must free()), or NULL on failure.
+ * @return Heap-allocated string (caller must free()), or NULL on
+ *         failure (invalid tensor, allocation error, or transfer
+ *         error).
+ *
+ * @see repr_default_options()
+ * @see tensor_repr()
  */
 char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts) {
   if (ten == NULL) {
@@ -257,8 +270,13 @@ char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts) {
   if (ten->device == DEVICE_GPU &&
       is_device_memory_handle(&ten->storage->handle)) {
     swapped = true;
-    DeviceStatus status = move_from_device(ten, &rten);
-    if (status.code != 0) {
+    rten.storage = NULL;
+    rten.data.data = NULL;
+    rten.is_allocated_ = false;
+    safe_allocator(ten->storage->size_bytes, DEVICE_CPU, false, NULL, &rten,
+                   true);
+    novaStatus_t status = transf_tensor_from_device(ten, &rten);
+    if (status.err != novaSuccess) {
       return NULL;
     }
   }
@@ -278,8 +296,10 @@ char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts) {
  * @brief Print a tensor's normal-mode representation to standard output.
  *
  * @details
- * Performs a standard representation. If the tensor is resident on a
- * GPU, a temporary host-side shadow is created for the data scan.
+ * Convenience wrapper that internally calls @ref tensor_repr(), writes
+ * the result to `stdout` followed by a newline, and automatically
+ * frees the allocated memory.  GPU tensors are handled transparently
+ * via host-side shadowing.
  *
  * @param[in] ten Pointer to the tensor to print.
  */
@@ -298,8 +318,10 @@ void tensor_print(const Tensor *ten) {
  * @brief Print a tensor's debug-mode representation to standard output.
  *
  * @details
- * Performs a standard representation. If the tensor is resident on a
- * GPU, a temporary host-side shadow is created for the data scan.
+ * Convenience wrapper that internally calls @ref tensor_repr_debug(),
+ * writes the result to `stdout` followed by a newline, and automatically
+ * frees the allocated memory.  GPU tensors are handled transparently
+ * via host-side shadowing.
  *
  * @param[in] ten Pointer to the tensor to print.
  */
@@ -308,7 +330,7 @@ void tensor_print_debug(const Tensor *ten) {
     return;
   }
   char *s = tensor_repr_debug(ten);
-  if (s == NULL) {
+  if (s != NULL) {
     printf("%s\n", s);
     free(s);
   }
