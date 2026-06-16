@@ -76,6 +76,8 @@ ATTR(constructor) static inline void init_status_msg_dispatch() {
   status_msg_dispatch[novaTransferError] = "Transfer error\n";
   status_msg_dispatch[novaTransferH2DError] = "Host-to-device transfer error\n";
   status_msg_dispatch[novaTransferD2HError] = "Device-to-host transfer error\n";
+  status_msg_dispatch[novaInvalidTransfDirection] =
+      "Invalid transfer direction error\n";
 
   /* Device/Backend */
   status_msg_dispatch[novaDeviceNotAvailable] = "Device not available\n";
@@ -90,6 +92,8 @@ ATTR(constructor) static inline void init_status_msg_dispatch() {
 
   /* GPU-specific */
   status_msg_dispatch[novaKernelLaunchError] = "Kernel launch error\n";
+  status_msg_dispatch[novaInvalidResourceHandle] =
+      "Internal resource handle error\n";
 
   /* Internal */
   status_msg_dispatch[novaNotImplemented] = "Not implemented\n";
