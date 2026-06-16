@@ -22,9 +22,11 @@
  *
  * ```
  * allocate:  reserve()  → RustHandle { id, size, align }
+ *            safe_reserve() → same, but returns novaStatus_t
  * share:     retain()   → increment refcount
  * free:      release()  → decrement refcount; free when zero
  * resize:    resize()   → may relocate the buffer
+ *            safe_resize() → same, but returns novaStatus_t
  * query:     get_data_from() → CPU-visible pointer
  * ```
  *
@@ -37,12 +39,13 @@
  *
  * @see dtype.h       DType_ enumeration used by data_ptr members.
  * @see tensor.h      Tensor struct embedding a TensorStorage.
- * @see alloc.h       Higher-level allocate_tensor_buffer() wrapper.
+ * @see alloc.h       Higher-level safe_allocator() wrapper.
  */
 
 #pragma once
 
-#include <ncore/dtype.h>
+#include "ncore/core/status.h"
+#include <ncore/core/dtype.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -162,7 +165,36 @@ typedef struct {
  * @see get_last_reserve_error()  Retrieves the failure reason.
  * @see TensorStorage      Embeds the returned handle.
  */
-RustHandle reserve(size_t size, const char *device, bool pin_memory, size_t align);
+RustHandle reserve(size_t size, const char *device, bool pin_memory,
+                   size_t align);
+
+/**
+ * @brief Allocate a buffer with structured error handling.
+ *
+ * @details
+ * Wraps @ref reserve() and returns a @ref novaStatus_t instead of
+ * requiring the caller to validate the handle.  On success, the
+ * handle is written to @p handle with `id != 0`.  On failure, the
+ * error code is set to @ref novaReserveError and the message is
+ * retrieved from @ref get_last_reserve_error().
+ *
+ * @param[in]  bytes      Requested size in bytes.  Must be > 0.
+ * @param[in]  device     Target device: `"cpu"` or `"device"`.
+ * @param[in]  pin_memory If `true` and @p device is `"cpu"`,
+ *                        allocate page-locked host memory.
+ * @param[in]  align      Required alignment in bytes (power of two).
+ * @param[out] handle     Pointer to receive the allocated handle.
+ *
+ * @return @ref novaStatus_t with `novaSuccess` on success.
+ *
+ * @retval novaReserveError  The underlying @ref reserve() call failed.
+ * @retval novaSuccess       Allocation succeeded.
+ *
+ * @see reserve()         Low-level allocation without status.
+ * @see safe_resize()     Resize with structured error handling.
+ */
+novaStatus_t safe_reserve(size_t bytes, const char *device, bool pin_memory,
+                          size_t align, RustHandle *handle);
 
 /**
  * @brief Increment the reference count of a Rust allocation.
@@ -231,6 +263,29 @@ bool release(RustHandle *handle);
  */
 bool resize(RustHandle *handle, size_t new_size);
 
+/**
+ * @brief Resize an allocation with structured error handling.
+ *
+ * @details
+ * Wraps @ref resize() and returns a @ref novaStatus_t.  On success,
+ * the handle is updated with the new size.  On failure, the error
+ * code is set to @ref novaResizeError or @ref novaOutOfMemory and
+ * the message is retrieved from @ref get_last_reserve_error().
+ *
+ * @param[in,out] handle   Pointer to the @ref RustHandle to resize.
+ *                         Must not be `NULL`.
+ * @param[in]     new_size New size in bytes.  Must be > 0.
+ *
+ * @return @ref novaStatus_t with `novaSuccess` on success.
+ *
+ * @retval novaOutOfMemory   The allocator could not grow the buffer.
+ * @retval novaResizeError   The resized handle failed validation.
+ * @retval novaSuccess       Resize succeeded.
+ *
+ * @see resize()        Low-level resize without status.
+ * @see safe_reserve()  Allocation with structured error handling.
+ */
+novaStatus_t safe_resize(RustHandle *handle, size_t new_size);
 /**
  * @brief Obtain the CPU-visible address of a Rust allocation.
  *
@@ -387,14 +442,14 @@ int get_last_reserve_error_len(void);
  *
  * ## Lifecycle
  *
- * 1. Created by `allocate_tensor_buffer()` (in @ref alloc.h)
- *    which calls `reserve()`.
+ * 1. Created by `safe_allocator()` (in @ref alloc.h)
+ *    which calls `reserve()` via `safe_reserve()`.
  * 2. Shared via `retain()` when a view references the same data.
  * 3. Freed via `release()` when the last reference is dropped.
  *
  * @see data_ptr        Typed pointer stored in `ptr`.
  * @see RustHandle      FFI handle stored in `handle`.
- * @see alloc.h         allocate_tensor_buffer() creates TensorStorage.
+ * @see alloc.h         safe_allocator() creates TensorStorage.
  * @see tensor.h        Tensor struct embedding a TensorStorage pointer.
  */
 typedef struct {
