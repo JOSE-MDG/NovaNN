@@ -96,10 +96,13 @@ typedef enum ATTR(packed) {
  * additional context about the failure is required.
  */
 typedef struct {
-  novaError_t err;      ///< The specific error code.
-  const char *message;  ///< A detailed, human-readable error message.
+  novaError_t err;     ///< The specific error code.
+  const char *message; ///< A detailed, human-readable error message.
 } novaStatus_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /**
  * @brief Retrieves the error message associated with a given error code.
  *
@@ -114,3 +117,6 @@ typedef struct {
  * @see novaError_t
  */
 const char *nova_get_error_msg(novaError_t err);
+#ifdef __cplusplus
+}
+#endif
