@@ -38,11 +38,12 @@
 
 #pragma once
 
-#include <ncore/backend.h>
-#include <ncore/device.h>
-#include <ncore/dtype.h>
-#include <ncore/macros.h>
-#include <ncore/storage.h>
+#include <ncore/core/backend.h>
+#include <ncore/core/device.h>
+#include <ncore/core/dtype.h>
+#include <ncore/core/status.h>
+#include <ncore/core/storage.h>
+#include <ncore/headeronly/macros.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -427,8 +428,13 @@ bool is_grad_collected(TensorGrad grad);
  * @brief Check whether a tensor's data buffer has been allocated.
  *
  * @details
- * Returns `true` when both `is_allocated_` and `data.data` are
- * non-NULL, indicating the tensor has a valid backing buffer.
+ * Returns `true` when all three conditions hold:
+ * - `is_allocated_ == true`
+ * - `storage != NULL`
+ * - `data.data != NULL`
+ *
+ * This triple-check ensures the tensor was both marked as
+ * allocated and actually has a valid pointer.
  *
  * @param[in] ten  Tensor to check.  Must not be `NULL`.
  *
@@ -442,6 +448,11 @@ bool is_allocated(const Tensor *ten);
 /**
  * @brief Check whether a gradient tensor has been allocated.
  *
+ * @details
+ * If @p grad is `NULL`, returns `false`.  Otherwise, checks the
+ * same three conditions as @ref is_allocated(): `is_allocated_`,
+ * `storage != NULL`, and `data.data != NULL`.
+ *
  * @param[in] grad  Gradient tensor to check.  May be `NULL`.
  *
  * @return `true` if the gradient has a valid backing buffer,
@@ -450,6 +461,86 @@ bool is_allocated(const Tensor *ten);
  * @see is_allocated()  Tensor variant.
  */
 bool is_grad_allocated(TensorGrad grad);
+
+/**
+ * @brief Check whether a tensor is a view (shares storage with
+ *        another tensor).
+ *
+ * @details
+ * A tensor is marked as a view when it was created via
+ * @ref create_view().  Views share the underlying storage with
+ * their source tensor and have `is_leaf_ == false`.
+ *
+ * @param[in] ten  Tensor to check.  Must not be `NULL`.
+ *
+ * @return `true` if the tensor is a view, `false` otherwise.
+ *
+ * @see create_view()          Constructor for views.
+ * @see is_grad_view()         Gradient variant.
+ */
+bool is_view(const Tensor *ten);
+
+/**
+ * @brief Check whether a gradient tensor is a view.
+ *
+ * @param[in] grad  Gradient tensor to check.  May be `NULL`.
+ *
+ * @return `true` if the gradient is a view, `false` otherwise
+ *         (including when @p grad is `NULL`).
+ *
+ * @see is_view()  Tensor variant.
+ */
+bool is_grad_view(TensorGrad grad);
+
+/**
+ * @brief Transfer tensor data from GPU device memory to CPU host
+ *        memory.
+ *
+ * @details
+ * Validates that @p src is a GPU-resident tensor with device memory
+ * and that @p dst is an allocated CPU tensor.  Performs a
+ * device-to-host memory transfer via @ref transfer_to().
+ *
+ * @param[in]  src  Source tensor on GPU.  Must have non-NULL storage
+ *                   and be backed by device memory.
+ * @param[in,out] dst  Destination tensor on CPU.  Must be allocated.
+ *
+ * @return @ref novaStatus_t with `novaSuccess` on success, or an
+ *         error code describing the failure.
+ *
+ * @pre  @p src must reside on GPU with device-backed storage.
+ * @pre  @p dst must reside on CPU and be allocated.
+ *
+ * @see transf_tensor_from_host()  Reverse direction.
+ * @see transfer_to()              Low-level memory transfer.
+ */
+novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
+                                       Tensor *restrict dst);
+
+/**
+ * @brief Transfer tensor data from CPU host memory to GPU device
+ *        memory.
+ *
+ * @details
+ * Validates that @p src is an allocated CPU tensor and that @p dst
+ * is a GPU-resident tensor with device memory.  Performs a
+ * host-to-device memory transfer via @ref transfer_to().
+ *
+ * @param[in]  src  Source tensor on CPU.  Must be allocated.
+ * @param[in,out] dst  Destination tensor on GPU.  Must have non-NULL
+ *                     storage and be backed by device memory.
+ *
+ * @return @ref novaStatus_t with `novaSuccess` on success, or an
+ *         error code describing the failure.
+ *
+ * @pre  @p src must reside on CPU and be allocated.
+ * @pre  @p dst must reside on GPU with device-backed storage.
+ *
+ * @see transf_tensor_from_device()  Reverse direction.
+ * @see transfer_to()                Low-level memory transfer.
+ */
+novaStatus_t transf_tensor_from_host(const Tensor *restrict src,
+                                     Tensor *restrict dst);
 
 #ifdef __cplusplus
 }
