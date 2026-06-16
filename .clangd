@@ -1,4 +1,3 @@
----
 CompileFlags:
   CompilationDatabase: build
   Add:
@@ -7,6 +6,7 @@ CompileFlags:
     - -I/opt/cuda/include
     - -I/opt/rocm/include
     - -Wall
+    - -Werror
     - -Wextra
     - -Wpedantic
     - -Wshadow
@@ -30,13 +30,32 @@ CompileFlags:
 Diagnostics:
   ClangTidy:
     Add:
-      - bugprone-*
-      - performance-*
-      - readability-*
-      - portability-*
+      - clang-diagnostic-*
       - clang-analyzer-*
+      - bugprone-*
+      - misc-*
+      - modernize-*
+      - performance-*
+      - portability-*
+      - readability-*
     Remove:
+      - bugprone-easily-swappable-parameters
+      - bugprone-reserved-identifier
+      - bugprone-narrowing-conversions
+      - bugprone-implicit-widening-of-multiplication-result
+      - bugprone-casting-through-void
+      - modernize-use-trailing-return-type
+      - modernize-use-auto
+      - modernize-macro-to-enum
       - readability-magic-numbers
+      - readability-function-cognitive-complexity
+      - readability-identifier-length
+      - readability-named-parameter
+      - readability-function-size
+      - readability-else-after-return
+      - readability-redundant-preprocessor
+      - readability-isolate-declaration
+      - readability-uppercase-literal-suffix
 
 Index:
   Background: Build
@@ -50,6 +69,50 @@ Hover:
 
 InlayHints:
   Enabled: true
+---
+If:
+  PathMatch: .*\.c$
+
+Diagnostics:
+  ClangTidy:
+    Remove:
+      - modernize-*
+      - performance-*
+    Add:
+      - misc-const-correctness
+      - misc-definitions-in-headers
+      - misc-header-include-cycle
+      - misc-misplaced-const
+      - misc-no-recursion
+      - misc-redundant-expression
+      - misc-static-assert
+    CheckOptions:
+      readability-identifier-naming.FunctionCase: "lower_case"
+      readability-identifier-naming.VariableCase: "lower_case"
+      readability-identifier-naming.GlobalVariableCase: "lower_case"
+      readability-identifier-naming.EnumCase: "CamelCase"
+      readability-identifier-naming.MacroDefinitionCase: "UPPER_CASE"
+      readability-braces-around-statements.ShortStatementLines: 1
+---
+If:
+  PathMatch: .*\.(cpp|hpp|cc|cxx|cu|cuh)$
+
+Diagnostics:
+  ClangTidy:
+    CheckOptions:
+      readability-identifier-naming.FunctionCase: "camelBack"
+      readability-identifier-naming.ClassCase: "CamelCase"
+      readability-identifier-naming.StructCase: "CamelCase"
+      readability-identifier-naming.EnumCase: "CamelCase"
+      readability-identifier-naming.EnumConstantCase: "CamelCase"
+      readability-identifier-naming.TypedefCase: "CamelCase"
+      readability-identifier-naming.VariableCase: "camelBack"
+      readability-identifier-naming.LocalVariableCase: "camelBack"
+      readability-identifier-naming.GlobalVariableCase: "camelBack"
+      readability-identifier-naming.MemberCase: "camelBack"
+      readability-identifier-naming.PrivateMemberPrefix: "m_"
+      readability-identifier-naming.GlobalConstantCase: "UPPER_CASE"
+      readability-braces-around-statements.ShortStatementLines: 1
 
 ---
 If:
@@ -57,7 +120,6 @@ If:
 CompileFlags:
   Compiler: gcc
   Add: [-std=c23]
-
 ---
 If:
   PathMatch: .*\.(cpp|hpp|cc|cxx)
