@@ -31,18 +31,23 @@ extern const char *status_msg_dispatch[NUM_ERRORS];
  * @details
  * Validates the provided error code against the table bounds (@ref NUM_ERRORS)
  * and returns the corresponding message string from @ref status_msg_dispatch.
+ * If the code is out of bounds or the table entry is NULL, returns the
+ * caller-provided @p fallback message, or "Unknown error" if @p fallback
+ * is NULL.
  *
- * @param[in] err The @ref novaError_t code to look up.
- * @return A constant pointer to the error message string. If @p err is
- *         out of bounds, returns a generic "Unknown error" string.
+ * @param[in] err      The @ref novaError_t code to look up.
+ * @param[in] fallback Custom fallback message.  May be NULL.
+ * @return A constant pointer to the error message string.
  *
  * @note This function is thread-safe as it only performs read operations
  *       on the global table after it has been initialized at load time.
  */
-const char *nova_get_error_msg(novaError_t err) {
+const char *nova_get_error_msg(novaError_t err, const char *fallback) {
   if (err >= 0 && err < NUM_ERRORS) {
     const char *msg = status_msg_dispatch[err];
-    return msg ? msg : "Unknown error";
+    if (msg) {
+      return msg;
+    }
   }
-  return "Unknown error";
+  return fallback ? fallback : "Unknown error";
 }
