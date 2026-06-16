@@ -63,6 +63,7 @@ typedef enum ATTR(packed) {
   novaTransferError,
   novaTransferH2DError,
   novaTransferD2HError,
+  novaInvalidTransfDirection,
 
   /* Device/Backend */
   novaDeviceNotAvailable,
@@ -76,6 +77,7 @@ typedef enum ATTR(packed) {
   novaShapeMismatch,
 
   /* GPU-specific */
+  novaInvalidResourceHandle,
   novaKernelLaunchError,
 
   /* Internal */
@@ -111,12 +113,15 @@ extern "C" {
  * a human-readable description of the provided error code.
  *
  * @param[in] err The error code to look up.
+ * @param[in] fallback Custom fallback message when @p err is out of
+ *                     bounds or the table entry is NULL.  May be NULL.
  * @return A constant string containing the error message. If the code
- *         is not recognized, a default "Unknown error" message is returned.
+ *         is not recognized and @p fallback is non-NULL, returns
+ *         @p fallback.  Otherwise returns "Unknown error".
  *
  * @see novaError_t
  */
-const char *nova_get_error_msg(novaError_t err);
+const char *nova_get_error_msg(novaError_t err, const char *fallback);
 #ifdef __cplusplus
 }
 #endif
