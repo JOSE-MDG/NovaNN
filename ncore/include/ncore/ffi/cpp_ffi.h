@@ -1,5 +1,3 @@
-#pragma once
-
 /**
  * @file cpp_ffi.h
  * @brief C-callable bridge to the C++ device-agnostic FFI layer.
@@ -17,6 +15,8 @@
  * human-readable message.  A code of `0` indicates success;
  * negative values indicate backend-level errors.
  */
+
+#pragma once
 
 #include <ncore/core/device.h>
 #include <stdbool.h>
