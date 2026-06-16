@@ -24,12 +24,13 @@
  * @see storage.h  retain() / release() reference-count operations.
  */
 
-#include <assert.h>
-#include <ncore/alloc.h>
-#include <ncore/dtype.h>
+#include "ncore/core/device.h"
+#include <ncore/core/alloc.h>
+#include <ncore/core/dtype.h>
+#include <ncore/core/status.h>
+#include <ncore/core/storage.h>
+#include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/tensor_utils.h>
-#include <ncore/macros.h>
-#include <ncore/storage.h>
 #include <ncore/tensor.h>
 #include <string.h>
 
@@ -119,8 +120,8 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
   tensor.is_allocated_ = true;
 
   if (requires_grad) {
-    tensor.grad = create_unallocated_grad_tensor(shape, dtype, device,
-                                                  pin_memory, ndims);
+    tensor.grad =
+        create_unallocated_grad_tensor(shape, dtype, device, pin_memory, ndims);
   }
 
   return tensor;
@@ -306,9 +307,8 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
   dst.is_leaf_ = false;
 
   if (src->grad != NULL) {
-    dst.grad = create_unallocated_grad_tensor(new_shape, src->grad->dtype,
-                                               src->device, src->is_pinned,
-                                               new_ndims);
+    dst.grad = create_unallocated_grad_tensor(
+        new_shape, src->grad->dtype, src->device, src->is_pinned, new_ndims);
   }
 
   return dst;
@@ -349,7 +349,7 @@ bool is_contiguous(const Tensor *restrict ten) {
     if (ten->strides[dim] != expected) {
       return false;
     }
-    expected *= ten->strides[dim];
+    expected *= ten->shape[dim];
   }
   return true;
 }
@@ -585,12 +585,12 @@ bool is_grad_collected(TensorGrad grad) {
  * @brief Check whether a tensor's data buffer has been allocated.
  *
  * @details
- * Returns `true` when both conditions hold:
+ * Returns `true` when all three conditions hold:
  * - `is_allocated_ == true`
- * - `data.data != NULL`
  * - `storage != NULL`
+ * - `data.data != NULL`
  *
- * This double-check ensures the tensor was both marked as
+ * This triple-check ensures the tensor was both marked as
  * allocated and actually has a valid pointer.
  *
  * @param[in] ten  Tensor to check.  Must not be `NULL`.
@@ -610,7 +610,8 @@ bool is_allocated(const Tensor *ten) {
  *
  * @details
  * If @p grad is `NULL`, returns `false`.  Otherwise, checks the
- * same two conditions as `is_allocated()`.
+ * same three conditions as @ref is_allocated(): `is_allocated_`,
+ * `storage != NULL`, and `data.data != NULL`.
  *
  * @param[in] grad  Gradient tensor to check.  May be `NULL`.
  *
@@ -625,4 +626,142 @@ bool is_grad_allocated(TensorGrad grad) {
                   grad->data.data != NULL);
   }
   return false;
+}
+
+/**
+ * @brief Check whether a tensor is a view (shares storage).
+ *
+ * @param[in] ten  Tensor to check.  Must not be `NULL`.
+ * @return `true` if the tensor is a view, `false` otherwise.
+ */
+bool is_view(const Tensor *ten) { return ten->is_view_; }
+
+/**
+ * @brief Check whether a gradient tensor is a view.
+ *
+ * @param[in] grad  Gradient tensor to check.  May be `NULL`.
+ * @return `true` if the gradient is a view, `false` otherwise.
+ */
+bool is_grad_view(TensorGrad grad) { return grad->is_view_; }
+
+/**
+ * @brief Map a DeviceStatus integer code to a novaError_t.
+ *
+ * @details
+ * Translates the low-level device transfer return code into the
+ * centralized error enumeration.  The integer codes are
+ * **identity-mapped** (passed through without transformation) from
+ * the CUDA/HIP backends through the FFI layer:
+ *
+ * ```
+ * cuda_memcpy() / hip_memcpy()   (CudaIO.cpp / HipIO.cpp)
+ *   → map_error()                (backend-specific)
+ *   → device_memcpy_c()          (ffi.cpp, direct passthrough)
+ *   → transfer_to()              (device.c, returned verbatim)
+ *   → map_code2err()             (this function)
+ * ```
+ *
+ * The backend `map_error()` functions produce these integer codes:
+ * | Code | Meaning                          |
+ * |------|----------------------------------|
+ * |  0   | Success                          |
+ * |  1   | Invalid value / null pointer     |
+ * |  2   | Invalid memcpy direction         |
+ * |  3   | Invalid resource handle          |
+ * |  4   | Out of memory (HIP only)         |
+ * | -1   | Catch-all / unrecognised error   |
+ *
+ * Negative codes (e.g., `-1`) are mapped to @ref novaTransferError.
+ * Positive codes are looked up in the local table; unmapped positive
+ * codes also fall back to @ref novaTransferError.
+ *
+ * @param[in] err_code  Code returned by @ref transfer_to() via
+ *                      @ref DeviceStatus::code.
+ * @return Corresponding @ref novaError_t.
+ */
+static inline novaError_t map_code2err(int err_code) {
+  const novaError_t table[NUM_ERRORS] = {novaSuccess, novaInvalidValue,
+                                         novaInvalidTransfDirection,
+                                         novaInvalidResourceHandle};
+  return (err_code >= 0) ? table[err_code] : novaTransferError;
+}
+
+/**
+ * @brief Common transfer logic for device-to-host and host-to-device
+ *        moves.
+ *
+ * @details
+ * Validates the precondition via @p condition, then delegates to
+ * @ref transfer_to().  Maps the resulting @ref DeviceStatus to a
+ * @ref novaStatus_t with the appropriate error code and message.
+ *
+ * @param[in]  src       Source tensor.
+ * @param[in]  dst       Destination tensor.
+ * @param[in]  condition If `true`, the transfer direction is invalid
+ *                       and @ref novaInvalidTransfDirection is returned.
+ *
+ * @return @ref novaStatus_t describing the outcome.
+ */
+static inline novaStatus_t transf_tensor_commom(const Tensor *restrict src,
+                                                Tensor *restrict dst,
+                                                bool condition) {
+  novaStatus_t status;
+  if (condition) {
+    status.err = novaInvalidTransfDirection;
+    status.message = nova_get_error_msg(status.err, NULL);
+    return status;
+  }
+  DeviceStatus dstatus =
+      transfer_to(src->device, dst->device, (const void *)src->data.v,
+                  dst->data.v, src->storage->size_bytes);
+
+  status.err = map_code2err(dstatus.code);
+  status.message = nova_get_error_msg(
+      status.err, (dstatus.code == -1) ? dstatus.message : NULL);
+  return status;
+}
+
+/**
+ * @brief Transfer tensor data from GPU device memory to CPU host
+ *        memory.
+ *
+ * @details
+ * Validates that @p src is GPU-resident with device-backed storage
+ * and that @p dst is an allocated CPU tensor.  Delegates to
+ * @ref transf_tensor_commom() for the actual transfer.
+ *
+ * @param[in]  src  Source tensor on GPU.
+ * @param[in,out] dst  Destination tensor on CPU.
+ * @return @ref novaStatus_t with the result of the transfer.
+ */
+novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
+                                       Tensor *restrict dst) {
+
+  bool condition = (bool)(((src->device != DEVICE_GPU ||
+                            !is_device_memory_handle(&src->storage->handle)) &&
+                           (dst->device != DEVICE_CPU || !is_allocated(dst))));
+
+  return transf_tensor_commom(src, dst, condition);
+}
+
+/**
+ * @brief Transfer tensor data from CPU host memory to GPU device
+ *        memory.
+ *
+ * @details
+ * Validates that @p src is an allocated CPU tensor and that @p dst
+ * is GPU-resident with device-backed storage.  Delegates to
+ * @ref transf_tensor_commom() for the actual transfer.
+ *
+ * @param[in]  src  Source tensor on CPU.
+ * @param[in,out] dst  Destination tensor on GPU.
+ * @return @ref novaStatus_t with the result of the transfer.
+ */
+novaStatus_t transf_tensor_from_host(const Tensor *restrict src,
+                                     Tensor *restrict dst) {
+  bool condition = (bool)(((src->device != DEVICE_CPU || !is_allocated(src)) &&
+                           (dst->device != DEVICE_GPU ||
+                            !is_device_memory_handle(&dst->storage->handle))));
+
+  return transf_tensor_commom(src, dst, condition);
 }
