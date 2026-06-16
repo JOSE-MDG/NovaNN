@@ -26,11 +26,13 @@
  * - **Linux/Unix**: Uses __get_cpuid() and __cpuid_count() from cpuid.h;
  *   threading via C11 `once_flag` + `call_once` from `<threads.h>`.
  *
- * @see simd.h Public interface and @ref Capabilities_ structure
- * @see get_cpu_capabilities() Thread-safe singleton accessor
+ * @see simd.h Public interface and @ref SIMDCapabilities structure
+ * @see get_simd_capabilities() Thread-safe singleton accessor
  */
 
-#include <ncore/simd.h>
+#include <ncore/core/dtype.h>
+#include <ncore/simd/simd.h>
+#include <sys/types.h>
 #ifdef __linux__
 #include <threads.h>
 #elif defined(_WIN64)
@@ -47,22 +49,19 @@
 
 #include <string.h>
 
-/** @brief Unsigned integer type alias for CPUID register values. */
-typedef unsigned int uint;
-
 /**
- * @var static Capabilities_ Caps_
+ * @var static SIMDCapabilities simd
  * @brief Global cached CPU capabilities structure.
  *
  * @details
  * Stores the detected SIMD features after the first call to
- * @ref get_cpu_capabilities(). Once initialized, this structure is
+ * @ref get_simd_capabilities(). Once initialized, this structure is
  * read-only and can be safely accessed from multiple threads.
  *
- * @see get_cpu_capabilities()
- * @see detect_cpu_capabilities_()
+ * @see get_simd_capabilities()
+ * @see detect_simd_capabilities()
  */
-static Capabilities_ Caps_;
+static SIMDCapabilities simd = {0};
 
 #ifdef __linux__
 /**
@@ -71,11 +70,11 @@ static Capabilities_ Caps_;
  *
  * @details
  * Ensures @ref init_once() is called exactly once, even when
- * @ref get_cpu_capabilities() is called concurrently from multiple threads.
+ * @ref get_simd_capabilities() is called concurrently from multiple threads.
  * Initialized to the standard ONCE_FLAG_INIT.
  *
  * @see init_once()
- * @see get_cpu_capabilities()
+ * @see get_simd_capabilities()
  */
 static once_flag init_flag = ONCE_FLAG_INIT;
 #elif defined(_WIN64)
@@ -86,10 +85,10 @@ static once_flag init_flag = ONCE_FLAG_INIT;
  *
  * @details
  * Ensures the CPU capabilities detection callback is called exactly
- * once, even when @ref get_cpu_capabilities() is called concurrently
+ * once, even when @ref get_simd_capabilities() is called concurrently
  * from multiple threads.
  *
- * @see get_cpu_capabilities()
+ * @see get_simd_capabilities()
  */
 static INIT_ONCE init_flag = INIT_ONCE_STATIC_INIT;
 #endif
@@ -99,7 +98,7 @@ static INIT_ONCE init_flag = INIT_ONCE_STATIC_INIT;
  *
  * @details
  * Queries CPUID leaves to detect available SIMD features and populates
- * the provided @ref Capabilities_ structure. The function clears the
+ * the provided @ref SIMDCapabilities structure. The function clears the
  * structure before detection and sets each flag based on CPU support.
  *
  * @par CPUID Leaves Queried:
@@ -107,10 +106,10 @@ static INIT_ONCE init_flag = INIT_ONCE_STATIC_INIT;
  * - **Leaf 7, subleaf 0 (EBX/ECX/EDX):** AVX2, AVX-512 variants, AMX
  * - **Leaf 7, subleaf 1 (EAX/EDX):** AVX2 VNNI, AVX-512 BF16, AMX FP16
  *
- * @param[out] caps Pointer to the Capabilities_ structure to populate.
+ * @param[out] caps Pointer to the SIMDCapabilities structure to populate.
  *                  All fields are zeroed before detection.
  *
- * @pre caps must point to a valid Capabilities_ structure.
+ * @pre caps must point to a valid SIMDCapabilities structure.
  * @post All capability flags in caps are set to true/false based on
  *       CPU support. The amx_ and vnni_ composite flags are computed
  *       from their constituent features.
@@ -122,22 +121,21 @@ static INIT_ONCE init_flag = INIT_ONCE_STATIC_INIT;
  *       - **Windows (_WIN64):** Uses __cpuid() and __cpuidex() from intrin.h
  *       - **Linux/Unix:** Uses __get_cpuid() and __cpuid_count() from cpuid.h
  *
- * @see get_cpu_capabilities() for the public API.
- * @see Capabilities_ for the structure definition.
+ * @see get_simd_capabilities() for the public API.
+ * @see SIMDCapabilities for the structure definition.
  */
-static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
-  memset(caps, 0, sizeof(Capabilities_));
+static inline void detect_simd_capabilities(SIMDCapabilities *restrict caps) {
 
-  uint eax, ebx, ecx, edx;
+  uint32 eax, ebx, ecx, edx;
 
   /* CPUID leaf 1: SSE4.2, FMA3, AVX, F16C detection */
 #ifdef _WIN64
   int cpu_info[4];
   __cpuid(cpu_info, 1);
-  eax = (uint)cpu_info[0];
-  ebx = (uint)cpu_info[1];
-  ecx = (uint)cpu_info[2];
-  edx = (uint)cpu_info[3];
+  eax = (uint32)cpu_info[0];
+  ebx = (uint32)cpu_info[1];
+  ecx = (uint32)cpu_info[2];
+  edx = (uint32)cpu_info[3];
 #else
   if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
     return;
@@ -152,10 +150,10 @@ static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
   /* CPUID leaf 7, subleaf 0: AVX2, AVX-512, AMX detection */
 #ifdef _WIN64
   __cpuidex(cpu_info, 7, 0);
-  eax = (uint)cpu_info[0];
-  ebx = (uint)cpu_info[1];
-  ecx = (uint)cpu_info[2];
-  edx = (uint)cpu_info[3];
+  eax = (uint32)cpu_info[0];
+  ebx = (uint32)cpu_info[1];
+  ecx = (uint32)cpu_info[2];
+  edx = (uint32)cpu_info[3];
 #else
   __cpuid_count(7, 0, eax, ebx, ecx, edx);
 #endif
@@ -175,10 +173,10 @@ static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
   /* CPUID leaf 7, subleaf 1: AVX2 VNNI, AVX-512 BF16, AMX FP16 */
 #ifdef _WIN64
   __cpuidex(cpu_info, 7, 1);
-  eax = (uint)cpu_info[0];
-  ebx = (uint)cpu_info[1];
-  ecx = (uint)cpu_info[2];
-  edx = (uint)cpu_info[3];
+  eax = (uint32)cpu_info[0];
+  ebx = (uint32)cpu_info[1];
+  ecx = (uint32)cpu_info[2];
+  edx = (uint32)cpu_info[3];
 #else
   __cpuid_count(7, 1, eax, ebx, ecx, edx);
 #endif
@@ -199,15 +197,15 @@ static inline void detect_cpu_capabilities_(Capabilities_ *restrict caps) {
  *
  * @details
  * This function is registered with call_once() and executes
- * @ref detect_cpu_capabilities_() to populate the global @ref Caps_ structure.
+ * @ref detect_simd_capabilities() to populate the global @ref simd structure.
  * It is guaranteed to be called exactly once, regardless of how many
- * threads invoke @ref get_cpu_capabilities() concurrently.
+ * threads invoke @ref get_simd_capabilities() concurrently.
  *
- * @see get_cpu_capabilities()
+ * @see get_simd_capabilities()
  * @see init_flag
- * @see detect_cpu_capabilities_()
+ * @see detect_simd_capabilities()
  */
-static inline void init_once(void) { detect_cpu_capabilities_(&Caps_); }
+static inline void init_once(void) { detect_simd_capabilities(&simd); }
 #elif defined(_WIN64)
 /**
  * @brief Windows one-time initialization callback.
@@ -215,20 +213,20 @@ static inline void init_once(void) { detect_cpu_capabilities_(&Caps_); }
  * @details
  * This function matches the `PINIT_ONCE_FN` signature required by
  * Windows `InitOnceExecuteOnce()`.  It delegates to
- * @ref detect_cpu_capabilities_() to populate the global @ref Caps_
+ * @ref detect_simd_capabilities() to populate the global @ref simd
  * structure.
  *
  * @return Always `TRUE` (initialisation always succeeds).
  *
- * @see get_cpu_capabilities()
+ * @see get_simd_capabilities()
  * @see init_flag
- * @see detect_cpu_capabilities_()
+ * @see detect_simd_capabilities()
  */
 static BOOL CALLBACK init_once_win(PINIT_ONCE once, PVOID param, PVOID *ctx) {
   (void)once;
   (void)param;
   (void)ctx;
-  detect_cpu_capabilities_(&Caps_);
+  detect_simd_capabilities(&simd);
   return TRUE;
 }
 #endif
@@ -237,36 +235,37 @@ static BOOL CALLBACK init_once_win(PINIT_ONCE once, PVOID param, PVOID *ctx) {
  * @brief Get CPU capabilities (thread-safe singleton accessor).
  *
  * @details
- * Returns a pointer to the global @ref Capabilities_ structure containing
+ * Returns a pointer to the global @ref SIMDCapabilities structure containing
  * all detected SIMD features. The first call triggers detection via
- * @ref detect_cpu_capabilities_(); subsequent calls return the cached result.
+ * @ref detect_simd_capabilities(); subsequent calls return the cached result.
  *
- * @return Pointer to the global Capabilities_ structure.
+ * @return Pointer to the global SIMDCapabilities structure.
  *         The returned pointer is valid for the lifetime of the process
  *         and must not be freed by the caller.
  *
  * @note This function is thread-safe. The detection is performed at most
- *       once using C11 call_once().
+ *       once using C11 `call_once` on Linux or `InitOnceExecuteOnce` on
+ *       Windows.
  *
  * @par Example:
  * @code{.c}
- *   const Capabilities_ *caps = get_cpu_capabilities();
- *   if (caps->avx2_) {
+ *   const SIMDCapabilities *simd = get_simd_capabilities();
+ *   if (simd->avx2_) {
  *       // Use AVX2-optimized code path
- *   } else if (caps->sse4_2_) {
+ *   } else if (simd->sse4_2_) {
  *       // Use SSE4.2 fallback
  *   }
  * @endcode
  *
- * @see Capabilities_
- * @see detect_cpu_capabilities_()
+ * @see SIMDCapabilities
+ * @see detect_simd_capabilities()
  * @see init_once()
  */
-const Capabilities_ *get_cpu_capabilities() {
+const SIMDCapabilities *get_simd_capabilities() {
 #ifdef __linux__
   call_once(&init_flag, init_once);
 #elif defined(_WIN64)
   InitOnceExecuteOnce(&init_flag, init_once_win, NULL, NULL);
 #endif
-  return &Caps_;
+  return &simd;
 }
