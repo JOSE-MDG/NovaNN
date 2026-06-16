@@ -1,5 +1,3 @@
-#pragma once
-
 /**
  * @file simd.h
  * @brief CPU SIMD capability detection and runtime kernel selection interface.
@@ -7,14 +5,14 @@
  * @details
  * Provides runtime detection of CPU SIMD instruction sets and a unified
  * interface for selecting optimized kernels based on available hardware.
- * This header defines the @ref Capabilities_ structure and the
- * @ref get_cpu_capabilities() accessor for querying SIMD features.
+ * This header defines the @ref SIMDCapabilities structure and the
+ * @ref get_simd_capabilities() accessor for querying SIMD features.
  *
  * ## SIMD Support Tiers
  * The detection follows a hierarchical model:
  */
 // clang-format off
-/**
+ /**
  * | Tier        | Feature      | Width   | Typical Use          |
  * |-------------|--------------|---------|----------------------|
  * | SSE4.2      | sse4_2_      | 128-bit | Basic vectorization  |
@@ -27,27 +25,27 @@
 /**
  * ## Usage
  * @code{.c}
- * const Capabilities_ *caps = get_cpu_capabilities();
- * if (caps->avx2_) {
- *     // Use AVX2 optimized kernel
- * } else if (caps->sse4_2_) {
+ * const SIMDCapabilities *simd = get_simd_capabilities();
+ * if (simd->avx512f_) {
+ *     // Use AVX-512 optimized kernel
+ * } else if (simd->avx2_) {
  *     // Use SSE4.2 fallback
  * }
  * @endcode
  *
  * ## Thread Safety
- * Detection is performed once on first call using call_once.
+ * Detection is performed once on first call.
  * The returned pointer is safe to use from any thread.
  *
  * ## Detection Process
- * 1. get_cpu_capabilities() is called
+ * 1. get_simd_capabilities() is called
  * 2. CPUID instruction queries available features
  * 3. Results are cached in global static
  * 4. Subsequent calls return cached result
  *
  * @note AVX-512 features are detected only if AVX-512F is available.
  *       VNNI flags (avx2_vnni_, avx512_vnni_) enable neural network
- * optimizations.
+ *       optimizations.
  *
  * @see DetectSIMD.cmake Compile-time SIMD flag detection
  * @see tensor.h Tensor structure using SIMD alignment
@@ -55,15 +53,16 @@
  */
 
 #include <stdbool.h>
+#pragma once
 
 /**
- * @struct Capabilities_
+ * @struct SIMDCapabilities
  * @brief CPU SIMD capabilities detected at runtime.
  *
  * @details
  * Contains boolean flags indicating which SIMD instruction sets are available
  * on the current processor. These flags are populated by the first call to
- * @ref get_cpu_capabilities() and remain read-only thereafter.
+ * @ref get_simd_capabilities() and remain read-only thereafter.
  *
  * Flags are organized into logical groups:
  * - **Base SIMD**: sse4_2_, avx_, avx2_, f16c_, fma3_
@@ -74,8 +73,8 @@
  *
  * @note Composite flags (amx_, vnni_) are OR of their constituent features.
  *
- * @see get_cpu_capabilities()
- * @see detect_cpu_capabilities_()
+ * @see get_simd_capabilities()
+ * @see detect_simd_capabilities()
  */
 typedef struct {
   bool sse4_2_; ///< Streaming SIMD Extensions 4.2 (128-bit integer/vector ops).
@@ -104,34 +103,36 @@ typedef struct {
   bool amx_fp16_; ///< AMX FP16 tile support (half-precision matrix ops).
   bool amx_bf16_; ///< AMX BF16 tile support (bfloat16 matrix ops).
   bool amx_int8_; ///< AMX INT8 tile support (int8 matrix multiply).
-} Capabilities_;
+} SIMDCapabilities;
 
 /**
- * @brief Get CPU SIMD capabilities (thread-safe, singleton accessor).
+ * @brief Get CPU capabilities (thread-safe singleton accessor).
  *
  * @details
- * Returns a pointer to the global @ref Capabilities_ structure containing
+ * Returns a pointer to the global @ref SIMDCapabilities structure containing
  * all detected SIMD features. The first call triggers detection via
- * @ref detect_cpu_capabilities_(); subsequent calls return the cached result.
+ * @ref detect_simd_capabilities(); subsequent calls return the cached result.
  *
- * @return Pointer to the global Capabilities_ structure.
+ * @return Pointer to the global SIMDCapabilities structure.
  *         The returned pointer is valid for the lifetime of the process
  *         and must not be freed by the caller.
  *
  * @note This function is thread-safe. The detection is performed at most
- *       once using C11 call_once().
+ *       once using C11 `call_once` on Linux or `InitOnceExecuteOnce` on
+ *       Windows.
  *
  * @par Example:
  * @code{.c}
- * const Capabilities_ *caps = get_cpu_capabilities();
- * if (caps->avx2_) {
- *     // Use AVX2-optimized code path
- * } else if (caps->sse4_2_) {
- *     // Use SSE4.2 fallback
- * }
+ *   const SIMDCapabilities *simd = get_simd_capabilities();
+ *   if (simd->avx2_) {
+ *       // Use AVX2-optimized code path
+ *   } else if (simd->sse4_2_) {
+ *       // Use SSE4.2 fallback
+ *   }
  * @endcode
  *
- * @see Capabilities_
- * @see detect_cpu_capabilities_()
+ * @see SIMDCapabilities
+ * @see detect_simd_capabilities()
+ * @see init_once()
  */
-const Capabilities_ *get_cpu_capabilities();
+const SIMDCapabilities *get_simd_capabilities();
