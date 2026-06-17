@@ -7,31 +7,9 @@
  * and other internal modules.  All functions are `static inline`
  * for zero-overhead inclusion.
  *
- * ## Provided Utilities
- */
-// clang-format off
-/**
- * | Function                                        | Purpose                                      |
- * |-------------------------------------------------|----------------------------------------------|
- * | `compute_tensor_strides_()`                     | Row-major strides for a Tensor               |
- * | `compute_tensor_size_()`                        | Total element count for a Tensor             |
- * | `compute_grad_tensor_strides_()`                | Row-major strides for a TensorGrad           |
- * | `compute_grad_tensor_size_()`                   | Total element count for a TensorGrad         |
- * | `compute_linear_byte_offset()`                  | Multi-dim coords → linear byte offset        |
- * | `compute_coords_given_linear_byte_offset_()`    | Linear byte offset → multi-dim coords        |
- * | `create_unallocated_tensor()`                   | Unallocated Tensor (no data buffer)          |
- * | `create_unallocated_grad_tensor()`              | Heap-allocated unallocated TensorGrad        |
- * | `create_unallocated_scalar_tensor()`            | Unallocated scalar Tensor                    |
- * | `create_unallocated_scalar_grad_tensor()`       | Heap-allocated unallocated scalar TensorGrad |
- * | `odometer()`                                    | Row-major coordinate increment               |
- */
-// clang-format on
-/**
- * ## Naming Convention
- *
- * Functions ending with `_` (e.g., `compute_tensor_size_`) are
- * internal helpers — they must not be called from outside the
- * `ncore` library.
+ * The creation functions in this file accept an output
+ * @ref novaStatus_t pointer for error propagation.  On failure
+ * the returned tensor is zeroed and the caller must not use it.
  *
  * @see tensor.h    Tensor struct and public API.
  * @see dtype.h     DType_ enum and dtype_size().
@@ -40,11 +18,64 @@
 
 #pragma once
 
-#include <ncore/dtype.h>
-#include <ncore/macros.h>
+#include <ncore/core/alloc.h>
+#include <ncore/core/dtype.h>
+#include <ncore/core/status.h>
+#include <ncore/core/storage.h>
+#include <ncore/headeronly/macros.h>
 #include <ncore/tensor.h>
 #include <stdlib.h>
 #include <string.h>
+
+/**
+ * @brief Forward declaration of create_unallocated_grad_tensor().
+ *
+ * @details
+ * Declared here to allow circular calls between
+ * `create_unallocated_tensor()` and `create_unallocated_grad_tensor()`.
+ * The full implementation appears later in this file.
+ *
+ * @see create_unallocated_grad_tensor()  Full implementation.
+ * @see create_unallocated_tensor()       Calls this function.
+ */
+static inline TensorGrad
+create_unallocated_grad_tensor(const shape_t shape, DType_ dtype, Device device,
+                               bool pin_memory, size_t ndims,
+                               novaStatus_t *status);
+
+/**
+ * @brief Forward declaration of create_unallocated_scalar_tensor().
+ *
+ * @details
+ * Declared here to allow circular calls between
+ * `create_unallocated_scalar_grad_tensor()` and
+ * `create_unallocated_scalar_tensor()`.  The full implementation
+ * appears later in this file.
+ *
+ * @see create_unallocated_scalar_tensor()       Full implementation.
+ * @see create_unallocated_scalar_grad_tensor()  Calls this function.
+ */
+static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
+                                                      Device device,
+                                                      bool requires_grad,
+                                                      bool pin_memory,
+                                                      novaStatus_t *status);
+
+/**
+ * @brief Forward declaration of create_unallocated_scalar_grad_tensor().
+ *
+ * @details
+ * Declared here to allow circular calls between
+ * `create_unallocated_scalar_tensor()` and
+ * `create_unallocated_scalar_grad_tensor()`.  The full
+ * implementation appears later in this file.
+ *
+ * @see create_unallocated_scalar_grad_tensor()  Full implementation.
+ * @see create_unallocated_scalar_tensor()       Calls this function.
+ */
+static inline TensorGrad
+create_unallocated_scalar_grad_tensor(DType_ dtype, Device device,
+                                      bool pin_memory, novaStatus_t *status);
 
 /**
  * @typedef coords_t
@@ -260,8 +291,10 @@ static inline void compute_coords_given_linear_byte_offset_(
  * `data.data = NULL`, and `is_allocated_ = false`.  The tensor
  * is a valid metadata-only shell ready for deferred allocation.
  *
- * Used internally by `create_tensor_like()` when the source
- * tensor is not yet allocated.
+ * When @p requires_grad is `true`, an unallocated gradient tensor
+ * is created via @ref create_unallocated_grad_tensor().  On
+ * failure the tensor is zeroed and the error is reported through
+ * @p status.
  *
  * @param[in]  shape         Dimension sizes.
  * @param[in]  dtype         Element data type (`DType_`).
@@ -271,10 +304,12 @@ static inline void compute_coords_given_linear_byte_offset_(
  * @param[in]  pin_memory    If `true`, request page-locked host
  *                           memory (CPU only).
  * @param[in]  ndims         Number of dimensions.
+ * @param[out] status        Receives the operation result.
  *
  * @return Initialised `Tensor` with no backing storage.
  *
  * @pre  `ndims` must not exceed `NOVA_MAX_DIMS`.
+ * @pre  @p status must not be `NULL`.
  * @post `is_allocated_ == false`, `storage == NULL`,
  *       `data.data == NULL`.
  * @post `shape`, `strides`, `size`, and `item_size` are valid.
@@ -286,8 +321,8 @@ static inline void compute_coords_given_linear_byte_offset_(
 static inline Tensor create_unallocated_tensor(const shape_t shape,
                                                DType_ dtype, Device device,
                                                bool requires_grad,
-                                               bool pin_memory,
-                                               size_t ndims) {
+                                               bool pin_memory, size_t ndims,
+                                               novaStatus_t *status) {
   Tensor tensor = {0};
   memcpy(tensor.shape, shape, ndims * sizeof(size_t));
   tensor.dtype = dtype;
@@ -295,7 +330,6 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
   tensor.ndims = ndims;
   tensor.item_size = dtype_size(dtype);
   tensor.offset = 0;
-  tensor.grad = NULL;
   tensor.is_leaf_ = true;
   tensor.is_view_ = false;
   tensor.requires_grad_ = requires_grad;
@@ -310,6 +344,17 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
   tensor.is_pinned = pin_memory;
   compute_tensor_size_(&tensor, shape);
   compute_tensor_strides_(&tensor, ndims, shape, tensor.item_size);
+
+  if (requires_grad) {
+    tensor.grad = create_unallocated_grad_tensor(shape, dtype, device,
+                                                 pin_memory, ndims, status);
+
+    if (status->err != novaSuccess) {
+      memset(&tensor, 0, sizeof(Tensor));
+      return tensor;
+    }
+  }
+
   return tensor;
 }
 
@@ -322,9 +367,10 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
  * `create_unallocated_tensor()`.  The gradient is a metadata-only
  * shell — no data buffer is allocated.
  *
- * The returned pointer must be freed by the caller (or via
- * `collect()` on the parent tensor, which recursively frees
- * gradients).
+ * If `malloc()` fails, @p status is set to @ref novaInvalidPointer
+ * and `NULL` is returned.  The caller takes ownership of the
+ * returned pointer and must free it (or let @ref collect() on the
+ * parent handle it).
  *
  * @param[in]  shape      Dimension sizes.
  * @param[in]  dtype      Element data type (`DType_`).
@@ -332,27 +378,30 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
  * @param[in]  pin_memory If `true`, request page-locked host
  *                        memory (CPU only).
  * @param[in]  ndims      Number of dimensions.
+ * @param[out] status     Receives the operation result.
  *
- * @return Pointer to newly allocated `Tensor` (as `TensorGrad`).
+ * @return Pointer to newly allocated `Tensor` (as `TensorGrad`),
+ *         or `NULL` on allocation failure.
  *
- * @pre  `malloc()` must succeed (asserted internally).
+ * @pre  @p status must not be `NULL`.
  * @post The returned pointer is heap-allocated and must be freed.
  * @post `grad->is_allocated_ == false`.
  *
  * @see create_unallocated_tensor()              Non-heap variant.
  * @see create_unallocated_scalar_grad_tensor()  Scalar variant.
  */
-static inline TensorGrad create_unallocated_grad_tensor(const shape_t shape,
-                                                        DType_ dtype,
-                                                        Device device,
-                                                        bool pin_memory,
-                                                        size_t ndims) {
+static inline TensorGrad
+create_unallocated_grad_tensor(const shape_t shape, DType_ dtype, Device device,
+                               bool pin_memory, size_t ndims,
+                               novaStatus_t *status) {
   TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
-  NOVA_INTERNAL_ASSERT(
-      grad != NULL,
-      "[GRAD] create_unallocated_grad_tensor: malloc returned NULL\n");
+  if (grad == NULL) {
+    status->err = novaInvalidPointer;
+    status->message = "Error creating grad tensor, TensorGrad ptr is NULL\n";
+    return NULL;
+  }
   *grad = create_unallocated_tensor(shape, dtype, device, false, pin_memory,
-                                    ndims);
+                                    ndims, status);
   return grad;
 }
 
@@ -365,14 +414,21 @@ static inline TensorGrad create_unallocated_grad_tensor(const shape_t shape,
  * `shape[0] = 0`, `strides[0] = 0`, `size = 1`, `ndims = 0`.
  * No data buffer is allocated.
  *
+ * When @p requires_grad is `true`, an unallocated scalar gradient
+ * tensor is created via @ref create_unallocated_scalar_grad_tensor().
+ * On failure the tensor is zeroed and the error is reported through
+ * @p status.
+ *
  * @param[in]  dtype         Element data type (`DType_`).
  * @param[in]  device        Target device.
  * @param[in]  requires_grad Whether to track gradients.
  * @param[in]  pin_memory    If `true`, request page-locked host
  *                           memory (CPU only).
+ * @param[out] status        Receives the operation result.
  *
  * @return Initialised scalar `Tensor` with no backing storage.
  *
+ * @pre  @p status must not be `NULL`.
  * @post `is_allocated_ == false`, `storage == NULL`,
  *       `data.data == NULL`.
  * @post `ndims == 0`, `size == 1`, `shape[0] == 0`,
@@ -385,7 +441,8 @@ static inline TensorGrad create_unallocated_grad_tensor(const shape_t shape,
 static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
                                                       Device device,
                                                       bool requires_grad,
-                                                      bool pin_memory) {
+                                                      bool pin_memory,
+                                                      novaStatus_t *status) {
   Tensor tensor = {0};
   tensor.shape[0] = 0;
   tensor.strides[0] = 0;
@@ -395,7 +452,6 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
   tensor.device = device;
   tensor.item_size = dtype_size(dtype);
   tensor.offset = 0;
-  tensor.grad = NULL;
   tensor.is_leaf_ = true;
   tensor.is_view_ = false;
   tensor.requires_grad_ = requires_grad;
@@ -408,6 +464,17 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
   tensor.is_allocated_ = false;
   tensor.version_ = 0;
   tensor.is_pinned = pin_memory;
+
+  if (requires_grad) {
+    tensor.grad = create_unallocated_scalar_grad_tensor(dtype, device,
+                                                        pin_memory, status);
+
+    if (status->err != novaSuccess) {
+      memset(&tensor, 0, sizeof(Tensor));
+      return tensor;
+    }
+  }
+
   return tensor;
 }
 
@@ -419,29 +486,36 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
  * initialises it as an unallocated scalar tensor via
  * `create_unallocated_scalar_tensor()`.
  *
+ * If `malloc()` fails, @p status is set to @ref novaInvalidPointer
+ * and `NULL` is returned.
+ *
  * @param[in]  dtype      Element data type (`DType_`).
  * @param[in]  device     Target device.
  * @param[in]  pin_memory If `true`, request page-locked host
  *                        memory (CPU only).
+ * @param[out] status     Receives the operation result.
  *
  * @return Pointer to newly allocated scalar `Tensor` (as
- *         `TensorGrad`).
+ *         `TensorGrad`), or `NULL` on allocation failure.
  *
- * @pre  `malloc()` must succeed (asserted internally).
+ * @pre  @p status must not be `NULL`.
  * @post The returned pointer is heap-allocated and must be freed.
  * @post `grad->is_allocated_ == false`, `grad->ndims == 0`.
  *
  * @see create_unallocated_scalar_tensor()  Non-heap variant.
  * @see create_unallocated_grad_tensor()    N-dimensional variant.
  */
-static inline TensorGrad create_unallocated_scalar_grad_tensor(DType_ dtype,
-                                                               Device device,
-                                                               bool pin_memory) {
+static inline TensorGrad
+create_unallocated_scalar_grad_tensor(DType_ dtype, Device device,
+                                      bool pin_memory, novaStatus_t *status) {
   TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
-  NOVA_INTERNAL_ASSERT(
-      grad != NULL,
-      "[GRAD] create_unallocated_scalar_grad_tensor: malloc returned NULL\n");
-  *grad = create_unallocated_scalar_tensor(dtype, device, false, pin_memory);
+  if (grad == NULL) {
+    status->err = novaInvalidPointer;
+    status->message = "Error creating grad tensor, TensorGrad ptr is NULL\n";
+    return NULL;
+  }
+  *grad = create_unallocated_scalar_tensor(dtype, device, false, pin_memory,
+                                           status);
   return grad;
 }
 
