@@ -149,12 +149,25 @@ char *tensor_repr(const Tensor *ten) {
     rten.storage = NULL;
     rten.data.data = NULL;
     rten.is_allocated_ = false;
-    safe_allocator(ten->storage->size_bytes, DEVICE_CPU, false, NULL, &rten,
-                   true);
-    novaStatus_t status = transf_tensor_from_device(ten, &rten);
+    novaStatus_t status;
+    status = safe_allocator(ten->storage->size_bytes, DEVICE_CPU, false, NULL,
+                            &rten, true);
+
     if (status.err != novaSuccess) {
       return NULL;
     }
+
+    /*
+    Note: Temporarily change the `device` member from `rten` to `DEVICE_CPU` to
+    satisfy the `transf_tensor_from_device()` check and allow printing the
+    tensor with the metada from `DEVICE_GPU`
+    */
+    rten.device = DEVICE_CPU;
+    status = transf_tensor_from_device(ten, &rten);
+    if (status.err != novaSuccess) {
+      return NULL;
+    }
+    rten.device = DEVICE_GPU;
   }
 
   ReprOptions opts = repr_default_options();
@@ -207,12 +220,25 @@ char *tensor_repr_debug(const Tensor *ten) {
     rten.storage = NULL;
     rten.data.data = NULL;
     rten.is_allocated_ = false;
-    safe_allocator(ten->storage->size_bytes, DEVICE_CPU, false, NULL, &rten,
-                   true);
-    novaStatus_t status = transf_tensor_from_device(ten, &rten);
+    novaStatus_t status;
+    status = safe_allocator(ten->storage->size_bytes, DEVICE_CPU, false, NULL,
+                            &rten, true);
+
     if (status.err != novaSuccess) {
       return NULL;
     }
+
+    /*
+    Note: Temporarily change the `device` member from `rten` to `DEVICE_CPU` to
+    satisfy the `transf_tensor_from_device()` check and allow printing the
+    tensor with the metada from `DEVICE_GPU`
+    */
+    rten.device = DEVICE_CPU;
+    status = transf_tensor_from_device(ten, &rten);
+    if (status.err != novaSuccess) {
+      return NULL;
+    }
+    rten.device = DEVICE_GPU;
   }
 
   ReprOptions opts = repr_default_options();
@@ -273,12 +299,24 @@ char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts) {
     rten.storage = NULL;
     rten.data.data = NULL;
     rten.is_allocated_ = false;
-    safe_allocator(ten->storage->size_bytes, DEVICE_CPU, false, NULL, &rten,
-                   true);
-    novaStatus_t status = transf_tensor_from_device(ten, &rten);
+    novaStatus_t status;
+    status = safe_allocator(ten->storage->size_bytes, DEVICE_CPU, false, NULL,
+                            &rten, true);
     if (status.err != novaSuccess) {
       return NULL;
     }
+
+    /*
+    Note: Temporarily change the `device` member from `rten` to `DEVICE_CPU` to
+    satisfy the `transf_tensor_from_device()` check and allow printing the
+    tensor with the metada from `DEVICE_GPU`
+    */
+    rten.device = DEVICE_CPU;
+    status = transf_tensor_from_device(ten, &rten);
+    if (status.err != novaSuccess) {
+      return NULL;
+    }
+    rten.device = DEVICE_GPU;
   }
 
   char *repr = repr_internal(&rten, opts);
