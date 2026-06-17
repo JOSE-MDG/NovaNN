@@ -107,7 +107,8 @@ extern const CastFn lookup_tbf16_to_f32[];
  * @brief Dispatch table for bf16 to f64 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_f64_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 0: tbf16_to_f64_avx512bf16() — Requires: AVX512F, AVX512BF16,
+ * AVX512VL
  * - Index 1: tbf16_to_f64_scalar() — Portable fallback
  */
 extern const CastFn lookup_tbf16_to_f64[];

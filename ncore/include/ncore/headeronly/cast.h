@@ -411,7 +411,7 @@ static inline void tbf16_to_f32(const Tensor *restrict src,
  */
 static inline void tbf16_to_f64(const Tensor *restrict src,
                                 Tensor *restrict dst) {
-  if (SIMD->avx512f_ && SIMD->avx512_bf16_) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_ && SIMD->avx512_vl_) {
     lookup_tbf16_to_f64[0](src, dst);
     return;
   }

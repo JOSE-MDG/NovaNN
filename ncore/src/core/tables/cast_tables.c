@@ -5734,7 +5734,8 @@ const CastFn lookup_tbf16_to_f32[] = {tbf16_to_f32_avx512bf16,
  * @brief Dispatch table for bf16 to f64 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_f64_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 0: tbf16_to_f64_avx512bf16() — Requires: AVX512F, AVX512BF16,
+ * AVX512VL
  * - Index 1: tbf16_to_f64_scalar() — Portable fallback
  */
 const CastFn lookup_tbf16_to_f64[] = {tbf16_to_f64_avx512bf16,
@@ -5963,7 +5964,7 @@ const CastFn lookup_tbf16_to_u64[] = {tbf16_to_u64_avx512bf16,
  * @brief Dispatch table for f64 to s8 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_s8_avx512() — Requires: AVX512F
+ * - Index 0: tf64_to_s8_avx512() — Requires: AVX512F, AVX2
  * - Index 1: tf64_to_s8_scalar() — Portable fallback
  */
 const CastFn lookup_tf64_to_s8[] = {tf64_to_s8_avx512, tf64_to_s8_scalar};
@@ -5993,7 +5994,7 @@ const CastFn lookup_tf64_to_s64[] = {tf64_to_s64_avx512, tf64_to_s64_scalar};
  * @brief Dispatch table for f64 to u8 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_u8_avx512() — Requires: AVX512F
+ * - Index 0: tf64_to_u8_avx512() — Requires: AVX512F, AVX2
  * - Index 1: tf64_to_u8_scalar() — Portable fallback
  */
 const CastFn lookup_tf64_to_u8[] = {tf64_to_u8_avx512, tf64_to_u8_scalar};
@@ -6202,7 +6203,7 @@ const CastFn lookup_tu64_to_f32[] = {tu64_to_f32_avx512, tu64_to_f32_scalar};
  * @brief Dispatch table for s8 to f64 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_f64_avx512() — Requires: AVX512F
+ * - Index 0: ts8_to_f64_avx512() — Requires: AVX512F, AVX2
  * - Index 1: ts8_to_f64_scalar() — Portable fallback
  */
 const CastFn lookup_ts8_to_f64[] = {ts8_to_f64_avx512, ts8_to_f64_scalar};
@@ -6232,7 +6233,7 @@ const CastFn lookup_ts64_to_f64[] = {ts64_to_f64_avx512, ts64_to_f64_scalar};
  * @brief Dispatch table for u8 to f64 conversions.
  *
  * Variants:
- * - Index 0: tu8_to_f64_avx512() — Requires: AVX512F
+ * - Index 0: tu8_to_f64_avx512() — Requires: AVX512F, AVX2
  * - Index 1: tu8_to_f64_scalar() — Portable fallback
  */
 const CastFn lookup_tu8_to_f64[] = {tu8_to_f64_avx512, tu8_to_f64_scalar};
