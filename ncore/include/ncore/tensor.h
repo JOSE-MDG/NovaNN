@@ -10,6 +10,11 @@
  * All cache-line aligned fields (`ALIGN(64)`) are padded for optimal
  * SIMD vectorisation.
  *
+ * All creation and mutation functions accept an output
+ * @ref novaStatus_t pointer that receives the operation result.
+ * Callers must check `status.err` after every call; on failure the
+ * returned tensor is zeroed and must not be used.
+ *
  * ## Architecture
  *
  * A Tensor bundles:
@@ -33,7 +38,7 @@
  * @see dtype.h      Data-type definitions and DType_ enum.
  * @see storage.h    TensorStorage, RustHandle, and FFI allocation.
  * @see device.h     Device placement and memory transfers.
- * @see alloc.h      Typed buffer allocation functions.
+ * @see alloc.h      safe_allocator() and typed buffer allocation.
  */
 
 #pragma once
@@ -161,14 +166,19 @@ typedef Tensor *TensorGrad;
  *
  * @details
  * Zero-initialises the @ref Tensor struct, copies the shape, computes
- * `size` and `strides`, allocates a data buffer via
- * @ref allocate_tensor_buffer(), and optionally creates an
- * unallocated gradient tensor for autograd tracking.
+ * `size` and `strides`, and allocates a data buffer via
+ * @ref safe_allocator().  When @p requires_grad is `true`, an
+ * unallocated gradient tensor is created in `grad` with the same
+ * shape, dtype, and device as the parent.
  *
- * For `DEVICE_META`, the function returns a tensor with NULL storage
- * and `is_allocated_ = false`.  The Rust allocator is never called.
+ * For `DEVICE_META`, storage is left `NULL` and `is_allocated_` is
+ * set to `false`.  The Rust allocator is never invoked.
  *
- * @param[in]  shape         Dimension sizes (only first `ndims`
+ * On any allocation or gradient-creation failure, the tensor is
+ * zeroed and the caller receives a non-success status through
+ * @p status.
+ *
+ * @param[in]  shape         Dimension sizes (only the first `ndims`
  *                           entries are read).
  * @param[in]  dtype         Element data type (@ref DType_).
  * @param[in]  device        Target device (`DEVICE_CPU`,
@@ -179,21 +189,25 @@ typedef Tensor *TensorGrad;
  *                           memory (CPU only).
  * @param[in]  ndims         Number of dimensions.  Must be <=
  *                           @ref NOVA_MAX_DIMS.
+ * @param[out] status        Receives the operation result.  On
+ *                           success `err` is @ref novaSuccess.
  *
  * @return Initialised @ref Tensor with valid backing storage, or a
  *         META tensor with NULL storage.
  *
  * @pre  @p ndims must not exceed @ref NOVA_MAX_DIMS.
  * @pre  `product(shape[0..ndims])` must be > 0 for non-META.
+ * @pre  @p status must not be `NULL`.
  * @post On success, `is_allocated_ == true` (unless META).
  * @post If `requires_grad`, `grad` points to an unallocated tensor.
  *
  * @see create_scalar_tensor()   Scalar (0-D) variant.
  * @see create_tensor_like()     Clone metadata from an existing tensor.
- * @see allocate_tensor_buffer() Underlying allocation.
+ * @see safe_allocator()         Underlying allocation.
  */
 Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
-                     bool requires_grad, bool pin_memory, size_t ndims);
+                     bool requires_grad, bool pin_memory, size_t ndims,
+                     novaStatus_t *status);
 
 /**
  * @brief Create a fully allocated 0-dimensional (scalar) tensor.
@@ -201,6 +215,13 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
  * @details
  * Allocates a single-element data buffer.  Shape and strides are
  * zeroed, `ndims` is set to 0, and `size` is set to 1.
+ * Allocation is performed via @ref safe_allocator().  When
+ * @p requires_grad is `true`, an unallocated scalar gradient tensor
+ * is created in `grad`.
+ *
+ * For `DEVICE_META`, storage is left `NULL` and `is_allocated_` is
+ * set to `false`.  On failure, the tensor is zeroed and the error
+ * is reported through @p status.
  *
  * @param[in]  dtype         Element data type (@ref DType_).
  * @param[in]  device        Target device (`DEVICE_CPU`,
@@ -209,14 +230,18 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
  *                           scalar gradient tensor.
  * @param[in]  pin_memory    If `true`, request page-locked host
  *                           memory (CPU only).
+ * @param[out] status        Receives the operation result.
  *
  * @return Initialised scalar @ref Tensor with backing storage.
+ *
+ * @pre  @p status must not be `NULL`.
+ * @post On success, `is_allocated_ == true` (unless META).
  *
  * @see create_tensor()        N-dimensional variant.
  * @see is_scalar()            Query predicate.
  */
 Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad,
-                            bool pin_memory);
+                            bool pin_memory, novaStatus_t *status);
 
 /**
  * @brief Create a tensor with the same metadata as an existing one.
@@ -229,16 +254,23 @@ Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad,
  * handled via @ref create_scalar_tensor() or
  * @ref create_unallocated_scalar_tensor().
  *
- * @param[in] ten  Source tensor to copy metadata from.  Must not be
- *                 `NULL`.
+ * The new tensor is independent of the source — it owns its own
+ * storage and does not share the source's buffer.
+ *
+ * @param[in]  ten    Source tensor to copy metadata from.  Must not
+ *                    be `NULL`.
+ * @param[out] status Receives the operation result.
  *
  * @return New @ref Tensor with matching metadata and allocation
  *         state.
  *
+ * @pre  @p ten must not be `NULL`.
+ * @pre  @p status must not be `NULL`.
+ *
  * @see create_tensor()
  * @see create_unallocated_tensor()
  */
-Tensor create_tensor_like(const Tensor *ten);
+Tensor create_tensor_like(const Tensor *ten, novaStatus_t *status);
 
 /**
  * @brief Create a view of an existing tensor with a new shape.
@@ -249,19 +281,24 @@ Tensor create_tensor_like(const Tensor *ten);
  * new shape, and marks the result as a non-leaf view.  The
  * original data buffer is not copied.
  *
- * If the source has a gradient, an unallocated gradient tensor is
- * created for the view.
+ * Scalar sources are handled specially — shape and strides are
+ * left unchanged.  If the source has a gradient, an unallocated
+ * gradient tensor is created for the view.  On grad-creation
+ * failure, the view's storage is released via @ref collect() and
+ * the tensor is zeroed.
  *
  * @param[in]  src        Source tensor to view.  Must outlive the
  *                        view.  Must have non-NULL storage.
  * @param[in]  new_shape  New dimension sizes.  Product must equal
  *                        `src->size`.
  * @param[in]  new_ndims  Number of dimensions in @p new_shape.
+ * @param[out] status     Receives the operation result.
  *
  * @return View @ref Tensor sharing @p src's storage.
  *
  * @pre  `product(new_shape[0..new_ndims])` must equal `src->size`.
  * @pre  `src->storage` must not be NULL.
+ * @pre  @p status must not be `NULL`.
  * @post The returned tensor has `is_view_ = true` and
  *       `is_leaf_ = false`.
  * @post The Rust reference count is incremented by one.
@@ -270,7 +307,7 @@ Tensor create_tensor_like(const Tensor *ten);
  * @see is_view()       Query predicate.
  */
 Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
-                   size_t new_ndims);
+                   size_t new_ndims, novaStatus_t *status);
 
 /**
  * @brief Move ownership of tensor resources from src to dst.
@@ -365,16 +402,20 @@ bool is_scalar_grad(TensorGrad grad);
  * @brief Check whether a tensor's data buffer is properly aligned.
  *
  * @details
- * GPU tensors are expected to be 512-byte aligned; CPU tensors are
- * expected to be 64-byte aligned.  The check uses the appropriate
- * threshold based on @ref Tensor::is_pinned.
+ * Alignment requirements differ by device:
+ * - **GPU** (`DEVICE_GPU`): 512-byte alignment.
+ * - **CPU** (`DEVICE_CPU`): 64-byte alignment.
+ * - **META** (`DEVICE_META`): always returns `true`.
+ *
+ * The check selects the threshold based on @ref Tensor::device and
+ * tests `ten->storage->ptr.v` modulo the threshold.
  *
  * @param[in] ten  Tensor to check.  Must not be `NULL`.
  *
  * @return `true` if the data pointer meets the alignment
  *         requirement, `false` otherwise.
  *
- * @pre  `ten->storage` must not be `NULL`.
+ * @pre  `ten->storage` must not be `NULL` (except META).
  *
  * @see is_grad_aligned()  Gradient variant.
  */
@@ -383,12 +424,14 @@ bool is_aligned(const Tensor *ten);
 /**
  * @brief Check whether a gradient tensor's data buffer is aligned.
  *
- * @param[in] grad  Gradient tensor to check.  Must not be `NULL`.
+ * @details
+ * Same alignment logic as @ref is_aligned(): 512-byte for GPU,
+ * 64-byte for CPU, and always `true` for META tensors.
+ *
+ * @param[in] grad  Gradient tensor to check.  May be `NULL`.
  *
  * @return `true` if the gradient data pointer meets the alignment
- *         requirement, `false` otherwise.
- *
- * @pre  `grad->storage` must not be `NULL`.
+ *         requirement, `false` otherwise (including `NULL` grad).
  *
  * @see is_aligned()  Tensor variant.
  */
