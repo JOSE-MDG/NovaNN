@@ -54,8 +54,8 @@ extern "C" {
  * @pre  @p kind must match the actual memory types of @p src and
  *       @p dst.
  */
-extern DeviceStatus device_memcpy_c(const void *src, void *dst,
-                                    TransferKind kind, size_t bytes);
+extern DeviceStatus device_transfer_c(const void *src, void *dst,
+                                      TransferKind kind, size_t bytes);
 
 #ifdef __cplusplus
 }
