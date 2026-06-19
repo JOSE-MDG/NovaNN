@@ -8,6 +8,7 @@
  * file.
  *
  * ## Contents
+ *
  */
 // clang-format off
 /**
@@ -23,15 +24,16 @@
 /**
  * ## Design rules
  *
- * - **No function definitions.**  This file is purely preprocessor
+ * - **No function definitions** — This file is purely preprocessor
  *   constants and macros.
- * - **No dependencies.**  Only standard C headers (`<stdio.h>`,
+ * - **No dependencies** — Only standard C headers (`<stdio.h>`,
  *   `<stdlib.h>`, `<stdbool.h>`, `<stdalign.h>`).
- * - **C and C++ compatible.**  The `restrict` keyword is mapped to
- *   `__restrict__` when compiling as C++.
+ * - **C and C++ compatible** — The `restrict` keyword and fprintf() function
+ *    were mapped to `__restrict__` and std::cerr << ... when compiling as C++.
  *
  * @see dtype.h   DType_ enum referenced by `NUM_DTYPES` etc.
  * @see simd.h    Runtime SIMD capability detection.
+ * @see status.h  novaStatus_t enum referenced by `NUM_ERRORS`.
  */
 
 #pragma once
@@ -40,6 +42,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef __cplusplus
+#include <iostream>
+#endif
 
 #if defined(__cplusplus) && !defined(restrict)
 #define restrict __restrict__
@@ -117,6 +123,13 @@
 #define NUM_DTYPES 12
 
 /**
+ * @def NUM_ERRORS
+ * @brief Total number of type errors
+ *
+ */
+#define NUM_ERRORS 30
+
+/**
  * @def NUM_FLOATS
  * @brief Number of floating-point data types (f32, f64, f16, bf16).
  */
@@ -166,11 +179,11 @@
  * @brief Number of supported compute backends.
  *
  * @details
- * Equals 5: CUDA, ROCm, oneDNN, Generic, and Meta.
+ * Equals 5: CUDA, HIP, CPU, Meta, Miopen, OneDNN and Generic.
  *
  * @see Backend enum in backend.h.
  */
-#define NUM_BACKENDS 5
+#define NUM_BACKENDS 7
 
 /**
  * @def NOVA_INTERNAL_ASSERT(assertion, msg, ...)
@@ -182,7 +195,7 @@
  * `EXIT_FAILURE`.  Uses `__VA_OPT__` for clean expansion when
  * no variadic arguments are provided.
  *
- * This macro is **not** a debugging aid — it guards
+ * This macro is not a debugging aid — it guards
  * invariants that, if violated, indicate a bug in NovaNN
  * itself (e.g., null storage after a successful allocation).
  *
@@ -197,8 +210,17 @@
  * @endcode
  *
  * @note The message should include a module tag in brackets
- *       (e.g., `[STORAGE]`, `[GRAD]`) for easy identification.
+ *       (e.g., `[STORAGE]`, `[CUDA]`) for easy identification.
  */
+#ifdef __cplusplus
+#define NOVA_INTERNAL_ASSERT(assertion, msg, ...)                              \
+  do {                                                                         \
+    if (!(assertion)) {                                                        \
+      std::cerr << msg __VA_OPT__(<< __VA_ARGS__);                             \
+      exit(EXIT_FAILURE);                                                      \
+    }                                                                          \
+  } while (0)
+#else
 #define NOVA_INTERNAL_ASSERT(assertion, msg, ...)                              \
   do {                                                                         \
     if (!(assertion)) {                                                        \
@@ -206,6 +228,7 @@
       exit(EXIT_FAILURE);                                                      \
     }                                                                          \
   } while (0)
+#endif
 
 /**
  * @defgroup SIMD_LANES SIMD lane counts
@@ -227,36 +250,36 @@
  *  128-bit register width.
  */
 ///@{
-#define NOVA_SIMD_F32_WITH_SSE 4       ///< float32:   128 / 32 = 4
-#define NOVA_SIMD_F64_WITH_SSE 2       ///< float64:   128 / 64 = 2
-#define NOVA_SIMD_FP16_WITH_SSE 8      ///< float16:   128 / 16 = 8
-#define NOVA_SIMD_BF16_WITH_SSE 8      ///< bfloat16:  128 / 16 = 8
-#define NOVA_SIMD_S8_WITH_SSE 16       ///< int8:      128 / 8  = 16
-#define NOVA_SIMD_U8_WITH_SSE 16       ///< uint8:     128 / 8  = 16
-#define NOVA_SIMD_S32_WITH_SSE 4       ///< int32:     128 / 32 = 4
-#define NOVA_SIMD_U32_WITH_SSE 4       ///< uint32:    128 / 32 = 4
-#define NOVA_SIMD_S64_WITH_SSE 2       ///< int64:     128 / 64 = 2
-#define NOVA_SIMD_U64_WITH_SSE 2       ///< uint64:    128 / 64 = 2
-#define NOVA_SIMD_QS8_WITH_SSE 16      ///< qint8:     128 / 8  = 16
-#define NOVA_SIMD_QU8_WITH_SSE 16      ///< quint8:    128 / 8  = 16
+#define NOVA_SIMD_F32_WITH_SSE 4  ///< float32:   128 / 32 = 4
+#define NOVA_SIMD_F64_WITH_SSE 2  ///< float64:   128 / 64 = 2
+#define NOVA_SIMD_FP16_WITH_SSE 8 ///< float16:   128 / 16 = 8
+#define NOVA_SIMD_BF16_WITH_SSE 8 ///< bfloat16:  128 / 16 = 8
+#define NOVA_SIMD_S8_WITH_SSE 16  ///< int8:      128 / 8  = 16
+#define NOVA_SIMD_U8_WITH_SSE 16  ///< uint8:     128 / 8  = 16
+#define NOVA_SIMD_S32_WITH_SSE 4  ///< int32:     128 / 32 = 4
+#define NOVA_SIMD_U32_WITH_SSE 4  ///< uint32:    128 / 32 = 4
+#define NOVA_SIMD_S64_WITH_SSE 2  ///< int64:     128 / 64 = 2
+#define NOVA_SIMD_U64_WITH_SSE 2  ///< uint64:    128 / 64 = 2
+#define NOVA_SIMD_QS8_WITH_SSE 16 ///< qint8:     128 / 8  = 16
+#define NOVA_SIMD_QU8_WITH_SSE 16 ///< quint8:    128 / 8  = 16
 ///@}
 
 /** @name SIMD lane counts — AVX / AVX2
  *  256-bit register width.
  */
 ///@{
-#define NOVA_SIMD_F32_WITH_AVX_AVX2 8  ///< float32:   256 / 32 = 8
-#define NOVA_SIMD_F64_WITH_AVX_AVX2 4  ///< float64:   256 / 64 = 4
+#define NOVA_SIMD_F32_WITH_AVX_AVX2 8   ///< float32:   256 / 32 = 8
+#define NOVA_SIMD_F64_WITH_AVX_AVX2 4   ///< float64:   256 / 64 = 4
 #define NOVA_SIMD_FP16_WITH_AVX_AVX2 16 ///< float16:  256 / 16 = 16
 #define NOVA_SIMD_BF16_WITH_AVX_AVX2 16 ///< bfloat16: 256 / 16 = 16
-#define NOVA_SIMD_S8_WITH_AVX_AVX2 32  ///< int8:      256 / 8  = 32
-#define NOVA_SIMD_U8_WITH_AVX_AVX2 32  ///< uint8:     256 / 8  = 32
-#define NOVA_SIMD_S32_WITH_AVX_AVX2 8  ///< int32:     256 / 32 = 8
-#define NOVA_SIMD_U32_WITH_AVX_AVX2 8  ///< uint32:    256 / 32 = 8
-#define NOVA_SIMD_S64_WITH_AVX_AVX2 4  ///< int64:     256 / 64 = 4
-#define NOVA_SIMD_U64_WITH_AVX_AVX2 4  ///< uint64:    256 / 64 = 4
-#define NOVA_SIMD_QS8_WITH_AVX_AVX2 32 ///< qint8:     256 / 8  = 32
-#define NOVA_SIMD_QU8_WITH_AVX_AVX2 32 ///< quint8:    256 / 8  = 32
+#define NOVA_SIMD_S8_WITH_AVX_AVX2 32   ///< int8:      256 / 8  = 32
+#define NOVA_SIMD_U8_WITH_AVX_AVX2 32   ///< uint8:     256 / 8  = 32
+#define NOVA_SIMD_S32_WITH_AVX_AVX2 8   ///< int32:     256 / 32 = 8
+#define NOVA_SIMD_U32_WITH_AVX_AVX2 8   ///< uint32:    256 / 32 = 8
+#define NOVA_SIMD_S64_WITH_AVX_AVX2 4   ///< int64:     256 / 64 = 4
+#define NOVA_SIMD_U64_WITH_AVX_AVX2 4   ///< uint64:    256 / 64 = 4
+#define NOVA_SIMD_QS8_WITH_AVX_AVX2 32  ///< qint8:     256 / 8  = 32
+#define NOVA_SIMD_QU8_WITH_AVX_AVX2 32  ///< quint8:    256 / 8  = 32
 ///@}
 
 /** @name SIMD lane counts — AVX-512F
