@@ -1,41 +1,46 @@
 /**
  * @file summarized_layout.c
- * @brief Summarised (truncated) layout for tensors larger than the
- * threshold.
+ * @brief Implementation of the truncated (summarized) tensor layout renderer.
  *
  * @details
- * Shows edge_items elements at each end of every dimension and replaces
- * omitted middle slices with `...`.  Follows PyTorch's convention of
- * blank-line separators between 2D slices.  Per-element formatting
- * delegates to the dispatch table in element_fmt.h.
+ * This module provides the logic for displaying high-dimensional tensors
+ * that exceed the user-defined element threshold. It prevents terminal
+ * saturation by only showing a small neighborhood of elements (edge items)
+ * around the boundaries of each dimension.
+ *
+ * The renderer is fully strided-aware, allowing it to correctly summarize
+ * both contiguous and view tensors.
+ *
+ * ## Architecture
+ * - **Recursive Range Rendering**: `render_range` decides for each dimension
+ *   whether to show all elements or apply truncation.
+ * - **Ellipsis Injection**: If a dimension is truncated, a central "..."
+ *   marker is injected to represent the omitted elements.
+ * - **Strided Navigation**: Uses @ref compute_linear_byte_offset() to ensure
+ *   that the sampled edge items are correctly resolved in memory.
+ *
+ * @see dense_layout.h Renderer interface.
+ * @see repr_options.h Edge-item and threshold configuration.
  */
 
-#include "dense_layout.h"
-#include "repr/formatters/element_fmt.h"
-#include <ncore/dtype.h>
+#include <ncore/core/dtype.h>
+#include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/tensor_utils.h>
-#include <ncore/macros.h>
 #include <string.h>
 
+#include "layouts.h"
+#include "repr/formatters/element_fmt.h"
+
 /**
- * @brief Compute a byte pointer to an element from its coordinates.
- *
- * @param[in] ten    The tensor.
- * @param[in] coords Multi-dimensional coordinate array.
- * @return Byte pointer to the element in tensor storage.
+ * @brief Helper to resolve a pointer for a coordinate vector.
  */
 static void *elem_ptr(const Tensor *ten, const coords_t coords) {
   size_t off = compute_linear_byte_offset(coords, ten->ndims, ten->strides);
-  return ten->data.u8 + off;
+  return (uint8 *)ten->data.u8 + off;
 }
 
 /**
- * @brief Write a string to the builder, right-padded to a fixed width.
- *
- * @param[in] sb     Output StringBuilder.
- * @param[in] val    String value to append.
- * @param[in] len    Length of the string (excl. null).
- * @param[in] width  Desired minimum width (padding added before val).
+ * @brief Helper to append right-padded element strings.
  */
 static void pad_and_append(StringBuilder *sb, const char *val, int len,
                            size_t width) {
@@ -46,12 +51,7 @@ static void pad_and_append(StringBuilder *sb, const char *val, int len,
 }
 
 /**
- * @brief Format one element and append it (padded for 2D+, raw for 1D).
- *
- * @param[in] sb  Output StringBuilder.
- * @param[in] ctx ReprContext.
- * @param[in] ten The tensor.
- * @param[in] ptr Pointer to the element in storage.
+ * @brief Format and append a single element.
  */
 static void append_elem(StringBuilder *sb, const ReprContext *ctx,
                         const Tensor *ten, const void *ptr) {
@@ -65,31 +65,15 @@ static void append_elem(StringBuilder *sb, const ReprContext *ctx,
 }
 
 /**
- * @brief Append `...` without extra padding.
- *
- * @param[in] sb  Output StringBuilder.
- * @param[in] ctx ReprContext (unused).
+ * @brief Append the truncation marker to the builder.
  */
-static void append_ellipsis(StringBuilder *sb, const ReprContext *ctx) {
-  (void)ctx;
-  sb_append(sb, "...");
-}
+static void append_ellipsis(StringBuilder *sb) { sb_append(sb, "..."); }
 
 /**
- * @brief Render one dimension with edge-item truncation.
- *
- * For each dimension, if shape[dim] > 2 * edge_items, the middle is
- * replaced by a single `...` entry.  Inner dimensions are rendered
- * recursively so that 2D slices get blank-line separators.
- *
- * @param[in] sb     Output StringBuilder.
- * @param[in] ctx    ReprContext.
- * @param[in] dim    Current dimension index (0 = outermost).
- * @param[in] indent Column position of the opening `[`.
- * @param[in] coords Coordinate array (updated in place).
+ * @brief Recursively render a range of elements for a specific dimension.
  */
 static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
-                         int indent, size_t *coords) {
+                         int indent, coords_t coords) {
   const Tensor *ten = ctx->tensor;
   sb_append_char(sb, '[');
 
@@ -114,7 +98,7 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
         actual_idx = d;
       }
       if (is_ellipsis) {
-        append_ellipsis(sb, ctx);
+        append_ellipsis(sb);
       } else {
         coords[dim] = actual_idx;
         void *ptr = elem_ptr(ten, coords);
@@ -125,7 +109,7 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
     for (size_t d = 0; d < n_show; d++) {
       if (d > 0) {
         sb_append(sb, ",\n");
-        sb_append_repeated(sb, ' ', (size_t)(indent + 1));
+        sb_append_repeated(sb, ' ', (size_t)indent + 1);
       }
       size_t actual_idx;
       bool is_ellipsis = false;
@@ -138,7 +122,7 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
         actual_idx = d;
       }
       if (is_ellipsis) {
-        append_ellipsis(sb, ctx);
+        append_ellipsis(sb);
       } else {
         coords[dim] = actual_idx;
         render_range(sb, ctx, dim + 1, indent + 1, coords);
@@ -148,7 +132,7 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
     for (size_t d = 0; d < n_show; d++) {
       if (d > 0) {
         sb_append(sb, ",\n\n");
-        sb_append_repeated(sb, ' ', (size_t)(indent + 1));
+        sb_append_repeated(sb, ' ', (size_t)indent + 1);
       }
       size_t actual_idx;
       bool is_ellipsis = false;
@@ -161,7 +145,7 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
         actual_idx = d;
       }
       if (is_ellipsis) {
-        append_ellipsis(sb, ctx);
+        append_ellipsis(sb);
       } else {
         coords[dim] = actual_idx;
         render_range(sb, ctx, dim + 1, indent + 1, coords);
@@ -174,11 +158,8 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
 
 /**
  * @brief Render a tensor with edge-item truncation.
- *
- * @param[in] ctx ReprContext (must not be NULL).
- * @param[in] sb  Output StringBuilder (must not be NULL).
  */
 void summarized_layout_render(const ReprContext *ctx, StringBuilder *sb) {
-  size_t coords[NOVA_MAX_DIMS] = {0};
+  coords_t coords = {0};
   render_range(sb, ctx, 0, 7, coords);
 }

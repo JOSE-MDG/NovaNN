@@ -1,16 +1,25 @@
 /**
  * @file tensor_iterator.h
- * @brief N-dimensional tensor iterator wrapping the odometer pattern.
+ * @brief Public interface for the multidimensional strided tensor iterator.
  *
  * @details
- * Walks every element of a tensor in row-major order regardless of
- * contiguity by updating a multi-dimensional coordinate vector and
- * computing byte offsets from the tensor's strides array.
+ * This header defines the @ref TensorIterator structure and its associated
+ * control functions. The iterator provides a high-level abstraction for
+ * traversing tensors of any physical layout (contiguous or strided) in a
+ * consistent row-major order.
  *
- * Byte-offset formula:
- *   offset = ten->offset + sum(coords[d] * ten->strides[d])
+ * It is primarily used by layout renderers to decouple the visual formatting
+ * logic from the complexities of strided memory access.
  *
- * @see iter_byte_offset()  Compute the offset from current coordinates.
+ * ## Architecture
+ * - **Stateful Iteration**: The iterator encapsulates the current position
+ *   using a coordinate vector and a linear element counter.
+ * - **Stride Transparency**: Callers retrieve memory offsets via
+ *   @ref iter_byte_offset(), hiding the internal arithmetic involving
+ *   strides and offsets.
+ *
+ * @see tensor_iterator.c Implementation details.
+ * @see tensor_utils.h Underlying coordinate arithmetic.
  */
 
 #pragma once
@@ -22,42 +31,47 @@
 
 /**
  * @struct TensorIterator
- * @brief Iterator state.
+ * @brief State descriptor for multidimensional tensor traversal.
+ *
+ * @details
+ * Tracks the current position within an n-dimensional tensor. The iterator
+ * is considered "done" when all elements in the logical shape have been
+ * visited.
  */
 typedef struct {
-  const Tensor *tensor; ///< The tensor being iterated.
-  coords_t coords;      ///< Current multi-dimensional coordinate.
-  size_t linear_index;  ///< Element count from start.
-  bool done;            ///< True when all elements have been visited.
+  const Tensor *tensor; ///< Pointer to the tensor being traversed.
+  coords_t coords;      ///< Current multidimensional coordinate vector.
+  size_t linear_index;  ///< Current logical element count (0 to size-1).
+  bool done;            ///< Termination flag (true when iteration complete).
 } TensorIterator;
 
 /**
- * @brief Initialise an iterator at the first element.
+ * @brief Initialise an iterator instance for a specific tensor.
  *
- * @param[out] it  Uninitialised struct.
- * @param[in]  ten Tensor to iterate.
+ * @param[out] it  Pointer to the iterator to initialise.
+ * @param[in]  ten Pointer to the tensor to traverse.
  */
 void iter_init(TensorIterator *it, const Tensor *ten);
 
 /**
- * @brief Advance to the next element in row-major order.
+ * @brief Advance the iterator to the next logical element.
  *
- * @param[in] it Iterator to advance.
+ * @param[in,out] it Pointer to the active iterator.
  */
 void iter_advance(TensorIterator *it);
 
 /**
- * @brief Compute the byte offset of the current element.
+ * @brief Compute the byte offset of the current element in memory.
  *
- * @param[in] it Iterator.
- * @return Byte offset into the tensor's data buffer.
+ * @param[in] it Pointer to the active iterator.
+ * @return Byte offset from the tensor's base data pointer.
  */
 size_t iter_byte_offset(const TensorIterator *it);
 
 /**
- * @brief Check whether iteration is complete.
+ * @brief Query whether the iterator has reached the end of the tensor.
  *
- * @param[in] it Iterator.
- * @return true if all elements have been visited.
+ * @param[in] it Pointer to the iterator.
+ * @return true if all logical elements have been visited.
  */
 bool iter_done(const TensorIterator *it);

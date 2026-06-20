@@ -5,18 +5,18 @@
  * @details
  * Header-only file that provides 90 inline cast functions, each
  * selecting the best available SIMD implementation at runtime
- * based on the CPU capabilities reported by @ref get_cpu_capabilities().
+ * based on the CPU capabilities reported by @ref get_simd_capabilities().
  *
  * ## Architecture
  *
  * Every cast function follows the same dispatch pattern:
  *
  * ```
- * tfP_to_Q_(src, dst):
- *     if (AVX-512 available)  → lookup_tP_to_Q_[0](src, dst)
- *     if (AVX2/F16C available)→ lookup_tP_to_Q_[1](src, dst)
+ * tfP_to_Q(src, dst):
+ *     if (AVX-512 available)  → lookup_tP_to_Q[0](src, dst)
+ *     if (AVX2/F16C available)→ lookup_tP_to_Q[1](src, dst)
  *     ...
- *     fallback               → lookup_tP_to_Q_[N](src, dst)
+ *     fallback               → lookup_tP_to_Q[N](src, dst)
  * ```
  *
  * The actual kernel implementations live in @ref cast_tables.h
@@ -33,12 +33,12 @@
  * | Macro              | Pairs | Description                          |
  * |--------------------|------:|--------------------------------------|
  * | @ref CAST_FP_TYPES |    12 | Float ↔ Float (all combinations)     |
- * | @ref CAST_FP_TO_INT|    24 | Float → Signed/Unsigned integer       |
- * | @ref CAST_INT_TO_FP|    24 | Signed/Unsigned integer → Float       |
- * | @ref CAST_SINT_TO_SINT| 6 | Signed integer width changes          |
- * | @ref CAST_UINT_TO_UINT| 6 | Unsigned integer width changes        |
- * | @ref CAST_SINT_TO_UINT| 9 | Signed → Unsigned (sign + width)      |
- * | @ref CAST_UINT_TO_SINT| 9 | Unsigned → Signed (sign + width)      |
+ * | @ref CAST_FP_TO_INT|    24 | Float → Signed/Unsigned integer      |
+ * | @ref CAST_INT_TO_FP|    24 | Signed/Unsigned integer → Float      |
+ * | @ref CAST_SINT_TO_SINT|  6 | Signed integer width changes         |
+ * | @ref CAST_UINT_TO_UINT|  6 | Unsigned integer width changes       |
+ * | @ref CAST_SINT_TO_UINT|  9 | Signed → Unsigned (sign + width)     |
+ * | @ref CAST_UINT_TO_SINT|  9 | Unsigned → Signed (sign + width)     |
  */
 // clang-format on
 /**
@@ -57,25 +57,26 @@
  * ## Naming convention
  *
  * All cast functions follow the pattern `t{src}_to_{dst}_()`:
- * - `tfp16_to_f32_()` — Float16 → Float32
- * - `ts8_to_u32_()`   — Signed8 → UnSigned32
- * - `tu64_to_s8_()`   — UnSigned64 → Signed8
+ * - `tfp16_to_f32()` — Float16 → Float32
+ * - `ts8_to_u32()`   — Signed8 → UnSigned32
+ * - `tu64_to_s8()`   — UnSigned64 → Signed8
  *
  * The trailing underscore indicates an internal (non-public)
  * function.
  *
- * @see cast_dispatch        12×12 dispatch table (src → dst).
+ * @see cast_dispatch           NUM_DTYPES×NUM_DTYPES dispatch table (src →
+ * dst).
  * @see cast_dispatch_tables.c  Constructor that populates the table.
- * @see cast_tables.h        Per-kernel lookup tables.
- * @see simd.h               CPU capability detection.
- * @see dtype.h              @ref DType_ enum and @ref NUM_DTYPES.
+ * @see cast_tables.h           Per-kernel lookup tables.
+ * @see simd.h                  CPU capability detection.
+ * @see dtype.h                 @ref DType_ enum and @ref NUM_DTYPES.
  */
 
 #pragma once
 
 #include <immintrin.h>
-#include <ncore/macros.h>
-#include <ncore/simd.h>
+#include <ncore/headeronly/macros.h>
+#include <ncore/simd/simd.h>
 #include <ncore/tables/cast_tables.h>
 #include <ncore/tensor.h>
 
@@ -211,10 +212,10 @@
  *
  * @details
  * Expands to:
- * ```c
- * static inline void t{from}_to_{to}_(const Tensor *restrict src,
+ * @code{.c}
+ * static inline void t{from}_to_{to}(const Tensor *restrict src,
  *                                     Tensor *restrict dst);
- * ```
+ * @endcode
  *
  * Called via the X-macro families to declare all 90 cast
  * functions before their definitions.
@@ -223,8 +224,8 @@
  * @param to    Target dtype short name (e.g., `f32`, `u64`).
  */
 #define DECL_CAST(from, to)                                                    \
-  static inline void t##from##_to_##to##_(const Tensor *restrict src,          \
-                                          Tensor *restrict dst);
+  static inline void t##from##_to_##to(const Tensor *restrict src,             \
+                                       Tensor *restrict dst);
 
 CAST_FP_TYPES(DECL_CAST)
 CAST_FP_TO_INT(DECL_CAST)
@@ -235,18 +236,18 @@ CAST_SINT_TO_UINT(DECL_CAST)
 CAST_UINT_TO_SINT(DECL_CAST)
 
 /**
- * @def Caps_
- * @brief Shorthand for `get_cpu_capabilities()`.
+ * @def SIMD
+ * @brief Shorthand for `get_simd_capabilities()`.
  *
  * @details
- * Resolves to a `const Capabilities_ *` at each call site.
+ * Resolves to a `const SIMDCapabilities *` at each call site.
  * The pointer is cached per-thread by the underlying
  * `call_once` initialisation, so repeated access is cheap.
  *
- * @see get_cpu_capabilities()  Returns the singleton capabilities.
- * @see Capabilities_           Struct with SIMD feature flags.
+ * @see get_simd_capabilities()  Returns the singleton capabilities.
+ * @see SIMDCapabilities        Struct with SIMD feature flags.
  */
-#define Caps_ get_cpu_capabilities()
+#define SIMD get_simd_capabilities()
 
 /**
  * @brief Casts fp16 tensor to f32.
@@ -254,20 +255,20 @@ CAST_UINT_TO_SINT(DECL_CAST)
  * @param dst Destination tensor (f32).
  * @note Variants: AVX512F, F16C, Scalar.
  */
-static inline void tfp16_to_f32_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static inline void tfp16_to_f32(const Tensor *restrict src,
+                                Tensor *restrict dst) {
 
-  if (Caps_->avx512f_) {
-    lookup_tfp16_to_f32_[0](src, dst);
+  if (SIMD->avx512f_) {
+    lookup_tfp16_to_f32[0](src, dst);
     return;
   }
 
-  if ((Caps_->avx_ || Caps_->avx2_) && Caps_->f16c_) {
-    lookup_tfp16_to_f32_[1](src, dst);
+  if ((SIMD->avx_ || SIMD->avx2_) && SIMD->f16c_) {
+    lookup_tfp16_to_f32[1](src, dst);
     return;
   }
 
-  lookup_tfp16_to_f32_[2](src, dst);
+  lookup_tfp16_to_f32[2](src, dst);
 }
 
 /**
@@ -276,20 +277,20 @@ static inline void tfp16_to_f32_(const Tensor *restrict src,
  * @param dst Destination tensor (f64).
  * @note Variants: AVX512F+AVX512FP16, F16C, Scalar.
  */
-static inline void tfp16_to_f64_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static inline void tfp16_to_f64(const Tensor *restrict src,
+                                Tensor *restrict dst) {
 
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_tfp16_to_f64_[0](src, dst);
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_tfp16_to_f64[0](src, dst);
     return;
   }
 
-  if ((Caps_->avx_ || Caps_->avx2_) && Caps_->f16c_) {
-    lookup_tfp16_to_f64_[1](src, dst);
+  if ((SIMD->avx_ || SIMD->avx2_) && SIMD->f16c_) {
+    lookup_tfp16_to_f64[1](src, dst);
     return;
   }
 
-  lookup_tfp16_to_f64_[2](src, dst);
+  lookup_tfp16_to_f64[2](src, dst);
 }
 
 /**
@@ -298,14 +299,14 @@ static inline void tfp16_to_f64_(const Tensor *restrict src,
  * @param dst Destination tensor (bf16).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tfp16_to_bf16_(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_) {
-    lookup_tfp16_to_bf16_[0](src, dst);
+static inline void tfp16_to_bf16(const Tensor *restrict src,
+                                 Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_) {
+    lookup_tfp16_to_bf16[0](src, dst);
     return;
   }
 
-  lookup_tfp16_to_bf16_[1](src, dst);
+  lookup_tfp16_to_bf16[1](src, dst);
 }
 
 /**
@@ -314,20 +315,20 @@ static inline void tfp16_to_bf16_(const Tensor *restrict src,
  * @param dst Destination tensor (fp16).
  * @note Variants: AVX512FP16, F16C, Scalar.
  */
-static inline void tf32_to_fp16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static inline void tf32_to_fp16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
 
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_tf32_to_fp16_[0](src, dst);
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_tf32_to_fp16[0](src, dst);
     return;
   }
 
-  if ((Caps_->avx_ || Caps_->avx2_) && Caps_->f16c_) {
-    lookup_tf32_to_fp16_[1](src, dst);
+  if ((SIMD->avx_ || SIMD->avx2_) && SIMD->f16c_) {
+    lookup_tf32_to_fp16[1](src, dst);
     return;
   }
 
-  lookup_tf32_to_fp16_[2](src, dst);
+  lookup_tf32_to_fp16[2](src, dst);
 }
 
 /**
@@ -336,24 +337,24 @@ static inline void tf32_to_fp16_(const Tensor *restrict src,
  * @param dst Destination tensor (f64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tf32_to_f64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tf32_to_f64_[0](src, dst);
+static inline void tf32_to_f64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tf32_to_f64[0](src, dst);
     return;
   }
 
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_tf32_to_f64_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_tf32_to_f64[1](src, dst);
     return;
   }
 
-  if (Caps_->sse4_2_) {
-    lookup_tf32_to_f64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tf32_to_f64[2](src, dst);
     return;
   }
 
-  lookup_tf32_to_f64_[3](src, dst);
+  lookup_tf32_to_f64[3](src, dst);
 }
 
 /**
@@ -362,14 +363,14 @@ static inline void tf32_to_f64_(const Tensor *restrict src,
  * @param dst Destination tensor (bf16).
  * @note Variants: AVX512F+AVX512BF16+AVX512BW+AVX512VL, Scalar.
  */
-static inline void tf32_to_bf16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_ && Caps_->avx512_bw_ &&
-      Caps_->avx512_vl_) {
-    lookup_tf32_to_bf16_[0](src, dst);
+static inline void tf32_to_bf16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_ && SIMD->avx512_bw_ &&
+      SIMD->avx512_vl_) {
+    lookup_tf32_to_bf16[0](src, dst);
     return;
   }
-  lookup_tf32_to_bf16_[1](src, dst);
+  lookup_tf32_to_bf16[1](src, dst);
 }
 
 /**
@@ -378,13 +379,13 @@ static inline void tf32_to_bf16_(const Tensor *restrict src,
  * @param dst Destination tensor (fp16).
  * @note Variants: AVX512FP16, Scalar.
  */
-static inline void tbf16_to_fp16_(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_ && Caps_->avx512_fp16_) {
-    lookup_tbf16_to_fp16_[0](src, dst);
+static inline void tbf16_to_fp16(const Tensor *restrict src,
+                                 Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_ && SIMD->avx512_fp16_) {
+    lookup_tbf16_to_fp16[0](src, dst);
     return;
   }
-  lookup_tbf16_to_fp16_[1](src, dst);
+  lookup_tbf16_to_fp16[1](src, dst);
 }
 
 /**
@@ -393,13 +394,13 @@ static inline void tbf16_to_fp16_(const Tensor *restrict src,
  * @param dst Destination tensor (f32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tbf16_to_f32_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_) {
-    lookup_tbf16_to_f32_[0](src, dst);
+static inline void tbf16_to_f32(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_) {
+    lookup_tbf16_to_f32[0](src, dst);
     return;
   }
-  lookup_tbf16_to_f32_[1](src, dst);
+  lookup_tbf16_to_f32[1](src, dst);
 }
 
 /**
@@ -408,13 +409,13 @@ static inline void tbf16_to_f32_(const Tensor *restrict src,
  * @param dst Destination tensor (f64).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tbf16_to_f64_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_) {
-    lookup_tbf16_to_f64_[0](src, dst);
+static inline void tbf16_to_f64(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_ && SIMD->avx512_vl_) {
+    lookup_tbf16_to_f64[0](src, dst);
     return;
   }
-  lookup_tbf16_to_f64_[1](src, dst);
+  lookup_tbf16_to_f64[1](src, dst);
 }
 
 /**
@@ -423,13 +424,13 @@ static inline void tbf16_to_f64_(const Tensor *restrict src,
  * @param dst Destination tensor (fp16).
  * @note Variants: AVX512FP16, Scalar.
  */
-static inline void tf64_to_fp16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_tf64_to_fp16_[0](src, dst);
+static inline void tf64_to_fp16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_tf64_to_fp16[0](src, dst);
     return;
   }
-  lookup_tf64_to_fp16_[1](src, dst);
+  lookup_tf64_to_fp16[1](src, dst);
 }
 
 /**
@@ -438,21 +439,21 @@ static inline void tf64_to_fp16_(const Tensor *restrict src,
  * @param dst Destination tensor (f32).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tf64_to_f32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tf64_to_f32_[0](src, dst);
+static inline void tf64_to_f32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tf64_to_f32[0](src, dst);
     return;
   }
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_tf64_to_f32_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_tf64_to_f32[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tf64_to_f32_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tf64_to_f32[2](src, dst);
     return;
   }
-  lookup_tf64_to_f32_[3](src, dst);
+  lookup_tf64_to_f32[3](src, dst);
 }
 
 /**
@@ -461,13 +462,13 @@ static inline void tf64_to_f32_(const Tensor *restrict src,
  * @param dst Destination tensor (bf16).
  * @note Variants: AVX512F+AVX512BF16+AVX512VL, Scalar.
  */
-static inline void tf64_to_bf16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_ && Caps_->avx512_vl_) {
-    lookup_tf64_to_bf16_[0](src, dst);
+static inline void tf64_to_bf16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_ && SIMD->avx512_vl_) {
+    lookup_tf64_to_bf16[0](src, dst);
     return;
   }
-  lookup_tf64_to_bf16_[1](src, dst);
+  lookup_tf64_to_bf16[1](src, dst);
 }
 
 // Cast fp to int
@@ -478,13 +479,13 @@ static inline void tf64_to_bf16_(const Tensor *restrict src,
  * @param dst Destination tensor (s8).
  * @note Variants: AVX512FP16, Scalar.
  */
-static inline void tfp16_to_s8_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_ && Caps_->avx512_bw_) {
-    lookup_tfp16_to_s8_[0](src, dst);
+static inline void tfp16_to_s8(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_ && SIMD->avx512_bw_) {
+    lookup_tfp16_to_s8[0](src, dst);
     return;
   }
-  lookup_tfp16_to_s8_[1](src, dst);
+  lookup_tfp16_to_s8[1](src, dst);
 }
 /**
  * @brief Casts fp16 tensor to s32.
@@ -492,13 +493,13 @@ static inline void tfp16_to_s8_(const Tensor *restrict src,
  * @param dst Destination tensor (s32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tfp16_to_s32_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_tfp16_to_s32_[0](src, dst);
+static inline void tfp16_to_s32(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_tfp16_to_s32[0](src, dst);
     return;
   }
-  lookup_tfp16_to_s32_[1](src, dst);
+  lookup_tfp16_to_s32[1](src, dst);
 }
 /**
  * @brief Casts fp16 tensor to s64.
@@ -506,13 +507,13 @@ static inline void tfp16_to_s32_(const Tensor *restrict src,
  * @param dst Destination tensor (s64).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tfp16_to_s64_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_tfp16_to_s64_[0](src, dst);
+static inline void tfp16_to_s64(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_tfp16_to_s64[0](src, dst);
     return;
   }
-  lookup_tfp16_to_s64_[1](src, dst);
+  lookup_tfp16_to_s64[1](src, dst);
 }
 /**
  * @brief Casts fp16 tensor to u8.
@@ -520,13 +521,13 @@ static inline void tfp16_to_s64_(const Tensor *restrict src,
  * @param dst Destination tensor (u8).
  * @note Variants: AVX512FP16, Scalar.
  */
-static inline void tfp16_to_u8_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_ && Caps_->avx512_bw_) {
-    lookup_tfp16_to_u8_[0](src, dst);
+static inline void tfp16_to_u8(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_ && SIMD->avx512_bw_) {
+    lookup_tfp16_to_u8[0](src, dst);
     return;
   }
-  lookup_tfp16_to_u8_[1](src, dst);
+  lookup_tfp16_to_u8[1](src, dst);
 }
 /**
  * @brief Casts fp16 tensor to u32.
@@ -534,13 +535,13 @@ static inline void tfp16_to_u8_(const Tensor *restrict src,
  * @param dst Destination tensor (u32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tfp16_to_u32_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_tfp16_to_u32_[0](src, dst);
+static inline void tfp16_to_u32(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_tfp16_to_u32[0](src, dst);
     return;
   }
-  lookup_tfp16_to_u32_[1](src, dst);
+  lookup_tfp16_to_u32[1](src, dst);
 }
 /**
  * @brief Casts fp16 tensor to u64.
@@ -548,13 +549,13 @@ static inline void tfp16_to_u32_(const Tensor *restrict src,
  * @param dst Destination tensor (u64).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tfp16_to_u64_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_tfp16_to_u64_[0](src, dst);
+static inline void tfp16_to_u64(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_tfp16_to_u64[0](src, dst);
     return;
   }
-  lookup_tfp16_to_u64_[1](src, dst);
+  lookup_tfp16_to_u64[1](src, dst);
 }
 /**
  * @brief Casts bf16 tensor to s8.
@@ -562,13 +563,13 @@ static inline void tfp16_to_u64_(const Tensor *restrict src,
  * @param dst Destination tensor (s8).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tbf16_to_s8_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512_bf16_ && Caps_->avx512_bw_ && Caps_->avx512f_) {
-    lookup_tbf16_to_s8_[0](src, dst);
+static inline void tbf16_to_s8(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512_bf16_ && SIMD->avx512_bw_ && SIMD->avx512f_) {
+    lookup_tbf16_to_s8[0](src, dst);
     return;
   }
-  lookup_tbf16_to_s8_[1](src, dst);
+  lookup_tbf16_to_s8[1](src, dst);
 }
 /**
  * @brief Casts bf16 tensor to s32.
@@ -576,13 +577,13 @@ static inline void tbf16_to_s8_(const Tensor *restrict src,
  * @param dst Destination tensor (s32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tbf16_to_s32_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_) {
-    lookup_tbf16_to_s32_[0](src, dst);
+static inline void tbf16_to_s32(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_) {
+    lookup_tbf16_to_s32[0](src, dst);
     return;
   }
-  lookup_tbf16_to_s32_[1](src, dst);
+  lookup_tbf16_to_s32[1](src, dst);
 }
 /**
  * @brief Casts bf16 tensor to s64.
@@ -590,14 +591,14 @@ static inline void tbf16_to_s32_(const Tensor *restrict src,
  * @param dst Destination tensor (s64).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tbf16_to_s64_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_ && Caps_->avx512_dq_ &&
-      Caps_->avx512_vl_) {
-    lookup_tbf16_to_s64_[0](src, dst);
+static inline void tbf16_to_s64(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_ && SIMD->avx512_dq_ &&
+      SIMD->avx512_vl_) {
+    lookup_tbf16_to_s64[0](src, dst);
     return;
   }
-  lookup_tbf16_to_s64_[1](src, dst);
+  lookup_tbf16_to_s64[1](src, dst);
 }
 /**
  * @brief Casts bf16 tensor to u8.
@@ -605,13 +606,13 @@ static inline void tbf16_to_s64_(const Tensor *restrict src,
  * @param dst Destination tensor (u8).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tbf16_to_u8_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_ && Caps_->avx512_bw_) {
-    lookup_tbf16_to_u8_[0](src, dst);
+static inline void tbf16_to_u8(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_ && SIMD->avx512_bw_) {
+    lookup_tbf16_to_u8[0](src, dst);
     return;
   }
-  lookup_tbf16_to_u8_[1](src, dst);
+  lookup_tbf16_to_u8[1](src, dst);
 }
 /**
  * @brief Casts bf16 tensor to u32.
@@ -619,13 +620,13 @@ static inline void tbf16_to_u8_(const Tensor *restrict src,
  * @param dst Destination tensor (u32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tbf16_to_u32_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_) {
-    lookup_tbf16_to_u32_[0](src, dst);
+static inline void tbf16_to_u32(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_) {
+    lookup_tbf16_to_u32[0](src, dst);
     return;
   }
-  lookup_tbf16_to_u32_[1](src, dst);
+  lookup_tbf16_to_u32[1](src, dst);
 }
 /**
  * @brief Casts bf16 tensor to u64.
@@ -633,14 +634,14 @@ static inline void tbf16_to_u32_(const Tensor *restrict src,
  * @param dst Destination tensor (u64).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tbf16_to_u64_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_ && Caps_->avx512_dq_ &&
-      Caps_->avx512_vl_) {
-    lookup_tbf16_to_u64_[0](src, dst);
+static inline void tbf16_to_u64(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_ && SIMD->avx512_dq_ &&
+      SIMD->avx512_vl_) {
+    lookup_tbf16_to_u64[0](src, dst);
     return;
   }
-  lookup_tbf16_to_u64_[1](src, dst);
+  lookup_tbf16_to_u64[1](src, dst);
 }
 /**
  * @brief Casts f32 tensor to s8.
@@ -648,17 +649,17 @@ static inline void tbf16_to_u64_(const Tensor *restrict src,
  * @param dst Destination tensor (s8).
  * @note Variants: AVX512F, AVX2, Scalar.
  */
-static inline void tf32_to_s8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bw_) {
-    lookup_tf32_to_s8_[0](src, dst);
+static inline void tf32_to_s8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bw_) {
+    lookup_tf32_to_s8[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_tf32_to_s8_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_tf32_to_s8[1](src, dst);
     return;
   }
-  lookup_tf32_to_s8_[2](src, dst);
+  lookup_tf32_to_s8[2](src, dst);
 }
 /**
  * @brief Casts f32 tensor to s32.
@@ -666,21 +667,21 @@ static inline void tf32_to_s8_(const Tensor *restrict src,
  * @param dst Destination tensor (s32).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tf32_to_s32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tf32_to_s32_[0](src, dst);
+static inline void tf32_to_s32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tf32_to_s32[0](src, dst);
     return;
   }
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_tf32_to_s32_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_tf32_to_s32[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tf32_to_s32_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tf32_to_s32[2](src, dst);
     return;
   }
-  lookup_tf32_to_s32_[3](src, dst);
+  lookup_tf32_to_s32[3](src, dst);
 }
 /**
  * @brief Casts f32 tensor to s64.
@@ -688,13 +689,13 @@ static inline void tf32_to_s32_(const Tensor *restrict src,
  * @param dst Destination tensor (s64).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tf32_to_s64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_dq_) {
-    lookup_tf32_to_s64_[0](src, dst);
+static inline void tf32_to_s64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_dq_) {
+    lookup_tf32_to_s64[0](src, dst);
     return;
   }
-  lookup_tf32_to_s64_[1](src, dst);
+  lookup_tf32_to_s64[1](src, dst);
 }
 /**
  * @brief Casts f32 tensor to u8.
@@ -702,17 +703,17 @@ static inline void tf32_to_s64_(const Tensor *restrict src,
  * @param dst Destination tensor (u8).
  * @note Variants: AVX512F, AVX2, Scalar.
  */
-static inline void tf32_to_u8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bw_) {
-    lookup_tf32_to_u8_[0](src, dst);
+static inline void tf32_to_u8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bw_) {
+    lookup_tf32_to_u8[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_tf32_to_u8_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_tf32_to_u8[1](src, dst);
     return;
   }
-  lookup_tf32_to_u8_[2](src, dst);
+  lookup_tf32_to_u8[2](src, dst);
 }
 /**
  * @brief Casts f32 tensor to u32.
@@ -720,13 +721,13 @@ static inline void tf32_to_u8_(const Tensor *restrict src,
  * @param dst Destination tensor (u32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tf32_to_u32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tf32_to_u32_[0](src, dst);
+static inline void tf32_to_u32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tf32_to_u32[0](src, dst);
     return;
   }
-  lookup_tf32_to_u32_[1](src, dst);
+  lookup_tf32_to_u32[1](src, dst);
 }
 /**
  * @brief Casts f32 tensor to u64.
@@ -734,13 +735,13 @@ static inline void tf32_to_u32_(const Tensor *restrict src,
  * @param dst Destination tensor (u64).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tf32_to_u64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_dq_) {
-    lookup_tf32_to_u64_[0](src, dst);
+static inline void tf32_to_u64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_dq_) {
+    lookup_tf32_to_u64[0](src, dst);
     return;
   }
-  lookup_tf32_to_u64_[1](src, dst);
+  lookup_tf32_to_u64[1](src, dst);
 }
 /**
  * @brief Casts f64 tensor to s8.
@@ -748,13 +749,13 @@ static inline void tf32_to_u64_(const Tensor *restrict src,
  * @param dst Destination tensor (s8).
  * @note Variants: AVX512F+AVX2, Scalar.
  */
-static inline void tf64_to_s8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx2_) {
-    lookup_tf64_to_s8_[0](src, dst);
+static inline void tf64_to_s8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx2_) {
+    lookup_tf64_to_s8[0](src, dst);
     return;
   }
-  lookup_tf64_to_s8_[1](src, dst);
+  lookup_tf64_to_s8[1](src, dst);
 }
 /**
  * @brief Casts f64 tensor to s32.
@@ -762,21 +763,21 @@ static inline void tf64_to_s8_(const Tensor *restrict src,
  * @param dst Destination tensor (s32).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tf64_to_s32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tf64_to_s32_[0](src, dst);
+static inline void tf64_to_s32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tf64_to_s32[0](src, dst);
     return;
   }
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_tf64_to_s32_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_tf64_to_s32[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tf64_to_s32_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tf64_to_s32[2](src, dst);
     return;
   }
-  lookup_tf64_to_s32_[3](src, dst);
+  lookup_tf64_to_s32[3](src, dst);
 }
 /**
  * @brief Casts f64 tensor to s64.
@@ -784,13 +785,13 @@ static inline void tf64_to_s32_(const Tensor *restrict src,
  * @param dst Destination tensor (s64).
  * @note Variants: AVX512F+AVX512DQ, Scalar.
  */
-static inline void tf64_to_s64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_dq_) {
-    lookup_tf64_to_s64_[0](src, dst);
+static inline void tf64_to_s64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_dq_) {
+    lookup_tf64_to_s64[0](src, dst);
     return;
   }
-  lookup_tf64_to_s64_[1](src, dst);
+  lookup_tf64_to_s64[1](src, dst);
 }
 /**
  * @brief Casts f64 tensor to u8.
@@ -798,13 +799,13 @@ static inline void tf64_to_s64_(const Tensor *restrict src,
  * @param dst Destination tensor (u8).
  * @note Variants: AVX512F+AVX2, Scalar.
  */
-static inline void tf64_to_u8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx2_) {
-    lookup_tf64_to_u8_[0](src, dst);
+static inline void tf64_to_u8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx2_) {
+    lookup_tf64_to_u8[0](src, dst);
     return;
   }
-  lookup_tf64_to_u8_[1](src, dst);
+  lookup_tf64_to_u8[1](src, dst);
 }
 /**
  * @brief Casts f64 tensor to u32.
@@ -812,13 +813,13 @@ static inline void tf64_to_u8_(const Tensor *restrict src,
  * @param dst Destination tensor (u32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tf64_to_u32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tf64_to_u32_[0](src, dst);
+static inline void tf64_to_u32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tf64_to_u32[0](src, dst);
     return;
   }
-  lookup_tf64_to_u32_[1](src, dst);
+  lookup_tf64_to_u32[1](src, dst);
 }
 /**
  * @brief Casts f64 tensor to u64.
@@ -826,13 +827,13 @@ static inline void tf64_to_u32_(const Tensor *restrict src,
  * @param dst Destination tensor (u64).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tf64_to_u64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_dq_) {
-    lookup_tf64_to_u64_[0](src, dst);
+static inline void tf64_to_u64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_dq_) {
+    lookup_tf64_to_u64[0](src, dst);
     return;
   }
-  lookup_tf64_to_u64_[1](src, dst);
+  lookup_tf64_to_u64[1](src, dst);
 }
 
 // Cast int to fp
@@ -842,13 +843,13 @@ static inline void tf64_to_u64_(const Tensor *restrict src,
  * @param dst Destination tensor (fp16).
  * @note Variants: AVX512FP16, Scalar.
  */
-static inline void ts8_to_fp16_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_ts8_to_fp16_[0](src, dst);
+static inline void ts8_to_fp16(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_ts8_to_fp16[0](src, dst);
     return;
   }
-  lookup_ts8_to_fp16_[1](src, dst);
+  lookup_ts8_to_fp16[1](src, dst);
 }
 /**
  * @brief Casts s32 tensor to fp16.
@@ -856,13 +857,13 @@ static inline void ts8_to_fp16_(const Tensor *restrict src,
  * @param dst Destination tensor (fp16).
  * @note Variants: AVX512FP16, Scalar.
  */
-static inline void ts32_to_fp16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_ts32_to_fp16_[0](src, dst);
+static inline void ts32_to_fp16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_ts32_to_fp16[0](src, dst);
     return;
   }
-  lookup_ts32_to_fp16_[1](src, dst);
+  lookup_ts32_to_fp16[1](src, dst);
 }
 /**
  * @brief Casts s64 tensor to fp16.
@@ -870,13 +871,13 @@ static inline void ts32_to_fp16_(const Tensor *restrict src,
  * @param dst Destination tensor (fp16).
  * @note Variants: AVX512FP16, Scalar.
  */
-static inline void ts64_to_fp16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_ts64_to_fp16_[0](src, dst);
+static inline void ts64_to_fp16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_ts64_to_fp16[0](src, dst);
     return;
   }
-  lookup_ts64_to_fp16_[1](src, dst);
+  lookup_ts64_to_fp16[1](src, dst);
 }
 /**
  * @brief Casts u8 tensor to fp16.
@@ -884,13 +885,13 @@ static inline void ts64_to_fp16_(const Tensor *restrict src,
  * @param dst Destination tensor (fp16).
  * @note Variants: AVX512FP16, Scalar.
  */
-static inline void tu8_to_fp16_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_tu8_to_fp16_[0](src, dst);
+static inline void tu8_to_fp16(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_tu8_to_fp16[0](src, dst);
     return;
   }
-  lookup_tu8_to_fp16_[1](src, dst);
+  lookup_tu8_to_fp16[1](src, dst);
 }
 /**
  * @brief Casts u32 tensor to fp16.
@@ -898,13 +899,13 @@ static inline void tu8_to_fp16_(const Tensor *restrict src,
  * @param dst Destination tensor (fp16).
  * @note Variants: AVX512FP16, Scalar.
  */
-static inline void tu32_to_fp16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_tu32_to_fp16_[0](src, dst);
+static inline void tu32_to_fp16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_tu32_to_fp16[0](src, dst);
     return;
   }
-  lookup_tu32_to_fp16_[1](src, dst);
+  lookup_tu32_to_fp16[1](src, dst);
 }
 /**
  * @brief Casts u64 tensor to fp16.
@@ -912,13 +913,13 @@ static inline void tu32_to_fp16_(const Tensor *restrict src,
  * @param dst Destination tensor (fp16).
  * @note Variants: AVX512FP16, Scalar.
  */
-static inline void tu64_to_fp16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_fp16_) {
-    lookup_tu64_to_fp16_[0](src, dst);
+static inline void tu64_to_fp16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_fp16_) {
+    lookup_tu64_to_fp16[0](src, dst);
     return;
   }
-  lookup_tu64_to_fp16_[1](src, dst);
+  lookup_tu64_to_fp16[1](src, dst);
 }
 /**
  * @brief Casts s8 tensor to bf16.
@@ -926,13 +927,13 @@ static inline void tu64_to_fp16_(const Tensor *restrict src,
  * @param dst Destination tensor (bf16).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void ts8_to_bf16_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_) {
-    lookup_ts8_to_bf16_[0](src, dst);
+static inline void ts8_to_bf16(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_) {
+    lookup_ts8_to_bf16[0](src, dst);
     return;
   }
-  lookup_ts8_to_bf16_[1](src, dst);
+  lookup_ts8_to_bf16[1](src, dst);
 }
 /**
  * @brief Casts s32 tensor to bf16.
@@ -940,13 +941,13 @@ static inline void ts8_to_bf16_(const Tensor *restrict src,
  * @param dst Destination tensor (bf16).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void ts32_to_bf16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_) {
-    lookup_ts32_to_bf16_[0](src, dst);
+static inline void ts32_to_bf16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_) {
+    lookup_ts32_to_bf16[0](src, dst);
     return;
   }
-  lookup_ts32_to_bf16_[1](src, dst);
+  lookup_ts32_to_bf16[1](src, dst);
 }
 /**
  * @brief Casts s64 tensor to bf16.
@@ -954,14 +955,14 @@ static inline void ts32_to_bf16_(const Tensor *restrict src,
  * @param dst Destination tensor (bf16).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void ts64_to_bf16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_ && Caps_->avx512_dq_ &&
-      Caps_->avx512_vl_) {
-    lookup_ts64_to_bf16_[0](src, dst);
+static inline void ts64_to_bf16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_ && SIMD->avx512_dq_ &&
+      SIMD->avx512_vl_) {
+    lookup_ts64_to_bf16[0](src, dst);
     return;
   }
-  lookup_ts64_to_bf16_[1](src, dst);
+  lookup_ts64_to_bf16[1](src, dst);
 }
 /**
  * @brief Casts u8 tensor to bf16.
@@ -969,13 +970,13 @@ static inline void ts64_to_bf16_(const Tensor *restrict src,
  * @param dst Destination tensor (bf16).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu8_to_bf16_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_) {
-    lookup_tu8_to_bf16_[0](src, dst);
+static inline void tu8_to_bf16(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_) {
+    lookup_tu8_to_bf16[0](src, dst);
     return;
   }
-  lookup_tu8_to_bf16_[1](src, dst);
+  lookup_tu8_to_bf16[1](src, dst);
 }
 /**
  * @brief Casts u32 tensor to bf16.
@@ -983,13 +984,13 @@ static inline void tu8_to_bf16_(const Tensor *restrict src,
  * @param dst Destination tensor (bf16).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu32_to_bf16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_) {
-    lookup_tu32_to_bf16_[0](src, dst);
+static inline void tu32_to_bf16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_) {
+    lookup_tu32_to_bf16[0](src, dst);
     return;
   }
-  lookup_tu32_to_bf16_[1](src, dst);
+  lookup_tu32_to_bf16[1](src, dst);
 }
 /**
  * @brief Casts u64 tensor to bf16.
@@ -997,14 +998,14 @@ static inline void tu32_to_bf16_(const Tensor *restrict src,
  * @param dst Destination tensor (bf16).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu64_to_bf16_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bf16_ && Caps_->avx512_dq_ &&
-      Caps_->avx512_vl_) {
-    lookup_tu64_to_bf16_[0](src, dst);
+static inline void tu64_to_bf16(const Tensor *restrict src,
+                                Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bf16_ && SIMD->avx512_dq_ &&
+      SIMD->avx512_vl_) {
+    lookup_tu64_to_bf16[0](src, dst);
     return;
   }
-  lookup_tu64_to_bf16_[1](src, dst);
+  lookup_tu64_to_bf16[1](src, dst);
 }
 /**
  * @brief Casts s8 tensor to f32.
@@ -1012,17 +1013,17 @@ static inline void tu64_to_bf16_(const Tensor *restrict src,
  * @param dst Destination tensor (f32).
  * @note Variants: AVX512F, AVX2, Scalar.
  */
-static inline void ts8_to_f32_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts8_to_f32_[0](src, dst);
+static inline void ts8_to_f32(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts8_to_f32[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_ts8_to_f32_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_ts8_to_f32[1](src, dst);
     return;
   }
-  lookup_ts8_to_f32_[2](src, dst);
+  lookup_ts8_to_f32[2](src, dst);
 }
 /**
  * @brief Casts s32 tensor to f32.
@@ -1030,21 +1031,21 @@ static inline void ts8_to_f32_(const Tensor *restrict src,
  * @param dst Destination tensor (f32).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts32_to_f32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts32_to_f32_[0](src, dst);
+static inline void ts32_to_f32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts32_to_f32[0](src, dst);
     return;
   }
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_ts32_to_f32_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_ts32_to_f32[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_ts32_to_f32_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts32_to_f32[2](src, dst);
     return;
   }
-  lookup_ts32_to_f32_[3](src, dst);
+  lookup_ts32_to_f32[3](src, dst);
 }
 /**
  * @brief Casts s64 tensor to f32.
@@ -1052,13 +1053,13 @@ static inline void ts32_to_f32_(const Tensor *restrict src,
  * @param dst Destination tensor (f32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void ts64_to_f32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_dq_) {
-    lookup_ts64_to_f32_[0](src, dst);
+static inline void ts64_to_f32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_dq_) {
+    lookup_ts64_to_f32[0](src, dst);
     return;
   }
-  lookup_ts64_to_f32_[1](src, dst);
+  lookup_ts64_to_f32[1](src, dst);
 }
 /**
  * @brief Casts u8 tensor to f32.
@@ -1066,17 +1067,17 @@ static inline void ts64_to_f32_(const Tensor *restrict src,
  * @param dst Destination tensor (f32).
  * @note Variants: AVX512F, AVX2, Scalar.
  */
-static inline void tu8_to_f32_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu8_to_f32_[0](src, dst);
+static inline void tu8_to_f32(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu8_to_f32[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_tu8_to_f32_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_tu8_to_f32[1](src, dst);
     return;
   }
-  lookup_tu8_to_f32_[2](src, dst);
+  lookup_tu8_to_f32[2](src, dst);
 }
 /**
  * @brief Casts u32 tensor to f32.
@@ -1084,13 +1085,13 @@ static inline void tu8_to_f32_(const Tensor *restrict src,
  * @param dst Destination tensor (f32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu32_to_f32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu32_to_f32_[0](src, dst);
+static inline void tu32_to_f32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu32_to_f32[0](src, dst);
     return;
   }
-  lookup_tu32_to_f32_[1](src, dst);
+  lookup_tu32_to_f32[1](src, dst);
 }
 /**
  * @brief Casts u64 tensor to f32.
@@ -1098,13 +1099,13 @@ static inline void tu32_to_f32_(const Tensor *restrict src,
  * @param dst Destination tensor (f32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu64_to_f32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_dq_) {
-    lookup_tu64_to_f32_[0](src, dst);
+static inline void tu64_to_f32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_dq_) {
+    lookup_tu64_to_f32[0](src, dst);
     return;
   }
-  lookup_tu64_to_f32_[1](src, dst);
+  lookup_tu64_to_f32[1](src, dst);
 }
 /**
  * @brief Casts s8 tensor to f64.
@@ -1112,13 +1113,13 @@ static inline void tu64_to_f32_(const Tensor *restrict src,
  * @param dst Destination tensor (f64).
  * @note Variants: AVX512F+AVX2, Scalar.
  */
-static inline void ts8_to_f64_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx2_) {
-    lookup_ts8_to_f64_[0](src, dst);
+static inline void ts8_to_f64(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx2_) {
+    lookup_ts8_to_f64[0](src, dst);
     return;
   }
-  lookup_ts8_to_f64_[1](src, dst);
+  lookup_ts8_to_f64[1](src, dst);
 }
 /**
  * @brief Casts s32 tensor to f64.
@@ -1126,21 +1127,21 @@ static inline void ts8_to_f64_(const Tensor *restrict src,
  * @param dst Destination tensor (f64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts32_to_f64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts32_to_f64_[0](src, dst);
+static inline void ts32_to_f64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts32_to_f64[0](src, dst);
     return;
   }
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_ts32_to_f64_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_ts32_to_f64[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_ts32_to_f64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts32_to_f64[2](src, dst);
     return;
   }
-  lookup_ts32_to_f64_[3](src, dst);
+  lookup_ts32_to_f64[3](src, dst);
 }
 /**
  * @brief Casts s64 tensor to f64.
@@ -1148,13 +1149,13 @@ static inline void ts32_to_f64_(const Tensor *restrict src,
  * @param dst Destination tensor (f64).
  * @note Variants: AVX512F+AVX512DQ, Scalar.
  */
-static inline void ts64_to_f64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_dq_) {
-    lookup_ts64_to_f64_[0](src, dst);
+static inline void ts64_to_f64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_dq_) {
+    lookup_ts64_to_f64[0](src, dst);
     return;
   }
-  lookup_ts64_to_f64_[1](src, dst);
+  lookup_ts64_to_f64[1](src, dst);
 }
 /**
  * @brief Casts u8 tensor to f64.
@@ -1162,13 +1163,13 @@ static inline void ts64_to_f64_(const Tensor *restrict src,
  * @param dst Destination tensor (f64).
  * @note Variants: AVX512F+AVX2, Scalar.
  */
-static inline void tu8_to_f64_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx2_) {
-    lookup_tu8_to_f64_[0](src, dst);
+static inline void tu8_to_f64(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx2_) {
+    lookup_tu8_to_f64[0](src, dst);
     return;
   }
-  lookup_tu8_to_f64_[1](src, dst);
+  lookup_tu8_to_f64[1](src, dst);
 }
 /**
  * @brief Casts u32 tensor to f64.
@@ -1176,13 +1177,13 @@ static inline void tu8_to_f64_(const Tensor *restrict src,
  * @param dst Destination tensor (f64).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu32_to_f64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu32_to_f64_[0](src, dst);
+static inline void tu32_to_f64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu32_to_f64[0](src, dst);
     return;
   }
-  lookup_tu32_to_f64_[1](src, dst);
+  lookup_tu32_to_f64[1](src, dst);
 }
 /**
  * @brief Casts u64 tensor to f64.
@@ -1190,13 +1191,13 @@ static inline void tu32_to_f64_(const Tensor *restrict src,
  * @param dst Destination tensor (f64).
  * @note Variants: AVX512F+AVX512DQ, Scalar.
  */
-static inline void tu64_to_f64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_dq_) {
-    lookup_tu64_to_f64_[0](src, dst);
+static inline void tu64_to_f64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_dq_) {
+    lookup_tu64_to_f64[0](src, dst);
     return;
   }
-  lookup_tu64_to_f64_[1](src, dst);
+  lookup_tu64_to_f64[1](src, dst);
 }
 
 // Cast sint to sint
@@ -1207,21 +1208,21 @@ static inline void tu64_to_f64_(const Tensor *restrict src,
  * @param dst Destination tensor (s32).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts8_to_s32_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts8_to_s32_[0](src, dst);
+static inline void ts8_to_s32(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts8_to_s32[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_ts8_to_s32_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_ts8_to_s32[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_ts8_to_s32_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts8_to_s32[2](src, dst);
     return;
   }
-  lookup_ts8_to_s32_[3](src, dst);
+  lookup_ts8_to_s32[3](src, dst);
 }
 /**
  * @brief Casts s8 tensor to s64.
@@ -1229,21 +1230,21 @@ static inline void ts8_to_s32_(const Tensor *restrict src,
  * @param dst Destination tensor (s64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts8_to_s64_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts8_to_s64_[0](src, dst);
+static inline void ts8_to_s64(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts8_to_s64[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_ts8_to_s64_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_ts8_to_s64[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_ts8_to_s64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts8_to_s64[2](src, dst);
     return;
   }
-  lookup_ts8_to_s64_[3](src, dst);
+  lookup_ts8_to_s64[3](src, dst);
 }
 /**
  * @brief Casts s32 tensor to s8.
@@ -1251,13 +1252,13 @@ static inline void ts8_to_s64_(const Tensor *restrict src,
  * @param dst Destination tensor (s8).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void ts32_to_s8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts32_to_s8_[0](src, dst);
+static inline void ts32_to_s8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts32_to_s8[0](src, dst);
     return;
   }
-  lookup_ts32_to_s8_[1](src, dst);
+  lookup_ts32_to_s8[1](src, dst);
 }
 /**
  * @brief Casts s32 tensor to s64.
@@ -1265,21 +1266,21 @@ static inline void ts32_to_s8_(const Tensor *restrict src,
  * @param dst Destination tensor (s64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts32_to_s64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts32_to_s64_[0](src, dst);
+static inline void ts32_to_s64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts32_to_s64[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_ts32_to_s64_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_ts32_to_s64[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_ts32_to_s64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts32_to_s64[2](src, dst);
     return;
   }
-  lookup_ts32_to_s64_[3](src, dst);
+  lookup_ts32_to_s64[3](src, dst);
 }
 /**
  * @brief Casts s64 tensor to s8.
@@ -1287,13 +1288,13 @@ static inline void ts32_to_s64_(const Tensor *restrict src,
  * @param dst Destination tensor (s8).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void ts64_to_s8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bw_) {
-    lookup_ts64_to_s8_[0](src, dst);
+static inline void ts64_to_s8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bw_) {
+    lookup_ts64_to_s8[0](src, dst);
     return;
   }
-  lookup_ts64_to_s8_[1](src, dst);
+  lookup_ts64_to_s8[1](src, dst);
 }
 /**
  * @brief Casts s64 tensor to s32.
@@ -1301,13 +1302,13 @@ static inline void ts64_to_s8_(const Tensor *restrict src,
  * @param dst Destination tensor (s32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void ts64_to_s32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts64_to_s32_[0](src, dst);
+static inline void ts64_to_s32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts64_to_s32[0](src, dst);
     return;
   }
-  lookup_ts64_to_s32_[1](src, dst);
+  lookup_ts64_to_s32[1](src, dst);
 }
 
 // Cast uint to uint
@@ -1318,17 +1319,17 @@ static inline void ts64_to_s32_(const Tensor *restrict src,
  * @param dst Destination tensor (u32).
  * @note Variants: AVX512F, AVX2, Scalar.
  */
-static inline void tu8_to_u32_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu8_to_u32_[0](src, dst);
+static inline void tu8_to_u32(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu8_to_u32[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_tu8_to_u32_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_tu8_to_u32[1](src, dst);
     return;
   }
-  lookup_tu8_to_u32_[2](src, dst);
+  lookup_tu8_to_u32[2](src, dst);
 }
 /**
  * @brief Casts u8 tensor to u64.
@@ -1336,21 +1337,21 @@ static inline void tu8_to_u32_(const Tensor *restrict src,
  * @param dst Destination tensor (u64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tu8_to_u64_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu8_to_u64_[0](src, dst);
+static inline void tu8_to_u64(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu8_to_u64[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_tu8_to_u64_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_tu8_to_u64[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tu8_to_u64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tu8_to_u64[2](src, dst);
     return;
   }
-  lookup_tu8_to_u64_[3](src, dst);
+  lookup_tu8_to_u64[3](src, dst);
 }
 /**
  * @brief Casts u32 tensor to u8.
@@ -1358,13 +1359,13 @@ static inline void tu8_to_u64_(const Tensor *restrict src,
  * @param dst Destination tensor (u8).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu32_to_u8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu32_to_u8_[0](src, dst);
+static inline void tu32_to_u8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu32_to_u8[0](src, dst);
     return;
   }
-  lookup_tu32_to_u8_[1](src, dst);
+  lookup_tu32_to_u8[1](src, dst);
 }
 /**
  * @brief Casts u32 tensor to u64.
@@ -1372,21 +1373,21 @@ static inline void tu32_to_u8_(const Tensor *restrict src,
  * @param dst Destination tensor (u64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tu32_to_u64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu32_to_u64_[0](src, dst);
+static inline void tu32_to_u64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu32_to_u64[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_tu32_to_u64_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_tu32_to_u64[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tu32_to_u64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tu32_to_u64[2](src, dst);
     return;
   }
-  lookup_tu32_to_u64_[3](src, dst);
+  lookup_tu32_to_u64[3](src, dst);
 }
 /**
  * @brief Casts u64 tensor to u8.
@@ -1394,13 +1395,13 @@ static inline void tu32_to_u64_(const Tensor *restrict src,
  * @param dst Destination tensor (u8).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu64_to_u8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bw_) {
-    lookup_tu64_to_u8_[0](src, dst);
+static inline void tu64_to_u8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bw_) {
+    lookup_tu64_to_u8[0](src, dst);
     return;
   }
-  lookup_tu64_to_u8_[1](src, dst);
+  lookup_tu64_to_u8[1](src, dst);
 }
 /**
  * @brief Casts u64 tensor to u32.
@@ -1408,13 +1409,13 @@ static inline void tu64_to_u8_(const Tensor *restrict src,
  * @param dst Destination tensor (u32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu64_to_u32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu64_to_u32_[0](src, dst);
+static inline void tu64_to_u32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu64_to_u32[0](src, dst);
     return;
   }
-  lookup_tu64_to_u32_[1](src, dst);
+  lookup_tu64_to_u32[1](src, dst);
 }
 
 // Cast sint to uint
@@ -1425,21 +1426,20 @@ static inline void tu64_to_u32_(const Tensor *restrict src,
  * @param dst Destination tensor (u8).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts8_to_u8_(const Tensor *restrict src,
-                              Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts8_to_u8_[0](src, dst);
+static inline void ts8_to_u8(const Tensor *restrict src, Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts8_to_u8[0](src, dst);
     return;
   }
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_ts8_to_u8_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_ts8_to_u8[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_ts8_to_u8_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts8_to_u8[2](src, dst);
     return;
   }
-  lookup_ts8_to_u8_[3](src, dst);
+  lookup_ts8_to_u8[3](src, dst);
 }
 /**
  * @brief Casts s8 tensor to u32.
@@ -1447,21 +1447,21 @@ static inline void ts8_to_u8_(const Tensor *restrict src,
  * @param dst Destination tensor (u32).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts8_to_u32_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts8_to_u32_[0](src, dst);
+static inline void ts8_to_u32(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts8_to_u32[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_ts8_to_u32_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_ts8_to_u32[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_ts8_to_u32_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts8_to_u32[2](src, dst);
     return;
   }
-  lookup_ts8_to_u32_[3](src, dst);
+  lookup_ts8_to_u32[3](src, dst);
 }
 /**
  * @brief Casts s8 tensor to u64.
@@ -1469,13 +1469,13 @@ static inline void ts8_to_u32_(const Tensor *restrict src,
  * @param dst Destination tensor (u64).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void ts8_to_u64_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts8_to_u64_[0](src, dst);
+static inline void ts8_to_u64(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts8_to_u64[0](src, dst);
     return;
   }
-  lookup_ts8_to_u64_[1](src, dst);
+  lookup_ts8_to_u64[1](src, dst);
 }
 /**
  * @brief Casts s32 tensor to u8.
@@ -1483,21 +1483,21 @@ static inline void ts8_to_u64_(const Tensor *restrict src,
  * @param dst Destination tensor (u8).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts32_to_u8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bw_) {
-    lookup_ts32_to_u8_[0](src, dst);
+static inline void ts32_to_u8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bw_) {
+    lookup_ts32_to_u8[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_ts32_to_u8_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_ts32_to_u8[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_ts32_to_u8_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts32_to_u8[2](src, dst);
     return;
   }
-  lookup_ts32_to_u8_[3](src, dst);
+  lookup_ts32_to_u8[3](src, dst);
 }
 /**
  * @brief Casts s32 tensor to u32.
@@ -1505,21 +1505,21 @@ static inline void ts32_to_u8_(const Tensor *restrict src,
  * @param dst Destination tensor (u32).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts32_to_u32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts32_to_u32_[0](src, dst);
+static inline void ts32_to_u32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts32_to_u32[0](src, dst);
     return;
   }
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_ts32_to_u32_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_ts32_to_u32[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_ts32_to_u32_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts32_to_u32[2](src, dst);
     return;
   }
-  lookup_ts32_to_u32_[3](src, dst);
+  lookup_ts32_to_u32[3](src, dst);
 }
 /**
  * @brief Casts s32 tensor to u64.
@@ -1527,21 +1527,21 @@ static inline void ts32_to_u32_(const Tensor *restrict src,
  * @param dst Destination tensor (u64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts32_to_u64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts32_to_u64_[0](src, dst);
+static inline void ts32_to_u64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts32_to_u64[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_ts32_to_u64_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_ts32_to_u64[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_ts32_to_u64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts32_to_u64[2](src, dst);
     return;
   }
-  lookup_ts32_to_u64_[3](src, dst);
+  lookup_ts32_to_u64[3](src, dst);
 }
 /**
  * @brief Casts s64 tensor to u8.
@@ -1549,13 +1549,13 @@ static inline void ts32_to_u64_(const Tensor *restrict src,
  * @param dst Destination tensor (u8).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void ts64_to_u8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts64_to_u8_[0](src, dst);
+static inline void ts64_to_u8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts64_to_u8[0](src, dst);
     return;
   }
-  lookup_ts64_to_u8_[1](src, dst);
+  lookup_ts64_to_u8[1](src, dst);
 }
 /**
  * @brief Casts s64 tensor to u32.
@@ -1563,13 +1563,13 @@ static inline void ts64_to_u8_(const Tensor *restrict src,
  * @param dst Destination tensor (u32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void ts64_to_u32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts64_to_u32_[0](src, dst);
+static inline void ts64_to_u32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts64_to_u32[0](src, dst);
     return;
   }
-  lookup_ts64_to_u32_[1](src, dst);
+  lookup_ts64_to_u32[1](src, dst);
 }
 /**
  * @brief Casts s64 tensor to u64.
@@ -1577,24 +1577,24 @@ static inline void ts64_to_u32_(const Tensor *restrict src,
  * @param dst Destination tensor (u64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void ts64_to_u64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_ts64_to_u64_[0](src, dst);
+static inline void ts64_to_u64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_ts64_to_u64[0](src, dst);
     return;
   }
 
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_ts64_to_u64_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_ts64_to_u64[1](src, dst);
     return;
   }
 
-  if (Caps_->sse4_2_) {
-    lookup_ts64_to_u64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_ts64_to_u64[2](src, dst);
     return;
   }
 
-  lookup_ts64_to_u64_[3](src, dst);
+  lookup_ts64_to_u64[3](src, dst);
 }
 
 // Cast uint to sint
@@ -1605,21 +1605,20 @@ static inline void ts64_to_u64_(const Tensor *restrict src,
  * @param dst Destination tensor (s8).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tu8_to_s8_(const Tensor *restrict src,
-                              Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu8_to_s8_[0](src, dst);
+static inline void tu8_to_s8(const Tensor *restrict src, Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu8_to_s8[0](src, dst);
     return;
   }
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_tu8_to_s8_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_tu8_to_s8[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tu8_to_s8_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tu8_to_s8[2](src, dst);
     return;
   }
-  lookup_tu8_to_s8_[3](src, dst);
+  lookup_tu8_to_s8[3](src, dst);
 }
 /**
  * @brief Casts u8 tensor to s32.
@@ -1627,21 +1626,21 @@ static inline void tu8_to_s8_(const Tensor *restrict src,
  * @param dst Destination tensor (s32).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tu8_to_s32_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu8_to_s32_[0](src, dst);
+static inline void tu8_to_s32(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu8_to_s32[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_tu8_to_s32_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_tu8_to_s32[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tu8_to_s32_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tu8_to_s32[2](src, dst);
     return;
   }
-  lookup_tu8_to_s32_[3](src, dst);
+  lookup_tu8_to_s32[3](src, dst);
 }
 /**
  * @brief Casts u8 tensor to s64.
@@ -1649,21 +1648,21 @@ static inline void tu8_to_s32_(const Tensor *restrict src,
  * @param dst Destination tensor (s64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tu8_to_s64_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu8_to_s64_[0](src, dst);
+static inline void tu8_to_s64(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu8_to_s64[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_tu8_to_s64_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_tu8_to_s64[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tu8_to_s64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tu8_to_s64[2](src, dst);
     return;
   }
-  lookup_tu8_to_s64_[3](src, dst);
+  lookup_tu8_to_s64[3](src, dst);
 }
 /**
  * @brief Casts u32 tensor to s8.
@@ -1671,13 +1670,13 @@ static inline void tu8_to_s64_(const Tensor *restrict src,
  * @param dst Destination tensor (s8).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu32_to_s8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_ && Caps_->avx512_bw_) {
-    lookup_tu32_to_s8_[0](src, dst);
+static inline void tu32_to_s8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_ && SIMD->avx512_bw_) {
+    lookup_tu32_to_s8[0](src, dst);
     return;
   }
-  lookup_tu32_to_s8_[1](src, dst);
+  lookup_tu32_to_s8[1](src, dst);
 }
 /**
  * @brief Casts u32 tensor to s32.
@@ -1685,21 +1684,21 @@ static inline void tu32_to_s8_(const Tensor *restrict src,
  * @param dst Destination tensor (s32).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tu32_to_s32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu32_to_s32_[0](src, dst);
+static inline void tu32_to_s32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu32_to_s32[0](src, dst);
     return;
   }
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_tu32_to_s32_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_tu32_to_s32[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tu32_to_s32_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tu32_to_s32[2](src, dst);
     return;
   }
-  lookup_tu32_to_s32_[3](src, dst);
+  lookup_tu32_to_s32[3](src, dst);
 }
 /**
  * @brief Casts u32 tensor to s64.
@@ -1707,21 +1706,21 @@ static inline void tu32_to_s32_(const Tensor *restrict src,
  * @param dst Destination tensor (s64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tu32_to_s64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu32_to_s64_[0](src, dst);
+static inline void tu32_to_s64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu32_to_s64[0](src, dst);
     return;
   }
-  if (Caps_->avx2_) {
-    lookup_tu32_to_s64_[1](src, dst);
+  if (SIMD->avx2_) {
+    lookup_tu32_to_s64[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tu32_to_s64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tu32_to_s64[2](src, dst);
     return;
   }
-  lookup_tu32_to_s64_[3](src, dst);
+  lookup_tu32_to_s64[3](src, dst);
 }
 /**
  * @brief Casts u64 tensor to s8.
@@ -1729,13 +1728,13 @@ static inline void tu32_to_s64_(const Tensor *restrict src,
  * @param dst Destination tensor (s8).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu64_to_s8_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu64_to_s8_[0](src, dst);
+static inline void tu64_to_s8(const Tensor *restrict src,
+                              Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu64_to_s8[0](src, dst);
     return;
   }
-  lookup_tu64_to_s8_[1](src, dst);
+  lookup_tu64_to_s8[1](src, dst);
 }
 /**
  * @brief Casts u64 tensor to s32.
@@ -1743,13 +1742,13 @@ static inline void tu64_to_s8_(const Tensor *restrict src,
  * @param dst Destination tensor (s32).
  * @note Variants: AVX512F, Scalar.
  */
-static inline void tu64_to_s32_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu64_to_s32_[0](src, dst);
+static inline void tu64_to_s32(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu64_to_s32[0](src, dst);
     return;
   }
-  lookup_tu64_to_s32_[1](src, dst);
+  lookup_tu64_to_s32[1](src, dst);
 }
 /**
  * @brief Casts u64 tensor to s64.
@@ -1757,19 +1756,19 @@ static inline void tu64_to_s32_(const Tensor *restrict src,
  * @param dst Destination tensor (s64).
  * @note Variants: AVX512F, AVX2, SSE4.2, Scalar.
  */
-static inline void tu64_to_s64_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  if (Caps_->avx512f_) {
-    lookup_tu64_to_s64_[0](src, dst);
+static inline void tu64_to_s64(const Tensor *restrict src,
+                               Tensor *restrict dst) {
+  if (SIMD->avx512f_) {
+    lookup_tu64_to_s64[0](src, dst);
     return;
   }
-  if (Caps_->avx_ || Caps_->avx2_) {
-    lookup_tu64_to_s64_[1](src, dst);
+  if (SIMD->avx_ || SIMD->avx2_) {
+    lookup_tu64_to_s64[1](src, dst);
     return;
   }
-  if (Caps_->sse4_2_) {
-    lookup_tu64_to_s64_[2](src, dst);
+  if (SIMD->sse4_2_) {
+    lookup_tu64_to_s64[2](src, dst);
     return;
   }
-  lookup_tu64_to_s64_[3](src, dst);
+  lookup_tu64_to_s64[3](src, dst);
 }

@@ -1,30 +1,22 @@
 #[=======================================================================[.rst:
-.. module:: DetectSIMD
-   :synopsis: Central orchestrator for CPU SIMD instruction detection.
+DetectSIMD
+----------
 
-Includes all individual CPU detection modules, derives aggregate flags,
-and deduplicates the ``SIMD_FLAGS`` list.
+Orchestrator module that detects all supported SIMD instruction sets.
+Includes the utility macro ``CheckInstructionSupport`` and every
+CPU detection module (SSE, AVX, AVX2, AVX-512, AMX).  Aggregates
+detected compiler flags into the ``SIMD_FLAGS`` list variable.
 
-This module is the single entry point for the SIMD detection subsystem.
-It is included by ``NovaNNRuntime.cmake`` and should not be included
-directly by ``CMakeLists.txt`` files.
+This module sets the following variables:
 
-**Detected variables:**
+``SIMD_FLAGS``
+  Aggregated compiler flags for all detected SIMD instruction sets.
+  Duplicate flags are removed before the variable is finalized.
 
-- ``SIMD_FLAGS`` — Compiler flags for all supported instruction sets
-  (e.g. ``-msse4.2 -mavx -mavx2``).  Consumed by
-  ``nova_configure_cpu_target()``.
-- ``HAS_VNNI`` — Set to ``1`` if either ``HAS_AVX2_VNNI`` or
-  ``HAS_AVX512_VNNI`` is detected.
+``HAS_VNNI``
+  ``1`` if either ``HAS_AVX2_VNNI`` or ``HAS_AVX512_VNNI`` was
+  detected, ``0`` otherwise.
 
-**Included modules:**
-
-- ``CheckInstructionSupport.cmake`` — ``check_simd()`` macro.
-- ``DetectSSE.cmake`` — SSE4.2.
-- ``DetectAVX.cmake`` — AVX, F16C, FMA3.
-- ``DetectAVX2.cmake`` — AVX2, AVX2-VNNI.
-- ``DetectAVX512.cmake`` — AVX-512 and sub-extensions.
-- ``DetectAMX.cmake`` — AMX and sub-extensions.
 #]=======================================================================]
 
 set(SIMD_FLAGS "")

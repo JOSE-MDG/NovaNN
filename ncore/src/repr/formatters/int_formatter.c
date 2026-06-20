@@ -1,36 +1,35 @@
 /**
  * @file int_formatter.c
- * @brief Integer element formatter implementation.
+ * @brief Implementation of integer element formatting logic.
  *
  * @details
- * Signed values use %ld formatting; unsigned values use %lu.  The
- * UnSigned8 + is_bool path writes "True" or "False".
+ * This module provides the conversion of integer types to strings, using
+ * standard C integer format specifiers. It includes a specialized path
+ * for boolean interpretation of unsigned values.
+ *
+ * ## Architecture
+ * - **Format Specifiers**: Uses `PRId64` and `PRIu64` for maximum
+ *   portability across 64-bit platforms.
+ * - **Boolean Path**: Overrides numeric output with string literals
+ *   when requested by the @ref ReprContext.
+ *
+ * @see int_formatter.h Interface definitions.
  */
 
-#include "int_formatter.h"
 #include <inttypes.h>
 #include <stdio.h>
 
+#include "int_formatter.h"
+
 /**
- * @brief Format a signed integer.
- *
- * @param[out] buf      Output buffer.
- * @param[in]  buf_size Buffer size.
- * @param[in]  val      Signed integer value.
- * @return Number of chars written (excl. null).
+ * @brief Convert a signed 64-bit integer into a string.
  */
 int int_format_value(char *buf, size_t buf_size, int64_t val) {
   return snprintf(buf, buf_size, "%" PRId64, val);
 }
 
 /**
- * @brief Format an unsigned integer.
- *
- * @param[out] buf      Output buffer.
- * @param[in]  buf_size Buffer size.
- * @param[in]  val      Unsigned integer value.
- * @param[in]  is_bool  If true and val is 0 or 1, write "False"/"True".
- * @return Number of chars written (excl. null).
+ * @brief Convert an unsigned 64-bit integer into a string.
  */
 int uint_format_value(char *buf, size_t buf_size, uint64_t val, bool is_bool) {
   if (is_bool) {

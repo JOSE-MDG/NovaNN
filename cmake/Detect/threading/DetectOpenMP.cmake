@@ -1,19 +1,19 @@
 #[=======================================================================[.rst:
-.. module:: DetectOpenMP
-   :synopsis: Detect OpenMP availability for C and C++.
+DetectOpenMP
+------------
 
-Uses ``find_package(OpenMP COMPONENTS C CXX)`` to locate OpenMP
-support for both C and C++ compilers.  Sets ``NOVA_HAS_OPENMP`` to
-``1`` only if both components are found.
+Detect OpenMP parallelism support for C and C++ compilers.  Uses
+:command:`find_package` with the ``OpenMP`` module.
 
-**Result variables:**
+This module sets the following variables:
 
-- ``NOVA_HAS_OPENMP`` — Set to ``1`` if both C and CXX OpenMP support
-  are found, ``0`` otherwise.
+``NOVA_HAS_OPENMP``
+  ``1`` if both ``OpenMP_C`` and ``OpenMP_CXX`` were found, ``0``
+  otherwise.
 
-**Early exit:**
+The module is idempotent: if ``NOVA_HAS_OPENMP`` is already defined
+the file returns immediately.
 
-Returns immediately if ``NOVA_HAS_OPENMP`` is already defined.
 #]=======================================================================]
 
 if(DEFINED NOVA_HAS_OPENMP)

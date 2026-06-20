@@ -5,22 +5,22 @@
  * Provides scalar fallback implementations and SIMD-accelerated variants
  * (SSE4.2, AVX/AVX2, AVX-512F, AVX-512BF16, AVX-512FP16) for every
  * supported source/destination type combination.  Each conversion group
- * exposes a @c const @c castFn[] lookup table that lists available
+ * exposes a @c const @c CastFn[] lookup table that lists available
  * implementations in descending capability order; the caller selects the
  * first entry whose required ISA is present at runtime.
  *
  * Naming convention:
- *   @c t<src>_to_<dst>_<isa>_()  – SIMD variant
- *   @c t<src>_to_<dst>_scalar_() – portable fallback
- *   @c lookup_t<src>_to_<dst>_[] – dispatch table
+ *   @c t<src>_to_<dst>_<isa>()  – SIMD variant
+ *   @c t<src>_to_<dst>_scalar() – portable fallback
+ *   @c lookup_t<src>_to_<dst>[] – dispatch table
  *
  * Type abbreviations used in identifiers:
  *   @c fp16  = _Float16 (IEEE 754 half-precision)
  *   @c bf16  = __bf16   (Brain Float 16)
  *   @c f32   = float    (single-precision)
  *   @c f64   = double   (double-precision)
- *   @c s8/s32/s64 = int8_t / int32_t / int64_t
- *   @c u8/u32/u64 = uint8_t / uint32_t / uint64_t
+ *   @c s8/s32/s64 = int8 / int32 / int64
+ *   @c u8/u32/u64 = uint8 / uint32 / uint64
  */
 
 #include <ncore/headeronly/cast.h>
@@ -54,13 +54,13 @@
 /**
  * @brief Cast every element from _Float16 to float (scalar fallback).
  *
- * SIMD variants: tfp16_to_f32_avx512_(), tfp16_to_f32_avx_avx2_fp16c_()
+ * SIMD variants: tfp16_to_f32_avx512(), tfp16_to_f32_avx_avx2_fp16c()
  *
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type float.
  */
-static void tfp16_to_f32_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tfp16_to_f32_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const _Float16 *s = src->data.half;
   float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
@@ -71,13 +71,13 @@ static void tfp16_to_f32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from _Float16 to double (scalar fallback).
  *
- * SIMD variants: tfp16_to_f64_avx512_(), tfp16_to_f64_avx_avx2_fp16c_()
+ * SIMD variants: tfp16_to_f64_avx512(), tfp16_to_f64_avx_avx2_fp16c()
  *
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type double.
  */
-static void tfp16_to_f64_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tfp16_to_f64_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const _Float16 *s = src->data.half;
   double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
@@ -88,13 +88,13 @@ static void tfp16_to_f64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from _Float16 to __bf16 (scalar fallback).
  *
- * SIMD variants: tfp16_to_bf16_avx512bf16_()
+ * SIMD variants: tfp16_to_bf16_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static void tfp16_to_bf16_scalar_(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
+static void tfp16_to_bf16_scalar(const Tensor *restrict src,
+                                 Tensor *restrict dst) {
   const _Float16 *s = src->data.half;
   __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
@@ -105,13 +105,13 @@ static void tfp16_to_bf16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from float to _Float16 (scalar fallback).
  *
- * SIMD variants: tf32_to_fp16_avx512fp16_(), tf32_to_fp16_avx_avx2_f16c_()
+ * SIMD variants: tf32_to_fp16_avx512fp16(), tf32_to_fp16_avx_avx2_f16c()
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static void tf32_to_fp16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tf32_to_fp16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const float *s = src->data.f32;
   _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
@@ -122,14 +122,14 @@ static void tf32_to_fp16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from float to double (scalar fallback).
  *
- * SIMD variants: tf32_to_f64_avx512_(), tf32_to_f64_avx_avx2_(),
- * tf32_to_f64_sse4_2_()
+ * SIMD variants: tf32_to_f64_avx512(), tf32_to_f64_avx_avx2(),
+ * tf32_to_f64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type double.
  */
-static void tf32_to_f64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tf32_to_f64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const float *s = src->data.f32;
   double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
@@ -140,13 +140,13 @@ static void tf32_to_f64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from float to __bf16 (scalar fallback).
  *
- * SIMD variants: tf32_to_bf16_avx512bf16_()
+ * SIMD variants: tf32_to_bf16_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static void tf32_to_bf16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tf32_to_bf16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const float *s = src->data.f32;
   __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
@@ -157,13 +157,13 @@ static void tf32_to_bf16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from __bf16 to _Float16 (scalar fallback).
  *
- * SIMD variants: tbf16_to_fp16_avx512bf16_fp16_()
+ * SIMD variants: tbf16_to_fp16_avx512bf16_fp16()
  *
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static void tbf16_to_fp16_scalar_(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
+static void tbf16_to_fp16_scalar(const Tensor *restrict src,
+                                 Tensor *restrict dst) {
   const __bf16 *s = src->data.bf16;
   _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
@@ -174,13 +174,13 @@ static void tbf16_to_fp16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from __bf16 to float (scalar fallback).
  *
- * SIMD variants: tbf16_to_f32_avx512bf16_()
+ * SIMD variants: tbf16_to_f32_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type float.
  */
-static void tbf16_to_f32_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tbf16_to_f32_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const __bf16 *s = src->data.bf16;
   float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
@@ -191,13 +191,13 @@ static void tbf16_to_f32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from __bf16 to double (scalar fallback).
  *
- * SIMD variants: tbf16_to_f64_avx512bf16_()
+ * SIMD variants: tbf16_to_f64_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type double.
  */
-static void tbf16_to_f64_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tbf16_to_f64_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const __bf16 *s = src->data.bf16;
   double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
@@ -208,13 +208,13 @@ static void tbf16_to_f64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from double to _Float16 (scalar fallback).
  *
- * SIMD variants: tf64_to_fp16_avx512fp16_()
+ * SIMD variants: tf64_to_fp16_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static void tf64_to_fp16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tf64_to_fp16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const double *s = src->data.f64;
   _Float16 *d = dst->data.half;
   for (size_t i = 0; i < src->size; i++) {
@@ -225,14 +225,14 @@ static void tf64_to_fp16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from double to float (scalar fallback).
  *
- * SIMD variants: tf64_to_f32_avx512_(), tf64_to_f32_avx_avx2_(),
- * tf64_to_f32_sse4_2_()
+ * SIMD variants: tf64_to_f32_avx512(), tf64_to_f32_avx_avx2(),
+ * tf64_to_f32_sse4_2()
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float.
  */
-static void tf64_to_f32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tf64_to_f32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const double *s = src->data.f64;
   float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
@@ -243,13 +243,13 @@ static void tf64_to_f32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from double to __bf16 (scalar fallback).
  *
- * SIMD variants: tf64_to_bf16_avx512bf16_()
+ * SIMD variants: tf64_to_bf16_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static void tf64_to_bf16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tf64_to_bf16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const double *s = src->data.f64;
   __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
@@ -263,13 +263,13 @@ static void tf64_to_bf16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from _Float16 to int8_t (scalar fallback).
  *
- * SIMD variants: tfp16_to_s8_avx512fp16_()
+ * SIMD variants: tfp16_to_s8_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static void tfp16_to_s8_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tfp16_to_s8_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const _Float16 *s = src->data.half;
   int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
@@ -280,13 +280,13 @@ static void tfp16_to_s8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from _Float16 to int32_t (scalar fallback).
  *
- * SIMD variants: tfp16_to_s32_avx512fp16_()
+ * SIMD variants: tfp16_to_s32_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static void tfp16_to_s32_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tfp16_to_s32_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const _Float16 *s = src->data.half;
   int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
@@ -297,13 +297,13 @@ static void tfp16_to_s32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from _Float16 to int64_t (scalar fallback).
  *
- * SIMD variants: tfp16_to_s64_avx512fp16_()
+ * SIMD variants: tfp16_to_s64_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static void tfp16_to_s64_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tfp16_to_s64_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const _Float16 *s = src->data.half;
   int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
@@ -314,13 +314,13 @@ static void tfp16_to_s64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from _Float16 to uint8_t (scalar fallback).
  *
- * SIMD variants: tfp16_to_u8_avx512fp16_()
+ * SIMD variants: tfp16_to_u8_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static void tfp16_to_u8_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tfp16_to_u8_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const _Float16 *s = src->data.half;
   uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
@@ -331,13 +331,13 @@ static void tfp16_to_u8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from _Float16 to uint32_t (scalar fallback).
  *
- * SIMD variants: tfp16_to_u32_avx512fp16_()
+ * SIMD variants: tfp16_to_u32_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static void tfp16_to_u32_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tfp16_to_u32_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const _Float16 *s = src->data.half;
   uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
@@ -348,13 +348,13 @@ static void tfp16_to_u32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from _Float16 to uint64_t (scalar fallback).
  *
- * SIMD variants: tfp16_to_u64_avx512fp16_()
+ * SIMD variants: tfp16_to_u64_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type _Float16.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static void tfp16_to_u64_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tfp16_to_u64_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const _Float16 *s = src->data.half;
   uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
@@ -364,13 +364,13 @@ static void tfp16_to_u64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from __bf16 to int8_t (scalar fallback).
  *
- * SIMD variants: tbf16_to_s8_avx512bf16_()
+ * SIMD variants: tbf16_to_s8_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static void tbf16_to_s8_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tbf16_to_s8_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const __bf16 *s = src->data.bf16;
   int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
@@ -381,13 +381,13 @@ static void tbf16_to_s8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from __bf16 to int32_t (scalar fallback).
  *
- * SIMD variants: tbf16_to_s32_avx512bf16_()
+ * SIMD variants: tbf16_to_s32_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static void tbf16_to_s32_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tbf16_to_s32_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const __bf16 *s = src->data.bf16;
   int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
@@ -398,13 +398,13 @@ static void tbf16_to_s32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from __bf16 to int64_t (scalar fallback).
  *
- * SIMD variants: tbf16_to_s64_avx512bf16_()
+ * SIMD variants: tbf16_to_s64_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static void tbf16_to_s64_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tbf16_to_s64_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const __bf16 *s = src->data.bf16;
   int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
@@ -415,13 +415,13 @@ static void tbf16_to_s64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from __bf16 to uint8_t (scalar fallback).
  *
- * SIMD variants: tbf16_to_u8_avx512bf16_()
+ * SIMD variants: tbf16_to_u8_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static void tbf16_to_u8_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tbf16_to_u8_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const __bf16 *s = src->data.bf16;
   uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
@@ -432,13 +432,13 @@ static void tbf16_to_u8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from __bf16 to uint32_t (scalar fallback).
  *
- * SIMD variants: tbf16_to_u32_avx512bf16_()
+ * SIMD variants: tbf16_to_u32_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static void tbf16_to_u32_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tbf16_to_u32_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const __bf16 *s = src->data.bf16;
   uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
@@ -449,13 +449,13 @@ static void tbf16_to_u32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from __bf16 to uint64_t (scalar fallback).
  *
- * SIMD variants: tbf16_to_u64_avx512bf16_()
+ * SIMD variants: tbf16_to_u64_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type __bf16.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static void tbf16_to_u64_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tbf16_to_u64_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const __bf16 *s = src->data.bf16;
   uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
@@ -465,13 +465,13 @@ static void tbf16_to_u64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from float to int8_t (scalar fallback).
  *
- * SIMD variants: tf32_to_s8_avx512_(), tf32_to_s8_avx2_()
+ * SIMD variants: tf32_to_s8_avx512(), tf32_to_s8_avx2()
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static void tf32_to_s8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tf32_to_s8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
 
   const float *s = src->data.f32;
   int8_t *d = dst->data.s8;
@@ -482,14 +482,14 @@ static void tf32_to_s8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from float to int32_t (scalar fallback).
  *
- * SIMD variants: tf32_to_s32_avx512_(), tf32_to_s32_avx_avx2_(),
- * tf32_to_s32_sse4_2_()
+ * SIMD variants: tf32_to_s32_avx512(), tf32_to_s32_avx_avx2(),
+ * tf32_to_s32_sse4_2()
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static void tf32_to_s32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tf32_to_s32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const float *s = src->data.f32;
   int32_t *d = dst->data.s32;
@@ -500,13 +500,13 @@ static void tf32_to_s32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from float to int64_t (scalar fallback).
  *
- * SIMD variants: tf32_to_s64_avx512_()
+ * SIMD variants: tf32_to_s64_avx512()
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static void tf32_to_s64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tf32_to_s64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const float *s = src->data.f32;
   int64_t *d = dst->data.s64;
@@ -517,13 +517,13 @@ static void tf32_to_s64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from float to uint8_t (scalar fallback).
  *
- * SIMD variants: tf32_to_u8_avx512_(), tf32_to_u8_avx2_()
+ * SIMD variants: tf32_to_u8_avx512(), tf32_to_u8_avx2()
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static void tf32_to_u8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tf32_to_u8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
 
   const float *s = src->data.f32;
   uint8_t *d = dst->data.u8;
@@ -534,13 +534,13 @@ static void tf32_to_u8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from float to uint32_t (scalar fallback).
  *
- * SIMD variants: tf32_to_u32_avx512_()
+ * SIMD variants: tf32_to_u32_avx512()
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static void tf32_to_u32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tf32_to_u32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const float *s = src->data.f32;
   uint32_t *d = dst->data.u32;
@@ -551,13 +551,13 @@ static void tf32_to_u32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from float to uint64_t (scalar fallback).
  *
- * SIMD variants: tf32_to_u64_avx512_()
+ * SIMD variants: tf32_to_u64_avx512()
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static void tf32_to_u64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tf32_to_u64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const float *s = src->data.f32;
   uint64_t *d = dst->data.u64;
@@ -568,13 +568,13 @@ static void tf32_to_u64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from double to int8_t (scalar fallback).
  *
- * SIMD variants: tf64_to_s8_avx512_()
+ * SIMD variants: tf64_to_s8_avx512()
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static void tf64_to_s8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tf64_to_s8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
 
   const double *s = src->data.f64;
   int8_t *d = dst->data.s8;
@@ -585,14 +585,14 @@ static void tf64_to_s8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from double to int32_t (scalar fallback).
  *
- * SIMD variants: tf64_to_s32_avx512_(), tf64_to_s32_avx_avx2_(),
- * tf64_to_s32_sse4_2_()
+ * SIMD variants: tf64_to_s32_avx512(), tf64_to_s32_avx_avx2(),
+ * tf64_to_s32_sse4_2()
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static void tf64_to_s32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tf64_to_s32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const double *s = src->data.f64;
   int32_t *d = dst->data.s32;
@@ -603,13 +603,13 @@ static void tf64_to_s32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from double to int64_t (scalar fallback).
  *
- * SIMD variants: tf64_to_s64_avx512_()
+ * SIMD variants: tf64_to_s64_avx512()
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static void tf64_to_s64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tf64_to_s64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const double *s = src->data.f64;
   int64_t *d = dst->data.s64;
@@ -620,13 +620,13 @@ static void tf64_to_s64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from double to uint8_t (scalar fallback).
  *
- * SIMD variants: tf64_to_u8_avx512_()
+ * SIMD variants: tf64_to_u8_avx512()
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static void tf64_to_u8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tf64_to_u8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
 
   const double *s = src->data.f64;
   uint8_t *d = dst->data.u8;
@@ -637,13 +637,13 @@ static void tf64_to_u8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from double to uint32_t (scalar fallback).
  *
- * SIMD variants: tf64_to_u32_avx512_()
+ * SIMD variants: tf64_to_u32_avx512()
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static void tf64_to_u32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tf64_to_u32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const double *s = src->data.f64;
   uint32_t *d = dst->data.u32;
@@ -654,13 +654,13 @@ static void tf64_to_u32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from double to uint64_t (scalar fallback).
  *
- * SIMD variants: tf64_to_u64_avx512_()
+ * SIMD variants: tf64_to_u64_avx512()
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static void tf64_to_u64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tf64_to_u64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const double *s = src->data.f64;
   uint64_t *d = dst->data.u64;
@@ -671,13 +671,13 @@ static void tf64_to_u64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int8_t to _Float16 (scalar fallback).
  *
- * SIMD variants: ts8_to_fp16_avx512_()
+ * SIMD variants: ts8_to_fp16_avx512()
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static void ts8_to_fp16_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts8_to_fp16_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const int8_t *s = src->data.s8;
   _Float16 *d = dst->data.half;
@@ -688,13 +688,13 @@ static void ts8_to_fp16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int32_t to _Float16 (scalar fallback).
  *
- * SIMD variants: ts32_to_fp16_avx512fp16_()
+ * SIMD variants: ts32_to_fp16_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static void ts32_to_fp16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void ts32_to_fp16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
 
   const int32_t *s = src->data.s32;
   _Float16 *d = dst->data.half;
@@ -705,13 +705,13 @@ static void ts32_to_fp16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int64_t to _Float16 (scalar fallback).
  *
- * SIMD variants: ts64_to_fp16_avx512fp16_()
+ * SIMD variants: ts64_to_fp16_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static void ts64_to_fp16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void ts64_to_fp16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
 
   const int64_t *s = src->data.s64;
   _Float16 *d = dst->data.half;
@@ -722,13 +722,13 @@ static void ts64_to_fp16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint8_t to _Float16 (scalar fallback).
  *
- * SIMD variants: tu8_to_fp16_avx512fp16_()
+ * SIMD variants: tu8_to_fp16_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static void tu8_to_fp16_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu8_to_fp16_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const uint8_t *s = src->data.u8;
   _Float16 *d = dst->data.half;
@@ -739,13 +739,13 @@ static void tu8_to_fp16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint32_t to _Float16 (scalar fallback).
  *
- * SIMD variants: tu32_to_fp16_avx512fp16_()
+ * SIMD variants: tu32_to_fp16_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static void tu32_to_fp16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tu32_to_fp16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
 
   const uint32_t *s = src->data.u32;
   _Float16 *d = dst->data.half;
@@ -756,13 +756,13 @@ static void tu32_to_fp16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to _Float16 (scalar fallback).
  *
- * SIMD variants: tu64_to_fp16_avx512fp16_()
+ * SIMD variants: tu64_to_fp16_avx512fp16()
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type _Float16.
  */
-static void tu64_to_fp16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tu64_to_fp16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
 
   const uint64_t *s = src->data.u64;
   _Float16 *d = dst->data.half;
@@ -773,13 +773,13 @@ static void tu64_to_fp16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int8_t to __bf16 (scalar fallback).
  *
- * SIMD variants: ts8_to_bf16_avx512bf16_()
+ * SIMD variants: ts8_to_bf16_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static void ts8_to_bf16_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts8_to_bf16_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
 
   const int8_t *s = src->data.s8;
   __bf16 *d = dst->data.bf16;
@@ -790,13 +790,13 @@ static void ts8_to_bf16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int32_t to __bf16 (scalar fallback).
  *
- * SIMD variants: ts32_to_bf16_avx512bf16_()
+ * SIMD variants: ts32_to_bf16_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static void ts32_to_bf16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void ts32_to_bf16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
 
   const int32_t *s = src->data.s32;
   __bf16 *d = dst->data.bf16;
@@ -807,13 +807,13 @@ static void ts32_to_bf16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int64_t to __bf16 (scalar fallback).
  *
- * SIMD variants: ts64_to_bf16_avx512bf16_()
+ * SIMD variants: ts64_to_bf16_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static void ts64_to_bf16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void ts64_to_bf16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const int64_t *s = src->data.s64;
   __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
@@ -823,13 +823,13 @@ static void ts64_to_bf16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint8_t to __bf16 (scalar fallback).
  *
- * SIMD variants: tu8_to_bf16_avx512bf16_()
+ * SIMD variants: tu8_to_bf16_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static void tu8_to_bf16_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu8_to_bf16_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint8_t *s = src->data.u8;
   __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
@@ -839,13 +839,13 @@ static void tu8_to_bf16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint32_t to __bf16 (scalar fallback).
  *
- * SIMD variants: tu32_to_bf16_avx512bf16_()
+ * SIMD variants: tu32_to_bf16_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static void tu32_to_bf16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tu32_to_bf16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const uint32_t *s = src->data.u32;
   __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
@@ -855,13 +855,13 @@ static void tu32_to_bf16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to __bf16 (scalar fallback).
  *
- * SIMD variants: tu64_to_bf16_avx512bf16_()
+ * SIMD variants: tu64_to_bf16_avx512bf16()
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type __bf16.
  */
-static void tu64_to_bf16_scalar_(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+static void tu64_to_bf16_scalar(const Tensor *restrict src,
+                                Tensor *restrict dst) {
   const uint64_t *s = src->data.u64;
   __bf16 *d = dst->data.bf16;
   for (size_t i = 0; i < src->size; i++) {
@@ -871,13 +871,13 @@ static void tu64_to_bf16_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int8_t to float (scalar fallback).
  *
- * SIMD variants: ts8_to_f32_avx512_(), ts8_to_f32_avx2_()
+ * SIMD variants: ts8_to_f32_avx512(), ts8_to_f32_avx2()
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static void ts8_to_f32_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void ts8_to_f32_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const int8_t *s = src->data.s8;
   float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
@@ -887,14 +887,14 @@ static void ts8_to_f32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int32_t to float (scalar fallback).
  *
- * SIMD variants: ts32_to_f32_avx512_(), ts32_to_f32_avx_avx2_(),
- * ts32_to_f32_sse4_2_()
+ * SIMD variants: ts32_to_f32_avx512(), ts32_to_f32_avx_avx2(),
+ * ts32_to_f32_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static void ts32_to_f32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts32_to_f32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const int32_t *s = src->data.s32;
   float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
@@ -904,13 +904,13 @@ static void ts32_to_f32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int64_t to float (scalar fallback).
  *
- * SIMD variants: ts64_to_f32_avx512_()
+ * SIMD variants: ts64_to_f32_avx512()
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static void ts64_to_f32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts64_to_f32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const int64_t *s = src->data.s64;
   float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
@@ -920,13 +920,13 @@ static void ts64_to_f32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint8_t to float (scalar fallback).
  *
- * SIMD variants: tu8_to_f32_avx512_(), tu8_to_f32_avx2_()
+ * SIMD variants: tu8_to_f32_avx512(), tu8_to_f32_avx2()
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static void tu8_to_f32_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tu8_to_f32_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const uint8_t *s = src->data.u8;
   float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
@@ -936,13 +936,13 @@ static void tu8_to_f32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint32_t to float (scalar fallback).
  *
- * SIMD variants: tu32_to_f32_avx512_()
+ * SIMD variants: tu32_to_f32_avx512()
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static void tu32_to_f32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu32_to_f32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint32_t *s = src->data.u32;
   float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
@@ -952,13 +952,13 @@ static void tu32_to_f32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to float (scalar fallback).
  *
- * SIMD variants: tu64_to_f32_avx512_()
+ * SIMD variants: tu64_to_f32_avx512()
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type float.
  */
-static void tu64_to_f32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu64_to_f32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint64_t *s = src->data.u64;
   float *d = dst->data.f32;
   for (size_t i = 0; i < src->size; i++) {
@@ -968,13 +968,13 @@ static void tu64_to_f32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int8_t to double (scalar fallback).
  *
- * SIMD variants: ts8_to_f64_avx512_()
+ * SIMD variants: ts8_to_f64_avx512()
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static void ts8_to_f64_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void ts8_to_f64_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const int8_t *s = src->data.s8;
   double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
@@ -984,14 +984,14 @@ static void ts8_to_f64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int32_t to double (scalar fallback).
  *
- * SIMD variants: ts32_to_f64_avx512_(), ts32_to_f64_avx_avx2_(),
- * ts32_to_f64_sse4_2_()
+ * SIMD variants: ts32_to_f64_avx512(), ts32_to_f64_avx_avx2(),
+ * ts32_to_f64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static void ts32_to_f64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts32_to_f64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const int32_t *s = src->data.s32;
   double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1001,13 +1001,13 @@ static void ts32_to_f64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int64_t to double (scalar fallback).
  *
- * SIMD variants: ts64_to_f64_avx512_()
+ * SIMD variants: ts64_to_f64_avx512()
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static void ts64_to_f64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts64_to_f64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const int64_t *s = src->data.s64;
   double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1017,13 +1017,13 @@ static void ts64_to_f64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint8_t to double (scalar fallback).
  *
- * SIMD variants: tu8_to_f64_avx512_()
+ * SIMD variants: tu8_to_f64_avx512()
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static void tu8_to_f64_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tu8_to_f64_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const uint8_t *s = src->data.u8;
   double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1033,13 +1033,13 @@ static void tu8_to_f64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint32_t to double (scalar fallback).
  *
- * SIMD variants: tu32_to_f64_avx512_()
+ * SIMD variants: tu32_to_f64_avx512()
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static void tu32_to_f64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu32_to_f64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint32_t *s = src->data.u32;
   double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1049,13 +1049,13 @@ static void tu32_to_f64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to double (scalar fallback).
  *
- * SIMD variants: tu64_to_f64_avx512_()
+ * SIMD variants: tu64_to_f64_avx512()
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type double.
  */
-static void tu64_to_f64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu64_to_f64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint64_t *s = src->data.u64;
   double *d = dst->data.f64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1065,13 +1065,13 @@ static void tu64_to_f64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int8_t to int32_t (scalar fallback).
  *
- * SIMD variants: ts8_to_s32_avx512_(), ts8_to_s32_avx2_(), ts8_to_s32_sse4_2_()
+ * SIMD variants: ts8_to_s32_avx512(), ts8_to_s32_avx2(), ts8_to_s32_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static void ts8_to_s32_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void ts8_to_s32_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const int8_t *s = src->data.s8;
   int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
@@ -1081,13 +1081,13 @@ static void ts8_to_s32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int8_t to int64_t (scalar fallback).
  *
- * SIMD variants: ts8_to_s64_avx512_(), ts8_to_s64_avx2_(), ts8_to_s64_sse4_2_()
+ * SIMD variants: ts8_to_s64_avx512(), ts8_to_s64_avx2(), ts8_to_s64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static void ts8_to_s64_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void ts8_to_s64_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const int8_t *s = src->data.s8;
   int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1097,13 +1097,13 @@ static void ts8_to_s64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int32_t to int8_t (scalar fallback).
  *
- * SIMD variants: ts32_to_s8_avx512_()
+ * SIMD variants: ts32_to_s8_avx512()
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static void ts32_to_s8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void ts32_to_s8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const int32_t *s = src->data.s32;
   int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
@@ -1113,14 +1113,14 @@ static void ts32_to_s8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int32_t to int64_t (scalar fallback).
  *
- * SIMD variants: ts32_to_s64_avx512_(), ts32_to_s64_avx2_(),
- * ts32_to_s64_sse4_2_()
+ * SIMD variants: ts32_to_s64_avx512(), ts32_to_s64_avx2(),
+ * ts32_to_s64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static void ts32_to_s64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts32_to_s64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const int32_t *s = src->data.s32;
   int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1130,13 +1130,13 @@ static void ts32_to_s64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int64_t to int8_t (scalar fallback).
  *
- * SIMD variants: ts64_to_s8_avx512_()
+ * SIMD variants: ts64_to_s8_avx512()
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static void ts64_to_s8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void ts64_to_s8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const int64_t *s = src->data.s64;
   int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
@@ -1146,13 +1146,13 @@ static void ts64_to_s8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int64_t to int32_t (scalar fallback).
  *
- * SIMD variants: ts64_to_s32_avx512_()
+ * SIMD variants: ts64_to_s32_avx512()
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static void ts64_to_s32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts64_to_s32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const int64_t *s = src->data.s64;
   int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
@@ -1162,13 +1162,13 @@ static void ts64_to_s32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint8_t to uint32_t (scalar fallback).
  *
- * SIMD variants: tu8_to_u32_avx512_(), tu8_to_u32_avx2_()
+ * SIMD variants: tu8_to_u32_avx512(), tu8_to_u32_avx2()
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static void tu8_to_u32_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tu8_to_u32_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const uint8_t *s = src->data.u8;
   uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
@@ -1178,13 +1178,13 @@ static void tu8_to_u32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint8_t to uint64_t (scalar fallback).
  *
- * SIMD variants: tu8_to_u64_avx512_(), tu8_to_u64_avx2_(), tu8_to_u64_sse4_2_()
+ * SIMD variants: tu8_to_u64_avx512(), tu8_to_u64_avx2(), tu8_to_u64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static void tu8_to_u64_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tu8_to_u64_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const uint8_t *s = src->data.u8;
   uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1194,13 +1194,13 @@ static void tu8_to_u64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint32_t to uint8_t (scalar fallback).
  *
- * SIMD variants: tu32_to_u8_avx512_()
+ * SIMD variants: tu32_to_u8_avx512()
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static void tu32_to_u8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tu32_to_u8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const uint32_t *s = src->data.u32;
   uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
@@ -1210,14 +1210,14 @@ static void tu32_to_u8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint32_t to uint64_t (scalar fallback).
  *
- * SIMD variants: tu32_to_u64_avx512_(), tu32_to_u64_avx2_(),
- * tu32_to_u64_sse4_2_()
+ * SIMD variants: tu32_to_u64_avx512(), tu32_to_u64_avx2(),
+ * tu32_to_u64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static void tu32_to_u64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu32_to_u64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint32_t *s = src->data.u32;
   uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1227,13 +1227,13 @@ static void tu32_to_u64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to uint8_t (scalar fallback).
  *
- * SIMD variants: tu64_to_u8_avx512_()
+ * SIMD variants: tu64_to_u8_avx512()
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static void tu64_to_u8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tu64_to_u8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const uint64_t *s = src->data.u64;
   uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
@@ -1243,13 +1243,13 @@ static void tu64_to_u8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to uint32_t (scalar fallback).
  *
- * SIMD variants: tu64_to_u32_avx512_()
+ * SIMD variants: tu64_to_u32_avx512()
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static void tu64_to_u32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu64_to_u32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint64_t *s = src->data.u64;
   uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
@@ -1259,14 +1259,13 @@ static void tu64_to_u32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int8_t to uint8_t (scalar fallback).
  *
- * SIMD variants: ts8_to_u8_avx512_(), ts8_to_u8_avx_avx2_(),
- * ts8_to_u8_sse4_2_()
+ * SIMD variants: ts8_to_u8_avx512(), ts8_to_u8_avx_avx2(),
+ * ts8_to_u8_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static void ts8_to_u8_scalar_(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static void ts8_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst) {
   const int8_t *s = src->data.s8;
   uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
@@ -1276,13 +1275,13 @@ static void ts8_to_u8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int8_t to uint32_t (scalar fallback).
  *
- * SIMD variants: ts8_to_u32_avx512_(), ts8_to_u32_avx2_(), ts8_to_u32_sse4_2_()
+ * SIMD variants: ts8_to_u32_avx512(), ts8_to_u32_avx2(), ts8_to_u32_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static void ts8_to_u32_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void ts8_to_u32_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const int8_t *s = src->data.s8;
   uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
@@ -1292,13 +1291,13 @@ static void ts8_to_u32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int8_t to uint64_t (scalar fallback).
  *
- * SIMD variants: ts8_to_u64_avx512_()
+ * SIMD variants: ts8_to_u64_avx512()
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static void ts8_to_u64_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void ts8_to_u64_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const int8_t *s = src->data.s8;
   uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1308,13 +1307,13 @@ static void ts8_to_u64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int32_t to uint8_t (scalar fallback).
  *
- * SIMD variants: ts32_to_u8_avx512_(), ts32_to_u8_avx2_(), ts32_to_u8_sse4_2_()
+ * SIMD variants: ts32_to_u8_avx512(), ts32_to_u8_avx2(), ts32_to_u8_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static void ts32_to_u8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void ts32_to_u8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const int32_t *s = src->data.s32;
   uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
@@ -1324,14 +1323,14 @@ static void ts32_to_u8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int32_t to uint32_t (scalar fallback).
  *
- * SIMD variants: ts32_to_u32_avx512_(), ts32_to_u32_avx_avx2_(),
- * ts32_to_u32_sse4_2_()
+ * SIMD variants: ts32_to_u32_avx512(), ts32_to_u32_avx_avx2(),
+ * ts32_to_u32_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static void ts32_to_u32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts32_to_u32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const int32_t *s = src->data.s32;
   uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
@@ -1341,14 +1340,14 @@ static void ts32_to_u32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int32_t to uint64_t (scalar fallback).
  *
- * SIMD variants: ts32_to_u64_avx512_(), ts32_to_u64_avx2_(),
- * ts32_to_u64_sse4_2_()
+ * SIMD variants: ts32_to_u64_avx512(), ts32_to_u64_avx2(),
+ * ts32_to_u64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static void ts32_to_u64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts32_to_u64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const int32_t *s = src->data.s32;
   uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1358,13 +1357,13 @@ static void ts32_to_u64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int64_t to uint8_t (scalar fallback).
  *
- * SIMD variants: ts64_to_u8_avx512_()
+ * SIMD variants: ts64_to_u8_avx512()
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
-static void ts64_to_u8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void ts64_to_u8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const int64_t *s = src->data.s64;
   uint8_t *d = dst->data.u8;
   for (size_t i = 0; i < src->size; i++) {
@@ -1374,13 +1373,13 @@ static void ts64_to_u8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int64_t to uint32_t (scalar fallback).
  *
- * SIMD variants: ts64_to_u32_avx512_()
+ * SIMD variants: ts64_to_u32_avx512()
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
-static void ts64_to_u32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts64_to_u32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const int64_t *s = src->data.s64;
   uint32_t *d = dst->data.u32;
   for (size_t i = 0; i < src->size; i++) {
@@ -1390,14 +1389,14 @@ static void ts64_to_u32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from int64_t to uint64_t (scalar fallback).
  *
- * SIMD variants: ts64_to_u64_avx512_(), ts64_to_u64_avx_avx2_(),
- * ts64_to_u64_sse4_2_()
+ * SIMD variants: ts64_to_u64_avx512(), ts64_to_u64_avx_avx2(),
+ * ts64_to_u64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
-static void ts64_to_u64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void ts64_to_u64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const int64_t *s = src->data.s64;
   uint64_t *d = dst->data.u64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1407,14 +1406,13 @@ static void ts64_to_u64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint8_t to int8_t (scalar fallback).
  *
- * SIMD variants: tu8_to_s8_avx512_(), tu8_to_s8_avx_avx2_(),
- * tu8_to_s8_sse4_2_()
+ * SIMD variants: tu8_to_s8_avx512(), tu8_to_s8_avx_avx2(),
+ * tu8_to_s8_sse4_2()
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static void tu8_to_s8_scalar_(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static void tu8_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst) {
   const uint8_t *s = src->data.u8;
   int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
@@ -1424,13 +1422,13 @@ static void tu8_to_s8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint8_t to int32_t (scalar fallback).
  *
- * SIMD variants: tu8_to_s32_avx512_(), tu8_to_s32_avx2_(), tu8_to_s32_sse4_2_()
+ * SIMD variants: tu8_to_s32_avx512(), tu8_to_s32_avx2(), tu8_to_s32_sse4_2()
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static void tu8_to_s32_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tu8_to_s32_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const uint8_t *s = src->data.u8;
   int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
@@ -1440,13 +1438,13 @@ static void tu8_to_s32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint8_t to int64_t (scalar fallback).
  *
- * SIMD variants: tu8_to_s64_avx512_(), tu8_to_s64_avx2_(), tu8_to_s64_sse4_2_()
+ * SIMD variants: tu8_to_s64_avx512(), tu8_to_s64_avx2(), tu8_to_s64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static void tu8_to_s64_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tu8_to_s64_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const uint8_t *s = src->data.u8;
   int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1456,13 +1454,13 @@ static void tu8_to_s64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint32_t to int8_t (scalar fallback).
  *
- * SIMD variants: tu32_to_s8_avx512_()
+ * SIMD variants: tu32_to_s8_avx512()
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static void tu32_to_s8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tu32_to_s8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const uint32_t *s = src->data.u32;
   int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
@@ -1472,14 +1470,14 @@ static void tu32_to_s8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint32_t to int32_t (scalar fallback).
  *
- * SIMD variants: tu32_to_s32_avx512_(), tu32_to_s32_avx_avx2_(),
- * tu32_to_s32_sse4_2_()
+ * SIMD variants: tu32_to_s32_avx512(), tu32_to_s32_avx_avx2(),
+ * tu32_to_s32_sse4_2()
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static void tu32_to_s32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu32_to_s32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint32_t *s = src->data.u32;
   int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
@@ -1489,14 +1487,14 @@ static void tu32_to_s32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint32_t to int64_t (scalar fallback).
  *
- * SIMD variants: tu32_to_s64_avx512_(), tu32_to_s64_avx2_(),
- * tu32_to_s64_sse4_2_()
+ * SIMD variants: tu32_to_s64_avx512(), tu32_to_s64_avx2(),
+ * tu32_to_s64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static void tu32_to_s64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu32_to_s64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint32_t *s = src->data.u32;
   int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1506,13 +1504,13 @@ static void tu32_to_s64_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to int8_t (scalar fallback).
  *
- * SIMD variants: tu64_to_s8_avx512_()
+ * SIMD variants: tu64_to_s8_avx512()
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int8_t.
  */
-static void tu64_to_s8_scalar_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static void tu64_to_s8_scalar(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const uint64_t *s = src->data.u64;
   int8_t *d = dst->data.s8;
   for (size_t i = 0; i < src->size; i++) {
@@ -1522,13 +1520,13 @@ static void tu64_to_s8_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to int32_t (scalar fallback).
  *
- * SIMD variants: tu64_to_s32_avx512_()
+ * SIMD variants: tu64_to_s32_avx512()
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int32_t.
  */
-static void tu64_to_s32_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu64_to_s32_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint64_t *s = src->data.u64;
   int32_t *d = dst->data.s32;
   for (size_t i = 0; i < src->size; i++) {
@@ -1538,14 +1536,14 @@ static void tu64_to_s32_scalar_(const Tensor *restrict src,
 /**
  * @brief Cast every element from uint64_t to int64_t (scalar fallback).
  *
- * SIMD variants: tu64_to_s64_avx512_(), tu64_to_s64_avx_avx2_(),
- * tu64_to_s64_sse4_2_()
+ * SIMD variants: tu64_to_s64_avx512(), tu64_to_s64_avx_avx2(),
+ * tu64_to_s64_sse4_2()
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int64_t.
  */
-static void tu64_to_s64_scalar_(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+static void tu64_to_s64_scalar(const Tensor *restrict src,
+                               Tensor *restrict dst) {
   const uint64_t *s = src->data.u64;
   int64_t *d = dst->data.s64;
   for (size_t i = 0; i < src->size; i++) {
@@ -1566,7 +1564,7 @@ static void tu64_to_s64_scalar_(const Tensor *restrict src,
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx512f"))) static inline void
-tfp16_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1592,7 +1590,7 @@ tfp16_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("f16c"))) static inline void
-tfp16_to_f32_avx_avx2_fp16c_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_f32_avx_avx2_fp16c(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F32_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1618,7 +1616,7 @@ tfp16_to_f32_avx_avx2_fp16c_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-tfp16_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1644,7 +1642,7 @@ tfp16_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("f16c"))) static inline void
-tfp16_to_f64_avx_avx2_fp16c_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_f64_avx_avx2_fp16c(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1671,7 +1669,7 @@ tfp16_to_f64_avx_avx2_fp16c_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type __bf16.
  */
 __attribute__((target("avx512f,avx512bf16"))) static inline void
-tfp16_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 16;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1698,7 +1696,7 @@ tfp16_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type _Float16.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-tf32_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1736,7 +1734,7 @@ tf32_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type _Float16.
  */
 __attribute__((target("f16c"))) static inline void
-tf32_to_fp16_avx_avx2_f16c_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_fp16_avx_avx2_f16c(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1767,7 +1765,7 @@ tf32_to_fp16_avx_avx2_f16c_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx512f"))) static inline void
-tf32_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1793,7 +1791,7 @@ tf32_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx,avx2"))) static inline void
-tf32_to_f64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1819,7 +1817,7 @@ tf32_to_f64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("sse4.2"))) static inline void
-tf32_to_f64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_f64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1846,7 +1844,7 @@ tf32_to_f64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  */
 __attribute__((
     target("avx512f,avx512bf16,avx512bw,avx512vl"))) static inline void
-tf32_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1875,8 +1873,8 @@ tf32_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type _Float16.
  */
 __attribute__((target("avx512f,avx512bf16,avx512fp16"))) static inline void
-tbf16_to_fp16_avx512bf16_fp16_(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+tbf16_to_fp16_avx512bf16_fp16(const Tensor *restrict src,
+                              Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1917,7 +1915,7 @@ tbf16_to_fp16_avx512bf16_fp16_(const Tensor *restrict src,
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx512bf16"))) static inline void
-tbf16_to_f32_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tbf16_to_f32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1944,7 +1942,7 @@ tbf16_to_f32_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx512f,avx512bf16,avx512vl"))) static inline void
-tbf16_to_f64_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tbf16_to_f64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1972,7 +1970,7 @@ tbf16_to_f64_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type _Float16.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-tf64_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -1998,7 +1996,7 @@ tf64_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx512f"))) static inline void
-tf64_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2024,7 +2022,7 @@ tf64_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx,avx2"))) static inline void
-tf64_to_f32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2050,7 +2048,7 @@ tf64_to_f32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("sse4.2"))) static inline void
-tf64_to_f32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_f32_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2076,7 +2074,7 @@ tf64_to_f32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type __bf16.
  */
 __attribute__((target("avx512f,avx512bf16,avx512vl"))) static inline void
-tf64_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2103,7 +2101,7 @@ tf64_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx512fp16,avx512bw,avx512f"))) static inline void
-tfp16_to_s8_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_s8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2138,7 +2136,7 @@ tfp16_to_s8_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx512fp16,avx512f"))) static inline void
-tfp16_to_s32_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2164,7 +2162,7 @@ tfp16_to_s32_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-tfp16_to_s64_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_s64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2190,7 +2188,7 @@ tfp16_to_s64_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx512f,avx512fp16,avx512bw"))) static inline void
-tfp16_to_u8_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_u8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2225,7 +2223,7 @@ tfp16_to_u8_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-tfp16_to_u32_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2251,7 +2249,7 @@ tfp16_to_u32_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-tfp16_to_u64_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2277,7 +2275,7 @@ tfp16_to_u64_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx512bf16,avx512bw,avx512f"))) static inline void
-tbf16_to_s8_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tbf16_to_s8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2317,7 +2315,7 @@ tbf16_to_s8_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx512bf16,avx512f"))) static inline void
-tbf16_to_s32_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tbf16_to_s32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2346,7 +2344,7 @@ tbf16_to_s32_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  */
 __attribute__((
     target("avx512f,avx512bf16,avx512vl,avx512dq"))) static inline void
-tbf16_to_s64_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tbf16_to_s64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2374,7 +2372,7 @@ tbf16_to_s64_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx512bf16,avx512bw,avx512f"))) static inline void
-tbf16_to_u8_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tbf16_to_u8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2414,7 +2412,7 @@ tbf16_to_u8_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx512bf16,avx512f"))) static inline void
-tbf16_to_u32_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2443,7 +2441,7 @@ tbf16_to_u32_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  */
 __attribute__((
     target("avx512f,avx512bf16,avx512vl,avx512dq"))) static inline void
-tbf16_to_u64_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tbf16_to_u64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2471,7 +2469,7 @@ tbf16_to_u64_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx512f,avx512bw"))) static inline void
-tf32_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2506,7 +2504,7 @@ tf32_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx2"))) static inline void
-tf32_to_s8_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_s8_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2541,7 +2539,7 @@ tf32_to_s8_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tf32_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2567,7 +2565,7 @@ tf32_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx,avx2"))) static inline void
-tf32_to_s32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2593,7 +2591,7 @@ tf32_to_s32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-tf32_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2619,7 +2617,7 @@ tf32_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx512f,avx512dq"))) static inline void
-tf32_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2645,7 +2643,7 @@ tf32_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx512f,avx512bw"))) static inline void
-tf32_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2680,7 +2678,7 @@ tf32_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx2"))) static inline void
-tf32_to_u8_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_u8_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2716,7 +2714,7 @@ tf32_to_u8_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tf32_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2742,7 +2740,7 @@ tf32_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx512f,avx512dq"))) static inline void
-tf32_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2768,7 +2766,7 @@ tf32_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx512f,avx2"))) static inline void
-tf64_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2798,7 +2796,7 @@ tf64_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tf64_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2824,7 +2822,7 @@ tf64_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx,avx2"))) static inline void
-tf64_to_s32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2850,7 +2848,7 @@ tf64_to_s32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-tf64_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2876,7 +2874,7 @@ tf64_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx512f,avx512dq"))) static inline void
-tf64_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2902,7 +2900,7 @@ tf64_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx512f,avx2"))) static inline void
-tf64_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2932,7 +2930,7 @@ tf64_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tf64_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2958,7 +2956,7 @@ tf64_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx512f,avx512dq"))) static inline void
-tf64_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tf64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -2984,7 +2982,7 @@ tf64_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type _Float16.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-ts8_to_fp16_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_fp16_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3023,7 +3021,7 @@ ts8_to_fp16_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type _Float16.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-ts32_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3052,7 +3050,7 @@ ts32_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type _Float16.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-ts64_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3078,7 +3076,7 @@ ts64_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type _Float16.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-tu8_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3117,7 +3115,7 @@ tu8_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type _Float16.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-tu32_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3146,7 +3144,7 @@ tu32_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type _Float16.
  */
 __attribute__((target("avx512f,avx512fp16"))) static inline void
-tu64_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3172,7 +3170,7 @@ tu64_to_fp16_avx512fp16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type __bf16.
  */
 __attribute__((target("avx512f,avx512bf16"))) static inline void
-ts8_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3211,7 +3209,7 @@ ts8_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type __bf16.
  */
 __attribute__((target("avx512f,avx512bf16"))) static inline void
-ts32_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3241,7 +3239,7 @@ ts32_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  */
 __attribute__((
     target("avx512f,avx512dq,avx512bf16,avx512vl"))) static inline void
-ts64_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3268,7 +3266,7 @@ ts64_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type __bf16.
  */
 __attribute__((target("avx512f,avx512bf16"))) static inline void
-tu8_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3307,7 +3305,7 @@ tu8_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type __bf16.
  */
 __attribute__((target("avx512f,avx512bf16"))) static inline void
-tu32_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3337,7 +3335,7 @@ tu32_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  */
 __attribute__((
     target("avx512f,avx512dq,avx512bf16,avx512vl"))) static inline void
-tu64_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3364,7 +3362,7 @@ tu64_to_bf16_avx512bf16_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx512f"))) static inline void
-ts8_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3395,7 +3393,7 @@ ts8_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx2"))) static inline void
-ts8_to_f32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_f32_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3430,7 +3428,7 @@ ts8_to_f32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx512f"))) static inline void
-ts32_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3456,7 +3454,7 @@ ts32_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx,avx2"))) static inline void
-ts32_to_f32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3482,7 +3480,7 @@ ts32_to_f32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts32_to_f32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_f32_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3508,7 +3506,7 @@ ts32_to_f32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx512f,avx512dq"))) static inline void
-ts64_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3534,7 +3532,7 @@ ts64_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx512f"))) static inline void
-tu8_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3565,7 +3563,7 @@ tu8_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx2"))) static inline void
-tu8_to_f32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_f32_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3600,7 +3598,7 @@ tu8_to_f32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx512f"))) static inline void
-tu32_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3626,7 +3624,7 @@ tu32_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type float.
  */
 __attribute__((target("avx512f,avx512dq"))) static inline void
-tu64_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3652,7 +3650,7 @@ tu64_to_f32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx512f,avx2"))) static inline void
-ts8_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3679,7 +3677,7 @@ ts8_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx512f"))) static inline void
-ts32_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3705,7 +3703,7 @@ ts32_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx,avx2"))) static inline void
-ts32_to_f64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3731,7 +3729,7 @@ ts32_to_f64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts32_to_f64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_f64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3757,7 +3755,7 @@ ts32_to_f64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx512f,avx512dq"))) static inline void
-ts64_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3783,7 +3781,7 @@ ts64_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx512f,avx2"))) static inline void
-tu8_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3810,7 +3808,7 @@ tu8_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx512f"))) static inline void
-tu32_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3836,7 +3834,7 @@ tu32_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type double.
  */
 __attribute__((target("avx512f,avx512dq"))) static inline void
-tu64_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3862,7 +3860,7 @@ tu64_to_f64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts8_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3893,7 +3891,7 @@ ts8_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx2"))) static inline void
-ts8_to_s32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3928,7 +3926,7 @@ ts8_to_s32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts8_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3962,7 +3960,7 @@ ts8_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts8_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -3988,7 +3986,7 @@ ts8_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx2"))) static inline void
-ts8_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4014,7 +4012,7 @@ ts8_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts8_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4041,7 +4039,7 @@ ts8_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts32_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4076,7 +4074,7 @@ ts32_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts32_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4102,7 +4100,7 @@ ts32_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx2"))) static inline void
-ts32_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4128,7 +4126,7 @@ ts32_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts32_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4154,7 +4152,7 @@ ts32_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx512f,avx512bw"))) static inline void
-ts64_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4180,7 +4178,7 @@ ts64_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts64_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4206,7 +4204,7 @@ ts64_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu8_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4237,7 +4235,7 @@ tu8_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx2"))) static inline void
-tu8_to_u32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_u32_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4272,7 +4270,7 @@ tu8_to_u32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu8_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4298,7 +4296,7 @@ tu8_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx2"))) static inline void
-tu8_to_u64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4324,7 +4322,7 @@ tu8_to_u64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-tu8_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4350,7 +4348,7 @@ tu8_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu32_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4381,7 +4379,7 @@ tu32_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu32_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4407,7 +4405,7 @@ tu32_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx2"))) static inline void
-tu32_to_u64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4433,7 +4431,7 @@ tu32_to_u64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-tu32_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4459,7 +4457,7 @@ tu32_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx512f,avx512bw"))) static inline void
-tu64_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4485,7 +4483,7 @@ tu64_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu64_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4511,7 +4509,7 @@ tu64_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts8_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4536,7 +4534,7 @@ ts8_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx,avx2"))) static inline void
-ts8_to_u8_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_u8_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 32;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4561,7 +4559,7 @@ ts8_to_u8_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts8_to_u8_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_u8_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 16;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4586,7 +4584,7 @@ ts8_to_u8_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu8_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4611,7 +4609,7 @@ tu8_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx,avx2"))) static inline void
-tu8_to_s8_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_s8_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 32;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4636,7 +4634,7 @@ tu8_to_s8_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-tu8_to_s8_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_s8_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 16;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4661,7 +4659,7 @@ tu8_to_s8_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts8_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4692,7 +4690,7 @@ ts8_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx2"))) static inline void
-ts8_to_u32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_u32_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4727,7 +4725,7 @@ ts8_to_u32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts8_to_u32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_u32_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S8_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4761,7 +4759,7 @@ ts8_to_u32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts8_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts8_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4787,7 +4785,7 @@ ts8_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx512f,avx512bw"))) static inline void
-ts32_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4818,7 +4816,7 @@ ts32_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx2"))) static inline void
-ts32_to_u8_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_u8_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4849,7 +4847,7 @@ ts32_to_u8_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts32_to_u8_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_u8_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4880,7 +4878,7 @@ ts32_to_u8_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts32_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4905,7 +4903,7 @@ ts32_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx,avx2"))) static inline void
-ts32_to_u32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 8;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4930,7 +4928,7 @@ ts32_to_u32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts32_to_u32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_u32_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 4;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4955,7 +4953,7 @@ ts32_to_u32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts32_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -4981,7 +4979,7 @@ ts32_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx2"))) static inline void
-ts32_to_u64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5007,7 +5005,7 @@ ts32_to_u64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts32_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts32_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5033,7 +5031,7 @@ ts32_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint8_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts64_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5059,7 +5057,7 @@ ts64_to_u8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts64_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5085,7 +5083,7 @@ ts64_to_u32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx512f"))) static inline void
-ts64_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5110,7 +5108,7 @@ ts64_to_u64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("avx,avx2"))) static inline void
-ts64_to_u64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 4;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5135,7 +5133,7 @@ ts64_to_u64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type uint64_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-ts64_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+ts64_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5160,7 +5158,7 @@ ts64_to_u64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu8_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5191,7 +5189,7 @@ tu8_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx2"))) static inline void
-tu8_to_s32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5226,7 +5224,7 @@ tu8_to_s32_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-tu8_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5260,7 +5258,7 @@ tu8_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu8_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5286,7 +5284,7 @@ tu8_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx2"))) static inline void
-tu8_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5312,7 +5310,7 @@ tu8_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-tu8_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu8_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5338,7 +5336,7 @@ tu8_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx512f,avx512bw"))) static inline void
-tu32_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5369,7 +5367,7 @@ tu32_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu32_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5394,7 +5392,7 @@ tu32_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx,avx2"))) static inline void
-tu32_to_s32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 8;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5419,7 +5417,7 @@ tu32_to_s32_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-tu32_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 4;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5444,7 +5442,7 @@ tu32_to_s32_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu32_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5470,7 +5468,7 @@ tu32_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx2"))) static inline void
-tu32_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5496,7 +5494,7 @@ tu32_to_s64_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-tu32_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu32_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5522,7 +5520,7 @@ tu32_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int8_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu64_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5548,7 +5546,7 @@ tu64_to_s8_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int32_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu64_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5574,7 +5572,7 @@ tu64_to_s32_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx512f"))) static inline void
-tu64_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5599,7 +5597,7 @@ tu64_to_s64_avx512_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("avx,avx2"))) static inline void
-tu64_to_s64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_s64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 4;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5625,7 +5623,7 @@ tu64_to_s64_avx_avx2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @param[out] dst  Destination tensor with element type int64_t.
  */
 __attribute__((target("sse4.2"))) static inline void
-tu64_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
+tu64_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst) {
   const size_t step = 2;
   size_t i = 0;
   size_t rem = src->size % step;
@@ -5650,943 +5648,933 @@ tu64_to_s64_sse4_2_(const Tensor *restrict src, Tensor *restrict dst) {
  * @brief Dispatch table for fp16 to f32 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_f32_avx512_() — Requires: AVX512F
- * - Index 1: tfp16_to_f32_avx_avx2_fp16c_() — Requires: F16C
- * - Index 2: tfp16_to_f32_scalar_() — Portable fallback
+ * - Index 0: tfp16_to_f32_avx512() — Requires: AVX512F
+ * - Index 1: tfp16_to_f32_avx_avx2_fp16c() — Requires: F16C
+ * - Index 2: tfp16_to_f32_scalar() — Portable fallback
  */
-const castFn lookup_tfp16_to_f32_[] = {
-    tfp16_to_f32_avx512_, tfp16_to_f32_avx_avx2_fp16c_, tfp16_to_f32_scalar_};
+const CastFn lookup_tfp16_to_f32[] = {
+    tfp16_to_f32_avx512, tfp16_to_f32_avx_avx2_fp16c, tfp16_to_f32_scalar};
 
 /**
  * @brief Dispatch table for fp16 to f64 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_f64_avx512_() — Requires: AVX512F
- * - Index 1: tfp16_to_f64_avx_avx2_fp16c_() — Requires: F16C
- * - Index 2: tfp16_to_f64_scalar_() — Portable fallback
+ * - Index 0: tfp16_to_f64_avx512() — Requires: AVX512F
+ * - Index 1: tfp16_to_f64_avx_avx2_fp16c() — Requires: F16C
+ * - Index 2: tfp16_to_f64_scalar() — Portable fallback
  */
-const castFn lookup_tfp16_to_f64_[] = {
-    tfp16_to_f64_avx512_, tfp16_to_f64_avx_avx2_fp16c_, tfp16_to_f64_scalar_};
+const CastFn lookup_tfp16_to_f64[] = {
+    tfp16_to_f64_avx512, tfp16_to_f64_avx_avx2_fp16c, tfp16_to_f64_scalar};
 
 /**
  * @brief Dispatch table for fp16 to bf16 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: tfp16_to_bf16_scalar_() — Portable fallback
+ * - Index 0: tfp16_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 1: tfp16_to_bf16_scalar() — Portable fallback
  */
-const castFn lookup_tfp16_to_bf16_[] = {tfp16_to_bf16_avx512bf16_,
-                                        tfp16_to_bf16_scalar_};
+const CastFn lookup_tfp16_to_bf16[] = {tfp16_to_bf16_avx512bf16,
+                                       tfp16_to_bf16_scalar};
 
 /**
  * @brief Dispatch table for f32 to fp16 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_fp16_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: tf32_to_fp16_avx_avx2_f16c_() — Requires: F16C
- * - Index 2: tf32_to_fp16_scalar_() — Portable fallback
+ * - Index 0: tf32_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: tf32_to_fp16_avx_avx2_f16c() — Requires: F16C
+ * - Index 2: tf32_to_fp16_scalar() — Portable fallback
  */
-const castFn lookup_tf32_to_fp16_[] = {tf32_to_fp16_avx512fp16_,
-                                       tf32_to_fp16_avx_avx2_f16c_,
-                                       tf32_to_fp16_scalar_};
+const CastFn lookup_tf32_to_fp16[] = {
+    tf32_to_fp16_avx512fp16, tf32_to_fp16_avx_avx2_f16c, tf32_to_fp16_scalar};
 
 /**
  * @brief Dispatch table for f32 to f64 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_f64_avx512_() — Requires: AVX512F
- * - Index 1: tf32_to_f64_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: tf32_to_f64_sse4_2_() — Requires: SSE4.2
- * - Index 3: tf32_to_f64_scalar_() — Portable fallback
+ * - Index 0: tf32_to_f64_avx512() — Requires: AVX512F
+ * - Index 1: tf32_to_f64_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: tf32_to_f64_sse4_2() — Requires: SSE4.2
+ * - Index 3: tf32_to_f64_scalar() — Portable fallback
  */
-const castFn lookup_tf32_to_f64_[] = {tf32_to_f64_avx512_,
-                                      tf32_to_f64_avx_avx2_,
-                                      tf32_to_f64_sse4_2_, tf32_to_f64_scalar_};
+const CastFn lookup_tf32_to_f64[] = {tf32_to_f64_avx512, tf32_to_f64_avx_avx2,
+                                     tf32_to_f64_sse4_2, tf32_to_f64_scalar};
 
 /**
  * @brief Dispatch table for f32 to bf16 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: tf32_to_bf16_scalar_() — Portable fallback
+ * - Index 0: tf32_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 1: tf32_to_bf16_scalar() — Portable fallback
  */
-const castFn lookup_tf32_to_bf16_[] = {tf32_to_bf16_avx512bf16_,
-                                       tf32_to_bf16_scalar_};
+const CastFn lookup_tf32_to_bf16[] = {tf32_to_bf16_avx512bf16,
+                                      tf32_to_bf16_scalar};
 
 /**
  * @brief Dispatch table for bf16 to fp16 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_fp16_avx512bf16_fp16_() — Requires: AVX512F, AVX512BF16,
+ * - Index 0: tbf16_to_fp16_avx512bf16_fp16() — Requires: AVX512F, AVX512BF16,
  * AVX512FP16
- * - Index 1: tbf16_to_fp16_scalar_() — Portable fallback
+ * - Index 1: tbf16_to_fp16_scalar() — Portable fallback
  */
-const castFn lookup_tbf16_to_fp16_[] = {tbf16_to_fp16_avx512bf16_fp16_,
-                                        tbf16_to_fp16_scalar_};
+const CastFn lookup_tbf16_to_fp16[] = {tbf16_to_fp16_avx512bf16_fp16,
+                                       tbf16_to_fp16_scalar};
 
 /**
  * @brief Dispatch table for bf16 to f32 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_f32_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: tbf16_to_f32_scalar_() — Portable fallback
+ * - Index 0: tbf16_to_f32_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 1: tbf16_to_f32_scalar() — Portable fallback
  */
-const castFn lookup_tbf16_to_f32_[] = {tbf16_to_f32_avx512bf16_,
-                                       tbf16_to_f32_scalar_};
+const CastFn lookup_tbf16_to_f32[] = {tbf16_to_f32_avx512bf16,
+                                      tbf16_to_f32_scalar};
 
 /**
  * @brief Dispatch table for bf16 to f64 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_f64_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: tbf16_to_f64_scalar_() — Portable fallback
+ * - Index 0: tbf16_to_f64_avx512bf16() — Requires: AVX512F, AVX512BF16,
+ * AVX512VL
+ * - Index 1: tbf16_to_f64_scalar() — Portable fallback
  */
-const castFn lookup_tbf16_to_f64_[] = {tbf16_to_f64_avx512bf16_,
-                                       tbf16_to_f64_scalar_};
+const CastFn lookup_tbf16_to_f64[] = {tbf16_to_f64_avx512bf16,
+                                      tbf16_to_f64_scalar};
 
 /**
  * @brief Dispatch table for f64 to fp16 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_fp16_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: tf64_to_fp16_scalar_() — Portable fallback
+ * - Index 0: tf64_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: tf64_to_fp16_scalar() — Portable fallback
  */
-const castFn lookup_tf64_to_fp16_[] = {tf64_to_fp16_avx512fp16_,
-                                       tf64_to_fp16_scalar_};
+const CastFn lookup_tf64_to_fp16[] = {tf64_to_fp16_avx512fp16,
+                                      tf64_to_fp16_scalar};
 
 /**
  * @brief Dispatch table for f64 to f32 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_f32_avx512_() — Requires: AVX512F
- * - Index 1: tf64_to_f32_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: tf64_to_f32_sse4_2_() — Requires: SSE4.2
- * - Index 3: tf64_to_f32_scalar_() — Portable fallback
+ * - Index 0: tf64_to_f32_avx512() — Requires: AVX512F
+ * - Index 1: tf64_to_f32_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: tf64_to_f32_sse4_2() — Requires: SSE4.2
+ * - Index 3: tf64_to_f32_scalar() — Portable fallback
  */
-const castFn lookup_tf64_to_f32_[] = {tf64_to_f32_avx512_,
-                                      tf64_to_f32_avx_avx2_,
-                                      tf64_to_f32_sse4_2_, tf64_to_f32_scalar_};
+const CastFn lookup_tf64_to_f32[] = {tf64_to_f32_avx512, tf64_to_f32_avx_avx2,
+                                     tf64_to_f32_sse4_2, tf64_to_f32_scalar};
 
 /**
  * @brief Dispatch table for f64 to bf16 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: tf64_to_bf16_scalar_() — Portable fallback
+ * - Index 0: tf64_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 1: tf64_to_bf16_scalar() — Portable fallback
  */
-const castFn lookup_tf64_to_bf16_[] = {tf64_to_bf16_avx512bf16_,
-                                       tf64_to_bf16_scalar_};
+const CastFn lookup_tf64_to_bf16[] = {tf64_to_bf16_avx512bf16,
+                                      tf64_to_bf16_scalar};
 
 /**
  * @brief Dispatch table for fp16 to s8 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_s8_avx512fp16_() — Requires: AVX512FP16, AVX512BW,
+ * - Index 0: tfp16_to_s8_avx512fp16() — Requires: AVX512FP16, AVX512BW,
  * AVX512F
- * - Index 1: tfp16_to_s8_scalar_() — Portable fallback
+ * - Index 1: tfp16_to_s8_scalar() — Portable fallback
  */
-const castFn lookup_tfp16_to_s8_[] = {tfp16_to_s8_avx512fp16_,
-                                      tfp16_to_s8_scalar_};
+const CastFn lookup_tfp16_to_s8[] = {tfp16_to_s8_avx512fp16,
+                                     tfp16_to_s8_scalar};
 
 /**
  * @brief Dispatch table for fp16 to s32 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_s32_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: tfp16_to_s32_scalar_() — Portable fallback
+ * - Index 0: tfp16_to_s32_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: tfp16_to_s32_scalar() — Portable fallback
  */
-const castFn lookup_tfp16_to_s32_[] = {tfp16_to_s32_avx512fp16_,
-                                       tfp16_to_s32_scalar_};
+const CastFn lookup_tfp16_to_s32[] = {tfp16_to_s32_avx512fp16,
+                                      tfp16_to_s32_scalar};
 
 /**
  * @brief Dispatch table for fp16 to s64 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_s64_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: tfp16_to_s64_scalar_() — Portable fallback
+ * - Index 0: tfp16_to_s64_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: tfp16_to_s64_scalar() — Portable fallback
  */
-const castFn lookup_tfp16_to_s64_[] = {tfp16_to_s64_avx512fp16_,
-                                       tfp16_to_s64_scalar_};
+const CastFn lookup_tfp16_to_s64[] = {tfp16_to_s64_avx512fp16,
+                                      tfp16_to_s64_scalar};
 
 /**
  * @brief Dispatch table for fp16 to u8 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_u8_avx512fp16_() — Requires: AVX512FP16, AVX512BW,
+ * - Index 0: tfp16_to_u8_avx512fp16() — Requires: AVX512FP16, AVX512BW,
  * AVX512F
- * - Index 1: tfp16_to_u8_scalar_() — Portable fallback
+ * - Index 1: tfp16_to_u8_scalar() — Portable fallback
  */
-const castFn lookup_tfp16_to_u8_[] = {tfp16_to_u8_avx512fp16_,
-                                      tfp16_to_u8_scalar_};
+const CastFn lookup_tfp16_to_u8[] = {tfp16_to_u8_avx512fp16,
+                                     tfp16_to_u8_scalar};
 
 /**
  * @brief Dispatch table for fp16 to u32 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_u32_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: tfp16_to_u32_scalar_() — Portable fallback
+ * - Index 0: tfp16_to_u32_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: tfp16_to_u32_scalar() — Portable fallback
  */
-const castFn lookup_tfp16_to_u32_[] = {tfp16_to_u32_avx512fp16_,
-                                       tfp16_to_u32_scalar_};
+const CastFn lookup_tfp16_to_u32[] = {tfp16_to_u32_avx512fp16,
+                                      tfp16_to_u32_scalar};
 
 /**
  * @brief Dispatch table for fp16 to u64 conversions.
  *
  * Variants:
- * - Index 0: tfp16_to_u64_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: tfp16_to_u64_scalar_() — Portable fallback
+ * - Index 0: tfp16_to_u64_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: tfp16_to_u64_scalar() — Portable fallback
  */
-const castFn lookup_tfp16_to_u64_[] = {tfp16_to_u64_avx512fp16_,
-                                       tfp16_to_u64_scalar_};
+const CastFn lookup_tfp16_to_u64[] = {tfp16_to_u64_avx512fp16,
+                                      tfp16_to_u64_scalar};
 
 /**
  * @brief Dispatch table for f32 to s8 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_s8_avx512_() — Requires: AVX512F, AVX512BW
- * - Index 1: tf32_to_s8_avx2_() — Requires: AVX2
- * - Index 2: tf32_to_s8_scalar_() — Portable fallback
+ * - Index 0: tf32_to_s8_avx512() — Requires: AVX512F, AVX512BW
+ * - Index 1: tf32_to_s8_avx2() — Requires: AVX2
+ * - Index 2: tf32_to_s8_scalar() — Portable fallback
  */
-const castFn lookup_tf32_to_s8_[] = {tf32_to_s8_avx512_, tf32_to_s8_avx2_,
-                                     tf32_to_s8_scalar_};
+const CastFn lookup_tf32_to_s8[] = {tf32_to_s8_avx512, tf32_to_s8_avx2,
+                                    tf32_to_s8_scalar};
 
 /**
  * @brief Dispatch table for f32 to s32 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_s32_avx512_() — Requires: AVX512F
- * - Index 1: tf32_to_s32_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: tf32_to_s32_sse4_2_() — Requires: SSE4.2
- * - Index 3: tf32_to_s32_scalar_() — Portable fallback
+ * - Index 0: tf32_to_s32_avx512() — Requires: AVX512F
+ * - Index 1: tf32_to_s32_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: tf32_to_s32_sse4_2() — Requires: SSE4.2
+ * - Index 3: tf32_to_s32_scalar() — Portable fallback
  */
-const castFn lookup_tf32_to_s32_[] = {tf32_to_s32_avx512_,
-                                      tf32_to_s32_avx_avx2_,
-                                      tf32_to_s32_sse4_2_, tf32_to_s32_scalar_};
+const CastFn lookup_tf32_to_s32[] = {tf32_to_s32_avx512, tf32_to_s32_avx_avx2,
+                                     tf32_to_s32_sse4_2, tf32_to_s32_scalar};
 
 /**
  * @brief Dispatch table for f32 to s64 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_s64_avx512_() — Requires: AVX512F, AVX512DQ
- * - Index 1: tf32_to_s64_scalar_() — Portable fallback
+ * - Index 0: tf32_to_s64_avx512() — Requires: AVX512F, AVX512DQ
+ * - Index 1: tf32_to_s64_scalar() — Portable fallback
  */
-const castFn lookup_tf32_to_s64_[] = {tf32_to_s64_avx512_, tf32_to_s64_scalar_};
+const CastFn lookup_tf32_to_s64[] = {tf32_to_s64_avx512, tf32_to_s64_scalar};
 
 /**
  * @brief Dispatch table for f32 to u8 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_u8_avx512_() — Requires: AVX512F, AVX512BW
- * - Index 1: tf32_to_u8_avx2_() — Requires: AVX2
- * - Index 2: tf32_to_u8_scalar_() — Portable fallback
+ * - Index 0: tf32_to_u8_avx512() — Requires: AVX512F, AVX512BW
+ * - Index 1: tf32_to_u8_avx2() — Requires: AVX2
+ * - Index 2: tf32_to_u8_scalar() — Portable fallback
  */
-const castFn lookup_tf32_to_u8_[] = {tf32_to_u8_avx512_, tf32_to_u8_avx2_,
-                                     tf32_to_u8_scalar_};
+const CastFn lookup_tf32_to_u8[] = {tf32_to_u8_avx512, tf32_to_u8_avx2,
+                                    tf32_to_u8_scalar};
 
 /**
  * @brief Dispatch table for f32 to u32 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_u32_avx512_() — Requires: AVX512F
- * - Index 1: tf32_to_u32_scalar_() — Portable fallback
+ * - Index 0: tf32_to_u32_avx512() — Requires: AVX512F
+ * - Index 1: tf32_to_u32_scalar() — Portable fallback
  */
-const castFn lookup_tf32_to_u32_[] = {tf32_to_u32_avx512_, tf32_to_u32_scalar_};
+const CastFn lookup_tf32_to_u32[] = {tf32_to_u32_avx512, tf32_to_u32_scalar};
 
 /**
  * @brief Dispatch table for f32 to u64 conversions.
  *
  * Variants:
- * - Index 0: tf32_to_u64_avx512_() — Requires: AVX512F, AVX512DQ
- * - Index 1: tf32_to_u64_scalar_() — Portable fallback
+ * - Index 0: tf32_to_u64_avx512() — Requires: AVX512F, AVX512DQ
+ * - Index 1: tf32_to_u64_scalar() — Portable fallback
  */
-const castFn lookup_tf32_to_u64_[] = {tf32_to_u64_avx512_, tf32_to_u64_scalar_};
+const CastFn lookup_tf32_to_u64[] = {tf32_to_u64_avx512, tf32_to_u64_scalar};
 
 /**
  * @brief Dispatch table for bf16 to s8 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_s8_avx512bf16_() — Requires: AVX512BF16, AVX512BW,
+ * - Index 0: tbf16_to_s8_avx512bf16() — Requires: AVX512BF16, AVX512BW,
  * AVX512F
- * - Index 1: tbf16_to_s8_scalar_() — Portable fallback
+ * - Index 1: tbf16_to_s8_scalar() — Portable fallback
  */
-const castFn lookup_tbf16_to_s8_[] = {tbf16_to_s8_avx512bf16_,
-                                      tbf16_to_s8_scalar_};
+const CastFn lookup_tbf16_to_s8[] = {tbf16_to_s8_avx512bf16,
+                                     tbf16_to_s8_scalar};
 
 /**
  * @brief Dispatch table for bf16 to s32 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_s32_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: tbf16_to_s32_scalar_() — Portable fallback
+ * - Index 0: tbf16_to_s32_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 1: tbf16_to_s32_scalar() — Portable fallback
  */
-const castFn lookup_tbf16_to_s32_[] = {tbf16_to_s32_avx512bf16_,
-                                       tbf16_to_s32_scalar_};
+const CastFn lookup_tbf16_to_s32[] = {tbf16_to_s32_avx512bf16,
+                                      tbf16_to_s32_scalar};
 
 /**
  * @brief Dispatch table for bf16 to s64 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_s64_avx512bf16_() — Requires: AVX512F, AVX512BF16,
+ * - Index 0: tbf16_to_s64_avx512bf16() — Requires: AVX512F, AVX512BF16,
  * AVX512VL, AVX512DQ
- * - Index 1: tbf16_to_s64_scalar_() — Portable fallback
+ * - Index 1: tbf16_to_s64_scalar() — Portable fallback
  */
-const castFn lookup_tbf16_to_s64_[] = {tbf16_to_s64_avx512bf16_,
-                                       tbf16_to_s64_scalar_};
+const CastFn lookup_tbf16_to_s64[] = {tbf16_to_s64_avx512bf16,
+                                      tbf16_to_s64_scalar};
 
 /**
  * @brief Dispatch table for bf16 to u8 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_u8_avx512bf16_() — Requires: AVX512BF16, AVX512BW,
+ * - Index 0: tbf16_to_u8_avx512bf16() — Requires: AVX512BF16, AVX512BW,
  * AVX512F
- * - Index 1: tbf16_to_u8_scalar_() — Portable fallback
+ * - Index 1: tbf16_to_u8_scalar() — Portable fallback
  */
-const castFn lookup_tbf16_to_u8_[] = {tbf16_to_u8_avx512bf16_,
-                                      tbf16_to_u8_scalar_};
+const CastFn lookup_tbf16_to_u8[] = {tbf16_to_u8_avx512bf16,
+                                     tbf16_to_u8_scalar};
 
 /**
  * @brief Dispatch table for bf16 to u32 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_u32_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: tbf16_to_u32_scalar_() — Portable fallback
+ * - Index 0: tbf16_to_u32_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 1: tbf16_to_u32_scalar() — Portable fallback
  */
-const castFn lookup_tbf16_to_u32_[] = {tbf16_to_u32_avx512bf16_,
-                                       tbf16_to_u32_scalar_};
+const CastFn lookup_tbf16_to_u32[] = {tbf16_to_u32_avx512bf16,
+                                      tbf16_to_u32_scalar};
 
 /**
  * @brief Dispatch table for bf16 to u64 conversions.
  *
  * Variants:
- * - Index 0: tbf16_to_u64_avx512bf16_() — Requires: AVX512F, AVX512BF16,
+ * - Index 0: tbf16_to_u64_avx512bf16() — Requires: AVX512F, AVX512BF16,
  * AVX512VL, AVX512DQ
- * - Index 1: tbf16_to_u64_scalar_() — Portable fallback
+ * - Index 1: tbf16_to_u64_scalar() — Portable fallback
  */
-const castFn lookup_tbf16_to_u64_[] = {tbf16_to_u64_avx512bf16_,
-                                       tbf16_to_u64_scalar_};
+const CastFn lookup_tbf16_to_u64[] = {tbf16_to_u64_avx512bf16,
+                                      tbf16_to_u64_scalar};
 
 /**
  * @brief Dispatch table for f64 to s8 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_s8_avx512_() — Requires: AVX512F
- * - Index 1: tf64_to_s8_scalar_() — Portable fallback
+ * - Index 0: tf64_to_s8_avx512() — Requires: AVX512F, AVX2
+ * - Index 1: tf64_to_s8_scalar() — Portable fallback
  */
-const castFn lookup_tf64_to_s8_[] = {tf64_to_s8_avx512_, tf64_to_s8_scalar_};
+const CastFn lookup_tf64_to_s8[] = {tf64_to_s8_avx512, tf64_to_s8_scalar};
 
 /**
  * @brief Dispatch table for f64 to s32 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_s32_avx512_() — Requires: AVX512F
- * - Index 1: tf64_to_s32_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: tf64_to_s32_sse4_2_() — Requires: SSE4.2
- * - Index 3: tf64_to_s32_scalar_() — Portable fallback
+ * - Index 0: tf64_to_s32_avx512() — Requires: AVX512F
+ * - Index 1: tf64_to_s32_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: tf64_to_s32_sse4_2() — Requires: SSE4.2
+ * - Index 3: tf64_to_s32_scalar() — Portable fallback
  */
-const castFn lookup_tf64_to_s32_[] = {tf64_to_s32_avx512_,
-                                      tf64_to_s32_avx_avx2_,
-                                      tf64_to_s32_sse4_2_, tf64_to_s32_scalar_};
+const CastFn lookup_tf64_to_s32[] = {tf64_to_s32_avx512, tf64_to_s32_avx_avx2,
+                                     tf64_to_s32_sse4_2, tf64_to_s32_scalar};
 
 /**
  * @brief Dispatch table for f64 to s64 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_s64_avx512_() — Requires: AVX512F
- * - Index 1: tf64_to_s64_scalar_() — Portable fallback
+ * - Index 0: tf64_to_s64_avx512() — Requires: AVX512F
+ * - Index 1: tf64_to_s64_scalar() — Portable fallback
  */
-const castFn lookup_tf64_to_s64_[] = {tf64_to_s64_avx512_, tf64_to_s64_scalar_};
+const CastFn lookup_tf64_to_s64[] = {tf64_to_s64_avx512, tf64_to_s64_scalar};
 
 /**
  * @brief Dispatch table for f64 to u8 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_u8_avx512_() — Requires: AVX512F
- * - Index 1: tf64_to_u8_scalar_() — Portable fallback
+ * - Index 0: tf64_to_u8_avx512() — Requires: AVX512F, AVX2
+ * - Index 1: tf64_to_u8_scalar() — Portable fallback
  */
-const castFn lookup_tf64_to_u8_[] = {tf64_to_u8_avx512_, tf64_to_u8_scalar_};
+const CastFn lookup_tf64_to_u8[] = {tf64_to_u8_avx512, tf64_to_u8_scalar};
 
 /**
  * @brief Dispatch table for f64 to u32 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_u32_avx512_() — Requires: AVX512F
- * - Index 1: tf64_to_u32_scalar_() — Portable fallback
+ * - Index 0: tf64_to_u32_avx512() — Requires: AVX512F
+ * - Index 1: tf64_to_u32_scalar() — Portable fallback
  */
-const castFn lookup_tf64_to_u32_[] = {tf64_to_u32_avx512_, tf64_to_u32_scalar_};
+const CastFn lookup_tf64_to_u32[] = {tf64_to_u32_avx512, tf64_to_u32_scalar};
 
 /**
  * @brief Dispatch table for f64 to u64 conversions.
  *
  * Variants:
- * - Index 0: tf64_to_u64_avx512_() — Requires: AVX512F, AVX512DQ
- * - Index 1: tf64_to_u64_scalar_() — Portable fallback
+ * - Index 0: tf64_to_u64_avx512() — Requires: AVX512F, AVX512DQ
+ * - Index 1: tf64_to_u64_scalar() — Portable fallback
  */
-const castFn lookup_tf64_to_u64_[] = {tf64_to_u64_avx512_, tf64_to_u64_scalar_};
+const CastFn lookup_tf64_to_u64[] = {tf64_to_u64_avx512, tf64_to_u64_scalar};
 
 /**
  * @brief Dispatch table for s8 to fp16 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_fp16_avx512_() — Requires: AVX512F, AVX512FP16
- * - Index 1: ts8_to_fp16_scalar_() — Portable fallback
+ * - Index 0: ts8_to_fp16_avx512() — Requires: AVX512F, AVX512FP16
+ * - Index 1: ts8_to_fp16_scalar() — Portable fallback
  */
-const castFn lookup_ts8_to_fp16_[] = {ts8_to_fp16_avx512_, ts8_to_fp16_scalar_};
+const CastFn lookup_ts8_to_fp16[] = {ts8_to_fp16_avx512, ts8_to_fp16_scalar};
 
 /**
  * @brief Dispatch table for s32 to fp16 conversions.
  *
  * Variants:
- * - Index 0: ts32_to_fp16_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: ts32_to_fp16_scalar_() — Portable fallback
+ * - Index 0: ts32_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: ts32_to_fp16_scalar() — Portable fallback
  */
-const castFn lookup_ts32_to_fp16_[] = {ts32_to_fp16_avx512fp16_,
-                                       ts32_to_fp16_scalar_};
+const CastFn lookup_ts32_to_fp16[] = {ts32_to_fp16_avx512fp16,
+                                      ts32_to_fp16_scalar};
 
 /**
  * @brief Dispatch table for s64 to fp16 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_fp16_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: ts64_to_fp16_scalar_() — Portable fallback
+ * - Index 0: ts64_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: ts64_to_fp16_scalar() — Portable fallback
  */
-const castFn lookup_ts64_to_fp16_[] = {ts64_to_fp16_avx512fp16_,
-                                       ts64_to_fp16_scalar_};
+const CastFn lookup_ts64_to_fp16[] = {ts64_to_fp16_avx512fp16,
+                                      ts64_to_fp16_scalar};
 
 /**
  * @brief Dispatch table for u8 to fp16 conversions.
  *
  * Variants:
- * - Index 0: tu8_to_fp16_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: tu8_to_fp16_scalar_() — Portable fallback
+ * - Index 0: tu8_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: tu8_to_fp16_scalar() — Portable fallback
  */
-const castFn lookup_tu8_to_fp16_[] = {tu8_to_fp16_avx512fp16_,
-                                      tu8_to_fp16_scalar_};
+const CastFn lookup_tu8_to_fp16[] = {tu8_to_fp16_avx512fp16,
+                                     tu8_to_fp16_scalar};
 
 /**
  * @brief Dispatch table for u32 to fp16 conversions.
  *
  * Variants:
- * - Index 0: tu32_to_fp16_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: tu32_to_fp16_scalar_() — Portable fallback
+ * - Index 0: tu32_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: tu32_to_fp16_scalar() — Portable fallback
  */
-const castFn lookup_tu32_to_fp16_[] = {tu32_to_fp16_avx512fp16_,
-                                       tu32_to_fp16_scalar_};
+const CastFn lookup_tu32_to_fp16[] = {tu32_to_fp16_avx512fp16,
+                                      tu32_to_fp16_scalar};
 
 /**
  * @brief Dispatch table for u64 to fp16 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_fp16_avx512fp16_() — Requires: AVX512F, AVX512FP16
- * - Index 1: tu64_to_fp16_scalar_() — Portable fallback
+ * - Index 0: tu64_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
+ * - Index 1: tu64_to_fp16_scalar() — Portable fallback
  */
-const castFn lookup_tu64_to_fp16_[] = {tu64_to_fp16_avx512fp16_,
-                                       tu64_to_fp16_scalar_};
+const CastFn lookup_tu64_to_fp16[] = {tu64_to_fp16_avx512fp16,
+                                      tu64_to_fp16_scalar};
 
 /**
  * @brief Dispatch table for s8 to bf16 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: ts8_to_bf16_scalar_() — Portable fallback
+ * - Index 0: ts8_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 1: ts8_to_bf16_scalar() — Portable fallback
  */
-const castFn lookup_ts8_to_bf16_[] = {ts8_to_bf16_avx512bf16_,
-                                      ts8_to_bf16_scalar_};
+const CastFn lookup_ts8_to_bf16[] = {ts8_to_bf16_avx512bf16,
+                                     ts8_to_bf16_scalar};
 
 /**
  * @brief Dispatch table for s32 to bf16 conversions.
  *
  * Variants:
- * - Index 0: ts32_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: ts32_to_bf16_scalar_() — Portable fallback
+ * - Index 0: ts32_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 1: ts32_to_bf16_scalar() — Portable fallback
  */
-const castFn lookup_ts32_to_bf16_[] = {ts32_to_bf16_avx512bf16_,
-                                       ts32_to_bf16_scalar_};
+const CastFn lookup_ts32_to_bf16[] = {ts32_to_bf16_avx512bf16,
+                                      ts32_to_bf16_scalar};
 
 /**
  * @brief Dispatch table for s64 to bf16 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512DQ,
+ * - Index 0: ts64_to_bf16_avx512bf16() — Requires: AVX512F, AVX512DQ,
  * AVX512BF16, AVX512VL
- * - Index 1: ts64_to_bf16_scalar_() — Portable fallback
+ * - Index 1: ts64_to_bf16_scalar() — Portable fallback
  */
-const castFn lookup_ts64_to_bf16_[] = {ts64_to_bf16_avx512bf16_,
-                                       ts64_to_bf16_scalar_};
+const CastFn lookup_ts64_to_bf16[] = {ts64_to_bf16_avx512bf16,
+                                      ts64_to_bf16_scalar};
 
 /**
  * @brief Dispatch table for u8 to bf16 conversions.
  *
  * Variants:
- * - Index 0: tu8_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: tu8_to_bf16_scalar_() — Portable fallback
+ * - Index 0: tu8_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 1: tu8_to_bf16_scalar() — Portable fallback
  */
-const castFn lookup_tu8_to_bf16_[] = {tu8_to_bf16_avx512bf16_,
-                                      tu8_to_bf16_scalar_};
+const CastFn lookup_tu8_to_bf16[] = {tu8_to_bf16_avx512bf16,
+                                     tu8_to_bf16_scalar};
 
 /**
  * @brief Dispatch table for u32 to bf16 conversions.
  *
  * Variants:
- * - Index 0: tu32_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512BF16
- * - Index 1: tu32_to_bf16_scalar_() — Portable fallback
+ * - Index 0: tu32_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
+ * - Index 1: tu32_to_bf16_scalar() — Portable fallback
  */
-const castFn lookup_tu32_to_bf16_[] = {tu32_to_bf16_avx512bf16_,
-                                       tu32_to_bf16_scalar_};
+const CastFn lookup_tu32_to_bf16[] = {tu32_to_bf16_avx512bf16,
+                                      tu32_to_bf16_scalar};
 
 /**
  * @brief Dispatch table for u64 to bf16 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_bf16_avx512bf16_() — Requires: AVX512F, AVX512DQ,
+ * - Index 0: tu64_to_bf16_avx512bf16() — Requires: AVX512F, AVX512DQ,
  * AVX512BF16, AVX512VL
- * - Index 1: tu64_to_bf16_scalar_() — Portable fallback
+ * - Index 1: tu64_to_bf16_scalar() — Portable fallback
  */
-const castFn lookup_tu64_to_bf16_[] = {tu64_to_bf16_avx512bf16_,
-                                       tu64_to_bf16_scalar_};
+const CastFn lookup_tu64_to_bf16[] = {tu64_to_bf16_avx512bf16,
+                                      tu64_to_bf16_scalar};
 
 /**
  * @brief Dispatch table for s8 to f32 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_f32_avx512_() — Requires: AVX512F
- * - Index 1: ts8_to_f32_avx2_() — Requires: AVX2
- * - Index 2: ts8_to_f32_scalar_() — Portable fallback
+ * - Index 0: ts8_to_f32_avx512() — Requires: AVX512F
+ * - Index 1: ts8_to_f32_avx2() — Requires: AVX2
+ * - Index 2: ts8_to_f32_scalar() — Portable fallback
  */
-const castFn lookup_ts8_to_f32_[] = {ts8_to_f32_avx512_, ts8_to_f32_avx2_,
-                                     ts8_to_f32_scalar_};
+const CastFn lookup_ts8_to_f32[] = {ts8_to_f32_avx512, ts8_to_f32_avx2,
+                                    ts8_to_f32_scalar};
 
 /**
  * @brief Dispatch table for s32 to f32 conversions.
  *
  * Variants:
- * - Index 0: ts32_to_f32_avx512_() — Requires: AVX512F
- * - Index 1: ts32_to_f32_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: ts32_to_f32_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts32_to_f32_scalar_() — Portable fallback
+ * - Index 0: ts32_to_f32_avx512() — Requires: AVX512F
+ * - Index 1: ts32_to_f32_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: ts32_to_f32_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts32_to_f32_scalar() — Portable fallback
  */
-const castFn lookup_ts32_to_f32_[] = {ts32_to_f32_avx512_,
-                                      ts32_to_f32_avx_avx2_,
-                                      ts32_to_f32_sse4_2_, ts32_to_f32_scalar_};
+const CastFn lookup_ts32_to_f32[] = {ts32_to_f32_avx512, ts32_to_f32_avx_avx2,
+                                     ts32_to_f32_sse4_2, ts32_to_f32_scalar};
 
 /**
  * @brief Dispatch table for s64 to f32 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_f32_avx512_() — Requires: AVX512F, AVX512DQ
- * - Index 1: ts64_to_f32_scalar_() — Portable fallback
+ * - Index 0: ts64_to_f32_avx512() — Requires: AVX512F, AVX512DQ
+ * - Index 1: ts64_to_f32_scalar() — Portable fallback
  */
-const castFn lookup_ts64_to_f32_[] = {ts64_to_f32_avx512_, ts64_to_f32_scalar_};
+const CastFn lookup_ts64_to_f32[] = {ts64_to_f32_avx512, ts64_to_f32_scalar};
 
 /**
  * @brief Dispatch table for u8 to f32 conversions.
  *
  * Variants:
- * - Index 0: tu8_to_f32_avx512_() — Requires: AVX512F
- * - Index 1: tu8_to_f32_avx2_() — Requires: AVX2
- * - Index 2: tu8_to_f32_scalar_() — Portable fallback
+ * - Index 0: tu8_to_f32_avx512() — Requires: AVX512F
+ * - Index 1: tu8_to_f32_avx2() — Requires: AVX2
+ * - Index 2: tu8_to_f32_scalar() — Portable fallback
  */
-const castFn lookup_tu8_to_f32_[] = {tu8_to_f32_avx512_, tu8_to_f32_avx2_,
-                                     tu8_to_f32_scalar_};
+const CastFn lookup_tu8_to_f32[] = {tu8_to_f32_avx512, tu8_to_f32_avx2,
+                                    tu8_to_f32_scalar};
 
 /**
  * @brief Dispatch table for u32 to f32 conversions.
  *
  * Variants:
- * - Index 0: tu32_to_f32_avx512_() — Requires: AVX512F
- * - Index 1: tu32_to_f32_scalar_() — Portable fallback
+ * - Index 0: tu32_to_f32_avx512() — Requires: AVX512F
+ * - Index 1: tu32_to_f32_scalar() — Portable fallback
  */
-const castFn lookup_tu32_to_f32_[] = {tu32_to_f32_avx512_, tu32_to_f32_scalar_};
+const CastFn lookup_tu32_to_f32[] = {tu32_to_f32_avx512, tu32_to_f32_scalar};
 
 /**
  * @brief Dispatch table for u64 to f32 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_f32_avx512_() — Requires: AVX512F, AVX512DQ
- * - Index 1: tu64_to_f32_scalar_() — Portable fallback
+ * - Index 0: tu64_to_f32_avx512() — Requires: AVX512F, AVX512DQ
+ * - Index 1: tu64_to_f32_scalar() — Portable fallback
  */
-const castFn lookup_tu64_to_f32_[] = {tu64_to_f32_avx512_, tu64_to_f32_scalar_};
+const CastFn lookup_tu64_to_f32[] = {tu64_to_f32_avx512, tu64_to_f32_scalar};
 
 /**
  * @brief Dispatch table for s8 to f64 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_f64_avx512_() — Requires: AVX512F
- * - Index 1: ts8_to_f64_scalar_() — Portable fallback
+ * - Index 0: ts8_to_f64_avx512() — Requires: AVX512F, AVX2
+ * - Index 1: ts8_to_f64_scalar() — Portable fallback
  */
-const castFn lookup_ts8_to_f64_[] = {ts8_to_f64_avx512_, ts8_to_f64_scalar_};
+const CastFn lookup_ts8_to_f64[] = {ts8_to_f64_avx512, ts8_to_f64_scalar};
 
 /**
  * @brief Dispatch table for s32 to f64 conversions.
  *
  * Variants:
- * - Index 0: ts32_to_f64_avx512_() — Requires: AVX512F
- * - Index 1: ts32_to_f64_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: ts32_to_f64_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts32_to_f64_scalar_() — Portable fallback
+ * - Index 0: ts32_to_f64_avx512() — Requires: AVX512F
+ * - Index 1: ts32_to_f64_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: ts32_to_f64_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts32_to_f64_scalar() — Portable fallback
  */
-const castFn lookup_ts32_to_f64_[] = {ts32_to_f64_avx512_,
-                                      ts32_to_f64_avx_avx2_,
-                                      ts32_to_f64_sse4_2_, ts32_to_f64_scalar_};
+const CastFn lookup_ts32_to_f64[] = {ts32_to_f64_avx512, ts32_to_f64_avx_avx2,
+                                     ts32_to_f64_sse4_2, ts32_to_f64_scalar};
 
 /**
  * @brief Dispatch table for s64 to f64 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_f64_avx512_() — Requires: AVX512F
- * - Index 1: ts64_to_f64_scalar_() — Portable fallback
+ * - Index 0: ts64_to_f64_avx512() — Requires: AVX512F
+ * - Index 1: ts64_to_f64_scalar() — Portable fallback
  */
-const castFn lookup_ts64_to_f64_[] = {ts64_to_f64_avx512_, ts64_to_f64_scalar_};
+const CastFn lookup_ts64_to_f64[] = {ts64_to_f64_avx512, ts64_to_f64_scalar};
 
 /**
  * @brief Dispatch table for u8 to f64 conversions.
  *
  * Variants:
- * - Index 0: tu8_to_f64_avx512_() — Requires: AVX512F
- * - Index 1: tu8_to_f64_scalar_() — Portable fallback
+ * - Index 0: tu8_to_f64_avx512() — Requires: AVX512F, AVX2
+ * - Index 1: tu8_to_f64_scalar() — Portable fallback
  */
-const castFn lookup_tu8_to_f64_[] = {tu8_to_f64_avx512_, tu8_to_f64_scalar_};
+const CastFn lookup_tu8_to_f64[] = {tu8_to_f64_avx512, tu8_to_f64_scalar};
 
 /**
  * @brief Dispatch table for u32 to f64 conversions.
  *
  * Variants:
- * - Index 0: tu32_to_f64_avx512_() — Requires: AVX512F
- * - Index 1: tu32_to_f64_scalar_() — Portable fallback
+ * - Index 0: tu32_to_f64_avx512() — Requires: AVX512F
+ * - Index 1: tu32_to_f64_scalar() — Portable fallback
  */
-const castFn lookup_tu32_to_f64_[] = {tu32_to_f64_avx512_, tu32_to_f64_scalar_};
+const CastFn lookup_tu32_to_f64[] = {tu32_to_f64_avx512, tu32_to_f64_scalar};
 
 /**
  * @brief Dispatch table for u64 to f64 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_f64_avx512_() — Requires: AVX512F
- * - Index 1: tu64_to_f64_scalar_() — Portable fallback
+ * - Index 0: tu64_to_f64_avx512() — Requires: AVX512F
+ * - Index 1: tu64_to_f64_scalar() — Portable fallback
  */
-const castFn lookup_tu64_to_f64_[] = {tu64_to_f64_avx512_, tu64_to_f64_scalar_};
+const CastFn lookup_tu64_to_f64[] = {tu64_to_f64_avx512, tu64_to_f64_scalar};
 
 /**
  * @brief Dispatch table for s8 to s32 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_s32_avx512_() — Requires: AVX512F
- * - Index 1: ts8_to_s32_avx2_() — Requires: AVX2
- * - Index 2: ts8_to_s32_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts8_to_s32_scalar_() — Portable fallback
+ * - Index 0: ts8_to_s32_avx512() — Requires: AVX512F
+ * - Index 1: ts8_to_s32_avx2() — Requires: AVX2
+ * - Index 2: ts8_to_s32_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts8_to_s32_scalar() — Portable fallback
  */
-const castFn lookup_ts8_to_s32_[] = {ts8_to_s32_avx512_, ts8_to_s32_avx2_,
-                                     ts8_to_s32_sse4_2_, ts8_to_s32_scalar_};
+const CastFn lookup_ts8_to_s32[] = {ts8_to_s32_avx512, ts8_to_s32_avx2,
+                                    ts8_to_s32_sse4_2, ts8_to_s32_scalar};
 
 /**
  * @brief Dispatch table for s8 to s64 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_s64_avx512_() — Requires: AVX512F
- * - Index 1: ts8_to_s64_avx2_() — Requires: AVX2
- * - Index 2: ts8_to_s64_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts8_to_s64_scalar_() — Portable fallback
+ * - Index 0: ts8_to_s64_avx512() — Requires: AVX512F
+ * - Index 1: ts8_to_s64_avx2() — Requires: AVX2
+ * - Index 2: ts8_to_s64_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts8_to_s64_scalar() — Portable fallback
  */
-const castFn lookup_ts8_to_s64_[] = {ts8_to_s64_avx512_, ts8_to_s64_avx2_,
-                                     ts8_to_s64_sse4_2_, ts8_to_s64_scalar_};
+const CastFn lookup_ts8_to_s64[] = {ts8_to_s64_avx512, ts8_to_s64_avx2,
+                                    ts8_to_s64_sse4_2, ts8_to_s64_scalar};
 
 /**
  * @brief Dispatch table for s32 to s8 conversions.
  *
  * Variants:
- * - Index 0: ts32_to_s8_avx512_() — Requires: AVX512F
- * - Index 1: ts32_to_s8_scalar_() — Portable fallback
+ * - Index 0: ts32_to_s8_avx512() — Requires: AVX512F
+ * - Index 1: ts32_to_s8_scalar() — Portable fallback
  */
-const castFn lookup_ts32_to_s8_[] = {ts32_to_s8_avx512_, ts32_to_s8_scalar_};
+const CastFn lookup_ts32_to_s8[] = {ts32_to_s8_avx512, ts32_to_s8_scalar};
 
 /**
  * @brief Dispatch table for s32 to s64 conversions.
  *
  * Variants:
- * - Index 0: ts32_to_s64_avx512_() — Requires: AVX512F
- * - Index 1: ts32_to_s64_avx2_() — Requires: AVX2
- * - Index 2: ts32_to_s64_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts32_to_s64_scalar_() — Portable fallback
+ * - Index 0: ts32_to_s64_avx512() — Requires: AVX512F
+ * - Index 1: ts32_to_s64_avx2() — Requires: AVX2
+ * - Index 2: ts32_to_s64_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts32_to_s64_scalar() — Portable fallback
  */
-const castFn lookup_ts32_to_s64_[] = {ts32_to_s64_avx512_, ts32_to_s64_avx2_,
-                                      ts32_to_s64_sse4_2_, ts32_to_s64_scalar_};
+const CastFn lookup_ts32_to_s64[] = {ts32_to_s64_avx512, ts32_to_s64_avx2,
+                                     ts32_to_s64_sse4_2, ts32_to_s64_scalar};
 
 /**
  * @brief Dispatch table for s64 to s8 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_s8_avx512_() — Requires: AVX512F, AVX512BW
- * - Index 1: ts64_to_s8_scalar_() — Portable fallback
+ * - Index 0: ts64_to_s8_avx512() — Requires: AVX512F, AVX512BW
+ * - Index 1: ts64_to_s8_scalar() — Portable fallback
  */
-const castFn lookup_ts64_to_s8_[] = {ts64_to_s8_avx512_, ts64_to_s8_scalar_};
+const CastFn lookup_ts64_to_s8[] = {ts64_to_s8_avx512, ts64_to_s8_scalar};
 
 /**
  * @brief Dispatch table for s64 to s32 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_s32_avx512_() — Requires: AVX512F
- * - Index 1: ts64_to_s32_scalar_() — Portable fallback
+ * - Index 0: ts64_to_s32_avx512() — Requires: AVX512F
+ * - Index 1: ts64_to_s32_scalar() — Portable fallback
  */
-const castFn lookup_ts64_to_s32_[] = {ts64_to_s32_avx512_, ts64_to_s32_scalar_};
+const CastFn lookup_ts64_to_s32[] = {ts64_to_s32_avx512, ts64_to_s32_scalar};
 
 /**
  * @brief Dispatch table for u8 to u32 conversions.
  *
  * Variants:
- * - Index 0: tu8_to_u32_avx512_() — Requires: AVX512F
- * - Index 1: tu8_to_u32_avx2_() — Requires: AVX2
- * - Index 2: tu8_to_u32_scalar_() — Portable fallback
+ * - Index 0: tu8_to_u32_avx512() — Requires: AVX512F
+ * - Index 1: tu8_to_u32_avx2() — Requires: AVX2
+ * - Index 2: tu8_to_u32_scalar() — Portable fallback
  */
-const castFn lookup_tu8_to_u32_[] = {tu8_to_u32_avx512_, tu8_to_u32_avx2_,
-                                     tu8_to_u32_scalar_};
+const CastFn lookup_tu8_to_u32[] = {tu8_to_u32_avx512, tu8_to_u32_avx2,
+                                    tu8_to_u32_scalar};
 
 /**
  * @brief Dispatch table for u8 to u64 conversions.
  *
  * Variants:
- * - Index 0: tu8_to_u64_avx512_() — Requires: AVX512F
- * - Index 1: tu8_to_u64_avx2_() — Requires: AVX2
- * - Index 2: tu8_to_u64_sse4_2_() — Requires: SSE4.2
- * - Index 3: tu8_to_u64_scalar_() —
+ * - Index 0: tu8_to_u64_avx512() — Requires: AVX512F
+ * - Index 1: tu8_to_u64_avx2() — Requires: AVX2
+ * - Index 2: tu8_to_u64_sse4_2() — Requires: SSE4.2
+ * - Index 3: tu8_to_u64_scalar() —
  */
-const castFn lookup_tu8_to_u64_[] = {tu8_to_u64_avx512_, tu8_to_u64_avx2_,
-                                     tu8_to_u64_sse4_2_, tu8_to_u64_scalar_};
+const CastFn lookup_tu8_to_u64[] = {tu8_to_u64_avx512, tu8_to_u64_avx2,
+                                    tu8_to_u64_sse4_2, tu8_to_u64_scalar};
 
 /**
  * @brief Dispatch table for u32 to u8 conversions.
  *
  * Variants:
- * - Index 0: tu32_to_u8_avx512_() — Requires: AVX512F
- * - Index 1: tu32_to_u8_scalar_() — Portable fallback
+ * - Index 0: tu32_to_u8_avx512() — Requires: AVX512F
+ * - Index 1: tu32_to_u8_scalar() — Portable fallback
  */
-const castFn lookup_tu32_to_u8_[] = {tu32_to_u8_avx512_, tu32_to_u8_scalar_};
+const CastFn lookup_tu32_to_u8[] = {tu32_to_u8_avx512, tu32_to_u8_scalar};
 
 /**
  * @brief Dispatch table for u32 to u64 conversions.
  *
  * Variants:
- * - Index 0: tu32_to_u64_avx512_() — Requires: AVX512F
- * - Index 1: tu32_to_u64_avx2_() — Requires: AVX2
- * - Index 2: tu32_to_u64_sse4_2_() — Requires: SSE4.2
- * - Index 3: tu32_to_u64_scalar_() — Portable fallback
+ * - Index 0: tu32_to_u64_avx512() — Requires: AVX512F
+ * - Index 1: tu32_to_u64_avx2() — Requires: AVX2
+ * - Index 2: tu32_to_u64_sse4_2() — Requires: SSE4.2
+ * - Index 3: tu32_to_u64_scalar() — Portable fallback
  */
-const castFn lookup_tu32_to_u64_[] = {tu32_to_u64_avx512_, tu32_to_u64_avx2_,
-                                      tu32_to_u64_sse4_2_, tu32_to_u64_scalar_};
+const CastFn lookup_tu32_to_u64[] = {tu32_to_u64_avx512, tu32_to_u64_avx2,
+                                     tu32_to_u64_sse4_2, tu32_to_u64_scalar};
 
 /**
  * @brief Dispatch table for u64 to u8 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_u8_avx512_() — Requires: AVX512F, AVX512BW
- * - Index 1: tu64_to_u8_scalar_() — Portable fallback
+ * - Index 0: tu64_to_u8_avx512() — Requires: AVX512F, AVX512BW
+ * - Index 1: tu64_to_u8_scalar() — Portable fallback
  */
-const castFn lookup_tu64_to_u8_[] = {tu64_to_u8_avx512_, tu64_to_u8_scalar_};
+const CastFn lookup_tu64_to_u8[] = {tu64_to_u8_avx512, tu64_to_u8_scalar};
 
 /**
  * @brief Dispatch table for u64 to u32 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_u32_avx512_() — Requires: AVX512F
- * - Index 1: tu64_to_u32_scalar_() — Portable fallback
+ * - Index 0: tu64_to_u32_avx512() — Requires: AVX512F
+ * - Index 1: tu64_to_u32_scalar() — Portable fallback
  */
-const castFn lookup_tu64_to_u32_[] = {tu64_to_u32_avx512_, tu64_to_u32_scalar_};
+const CastFn lookup_tu64_to_u32[] = {tu64_to_u32_avx512, tu64_to_u32_scalar};
 
 /**
  * @brief Dispatch table for s8 to u8 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_u8_avx512_() — Requires: AVX512F
- * - Index 1: ts8_to_u8_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: ts8_to_u8_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts8_to_u8_scalar_() — Portable fallback
+ * - Index 0: ts8_to_u8_avx512() — Requires: AVX512F
+ * - Index 1: ts8_to_u8_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: ts8_to_u8_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts8_to_u8_scalar() — Portable fallback
  */
-const castFn lookup_ts8_to_u8_[] = {ts8_to_u8_avx512_, ts8_to_u8_avx_avx2_,
-                                    ts8_to_u8_sse4_2_, ts8_to_u8_scalar_};
+const CastFn lookup_ts8_to_u8[] = {ts8_to_u8_avx512, ts8_to_u8_avx_avx2,
+                                   ts8_to_u8_sse4_2, ts8_to_u8_scalar};
 
 /**
  * @brief Dispatch table for s8 to u32 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_u32_avx512_() — Requires: AVX512F
- * - Index 1: ts8_to_u32_avx2_() — Requires: AVX2
- * - Index 2: ts8_to_u32_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts8_to_u32_scalar_() — Portable fallback
+ * - Index 0: ts8_to_u32_avx512() — Requires: AVX512F
+ * - Index 1: ts8_to_u32_avx2() — Requires: AVX2
+ * - Index 2: ts8_to_u32_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts8_to_u32_scalar() — Portable fallback
  */
-const castFn lookup_ts8_to_u32_[] = {ts8_to_u32_avx512_, ts8_to_u32_avx2_,
-                                     ts8_to_u32_sse4_2_, ts8_to_u32_scalar_};
+const CastFn lookup_ts8_to_u32[] = {ts8_to_u32_avx512, ts8_to_u32_avx2,
+                                    ts8_to_u32_sse4_2, ts8_to_u32_scalar};
 
 /**
  * @brief Dispatch table for s8 to u64 conversions.
  *
  * Variants:
- * - Index 0: ts8_to_u64_avx512_() — Requires: AVX512F
- * - Index 1: ts8_to_u64_scalar_() — Portable fallback
+ * - Index 0: ts8_to_u64_avx512() — Requires: AVX512F
+ * - Index 1: ts8_to_u64_scalar() — Portable fallback
  */
-const castFn lookup_ts8_to_u64_[] = {ts8_to_u64_avx512_, ts8_to_u64_scalar_};
+const CastFn lookup_ts8_to_u64[] = {ts8_to_u64_avx512, ts8_to_u64_scalar};
 
 /**
  * @brief Dispatch table for s32 to u8 conversions.
  *
  * Variants:
- * - Index 0: ts32_to_u8_avx512_() — Requires: AVX512F, AVX512BW
- * - Index 1: ts32_to_u8_avx2_() — Requires: AVX2
- * - Index 2: ts32_to_u8_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts32_to_u8_scalar_() — Portable fallback
+ * - Index 0: ts32_to_u8_avx512() — Requires: AVX512F, AVX512BW
+ * - Index 1: ts32_to_u8_avx2() — Requires: AVX2
+ * - Index 2: ts32_to_u8_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts32_to_u8_scalar() — Portable fallback
  */
-const castFn lookup_ts32_to_u8_[] = {ts32_to_u8_avx512_, ts32_to_u8_avx2_,
-                                     ts32_to_u8_sse4_2_, ts32_to_u8_scalar_};
+const CastFn lookup_ts32_to_u8[] = {ts32_to_u8_avx512, ts32_to_u8_avx2,
+                                    ts32_to_u8_sse4_2, ts32_to_u8_scalar};
 
 /**
  * @brief Dispatch table for s32 to u32 conversions.
  *
  * Variants:
- * - Index 0: ts32_to_u32_avx512_() — Requires: AVX512F
- * - Index 1: ts32_to_u32_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: ts32_to_u32_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts32_to_u32_scalar_() — Portable fallback
+ * - Index 0: ts32_to_u32_avx512() — Requires: AVX512F
+ * - Index 1: ts32_to_u32_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: ts32_to_u32_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts32_to_u32_scalar() — Portable fallback
  */
-const castFn lookup_ts32_to_u32_[] = {ts32_to_u32_avx512_,
-                                      ts32_to_u32_avx_avx2_,
-                                      ts32_to_u32_sse4_2_, ts32_to_u32_scalar_};
+const CastFn lookup_ts32_to_u32[] = {ts32_to_u32_avx512, ts32_to_u32_avx_avx2,
+                                     ts32_to_u32_sse4_2, ts32_to_u32_scalar};
 
 /**
  * @brief Dispatch table for s32 to u64 conversions.
  *
  * Variants:
- * - Index 0: ts32_to_u64_avx512_() — Requires: AVX512F
- * - Index 1: ts32_to_u64_avx2_() — Requires: AVX2
- * - Index 2: ts32_to_u64_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts32_to_u64_scalar_() — Portable fallback
+ * - Index 0: ts32_to_u64_avx512() — Requires: AVX512F
+ * - Index 1: ts32_to_u64_avx2() — Requires: AVX2
+ * - Index 2: ts32_to_u64_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts32_to_u64_scalar() — Portable fallback
  */
-const castFn lookup_ts32_to_u64_[] = {ts32_to_u64_avx512_, ts32_to_u64_avx2_,
-                                      ts32_to_u64_sse4_2_, ts32_to_u64_scalar_};
+const CastFn lookup_ts32_to_u64[] = {ts32_to_u64_avx512, ts32_to_u64_avx2,
+                                     ts32_to_u64_sse4_2, ts32_to_u64_scalar};
 
 /**
  * @brief Dispatch table for s64 to u8 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_u8_avx512_() — Requires: AVX512F
- * - Index 1: ts64_to_u8_scalar_() — Portable fallback
+ * - Index 0: ts64_to_u8_avx512() — Requires: AVX512F
+ * - Index 1: ts64_to_u8_scalar() — Portable fallback
  */
-const castFn lookup_ts64_to_u8_[] = {ts64_to_u8_avx512_, ts64_to_u8_scalar_};
+const CastFn lookup_ts64_to_u8[] = {ts64_to_u8_avx512, ts64_to_u8_scalar};
 
 /**
  * @brief Dispatch table for s64 to u32 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_u32_avx512_() — Requires: AVX512F
- * - Index 1: ts64_to_u32_scalar_() — Portable fallback
+ * - Index 0: ts64_to_u32_avx512() — Requires: AVX512F
+ * - Index 1: ts64_to_u32_scalar() — Portable fallback
  */
-const castFn lookup_ts64_to_u32_[] = {ts64_to_u32_avx512_, ts64_to_u32_scalar_};
+const CastFn lookup_ts64_to_u32[] = {ts64_to_u32_avx512, ts64_to_u32_scalar};
 
 /**
  * @brief Dispatch table for s64 to u64 conversions.
  *
  * Variants:
- * - Index 0: ts64_to_u64_avx512_() — Requires: AVX512F
- * - Index 1: ts64_to_u64_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: ts64_to_u64_sse4_2_() — Requires: SSE4.2
- * - Index 3: ts64_to_u64_scalar_() — Portable fallback
+ * - Index 0: ts64_to_u64_avx512() — Requires: AVX512F
+ * - Index 1: ts64_to_u64_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: ts64_to_u64_sse4_2() — Requires: SSE4.2
+ * - Index 3: ts64_to_u64_scalar() — Portable fallback
  */
-const castFn lookup_ts64_to_u64_[] = {ts64_to_u64_avx512_,
-                                      ts64_to_u64_avx_avx2_,
-                                      ts64_to_u64_sse4_2_, ts64_to_u64_scalar_};
+const CastFn lookup_ts64_to_u64[] = {ts64_to_u64_avx512, ts64_to_u64_avx_avx2,
+                                     ts64_to_u64_sse4_2, ts64_to_u64_scalar};
 
 /**
  * @brief Dispatch table for u8 to s8 conversions.
  *
  * Variants:
- * - Index 0: tu8_to_s8_avx512_() — Requires: AVX512F
- * - Index 1: tu8_to_s8_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: tu8_to_s8_sse4_2_() — Requires: SSE4.2
- * - Index 3: tu8_to_s8_scalar_() — Portable fallback
+ * - Index 0: tu8_to_s8_avx512() — Requires: AVX512F
+ * - Index 1: tu8_to_s8_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: tu8_to_s8_sse4_2() — Requires: SSE4.2
+ * - Index 3: tu8_to_s8_scalar() — Portable fallback
  */
-const castFn lookup_tu8_to_s8_[] = {tu8_to_s8_avx512_, tu8_to_s8_avx_avx2_,
-                                    tu8_to_s8_sse4_2_, tu8_to_s8_scalar_};
+const CastFn lookup_tu8_to_s8[] = {tu8_to_s8_avx512, tu8_to_s8_avx_avx2,
+                                   tu8_to_s8_sse4_2, tu8_to_s8_scalar};
 
 /**
  * @brief Dispatch table for u8 to s32 conversions.
  *
  * Variants:
- * - Index 0: tu8_to_s32_avx512_() — Requires: AVX512F
- * - Index 1: tu8_to_s32_avx2_() — Requires: AVX2
- * - Index 2: tu8_to_s32_sse4_2_() — Requires: SSE4.2
- * - Index 3: tu8_to_s32_scalar_() — Portable fallback
+ * - Index 0: tu8_to_s32_avx512() — Requires: AVX512F
+ * - Index 1: tu8_to_s32_avx2() — Requires: AVX2
+ * - Index 2: tu8_to_s32_sse4_2() — Requires: SSE4.2
+ * - Index 3: tu8_to_s32_scalar() — Portable fallback
  */
-const castFn lookup_tu8_to_s32_[] = {tu8_to_s32_avx512_, tu8_to_s32_avx2_,
-                                     tu8_to_s32_sse4_2_, tu8_to_s32_scalar_};
+const CastFn lookup_tu8_to_s32[] = {tu8_to_s32_avx512, tu8_to_s32_avx2,
+                                    tu8_to_s32_sse4_2, tu8_to_s32_scalar};
 
 /**
  * @brief Dispatch table for u8 to s64 conversions.
  *
  * Variants:
- * - Index 0: tu8_to_s64_avx512_() — Requires: AVX512F
- * - Index 1: tu8_to_s64_avx2_() — Requires: AVX2
- * - Index 2: tu8_to_s64_sse4_2_() — Requires: SSE4.2
- * - Index 3: tu8_to_s64_scalar_() — Portable fallback
+ * - Index 0: tu8_to_s64_avx512() — Requires: AVX512F
+ * - Index 1: tu8_to_s64_avx2() — Requires: AVX2
+ * - Index 2: tu8_to_s64_sse4_2() — Requires: SSE4.2
+ * - Index 3: tu8_to_s64_scalar() — Portable fallback
  */
-const castFn lookup_tu8_to_s64_[] = {tu8_to_s64_avx512_, tu8_to_s64_avx2_,
-                                     tu8_to_s64_sse4_2_, tu8_to_s64_scalar_};
+const CastFn lookup_tu8_to_s64[] = {tu8_to_s64_avx512, tu8_to_s64_avx2,
+                                    tu8_to_s64_sse4_2, tu8_to_s64_scalar};
 
 /**
  * @brief Dispatch table for u32 to s8 conversions.
  *
  * Variants:
- * - Index 0: tu32_to_s8_avx512_() — Requires: AVX512F, AVX512BW
- * - Index 1: tu32_to_s8_scalar_() — Portable fallback
+ * - Index 0: tu32_to_s8_avx512() — Requires: AVX512F, AVX512BW
+ * - Index 1: tu32_to_s8_scalar() — Portable fallback
  */
-const castFn lookup_tu32_to_s8_[] = {tu32_to_s8_avx512_, tu32_to_s8_scalar_};
+const CastFn lookup_tu32_to_s8[] = {tu32_to_s8_avx512, tu32_to_s8_scalar};
 
 /**
  * @brief Dispatch table for u32 to s32 conversions.
  *
  * Variants:
- * - Index 0: tu32_to_s32_avx512_() — Requires: AVX512F
- * - Index 1: tu32_to_s32_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: tu32_to_s32_sse4_2_() — Requires: SSE4.2
- * - Index 3: tu32_to_s32_scalar_() — Portable fallback
+ * - Index 0: tu32_to_s32_avx512() — Requires: AVX512F
+ * - Index 1: tu32_to_s32_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: tu32_to_s32_sse4_2() — Requires: SSE4.2
+ * - Index 3: tu32_to_s32_scalar() — Portable fallback
  */
-const castFn lookup_tu32_to_s32_[] = {tu32_to_s32_avx512_,
-                                      tu32_to_s32_avx_avx2_,
-                                      tu32_to_s32_sse4_2_, tu32_to_s32_scalar_};
+const CastFn lookup_tu32_to_s32[] = {tu32_to_s32_avx512, tu32_to_s32_avx_avx2,
+                                     tu32_to_s32_sse4_2, tu32_to_s32_scalar};
 
 /**
  * @brief Dispatch table for u32 to s64 conversions.
  *
  * Variants:
- * - Index 0: tu32_to_s64_avx512_() — Requires: AVX512F
- * - Index 1: tu32_to_s64_avx2_() — Requires: AVX2
- * - Index 2: tu32_to_s64_sse4_2_() — Requires: SSE4.2
- * - Index 3: tu32_to_s64_scalar_() — Portable fallback
+ * - Index 0: tu32_to_s64_avx512() — Requires: AVX512F
+ * - Index 1: tu32_to_s64_avx2() — Requires: AVX2
+ * - Index 2: tu32_to_s64_sse4_2() — Requires: SSE4.2
+ * - Index 3: tu32_to_s64_scalar() — Portable fallback
  */
-const castFn lookup_tu32_to_s64_[] = {tu32_to_s64_avx512_, tu32_to_s64_avx2_,
-                                      tu32_to_s64_sse4_2_, tu32_to_s64_scalar_};
+const CastFn lookup_tu32_to_s64[] = {tu32_to_s64_avx512, tu32_to_s64_avx2,
+                                     tu32_to_s64_sse4_2, tu32_to_s64_scalar};
 
 /**
  * @brief Dispatch table for u64 to s8 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_s8_avx512_() — Requires: AVX512F
- * - Index 1: tu64_to_s8_scalar_() — Portable fallback
+ * - Index 0: tu64_to_s8_avx512() — Requires: AVX512F
+ * - Index 1: tu64_to_s8_scalar() — Portable fallback
  */
-const castFn lookup_tu64_to_s8_[] = {tu64_to_s8_avx512_, tu64_to_s8_scalar_};
+const CastFn lookup_tu64_to_s8[] = {tu64_to_s8_avx512, tu64_to_s8_scalar};
 
 /**
  * @brief Dispatch table for u64 to s32 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_s32_avx512_() — Requires: AVX512F
- * - Index 1: tu64_to_s32_scalar_() — Portable fallback
+ * - Index 0: tu64_to_s32_avx512() — Requires: AVX512F
+ * - Index 1: tu64_to_s32_scalar() — Portable fallback
  */
-const castFn lookup_tu64_to_s32_[] = {tu64_to_s32_avx512_, tu64_to_s32_scalar_};
+const CastFn lookup_tu64_to_s32[] = {tu64_to_s32_avx512, tu64_to_s32_scalar};
 
 /**
  * @brief Dispatch table for u64 to s64 conversions.
  *
  * Variants:
- * - Index 0: tu64_to_s64_avx512_() — Requires: AVX512F
- * - Index 1: tu64_to_s64_avx_avx2_() — Requires: AVX/AVX2
- * - Index 2: tu64_to_s64_sse4_2_() — Requires: SSE4.2
- * - Index 3: tu64_to_s64_scalar_() — Portable fallback
+ * - Index 0: tu64_to_s64_avx512() — Requires: AVX512F
+ * - Index 1: tu64_to_s64_avx_avx2() — Requires: AVX/AVX2
+ * - Index 2: tu64_to_s64_sse4_2() — Requires: SSE4.2
+ * - Index 3: tu64_to_s64_scalar() — Portable fallback
  */
-const castFn lookup_tu64_to_s64_[] = {tu64_to_s64_avx512_,
-                                      tu64_to_s64_avx_avx2_,
-                                      tu64_to_s64_sse4_2_, tu64_to_s64_scalar_};
+const CastFn lookup_tu64_to_s64[] = {tu64_to_s64_avx512, tu64_to_s64_avx_avx2,
+                                     tu64_to_s64_sse4_2, tu64_to_s64_scalar};

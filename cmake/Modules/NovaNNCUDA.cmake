@@ -1,96 +1,95 @@
 #[=======================================================================[.rst:
-.. module:: NovaNNCUDA
-   :synopsis: NVIDIA CUDA backend detection and target configuration.
+NovaNNCUDA
+----------
 
-Provides the ``nova_configure_cuda_target()`` function and handles
-CUDA toolkit detection, version validation, and architecture
-configuration.
+NVIDIA CUDA backend detection and target configuration for the NovaNN
+project.  Detects the CUDA toolkit, enables the CUDA language, and
+provides functions to configure CUDA-specific target properties.
 
-This module is included by ``NovaNNRuntime.cmake`` only when
-``USE_CUDA`` is ``ON``.
+If ``NOVA_HAS_CUDA`` is already defined the module returns immediately
+(idempotent guard).
 
-**Detection logic:**
+This module defines the following cache variables:
 
-1. Searches for the CUDA toolkit via ``find_package(CUDAToolkit)``.
-2. Enforces a minimum CUDA toolkit version of **12.6**.
-3. Enables the CUDA language and sets default architecture targets:
-   SM 75 (Turing), 80, 86, 89, 90, 100 (Blackwell).
+``NOVA_HAS_CUDA``
+  ``1`` when a supported CUDA toolkit is found, ``0`` otherwise.
 
-.. function:: nova_configure_cuda_target(TARGET)
+``NOVA_CUDA_ARCHITECTURES``
+  Default list of CUDA SM architectures: 75, 80, 86, 89, 90, 100.
 
-   Configure a target for the CUDA backend.
+This module defines the following functions:
 
-   Applies the following to ``TARGET``:
+.. command:: nova_configure_cuda_target
 
-   - Defines ``NOVA_HAS_CUDA=1``.
-   - Links ``CUDA::cudart``.
-   - Sets CUDA standard to C++23.
-   - Enables CUDA separable compilation.
-   - Validates and sets CUDA architectures (minimum SM 75).
+  Configure a target with CUDA compile definitions:
 
-   :param TARGET: The target to configure (must already exist).
-   :type TARGET:  ``target name``
+  .. code-block:: cmake
 
-   .. note::
+    nova_configure_cuda_target(<target>)
 
-      If ``NOVA_HAS_CUDA`` is ``0`` (CUDA not found or disabled), this
-      function is a no-op.
+.. command:: nova_configure_cuda_runtime_target
 
-   .. code-block:: cmake
+  Configure a target that links against the CUDA runtime:
 
-      nova_configure_cuda_target(mylib)
+  .. code-block:: cmake
 
-**Supported architectures:**
+    nova_configure_cuda_runtime_target(<target>)
 
-=========  ==========  =============================================
-SM         Generation  Notable hardware
-=========  ==========  =============================================
-75         Turing      RTX 2000 series / T4
-80         Ampere      A100, RTX 3000 (base)
-86         Ampere      RTX 3000 (consumer)
-89         Ada         RTX 4000 series
-90         Hopper      H100
-100        Blackwell   RTX 5000 / B100 / B200
-=========  ==========  =============================================
+.. command:: nova_configure_cuda_kernels_target
 
-.. warning::
+  Configure a target that compiles CUDA kernel code:
 
-   Architectures below SM 75 (Turing) are rejected with a
-   ``FATAL_ERROR``.  Remove them from ``CMAKE_CUDA_ARCHITECTURES``.
+  .. code-block:: cmake
+
+    nova_configure_cuda_kernels_target(<target> [EXTRA_LIBS <lib> ...])
+
 #]=======================================================================]
 
-function(nova_configure_cuda_target TARGET)
+#[=======================================================================[.rst:
+.. command:: _nova_configure_cuda_common
+
+  Internal helper that applies common CUDA target properties:
+
+  .. code-block:: cmake
+
+    _nova_configure_cuda_common(<target>)
+
+  Sets ``CUDA_STANDARD`` to 20, enables separable compilation for
+  non-OBJECT libraries, validates ``CMAKE_CUDA_ARCHITECTURES``
+  (minimum SM 75), and defines ``NOVA_HAS_CUDA=1``.
+
+#]=======================================================================]
+function(_nova_configure_cuda_common TARGET)
     if(NOT NOVA_HAS_CUDA)
         return()
     endif()
 
-    target_compile_definitions(${TARGET} PRIVATE
-        NOVA_HAS_CUDA=1
-    )
-
-    target_link_libraries(${TARGET} PRIVATE
-        CUDA::cudart
-    )
+    _nova_configure_cuda_macros(${TARGET})
 
     set_target_properties(${TARGET} PROPERTIES
-        CUDA_STANDARD 23
-        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_STANDARD 20
     )
+
+    get_target_property(_target_type ${TARGET} TYPE)
+
+    if(NOT _target_type STREQUAL "OBJECT_LIBRARY")
+        set_target_properties(${TARGET} PROPERTIES
+            CUDA_SEPARABLE_COMPILATION ON
+        )
+    endif()
 
     if(DEFINED CMAKE_CUDA_ARCHITECTURES)
         foreach(SM IN LISTS CMAKE_CUDA_ARCHITECTURES)
-            if(SM LESS 75)
-                message(FATAL_ERROR
-                    "CUDA SM ${SM} is not supported by NovaNN. "
-                    "Minimum is SM 75 (Turing). "
-                    "Remove SM ${SM} from CMAKE_CUDA_ARCHITECTURES."
-                )
+            if(SM MATCHES "^[0-9]+$")
+                if(SM LESS 75)
+                    message(FATAL_ERROR
+                        "CUDA SM ${SM} is not supported by NovaNN. "
+                        "Minimum is SM 75 (Turing). "
+                        "Remove SM ${SM} from CMAKE_CUDA_ARCHITECTURES."
+                    )
+                endif()
             endif()
         endforeach()
-
-        set_target_properties(${TARGET} PROPERTIES
-            CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
-        )
     else()
         set_target_properties(${TARGET} PROPERTIES
             CUDA_ARCHITECTURES "${NOVA_CUDA_ARCHITECTURES}"
@@ -98,11 +97,110 @@ function(nova_configure_cuda_target TARGET)
     endif()
 endfunction()
 
+#[=======================================================================[.rst:
+.. command:: _nova_configure_cuda_macros
+
+  Internal helper that defines the ``NOVA_HAS_CUDA`` preprocessor
+  macro on the given target:
+
+  .. code-block:: cmake
+
+    _nova_configure_cuda_macros(<target>)
+
+#]=======================================================================]
+function(_nova_configure_cuda_macros TARGET)
+    if(NOT NOVA_HAS_CUDA)
+        return()
+    endif()
+
+    target_compile_definitions(${TARGET} PRIVATE
+        NOVA_HAS_CUDA=1
+    )
+endfunction()
+
+#[=======================================================================[.rst:
+.. command:: nova_configure_cuda_target
+
+  Configure a target with CUDA compile definitions:
+
+  .. code-block:: cmake
+
+    nova_configure_cuda_target(<target>)
+
+  The ``<target>`` argument specifies the CMake target to configure.
+
+  This function adds the ``NOVA_HAS_CUDA=1`` compile definition when
+  the CUDA backend is available.  It does not link against the CUDA
+  runtime; use ``nova_configure_cuda_runtime_target`` for that.
+
+#]=======================================================================]
+function(nova_configure_cuda_target TARGET)
+    if(NOT NOVA_HAS_CUDA)
+        return()
+    endif()
+
+    _nova_configure_cuda_macros(${TARGET})
+endfunction()
+
+#[=======================================================================[.rst:
+.. command:: nova_configure_cuda_runtime_target
+
+  Configure a target that links against the CUDA runtime:
+
+  .. code-block:: cmake
+
+    nova_configure_cuda_runtime_target(<target>)
+
+  The ``<target>`` argument specifies the CMake target to configure.
+
+  This function calls ``_nova_configure_cuda_common`` and links the
+  target against ``CUDA::cudart``.
+
+#]=======================================================================]
+function(nova_configure_cuda_runtime_target TARGET)
+    if(NOT NOVA_HAS_CUDA)
+        return()
+    endif()
+
+    _nova_configure_cuda_common(${TARGET})
+
+    target_link_libraries(${TARGET} PRIVATE
+        CUDA::cudart
+    )
+endfunction()
+
+#[=======================================================================[.rst:
+.. command:: nova_configure_cuda_kernels_target
+
+  Configure a target that compiles CUDA kernel code:
+
+  .. code-block:: cmake
+
+    nova_configure_cuda_kernels_target(<target> [EXTRA_LIBS <lib> ...])
+
+  The ``<target>`` argument specifies the CMake target to configure.
+
+  Any additional arguments after ``<target>`` are forwarded as
+  private link libraries to the target.
+
+#]=======================================================================]
+function(nova_configure_cuda_kernels_target TARGET)
+    if(NOT NOVA_HAS_CUDA)
+        return()
+    endif()
+
+    _nova_configure_cuda_common(${TARGET})
+
+    if(ARGN)
+        target_link_libraries(${TARGET} PRIVATE ${ARGN})
+    endif()
+endfunction()
+
+find_package(CUDAToolkit QUIET)
+
 if(NOVA_HAS_CUDA)
     return()
 endif()
-
-find_package(CUDAToolkit QUIET)
 
 if(NOT CUDAToolkit_FOUND)
     set(NOVA_HAS_CUDA 0)
@@ -125,10 +223,10 @@ set(NOVA_HAS_CUDA 1 CACHE INTERNAL "CUDA backend availability")
 message(STATUS "CUDA: ${CUDAToolkit_VERSION} — ${CUDAToolkit_LIBRARY_DIR}")
 
 set(NOVA_CUDA_ARCHITECTURES
-    75 # Turing   — RTX 2000 / T4
-    80 # Ampere   — A100, RTX 3000 (base)
-    86 # Ampere   — RTX 3000 (consumer)
-    89 # Ada      — RTX 4000
-    90 # Hopper   — H100
-    100 # Blackwell — RTX 5000 / B100 / B200
+    75
+    80
+    86
+    89
+    90
+    100
 )

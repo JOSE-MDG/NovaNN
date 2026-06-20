@@ -1,24 +1,38 @@
 /**
  * @file tensor_iterator.c
- * @brief Implementation of the odometer-based tensor iterator.
+ * @brief Implementation of the multidimensional strided tensor iterator.
  *
  * @details
- * Walks through every element of a tensor in row-major order using the
- * odometer() function from tensor_utils.h.  Byte offsets are computed
- * from the current multi-dimensional coordinate and the tensor's stride
- * array, so the iterator works correctly on both contiguous and strided
- * (view) tensors.
+ * This module provides the logic for traversing tensors element-by-element
+ * in row-major order, regardless of their physical memory layout. It wraps
+ * the low-level odometer pattern to provide a clean state-based interface
+ * for layout renderers and other modules needing to visit every element
+ * of a view.
+ *
+ * ## Architecture
+ * - **Odometer Logic**: The iterator maintains a coordinate vector that is
+ *   incremented using the @ref odometer() algorithm, ensuring correct
+ *   carry propagation across dimensions.
+ * - **Stride Mapping**: At each step, the iterator translates the current
+ *   coordinate vector into a linear byte offset using the tensor's
+ *   stride array.
+ * - **State Management**: The @ref TensorIterator struct tracks the linear
+ *   element count and a termination flag (`done`) to simplify iteration loops.
+ *
+ * @see repr/traversal/tensor_iterator.h Public descriptor and API.
+ * @see ncore/headeronly/tensor_utils.h Underlying coordinate arithmetic.
  */
 
-#include "tensor_iterator.h"
 #include <ncore/headeronly/tensor_utils.h>
 #include <string.h>
 
+#include "tensor_iterator.h"
+
 /**
- * @brief Initialise an iterator at the first element.
+ * @brief Initialise a new iterator to the first element of a tensor.
  *
- * @param[out] it  Uninitialised struct.
- * @param[in]  ten Tensor to iterate.
+ * @param[out] it  Pointer to the uninitialised iterator state.
+ * @param[in]  ten Pointer to the tensor to traverse.
  */
 void iter_init(TensorIterator *it, const Tensor *ten) {
   it->tensor = ten;
@@ -28,9 +42,11 @@ void iter_init(TensorIterator *it, const Tensor *ten) {
 }
 
 /**
- * @brief Advance to the next element in row-major order.
+ * @brief Advance the iterator to the next logical element.
  *
- * @param[in] it Iterator to advance.
+ * @details
+ * Increments the internal coordinate vector and checks for termination.
+ * If the end of the tensor is reached, the `done` flag is set.
  */
 void iter_advance(TensorIterator *it) {
   if (it->done) {
@@ -45,10 +61,10 @@ void iter_advance(TensorIterator *it) {
 }
 
 /**
- * @brief Compute the byte offset of the current element.
+ * @brief Compute the current element's memory offset.
  *
- * @param[in] it Iterator.
- * @return Byte offset into the tensor's data buffer.
+ * @param[in] it Pointer to the active iterator.
+ * @return Byte offset from the start of the tensor's data pointer.
  */
 size_t iter_byte_offset(const TensorIterator *it) {
   size_t off = compute_linear_byte_offset(it->coords, it->tensor->ndims,
@@ -57,9 +73,8 @@ size_t iter_byte_offset(const TensorIterator *it) {
 }
 
 /**
- * @brief Check whether iteration is complete.
+ * @brief Check if the iteration has been completed.
  *
- * @param[in] it Iterator.
  * @return true if all elements have been visited.
  */
 bool iter_done(const TensorIterator *it) { return it->done; }

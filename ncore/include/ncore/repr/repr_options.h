@@ -1,18 +1,19 @@
 /**
  * @file repr_options.h
- * @brief Options and mode enum for tensor string representation.
+ * @brief Configuration options for tensor string representation.
  *
  * @details
- * ReprOptions controls every aspect of tensor formatting: display mode
- * (normal vs. debug), summarisation thresholds, line width, floating-
- * point precision, scientific-notation override, bool interpretation,
- * and quantized-value display.
+ * This header defines the @ref ReprOptions structure and associated
+ * enumerations that control the visual behavior of the tensor representation
+ * module. Users can customize verbosity, summarization thresholds, numeric
+ * precision, and platform-specific interpretations (e.g., boolean or
+ * quantized values).
  *
- * Every field has a sensible default; call repr_default_options() to
- * obtain a correctly initialised struct, then override specific fields.
+ * Every field in @ref ReprOptions has a sensible, PyTorch-compatible default
+ * value provided by @ref repr_default_options().
  *
- * @see repr_context.h  Context built from these options.
- * @see tensor_repr.h   Top-level API consuming ReprOptions.
+ * @see repr_context.h Internal context built from these options.
+ * @see tensor_repr.h  Top-level public API.
  */
 
 #pragma once
@@ -26,48 +27,65 @@ extern "C" {
 
 /**
  * @enum ReprMode
- * @brief Display verbosity mode.
+ * @brief Display verbosity mode for tensor representation.
  *
- * REPR_MODE_NORMAL shows data values plus a dtype suffix only when the
- * dtype is not the default (Float32).  REPR_MODE_DEBUG always appends
- * dtype, shape, device, and gradient information.
+ * @details
+ * Determines the amount of auxiliary information appended to the tensor
+ * data block.
  */
 typedef enum {
-  REPR_MODE_NORMAL, ///< Data + optional dtype suffix.
-  REPR_MODE_DEBUG,  ///< Data + full metadata footer.
+  /**
+   * @brief Standard display mode.
+   * Shows only the multidimensional data block, optionally followed by
+   * a `dtype` suffix if the type is not @ref Float32.
+   */
+  ReprModeNormal,
+
+  /**
+   * @brief Verbose diagnostic mode.
+   * Shows the data block followed by a detailed footer containing dtype,
+   * shape, device placement, and autograd state.
+   */
+  ReprModeDebug,
 } ReprMode;
 
 /**
  * @struct ReprOptions
- * @brief Configuration struct for tensor repr.
+ * @brief Primary configuration structure for the representation module.
  *
- * All fields are initialised by repr_default_options().  Callers may
- * override any field after obtaining the defaults.
+ * @details
+ * This structure holds all user-tunable parameters. It is recommended to
+ * obtain an instance via @ref repr_default_options() and then modify only
+ * the fields required for the specific representation call.
  */
 typedef struct {
-  ReprMode mode;         ///< NORMAL or DEBUG mode.
-  size_t threshold;      ///< Element count above which summarisation kicks in.
-                         ///< Default: 1000.
-  size_t edge_items;     ///< Elements shown per edge when summarised.
-                         ///< Default: 3.
-  size_t linewidth;      ///< Soft maximum line width (reserved).  Default: 80.
-  int precision;         ///< Number of decimal places for floats.  Default: 4.
-  bool sci_mode;         ///< Force scientific notation.  Default: false.
-  bool sci_mode_auto;    ///< Auto-detect sci notation (PyTorch heuristic).
-                         ///< Default: true.
-  bool show_dequantized; ///< Append dequantized value for qint types.
-                         ///< Default: true.
-  bool is_bool;          ///< Treat UnSigned8 values as True/False.
-                         ///< Default: false.
+  ReprMode mode;      ///< Formatting mode (ReprModeNormal or ReprModeDebug).
+  size_t threshold;   ///< Max elements before truncation (summarization).
+  size_t edge_items;  ///< Elements to show per edge when truncated.
+  size_t linewidth;   ///< Target line width for wrapping (reserved).
+  int precision;      ///< Fixed decimal places for floating-point output.
+  bool sci_mode;      ///< If true, forces scientific (%e) notation.
+  bool sci_mode_auto; ///< If true, auto-enables sci-notation based on data.
+  bool
+      show_dequantized; ///< If true, appends (float) value for quantized types.
+  bool is_bool;         ///< If true, renders UnSigned8 as "True"/"False".
 } ReprOptions;
 
 /**
- * @brief Return a ReprOptions struct with sensible defaults.
+ * @brief Obtain a default-initialized ReprOptions structure.
  *
- * Use this function instead of zero-initialising so that future fields
- * added to the struct are automatically covered.
+ * @details
+ * Initialises all fields to library-standard, PyTorch-compatible values:
+ * - mode: @ref ReprModeNormal
+ * - threshold: 1000
+ * - edge_items: 3
+ * - precision: 4
+ * - sci_mode_auto: true
  *
- * @return Default-initialised ReprOptions.
+ * This function should be used instead of manual zero-initialisation to
+ * ensure forward compatibility with future library updates.
+ *
+ * @return A correctly initialised @ref ReprOptions structure.
  */
 ReprOptions repr_default_options(void);
 

@@ -1,29 +1,24 @@
 #[=======================================================================[.rst:
-.. module:: DetectLTO
-   :synopsis: Link-Time Optimization detection for NovaNN.
+DetectLTO
+---------
 
-Detects compiler support for Link-Time Optimization (LTO) and sets
-the ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` variable when supported.
+Detect Link-Time Optimization (LTO / IPO) support.  When the user
+option ``USE_LTO`` is enabled the module uses
+:command:`check_ipo_supported` to verify compiler and linker support.
 
-LTO enables the compiler to optimize across translation unit boundaries
-during the link step, allowing cross-file inlining and dead code
-elimination.  This is particularly beneficial for NovaNN because the
-SIMD dispatch functions in ``cast.h`` are ``inline`` and called from
-multiple translation units.
+This module sets the following cache variables:
 
-**Options consumed:**
+``NOVA_HAS_LTO``
+  ``1`` if LTO is supported and enabled, ``0`` otherwise.
 
-- ``USE_LTO`` — Enable LTO detection (default: ``ON``).
+When LTO is available the module also sets
+``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` to ``ON`` globally.
 
-**Output variables:**
+The module is idempotent: if ``NOVA_HAS_LTO`` is already defined the
+file returns immediately.  If ``USE_LTO`` is ``OFF`` the module sets
+``NOVA_HAS_LTO`` to ``0`` and returns without performing a detection
+check.
 
-- ``NOVA_HAS_LTO`` — ``1`` if LTO is supported and enabled, ``0``
-  otherwise.
-
-.. note::
-
-   This module is included by ``NovaNNBuildFlags.cmake`` and does not
-   need to be included directly.
 #]=======================================================================]
 
 if(NOVA_HAS_LTO)

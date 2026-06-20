@@ -1,41 +1,24 @@
 #[=======================================================================[.rst:
-.. module:: DetectSanitizers
-   :synopsis: Runtime sanitizer configuration for NovaNN.
+DetectSanitizers
+----------------
 
-Configures compiler and linker options for runtime sanitizers.
-Sanitizers are debugging tools that detect memory errors and undefined
-behavior at runtime.  They are disabled by default and intended for
-development and testing use.
+Configure AddressSanitizer (ASan) and UndefinedBehaviorSanitizer
+(UBSan) compile and link options.  The module consults the user
+options ``USE_ASAN`` and ``USE_UBSAN``.
 
-**Supported sanitizers:**
+If neither option is enabled the module returns immediately.
 
-- **AddressSanitizer (ASan)** — Detects use-after-free, buffer
-  overflows, and memory leaks.  Compatible with Valgrind (not
-  simultaneously).
-- **UndefinedBehaviorSanitizer (UBSan)** — Detects undefined behavior
-  such as integer overflow, null pointer dereference, and invalid
-  shifts.
+This module sets the following cache variables:
 
-**Options consumed:**
+``NOVA_HAS_ASAN``
+  ``1`` when ``USE_ASAN`` is ``ON``.
 
-- ``USE_ASAN`` — Enable AddressSanitizer (default: ``OFF``).
-- ``USE_UBSAN`` — Enable UndefinedBehaviorSanitizer (default: ``OFF``).
+``NOVA_HAS_UBSAN``
+  ``1`` when ``USE_UBSAN`` is ``ON``.
 
-**Output variables:**
+When enabled the module adds global compile and link options via
+:command:`add_compile_options` and :command:`add_link_options`.
 
-- ``NOVA_HAS_ASAN`` — ``1`` if ASan is enabled, ``0`` otherwise.
-- ``NOVA_HAS_UBSAN`` — ``1`` if UBSan is enabled, ``0`` otherwise.
-
-.. note::
-
-   This module is included by ``NovaNNBuildFlags.cmake`` and does not
-   need to be included directly.
-
-.. warning::
-
-   Do not enable multiple sanitizers that are incompatible with each
-   other.  ASan and TSan are mutually exclusive.  ASan and UBSan can
-   be combined.
 #]=======================================================================]
 
 if(NOT USE_ASAN AND NOT USE_UBSAN)

@@ -1,26 +1,29 @@
 /**
  * @file float_formatter.c
- * @brief Float-element formatter implementation.
+ * @brief Implementation of floating-point element formatting logic.
  *
  * @details
- * Handles normal decimal (%f), scientific (%e), and special values
- * (inf, -inf, nan).  The caller is responsible for passing the
- * sci/precision parameters from the ReprContext.
+ * This module implements the conversion of IEEE 754 floating-point values
+ * into strings. It is designed to be called by the element dispatch table
+ * and relies on the calling context to provide formatting parameters
+ * like precision and notation mode.
+ *
+ * ## Architecture
+ * - **Special Case Handling**: Explicit checks for `isnan` and `isinf` ensure
+ *   consistent output ("nan", "inf", "-inf") across platforms.
+ * - **Notation Switching**: Uses a simple conditional to select between
+ *   the `%.*e` and `%.*f` format specifiers.
+ *
+ * @see float_formatter.h Interface definitions.
  */
 
-#include "float_formatter.h"
 #include <math.h>
 #include <stdio.h>
 
+#include "float_formatter.h"
+
 /**
- * @brief Format a float value into a buffer.
- *
- * @param[out] buf       Output buffer.
- * @param[in]  buf_size  Buffer size.
- * @param[in]  val       The float value (double precision).
- * @param[in]  sci       If true, use %e notation; otherwise %f.
- * @param[in]  precision Decimal places (passed to printf).
- * @return Number of chars written (excl. null), or negative on error.
+ * @brief Convert a floating-point value into a character buffer.
  */
 int float_format_value(char *buf, size_t buf_size, double val, bool sci,
                        int precision) {

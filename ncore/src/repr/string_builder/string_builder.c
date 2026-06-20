@@ -1,160 +1,193 @@
 /**
  * @file string_builder.c
- * @brief Implementation of the standard-malloc string builder.
+ * @brief Implementation of the dynamic growable string builder.
  *
  * @details
- * Uses malloc/realloc for all internal buffer management -- never the
- * Rust FFI allocator.  The buffer doubles in size whenever appending
- * would exceed capacity.
+ * This module implements a standard memory-safe string builder that
+ * minimizes heap reallocations through a geometric growth strategy.
+ * It provides a subset of common string operations (append, append-format,
+ * repeated characters) optimized for the incremental construction of
+ * large tensor representations.
  *
- * sb_appendf uses a two-phase approach: first vsnprintf with a NULL
- * destination to determine the required length, then vsnprintf into
- * the buffer after ensuring sufficient capacity.
+ * ## Architecture
+ * - **Geometric Growth**: The builder starts with a user-defined capacity
+ *   and doubles it whenever more space is needed.
+ * - **Two-Phase Formatting**: `sb_appendf` first measures the required
+ *   length using `vsnprintf(NULL, ...)` to ensure a single, perfectly-sized
+ *   reallocation if needed.
+ * - **Ownership Model**: Ownership of the internal buffer is transferred
+ *   to the caller via @ref sb_build(), after which the builder instance
+ *   is reset.
+ * - **Error Propagation**: Allocation failures set @ref SbErrOom on the
+ *   builder's status field. Once set, all subsequent append operations
+ *   become no-ops and @ref sb_build() returns NULL.
+ *
+ * @see string_builder.h Public descriptor and API.
  */
 
-#include "string_builder.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "string_builder.h"
+#include <ncore/headeronly/macros.h>
+
 /**
- * @brief Initialise a new StringBuilder.
+ * @brief Initialise a StringBuilder with a specific starting capacity.
  *
- * @param[out] sb          Uninitialised struct.
- * @param[in]  initial_cap Suggested: 256.
+ * @param[out] sb          Pointer to the builder to initialise.
+ * @param[in]  initial_cap Initial allocation size (typically 256).
  */
 void sb_init(StringBuilder *sb, size_t initial_cap) {
   sb->buf = (char *)malloc(initial_cap);
-  if (sb->buf) {
+  if (sb->buf != NULL) {
     sb->buf[0] = '\0';
     sb->len = 0;
     sb->cap = initial_cap;
+    sb->status = SbOk;
   } else {
+    sb->buf = NULL;
     sb->len = 0;
     sb->cap = 0;
+    sb->status = SbErrOom;
   }
 }
 
 /**
- * @brief Grow the buffer so that at least `needed` bytes are available.
+ * @brief Internal helper to grow the heap buffer.
  *
- * @param[in] sb     Output StringBuilder.
- * @param[in] needed Minimum required capacity.
+ * @details
+ * Applies the geometric growth strategy (2x). If allocation fails,
+ * sets @ref SbErrOom on the builder's status and leaves the buffer
+ * unchanged to prevent memory leaks.
  */
 static void sb_grow(StringBuilder *sb, size_t needed) {
-  if (sb->cap == 0) {
-    needed = needed < 256 ? 256 : needed;
-    sb->buf = (char *)malloc(needed);
-    if (sb->buf) {
-      sb->buf[0] = '\0';
-      sb->cap = needed;
+  size_t new_cap = (sb->cap == 0) ? 256 : sb->cap;
+  while (new_cap < needed) {
+    size_t doubled = new_cap * 2;
+    if (doubled < new_cap) {
+      sb->status = SbErrOom;
+      return;
     }
+    new_cap = doubled;
+  }
+
+  char *new_buf = (char *)realloc(sb->buf, new_cap);
+  if (new_buf == NULL) {
+    sb->status = SbErrOom;
     return;
   }
-  size_t new_cap = sb->cap;
-  while (new_cap < needed) {
-    new_cap *= 2;
-  }
-  char *new_buf = (char *)realloc(sb->buf, new_cap);
-  if (new_buf) {
-    sb->buf = new_buf;
-    sb->cap = new_cap;
-  }
+  sb->buf = new_buf;
+  sb->cap = new_cap;
 }
 
 /**
- * @brief Append a null-terminated string.
- *
- * @param[in] sb  Output StringBuilder.
- * @param[in] str Null-terminated string to append (may be NULL).
+ * @brief Retrieve the current error status of the builder.
+ */
+SBStatus sb_get_status(const StringBuilder *sb) { return sb->status; }
+
+/**
+ * @brief Append a null-terminated string to the builder.
  */
 void sb_append(StringBuilder *sb, const char *str) {
-  if (!str) {
+  if (sb->status != SbOk || str == NULL || sb->buf == NULL) {
     return;
   }
   size_t slen = strlen(str);
-  if (sb->len + slen + 1 > sb->cap) {
+  if ((sb->len + slen + 1) > sb->cap) {
     sb_grow(sb, sb->len + slen + 1);
   }
-  if (sb->buf) {
-    memcpy(sb->buf + sb->len, str, slen + 1);
-    sb->len += slen;
+  if (sb->status != SbOk) {
+    return;
   }
+  memcpy(sb->buf + sb->len, str, slen + 1);
+  sb->len += slen;
 }
 
 /**
  * @brief Append a printf-formatted string.
  *
- * Uses a two-phase approach: first vsnprintf with NULL to measure length,
- * then vsnprintf into the buffer after ensuring sufficient capacity.
- *
- * @param[in] sb  Output StringBuilder.
- * @param[in] fmt printf format string.
+ * @details
+ * Uses a two-phase measurement and allocation strategy to ensure
+ * formatting safety and memory efficiency.
  */
 void sb_appendf(StringBuilder *sb, const char *fmt, ...) {
+  if (sb->status != SbOk) {
+    return;
+  }
   va_list args;
   va_start(args, fmt);
   int n = vsnprintf(NULL, 0, fmt, args);
   va_end(args);
   if (n < 0) {
+    sb->status = SbErrOom;
     return;
   }
   size_t needed = sb->len + (size_t)n + 1;
   if (needed > sb->cap) {
     sb_grow(sb, needed);
   }
-  if (sb->buf) {
-    va_start(args, fmt);
-    vsnprintf(sb->buf + sb->len, (size_t)n + 1, fmt, args);
-    va_end(args);
-    sb->len += (size_t)n;
+  if (sb->status != SbOk) {
+    return;
   }
+  va_start(args, fmt);
+  vsnprintf(sb->buf + sb->len, (size_t)n + 1, fmt, args);
+  va_end(args);
+  sb->len += (size_t)n;
 }
 
 /**
  * @brief Append a single character.
- *
- * @param[in] sb Output StringBuilder.
- * @param[in] c  Character to append.
  */
 void sb_append_char(StringBuilder *sb, char c) {
+  if (sb->status != SbOk) {
+    return;
+  }
   if (sb->len + 2 > sb->cap) {
     sb_grow(sb, sb->len + 2);
   }
-  if (sb->buf) {
-    sb->buf[sb->len++] = c;
-    sb->buf[sb->len] = '\0';
+  if (sb->status != SbOk) {
+    return;
   }
+  sb->buf[sb->len++] = c;
+  sb->buf[sb->len] = '\0';
 }
 
 /**
  * @brief Append a character repeated N times.
- *
- * @param[in] sb Output StringBuilder.
- * @param[in] c  Character to repeat.
- * @param[in] n  Number of repetitions.
  */
 void sb_append_repeated(StringBuilder *sb, char c, size_t n) {
-  if (n == 0) {
+  if (sb->status != SbOk || n == 0) {
     return;
   }
   if (sb->len + n + 1 > sb->cap) {
     sb_grow(sb, sb->len + n + 1);
   }
-  if (sb->buf) {
-    memset(sb->buf + sb->len, c, n);
-    sb->len += n;
-    sb->buf[sb->len] = '\0';
+  if (sb->status != SbOk) {
+    return;
   }
+  memset(sb->buf + sb->len, c, n);
+  sb->len += n;
+  sb->buf[sb->len] = '\0';
 }
 
 /**
- * @brief Transfer buffer ownership to the caller.
+ * @brief Finalize and return the built string.
  *
- * @param[in] sb Output StringBuilder.
- * @return Heap-allocated null-terminated string.
+ * @details
+ * If the builder is in an error state, the internal buffer is freed
+ * and NULL is returned.
+ *
+ * @return Ownership of the heap-allocated string, or NULL on error.
  */
 char *sb_build(StringBuilder *sb) {
+  if (sb->status != SbOk) {
+    free(sb->buf);
+    sb->buf = NULL;
+    sb->len = 0;
+    sb->cap = 0;
+    return NULL;
+  }
   char *result = sb->buf;
   sb->buf = NULL;
   sb->len = 0;
@@ -163,9 +196,7 @@ char *sb_build(StringBuilder *sb) {
 }
 
 /**
- * @brief Free the internal buffer without transferring ownership.
- *
- * @param[in] sb Output StringBuilder.
+ * @brief Deallocate the builder's internal memory.
  */
 void sb_free(StringBuilder *sb) {
   free(sb->buf);
