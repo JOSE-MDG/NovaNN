@@ -43,7 +43,7 @@ extern const char *status_msg_dispatch[NUM_ERRORS];
  *       on the global table after it has been initialized at load time.
  */
 const char *nova_get_error_msg(novaError_t err, const char *fallback) {
-  if (err >= 0 && err < NUM_ERRORS) {
+  if (err < NUM_ERRORS) {
     const char *msg = status_msg_dispatch[err];
     if (msg) {
       return msg;
