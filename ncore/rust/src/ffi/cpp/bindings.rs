@@ -2,7 +2,7 @@
 //! layer.
 //!
 //! Mirrors the types and `extern "C"` functions declared in
-//! `ncore/rust/csrc/ffi.hpp` so that Rust code can call into the C++ GPU
+//! `csrc/ffi.hpp` so that Rust code can call into the C++ GPU
 //! backend dispatch layer.
 
 use std::ffi::c_char;
@@ -10,7 +10,7 @@ use std::ffi::c_void;
 
 /// GPU compute backend identifier.
 ///
-/// Values match `DeviceKind_t` in `device/admin.hpp`.
+/// Values match `DeviceKind_t` in `admin.hpp`.
 #[repr(i8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceKind {
@@ -60,8 +60,8 @@ unsafe extern "C" {
     ///
     /// `out_buf` must be non-null and point to a valid, writable
     /// [`DeviceBuffer`]. The caller is responsible for eventually freeing
-    /// the buffer with [`device_release`].
-    pub unsafe fn device_reserve(
+    /// the buffer with [`deviceRelease`].
+    pub unsafe fn deviceReserve(
         bytes: usize,
         out_buf: *mut DeviceBuffer,
         pinned: bool,
@@ -69,13 +69,13 @@ unsafe extern "C" {
         kind: DeviceKind,
     ) -> DeviceStatus;
 
-    /// Free a buffer previously allocated with [`device_reserve`].
+    /// Free a buffer previously allocated with [`deviceReserve`].
     ///
     /// # Safety
     ///
     /// `buf` must be non-null, point to a buffer previously returned by
-    /// [`device_reserve`], and must not have been freed already.
-    pub unsafe fn device_release(buf: *mut DeviceBuffer) -> DeviceStatus;
+    /// [`deviceReserve`], and must not have been freed already.
+    pub unsafe fn deviceRelease(buf: *mut DeviceBuffer) -> DeviceStatus;
 
     /// Reallocate a device or pinned-host buffer, preserving content.
     ///
@@ -87,29 +87,11 @@ unsafe extern "C" {
     /// # Safety
     ///
     /// `buf` must be non-null, point to a buffer previously returned by
-    /// [`device_reserve`], and must not have been freed already.
-    pub unsafe fn device_resize(
+    /// [`deviceReserve`], and must not have been freed already.
+    pub unsafe fn deviceResize(
         buf: *mut DeviceBuffer,
         new_bytes: usize,
         align: usize,
-    ) -> DeviceStatus;
-
-    /// Copy memory through the active GPU backend.
-    ///
-    /// Dispatches to `cuda_memcpy` or `hip_memcpy` according to
-    /// `get_device_backend()`. When no backend is available the returned
-    /// status has code `-1`.
-    ///
-    /// # Safety
-    ///
-    /// `src` and `dst` must be valid pointers for `bytes` in the
-    /// respective memory spaces implied by `kind`.
-    pub unsafe fn device_memcpy(
-        src: *const c_void,
-        dst: *mut c_void,
-        is_pinned: bool,
-        kind: DeviceMemcpyKind,
-        bytes: usize,
     ) -> DeviceStatus;
 
     /// Query the active GPU compute backend.
@@ -117,6 +99,6 @@ unsafe extern "C" {
     /// Returns [`DeviceKind::CUDA`], [`DeviceKind::HIP`], or
     /// [`DeviceKind::Null`] according to runtime detection.
     ///
-    /// Corresponds to `get_device_backend()` in `device/admin.hpp`.
-    pub unsafe fn get_device_backend() -> DeviceKind;
+    /// Corresponds to `getDeviceBackend()` in `admin.hpp`.
+    pub unsafe fn getDeviceBackend() -> DeviceKind;
 }

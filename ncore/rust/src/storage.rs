@@ -6,7 +6,7 @@
 
 use crate::error::StorageError;
 use crate::ffi::cpp::{
-    DeviceBuffer, DeviceKind, device_release, device_reserve, device_resize, get_device_backend,
+    DeviceBuffer, DeviceKind, deviceRelease, deviceReserve, deviceResize, getDeviceBackend,
 };
 use std::alloc::{Layout, alloc, dealloc, realloc};
 use std::ffi::CStr;
@@ -21,7 +21,7 @@ enum Allocation {
     /// Memory allocated on a GPU device (or pinned host) through the C++ FFI.
     Gpu {
         /// Backend-specific buffer descriptor that must be passed to
-        /// [`device_release`] when the storage is freed.
+        /// [`deviceRelease`] when the storage is freed.
         device_buf: DeviceBuffer,
         /// Alignment requested at allocation time.
         alignment: usize,
@@ -120,14 +120,14 @@ impl RustStorage {
             device_buf_ptr: std::ptr::null_mut(),
         };
 
-        let kind = unsafe { get_device_backend() };
+        let kind = unsafe { getDeviceBackend() };
 
         // SAFETY: device_buf is a valid, writable stack allocation.
-        let status = unsafe { device_reserve(size, &mut device_buf, pin_memory, alignment, kind) };
+        let status = unsafe { deviceReserve(size, &mut device_buf, pin_memory, alignment, kind) };
 
         if status.code != 0 {
             let msg = if status.message.is_null() {
-                "Unknown device error".into()
+                "Unknown device error message, the message null".into()
             } else {
                 // SAFETY: message points to a static C string literal.
                 unsafe { CStr::from_ptr(status.message) }
@@ -154,7 +154,7 @@ impl RustStorage {
     /// Resizes the allocated memory to the new size, preserving existing data.
     ///
     /// For CPU storage the underlying [`realloc`] is used; for GPU storage the
-    /// operation is forwarded to [`device_resize`] which allocates a new
+    /// operation is forwarded to [`deviceResize`] which allocates a new
     /// buffer, copies the minimum of the old and new sizes, and frees the old
     /// buffer atomically on the device stream.
     ///
@@ -192,13 +192,13 @@ impl RustStorage {
                 alignment,
             } => {
                 // SAFETY: device_buf was returned by a previous
-                // device_reserve call and has not been freed yet.
+                // deviceReserve call and has not been freed yet.
                 let status =
-                    unsafe { device_resize(device_buf as *mut DeviceBuffer, new_size, *alignment) };
+                    unsafe { deviceResize(device_buf as *mut DeviceBuffer, new_size, *alignment) };
 
                 if status.code != 0 {
                     let msg = if status.message.is_null() {
-                        "Unknown device error".into()
+                        "Unknown device error message, the message null".into()
                     } else {
                         // SAFETY: message points to a static C string literal.
                         unsafe { CStr::from_ptr(status.message) }
@@ -269,11 +269,11 @@ impl Drop for RustStorage {
             }
             Allocation::Gpu { device_buf, .. } => {
                 // SAFETY: device_buf was returned by a previous
-                // device_reserve call and has not been freed yet.
-                let status = unsafe { device_release(device_buf as *mut DeviceBuffer) };
+                // deviceReserve call and has not been freed yet.
+                let status = unsafe { deviceRelease(device_buf as *mut DeviceBuffer) };
                 if status.code != 0 {
                     let msg = if status.message.is_null() {
-                        "Unknown device error".to_string()
+                        "Unknown device error message, the message null".to_string()
                     } else {
                         // SAFETY: message points to a static C string literal.
                         unsafe { CStr::from_ptr(status.message) }
@@ -281,7 +281,7 @@ impl Drop for RustStorage {
                             .into_owned()
                     };
                     eprintln!(
-                        "RustStorage::drop: device_release failed (code={}): {msg}",
+                        "RustStorage::drop: deviceRelease failed (code={}): {msg}",
                         status.code
                     );
                 }

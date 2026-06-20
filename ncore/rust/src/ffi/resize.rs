@@ -21,7 +21,7 @@ use crate::ops::resize::resize_op;
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn resize(handle: *mut RustHandle, new_size: usize) -> bool {
     if handle.is_null() {
-        LAST_ERROR.with(|cell| *cell.borrow_mut() = Some("resize: null handle".into()));
+        LAST_ERROR.with(|cell| *cell.borrow_mut() = Some("[RUST] resize: null handle".into()));
         return false;
     }
     match resize_op(unsafe { &mut *handle }, new_size) {
