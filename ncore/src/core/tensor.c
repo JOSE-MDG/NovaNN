@@ -701,9 +701,9 @@ bool is_grad_view(TensorGrad grad) { return grad->is_view_; }
  * the CUDA/HIP backends through the FFI layer:
  *
  * ```
- * cuda_memcpy() / hip_memcpy()   (CudaIO.cpp / HipIO.cpp)
- *   → map_error()                (backend-specific)
- *   → device_memcpy_c()          (ffi.cpp, direct passthrough)
+ * cudaTransfer() / hipTransfer() (CudaIO.cpp / HipIO.cpp)
+ *   → mapError()                 (backend-specific)
+ *   → device_transfer_c()        (ffi.cpp, direct passthrough)
  *   → transfer_to()              (device.c, returned verbatim)
  *   → map_code2err()             (this function)
  * ```
