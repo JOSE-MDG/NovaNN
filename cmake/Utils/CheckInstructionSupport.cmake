@@ -1,58 +1,73 @@
 #[=======================================================================[.rst:
-.. module:: CheckInstructionSupport
-   :synopsis: SIMD instruction detection utility macro.
+CheckInstructionSupport
+-----------------------
 
-Provides the ``check_simd()`` macro used by all CPU detection modules
-to probe compiler support for specific SIMD instruction sets at
-configure time.
+Utility macro for detecting SIMD instruction set support at configure
+time.  This module wraps :command:`check_cxx_source_runs` to test
+whether the compiler can emit and execute specific SIMD instructions.
 
-The macro compiles and runs a small C++ snippet with the given compiler
-flags.  On success it sets the result variable to ``1`` and appends the
-corresponding flags to the ``SIMD_FLAGS`` list, which is later consumed
-by ``nova_configure_cpu_target()`` to enable instruction-set optimisations
-on a per-target basis.
+This module defines the following functions:
 
-.. function:: check_simd(VAR TEST_FLAGS APPEND_FLAGS SNIPPET)
+.. command:: check_simd
 
-   Compile and execute a C++ snippet to test instruction support.
+  Test whether the compiler supports a given SIMD instruction snippet:
 
-   The macro saves ``CMAKE_REQUIRED_FLAGS``, temporarily overrides it
-   with ``TEST_FLAGS``, calls ``check_cxx_source_runs()``, and restores
-   the original value.  If the snippet compiles and runs without error,
-   ``VAR`` is set to ``1`` and ``APPEND_FLAGS`` are tokenised and
-   appended to ``SIMD_FLAGS``.
+  .. code-block:: cmake
 
-   :param VAR:          Result variable name (set to ``1`` on success).
-   :type VAR:           ``variable name``
-   :param TEST_FLAGS:   Compiler flags required for the instruction set
-                        (e.g. ``"-mavx2"``).
-   :type TEST_FLAGS:    ``string``
-   :param APPEND_FLAGS: Flags to append to ``SIMD_FLAGS`` on success
-                        (e.g. ``"-mavx2"``).
-   :type APPEND_FLAGS:  ``string``
-   :param SNIPPET:      C++ source code that exercises the instruction.
-   :type SNIPPET:       ``string``
+    check_simd(<VAR> <TEST_FLAGS> <APPEND_FLAGS> <SNIPPET>)
 
-   .. code-block:: cmake
+  ``<VAR>`
+    Variable name to store the test result (set to ``1`` on success).
 
-      check_simd(HAS_AVX2 "-mavx2" "-mavx2" "
-          #include <immintrin.h>
-          int main() { __m256i a = _mm256_set1_epi32(1); return 0; }
-      ")
+  ``<TEST_FLAGS>``
+    Compiler flags required to enable the instruction set (e.g.,
+    ``-mavx2``).
 
-   .. note::
+  ``<APPEND_FLAGS>``
+    Flags to append to ``SIMD_FLAGS`` when the test passes.
 
-      The ``SIMD_FLAGS`` variable must be initialised (e.g.
-      ``set(SIMD_FLAGS "")``) before the first call to this macro.
+  ``<SNIPPET>``
+    C++ source code to compile and run as the detection test.
+
+  On success the macro appends ``<APPEND_FLAGS>`` (split on whitespace)
+  to the ``SIMD_FLAGS`` list variable.
+
 #]=======================================================================]
 
 include(CheckCXXSourceRuns)
 
+#[=======================================================================[.rst:
+.. command:: check_simd
+
+  Test whether the compiler supports a given SIMD instruction snippet:
+
+  .. code-block:: cmake
+
+    check_simd(<VAR> <TEST_FLAGS> <APPEND_FLAGS> <SNIPPET>)
+
+  ``<VAR>`
+    Variable name to store the test result (set to ``1`` on success).
+
+  ``<TEST_FLAGS>``
+    Compiler flags required to enable the instruction set (e.g.,
+    ``-mavx2``).
+
+  ``<APPEND_FLAGS>``
+    Flags to append to ``SIMD_FLAGS`` when the test passes.
+
+  ``<SNIPPET>``
+    C++ source code to compile and run as the detection test.
+
+  On success the macro appends ``<APPEND_FLAGS>`` (split on whitespace)
+  to the ``SIMD_FLAGS`` list variable.
+
+#]=======================================================================]
 macro(check_simd VAR TEST_FLAGS APPEND_FLAGS SNIPPET)
     set(_saved_flags "${CMAKE_REQUIRED_FLAGS}")
     set(CMAKE_REQUIRED_FLAGS "${TEST_FLAGS}")
     check_cxx_source_runs("${SNIPPET}" ${VAR})
     set(CMAKE_REQUIRED_FLAGS "${_saved_flags}")
+
     if(${VAR})
         separate_arguments(_simd_flags UNIX_COMMAND "${APPEND_FLAGS}")
         list(APPEND SIMD_FLAGS ${_simd_flags})
