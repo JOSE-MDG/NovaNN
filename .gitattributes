@@ -3,6 +3,10 @@
 *.c linguist-detectable=true
 *.cpp linguist-detectable=true
 *.cmake linguist-detectable=true
+*.cu linguist-detectable=true
+*.hip linguist-detectable=true
+*.S linguist-detectable=true
+*.jinja linguist-detectable=true
 
 # Explicit asignment to avoid indentification errors
 *.rs linguist-language=Rust
@@ -12,3 +16,9 @@
 *.cpp linguist-language=C++
 *.hpp linguist-language=C++
 *.cmake linguist-language=CMake
+*.cu linguist-language=Cuda
+*.cuh linguist-language=Cuda
+*.hip linguist-language=HIP
+*.hiph linguist-language=HIP
+*.S linguist-language=Assembly
+*.jinja linguist-language=Jinja
