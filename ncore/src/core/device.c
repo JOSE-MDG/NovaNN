@@ -15,7 +15,7 @@
  *    function.
  * 3. **Routes memory transfers**: through @ref transfer_to(), which
  *    resolves the copy direction from the dispatch table and forwards
- *    the request to the C-callable `device_memcpy_c()` wrapper.
+ *    the request to the C-callable `device_transfer_c()` wrapper.
  * 4. **Aggregates backend queries**: through @ref is_device_available(),
  *    @ref is_cuda_available(), @ref is_hip_available(), and
  *    @ref get_device_id().
@@ -29,7 +29,7 @@
  *   values.
  * - The dispatch table translates `(src, dst)` pairs into a
  *   `TransferKind` that the underlying runtime understands.
- * - The C-callable `device_memcpy_c()` wrapper (declared in
+ * - The C-callable `device_transfer_c()` wrapper (declared in
  *   @ref cpp_ffi.h) performs the actual copy using the correct
  *   runtime API.
  *
@@ -62,10 +62,12 @@
  * @see device.h              Public API declarations.
  * @see DetectCudaDevice.cpp  CUDA detection implementation.
  * @see DetectHipDevice.cpp   HIP detection implementation.
- * @see cpp_ffi.h             C-callable device_memcpy_c() wrapper.
+ * @see status.h              novaStatus_t struct.
+ * @see cpp_ffi.h             C-callable device_transfer_c() wrapper.
  */
 
 #include <ncore/core/device.h>
+#include <ncore/core/status.h>
 #include <ncore/ffi/cpp_ffi.h>
 #include <ncore/headeronly/macros.h>
 #include <stdbool.h>
@@ -93,7 +95,7 @@
  * @see is_device_available()
  * @see is_cuda_available()
  */
-extern bool is_cuda_device_available(bool log, bool verbose);
+extern bool isCudaDeviceAvailable(bool log, bool verbose);
 
 /**
  * @brief Return the 0-based device index of the detected CUDA GPU.
@@ -106,7 +108,7 @@ extern bool is_cuda_device_available(bool log, bool verbose);
  *
  * @see get_device_id()
  */
-extern int get_cuda_device_id(void);
+extern int getCudaDeviceId();
 
 /**
  * @brief Print detailed CUDA device properties to stdout.
@@ -118,9 +120,11 @@ extern int get_cuda_device_id(void);
  * @param verbose  If `true`, print the full property block.  If
  *                 `false`, print a concise summary.
  *
+ * @return @ref novaStatus_t with the result of the detection.
+ *
  * @see print_device_info()
  */
-extern void print_cuda_device_info(bool verbose);
+extern novaStatus_t printCudaDeviceInfo(bool verbose);
 
 #endif /* NOVA_HAS_CUDA */
 
@@ -141,7 +145,7 @@ extern void print_cuda_device_info(bool verbose);
  * @see is_device_available()
  * @see is_hip_available()
  */
-extern bool is_hip_device_available(bool log, bool verbose);
+extern bool isHipDeviceAvailable(bool log, bool verbose);
 
 /**
  * @brief Return the 0-based device index of the detected HIP GPU.
@@ -154,7 +158,7 @@ extern bool is_hip_device_available(bool log, bool verbose);
  *
  * @see get_device_id()
  */
-extern int get_hip_device_id(void);
+extern int getHipDeviceId();
 
 /**
  * @brief Print detailed HIP device properties to stdout.
@@ -166,9 +170,11 @@ extern int get_hip_device_id(void);
  * @param verbose  If `true`, print the full property block.  If
  *                 `false`, print a concise summary.
  *
+ * @return @ref novaStatus_t with the result of the detection.
+ *
  * @see print_device_info()
  */
-extern void print_hip_device_info(bool verbose);
+extern novaStatus_t printHipDeviceInfo(bool verbose);
 
 #endif /* NOVA_HAS_HIP */
 
@@ -340,9 +346,9 @@ ATTR(constructor) static inline void init_transf_dispatch(void) {
  * @details
  * Dispatches to the backend-specific detection function based on
  * @p kind:
- * - `CUDA_DEVICE` → `is_cuda_device_available()` (from
+ * - `CUDA_DEVICE` → `isCudaDeviceAvailable()` (from
  *   `DetectCudaDevice.cpp`), guarded by `#ifdef NOVA_HAS_CUDA`.
- * - `HIP_DEVICE` → `is_hip_device_available()` (from
+ * - `HIP_DEVICE` → `isHipDeviceAvailable()` (from
  *   `DetectHipDevice.cpp`), guarded by `#ifdef NOVA_HAS_HIP`.
  * - `NULL_DEVICE` or any other value → returns `false`.
  *
@@ -401,7 +407,7 @@ bool is_device_available(DeviceKind kind, bool verbose) {
     detected_device_kind = CUDA_DEVICE;
     LeaveCriticalSection(&runtime_flags_mtx);
 #endif
-    return is_cuda_device_available(verbose, verbose);
+    return isCudaDeviceAvailable(verbose, verbose);
 #else
     return false;
 #endif
@@ -419,7 +425,7 @@ bool is_device_available(DeviceKind kind, bool verbose) {
     detected_device_kind = HIP_DEVICE;
     LeaveCriticalSection(&runtime_flags_mtx);
 #endif
-    return is_hip_device_available(verbose, verbose);
+    return isHipDeviceAvailable(verbose, verbose);
 #else
     return false;
 #endif
@@ -481,7 +487,7 @@ bool is_cuda_available(void) {
   detected_device_kind = CUDA_DEVICE;
   LeaveCriticalSection(&runtime_flags_mtx);
 #endif
-  return is_cuda_device_available(false, false);
+  return isCudaDeviceAvailable(false, false);
 #else
   return false;
 #endif
@@ -537,7 +543,7 @@ bool is_hip_available(void) {
   detected_device_kind = HIP_DEVICE;
   LeaveCriticalSection(&runtime_flags_mtx);
 #endif
-  return is_hip_device_available(false, false);
+  return isHipDeviceAvailable(false, false);
 #else
   return false;
 #endif
@@ -551,7 +557,7 @@ bool is_hip_available(void) {
  * correct backend at run time.  The function:
  * 1. Looks up the @ref TransferKind from @ref transf_dispatch using
  *    the `(src, dst)` pair as indices (`transf_dispatch[src][dst]`).
- * 2. Forwards the request to `device_memcpy_c()` (declared in
+ * 2. Forwards the request to `device_transfer_c()` (declared in
  *    @ref cpp_ffi.h) with the resolved transfer kind.
  *
  * The dispatch table is initialised at program startup by
@@ -568,10 +574,6 @@ bool is_hip_available(void) {
  * @param[out] dst_buf   Pointer to the destination buffer.  Must be
  *                       valid for at least @p bytes bytes in the
  *                       destination memory space.
- * @param[in]  is_pinned Whether the host-side buffer is
- *                       pinned/page-locked.  This affects whether the
- *                       runtime uses synchronous or asynchronous
- *                       transfer.
  * @param[in]  bytes     Number of bytes to transfer.  Must be > 0.
  *
  * @return @ref DeviceStatus with `code` 0 on success, or an error
@@ -591,18 +593,18 @@ bool is_hip_available(void) {
  *          copies.
  *
  * @note Thread-safe.  The dispatch table is read-only after
- *       initialisation, and `device_memcpy_c()` is expected to be
+ *       initialisation, and `device_transfer_c()` is expected to be
  *       thread-safe.
  *
- * @see device_memcpy_c()  Low-level C-callable copy wrapper.
+ * @see device_transfer_c()  Low-level C-callable copy wrapper.
  * @see transf_dispatch    Lookup table mapping device pairs to
  *                         transfer directions.
  * @see TransferKind       Enum encoding copy directions.
  */
 DeviceStatus transfer_to(Device src, Device dst, const void *src_buf,
-                         void *dst_buf, bool is_pinned, size_t bytes) {
+                         void *dst_buf, size_t bytes) {
   TransferKind kind = transf_dispatch[src][dst];
-  return device_memcpy_c(src_buf, dst_buf, is_pinned, kind, bytes);
+  return device_transfer_c(src_buf, dst_buf, kind, bytes);
 }
 
 /**
@@ -620,8 +622,8 @@ DeviceStatus transfer_to(Device src, Device dst, const void *src_buf,
  *
  * The function uses a cascade pattern:
  * @code{.c}
- * if (is_cuda_available())  return get_cuda_device_id();
- * if (is_hip_available())   return get_hip_device_id();
+ * if (is_cuda_available())  return getCudaDeviceId();
+ * if (is_hip_available())   return getHipDeviceId();
  * return -1;
  * @endcode
  *
@@ -637,19 +639,19 @@ DeviceStatus transfer_to(Device src, Device dst, const void *src_buf,
  *
  * @see is_cuda_available()
  * @see is_hip_available()
- * @see get_cuda_device_id()  CUDA-specific device id accessor.
- * @see get_hip_device_id()   HIP-specific device id accessor.
+ * @see getCudaDeviceId()  CUDA-specific device id accessor.
+ * @see getHipDeviceId()   HIP-specific device id accessor.
  */
 int get_device_id(void) {
 
   if (is_cuda_available()) {
 #ifdef NOVA_HAS_CUDA
-    return get_cuda_device_id();
+    return getCudaDeviceId();
 #endif
   }
   if (is_hip_available()) {
 #ifdef NOVA_HAS_HIP
-    return get_hip_device_id();
+    return getHipDeviceId();
 #endif
   }
   return -1;
@@ -660,9 +662,9 @@ int get_device_id(void) {
  *
  * @details
  * Delegates to the backend-specific print function based on @p kind:
- * - `CUDA_DEVICE` → `print_cuda_device_info()` (from
+ * - `CUDA_DEVICE` → `printCudaDeviceInfo()` (from
  *   `DetectCudaDevice.cpp`), guarded by `#ifdef NOVA_HAS_CUDA`.
- * - `HIP_DEVICE` → `print_hip_device_info()` (from
+ * - `HIP_DEVICE` → `printHipDeviceInfo()` (from
  *   `DetectHipDevice.cpp`), guarded by `#ifdef NOVA_HAS_HIP`.
  * - `NULL_DEVICE` or any other value → no-op.
  *
@@ -679,27 +681,33 @@ int get_device_id(void) {
  *       @ref is_device_available().
  *
  * @see is_device_available()
- * @see print_cuda_device_info()  CUDA backend print function.
- * @see print_hip_device_info()   HIP backend print function.
+ * @see printCudaDeviceInfo()  CUDA backend print function.
+ * @see printHipDeviceInfo()   HIP backend print function.
  */
-void print_device_info(DeviceKind kind, bool verbose) {
+novaStatus_t print_device_info(DeviceKind kind, bool verbose) {
+  novaStatus_t status;
   switch (kind) {
   case CUDA_DEVICE: {
 #ifdef NOVA_HAS_CUDA
-    print_cuda_device_info(verbose);
+    return printCudaDeviceInfo(verbose);
 #endif
     break;
   }
   case HIP_DEVICE: {
 #ifdef NOVA_HAS_HIP
-    print_hip_device_info(verbose);
+    return printHipDeviceInfo(verbose);
 #endif
     break;
   }
   case NULL_DEVICE:
   default:
+    status.err = novaDeviceNotAvailable;
+    status.message = nova_get_error_msg(status.err, NULL);
     break;
   }
+  status.err = novaBackendNotSupported;
+  status.message = nova_get_error_msg(status.err, NULL);
+  return status;
 }
 
 /**

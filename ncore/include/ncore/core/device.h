@@ -66,6 +66,7 @@
 
 #pragma once
 
+#include <ncore/core/status.h>
 #include <ncore/headeronly/macros.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -146,7 +147,7 @@ typedef enum ATTR(packed) {
  *
  * The dispatch table @ref transf_dispatch (in @ref device.c) maps
  * pairs of `(src Device, dst Device)` to a `TransferKind` value,
- * which is then passed to the C-callable `device_memcpy_c()` wrapper.
+ * which is then passed to the C-callable `device_transfer_c()` wrapper.
  *
  * @note This enum is packed (`ATTR(packed)`) to minimise its
  *       footprint in structs that are serialised or copied frequently.
@@ -184,7 +185,7 @@ typedef enum ATTR(packed) {
  * @brief Human-readable error description.
  *
  * @see transfer_to()  Returns a DeviceStatus.
- * @see device_memcpy_c()  Low-level wrapper that returns a DeviceStatus.
+ * @see device_transfer_c()  Low-level wrapper that returns a DeviceStatus.
  */
 typedef struct {
   int code;            ///< Zero on success, positive error code on failure.
@@ -215,9 +216,9 @@ typedef Tensor *TensorGrad;
  * @details
  * Dispatches to the backend-specific detection function based on
  * @p kind:
- * - `CUDA_DEVICE` -> @ref is_cuda_device_available() from the native
+ * - `CUDA_DEVICE` -> @ref isCudaDeviceAvailable() from the native
  *   CUDA backend.
- * - `HIP_DEVICE` -> @ref is_hip_device_available() from the native
+ * - `HIP_DEVICE` -> @ref isHipDeviceAvailable() from the native
  *   HIP backend.
  * - `NULL_DEVICE` or any other value → returns `false`.
  *
@@ -305,7 +306,7 @@ bool is_hip_available(void);
  * correct backend at run time.  The function:
  * 1. Looks up the @ref TransferKind from @ref transf_dispatch using
  *    the `(src, dst)` pair as indices.
- * 2. Forwards the request to `device_memcpy_c()` (declared in
+ * 2. Forwards the request to `device_transfer_c()` (declared in
  *    @ref cpp_ffi.h) with the resolved transfer kind.
  *
  * The dispatch table is initialised at program startup by a
@@ -322,10 +323,6 @@ bool is_hip_available(void);
  * @param[out] dst_buf   Pointer to the destination buffer.  Must be
  *                       valid for at least @p bytes bytes in the
  *                       destination memory space.
- * @param[in]  is_pinned Whether the host-side buffer is
- *                       pinned/page-locked.  This affects whether the
- *                       runtime uses synchronous or asynchronous
- *                       transfer.
  * @param[in]  bytes     Number of bytes to transfer.  Must be > 0.
  *
  * @return @ref DeviceStatus with `code` 0 on success, or an error
@@ -343,16 +340,16 @@ bool is_hip_available(void);
  *          @ref deepcopy() for host-to-host copies.
  *
  * @note Thread-safe.  The dispatch table is read-only after
- *       initialisation, and `device_memcpy_c()` is expected to be
+ *       initialisation, and `device_transfer_c()` is expected to be
  *       thread-safe.
  *
- * @see device_memcpy_c()  Low-level C-callable copy wrapper.
+ * @see device_transfer_c()  Low-level C-callable copy wrapper.
  * @see transf_dispatch    Lookup table mapping device pairs to
  *                         transfer directions.
  * @see TransferKind       Enum encoding copy directions.
  */
 DeviceStatus transfer_to(Device src, Device dst, const void *src_buf,
-                         void *dst_buf, bool is_pinned, size_t bytes);
+                         void *dst_buf, size_t bytes);
 
 /**
  * @brief Return the active device id (CUDA or HIP).
@@ -376,8 +373,8 @@ DeviceStatus transfer_to(Device src, Device dst, const void *src_buf,
  *
  * @see is_cuda_available()
  * @see is_hip_available()
- * @see get_cuda_device_id()  CUDA-specific device id accessor.
- * @see get_hip_device_id()   HIP-specific device id accessor.
+ * @see getCudaDeviceId()  CUDA-specific device id accessor.
+ * @see getHipDeviceId()   HIP-specific device id accessor.
  */
 int get_device_id(void);
 
@@ -391,9 +388,8 @@ int get_device_id(void);
  * When @p verbose is `false`, a concise two-line summary is printed
  * per device:
  * @code
- * -- [CUDA] Device 0: NVIDIA GeForce RTX 5070 | Compute 12.0 | 12.0 GiB | 48
- * SMs
- * -- [CUDA] Driver v13.3 | Runtime v13.3
+ * [CUDA] Device 0: NVIDIA GeForce RTX 5070 | Compute 12.0 | 12.0 GiB | 48 SMs
+ * [CUDA] Driver v13.3 | Runtime v13.3
  * @endcode
  *
  * When @p verbose is `true`, a detailed multi-line block is printed
@@ -408,12 +404,15 @@ int get_device_id(void);
  *                     `HIP_DEVICE`.  `NULL_DEVICE` is a no-op.
  * @param[in] verbose  If `true`, print the detailed block.  If
  *                     `false`, print the concise summary.
+ * @return novaStatus_t the result of the operation. On success, set to
+ *                     @ref novaSuccess.  On failure, set to the
+ *                     appropriate error code.
  *
  * @see is_device_available()
  * @see is_cuda_available()
  * @see is_hip_available()
  */
-void print_device_info(DeviceKind kind, bool verbose);
+novaStatus_t print_device_info(DeviceKind kind, bool verbose);
 
 /**
  * @brief Return the cached device kind from the last detection.
