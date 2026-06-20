@@ -43,7 +43,7 @@
 
 #pragma once
 
-#include <ncore/macros.h>
+#include <ncore/headeronly/macros.h>
 #include <stdbool.h>
 #include <stddef.h>
 

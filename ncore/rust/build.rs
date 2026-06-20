@@ -7,7 +7,7 @@
 //!
 //! | Variable         | Required | Default     | Description                              |
 //! |------------------|----------|-------------|------------------------------------------|
-//! | `RUSTCSRC_DIR`   | yes      | —           | Path to the compiled C++ static library.  |
+//! | `RUSTCSRC_DIR`   | yes      | —           | Path to the compiled C++ static library. |
 //! | `RUSTCSRC_NAME`  | no       | `rustcsrc`  | Name of the static library (without lib prefix). |
 //!
 //! The script expects Cargo to be invoked through CMake so that
@@ -32,14 +32,8 @@ fn main() {
     // C++ FFI source files — recompile when any of these change.
     println!("cargo:rerun-if-changed=csrc/ffi.cpp");
     println!("cargo:rerun-if-changed=csrc/ffi.hpp");
-    println!("cargo:rerun-if-changed=csrc/device/admin.cpp");
-    println!("cargo:rerun-if-changed=csrc/device/admin.hpp");
-    println!("cargo:rerun-if-changed=csrc/device/cuda/cuda_allocator.cpp");
-    println!("cargo:rerun-if-changed=csrc/device/cuda/cuda_allocator.hpp");
-    println!("cargo:rerun-if-changed=csrc/device/cuda/cuda_io.cpp");
-    println!("cargo:rerun-if-changed=csrc/device/cuda/cuda_io.hpp");
-    println!("cargo:rerun-if-changed=csrc/device/hip/hip_allocator.cpp");
-    println!("cargo:rerun-if-changed=csrc/device/hip/hip_allocator.hpp");
-    println!("cargo:rerun-if-changed=csrc/device/hip/hip_io.cpp");
-    println!("cargo:rerun-if-changed=csrc/device/hip/hip_io.hpp");
+    println!("cargo:rerun-if-changed=csrc/admin.cpp");
+    println!("cargo:rerun-if-changed=csrc/admin.hpp");
+    println!("cargo:rerun-if-env-changed=CUDA_DEVICE_MEMORY_DIR");
+    println!("cargo:rerun-if-env-changed=HIP_DEVICE_MEMORY_DIR");
 }

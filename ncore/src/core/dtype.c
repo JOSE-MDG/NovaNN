@@ -34,11 +34,11 @@
  *
  * @see dtype.h          Public API declarations and DType_ enum.
  * @see dtype_tables.h   Precomputed classification and size tables.
- * @see headeronly/cast.h  Per-dtype cast function pointers (castFn).
+ * @see cast.h           Per-dtype cast function pointers (castFn).
  * @see tensor.h         Tensor struct embedding a DType_ field.
  */
 
-#include <ncore/dtype.h>
+#include <ncore/core/dtype.h>
 #include <ncore/headeronly/cast.h>
 #include <ncore/tables/dtype_tables.h>
 #include <ncore/tensor.h>
@@ -59,7 +59,7 @@
  * @see cast()
  * @see castFn
  */
-extern castFn cast_dispatch[NUM_DTYPES][NUM_DTYPES];
+extern CastFn cast_dispatch[NUM_DTYPES][NUM_DTYPES];
 
 /**
  * @brief Check whether a tensor's dtype is a floating-point type.
@@ -234,7 +234,7 @@ bool is_quantized_unsigned_integer(const Tensor *restrict input) {
  */
 void cast(const Tensor *restrict src, DType_ target_dtype,
           Tensor *restrict dst) {
-  castFn func = cast_dispatch[src->dtype][target_dtype];
+  CastFn func = cast_dispatch[src->dtype][target_dtype];
   func(src, dst);
 }
 

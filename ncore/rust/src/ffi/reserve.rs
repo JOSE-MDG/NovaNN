@@ -92,7 +92,7 @@ pub unsafe extern "C" fn reserve(
     match reserve_op(size, dev, pin_memory, align) {
         Ok(handle) => handle,
         Err(e) => {
-            let msg = format!("reserve: {e}");
+            let msg = format!("[RUST] reserve: {e}");
             LAST_ERROR.with(|cell| *cell.borrow_mut() = Some(msg));
             RustHandle::invalid()
         }

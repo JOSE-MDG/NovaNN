@@ -28,7 +28,7 @@
  * @see dtype.h         DType_ enumeration.
  */
 
-#include <ncore/dtype.h>
+#include <ncore/core/dtype.h>
 #include <ncore/tables/dtype_tables.h>
 
 /**

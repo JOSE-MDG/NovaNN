@@ -1,29 +1,26 @@
 /**
  * @file qint_formatter.c
- * @brief Quantized integer element formatter.
+ * @brief Implementation of quantized element formatting logic.
  *
  * @details
- * Renders the raw quantized value and, when show_dequantized is true and
- * scale > 0, appends the dequantized float in parentheses:
+ * This module implements the string conversion for quantized data types.
+ * It provides an optional dequantization path that calculates the real-value
+ * representation using the tensor's scale and zero-point metadata.
  *
- *   42 (0.3294)
+ * ## Architecture
+ * - **Formula**: Uses the standard affine dequantization formula:
+ *   `float_val = (raw - zero_point) * scale`.
+ * - **Combined Output**: If enabled, the dequantized value is appended in
+ *   parentheses after the raw integer for diagnostic clarity.
  *
- * Dequantization: (raw - zero_point) * scale.
+ * @see qint_formatter.h Interface definitions.
  */
 
 #include "qint_formatter.h"
 #include <stdio.h>
 
 /**
- * @brief Format a quantized element.
- *
- * @param[out] buf              Output buffer.
- * @param[in]  buf_size         Buffer size.
- * @param[in]  raw_val          Raw quantized integer value.
- * @param[in]  scale            Quantization scale factor.
- * @param[in]  zero_point       Quantization zero-point.
- * @param[in]  show_dequantized If true and scale > 0, append " (%.4f)".
- * @return Number of chars written (excl. null).
+ * @brief Convert a quantized element into a string.
  */
 int qint_format_value(char *buf, size_t buf_size, int raw_val, float scale,
                       int32_t zero_point, bool show_dequantized) {

@@ -1,32 +1,37 @@
 /**
  * @file repr_options.c
- * @brief Default options for tensor string representation.
+ * @brief implementation of the default configuration factory for tensor repr.
  *
  * @details
- * Implements repr_default_options() which returns a fully initialised
- * ReprOptions struct with PyTorch-compatible defaults:
- *   - Normal mode (no debug footer).
- *   - Threshold of 1000 elements before summarisation.
- *   - 3 edge items when summarised.
- *   - 4 decimal places for floats.
- *   - Scientific-notation auto-detection enabled.
- *   - Quantized dequantized values shown.
- *   - Bool interpretation disabled.
+ * This module provides the standard initialization logic for formatting
+ * options. By using a factory pattern (@ref repr_default_options()), NovaNN
+ * ensures that all new representation parameters are initialized to sensible,
+ * framework-standard values even as the module evolves.
+ *
+ * ## Architecture
+ * - **PyTorch Compatibility**: Default values (e.g., precision=4,
+ * threshold=1000) are chosen to mirror industry standards, ensuring a familiar
+ * experience for research engineers.
+ * - **Initialization Strategy**: Explicit field assignments ensure that no
+ *   uninitialized data from the stack is used in the formatting pipeline.
+ *
+ * @see repr_options.h Structure definition and enums.
  */
 
 #include <ncore/repr/repr_options.h>
 
 /**
- * @brief Return a ReprOptions struct with sensible defaults.
+ * @brief Return a ReprOptions struct with library-standard defaults.
  *
- * All fields are set to PyTorch-compatible values.  Callers may
- * override any field after obtaining the result.
+ * @details
+ * Initialises all visual parameters to their default states. Users should
+ * call this before overriding specific fields for custom formatting.
  *
- * @return Default-initialised ReprOptions.
+ * @return A fully initialised @ref ReprOptions structure.
  */
 ReprOptions repr_default_options(void) {
   ReprOptions opts;
-  opts.mode = REPR_MODE_NORMAL;
+  opts.mode = ReprModeNormal;
   opts.threshold = 1000;
   opts.edge_items = 3;
   opts.linewidth = 80;

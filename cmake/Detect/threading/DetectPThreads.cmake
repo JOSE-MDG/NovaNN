@@ -1,20 +1,19 @@
 #[=======================================================================[.rst:
-.. module:: DetectPThreads
-   :synopsis: Detect POSIX threads (pthreads) availability.
+DetectPThreads
+--------------
 
-Uses ``find_package(Threads REQUIRED)`` to locate the system threading
-library.  If pthreads is the threading implementation, sets
-``NOVA_HAS_PTHREADS`` to ``1``; otherwise sets it to ``0``.
+Detect POSIX threads (pthreads) support.  Uses
+:command:`find_package` with the ``Threads`` module to resolve the
+threading library.
 
-**Result variables:**
+This module sets the following variables:
 
-- ``NOVA_HAS_PTHREADS`` — Set to ``1`` if pthreads is the threading
-  backend, ``0`` otherwise.
+``NOVA_HAS_PTHREADS``
+  ``1`` if pthreads was found, ``0`` otherwise.
 
-**Early exit:**
+The module is idempotent: if ``NOVA_HAS_PTHREADS`` is already defined
+the file returns immediately.
 
-Returns immediately if ``NOVA_HAS_PTHREADS`` is already defined,
-allowing the module to be included multiple times without error.
 #]=======================================================================]
 
 if(DEFINED NOVA_HAS_PTHREADS)

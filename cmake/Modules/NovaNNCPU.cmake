@@ -1,39 +1,48 @@
 #[=======================================================================[.rst:
-.. module:: NovaNNCPU
-   :synopsis: CPU backend configuration for NovaNN targets.
+NovaNNCPU
+---------
 
-Provides the ``nova_configure_cpu_target()`` function that applies all
-detected SIMD flags, threading libraries, and OpenMP support to a
-CMake target.
+Configure a CMake target for the CPU backend.  Applies SIMD compiler
+flags, links pthreads if available, and configures OpenMP support.
 
-This module also includes the threading detection modules
-(``DetectPThreads`` and ``DetectOpenMP``) and is included by
-``NovaNNRuntime.cmake``.
+This module includes ``DetectPThreads`` and ``DetectOpenMP`` to
+resolve threading dependencies.
 
-.. function:: nova_configure_cpu_target(TARGET)
+This module defines the following functions:
 
-   Configure a target for the CPU backend.
+.. command:: nova_configure_cpu_target
 
-   Applies the following to ``TARGET``:
+  Configure a target with CPU-specific compile options:
 
-   - All flags in ``SIMD_FLAGS`` as ``PRIVATE`` compile options.
-   - Links ``Threads::Threads`` if pthreads is available.
-   - Links ``OpenMP::OpenMP_C`` and ``OpenMP::OpenMP_CXX`` if OpenMP
-     is found; defines ``NOVA_OPENMP=1`` on the target.
-   - Defines ``NOVA_OPENMP=0`` if OpenMP is not found.
+  .. code-block:: cmake
 
-   :param TARGET: The target to configure (must already exist).
-   :type TARGET:  ``target name``
+    nova_configure_cpu_target(<target>)
 
-   .. code-block:: cmake
-
-      add_library(mylib OBJECT source.c)
-      nova_configure_cpu_target(mylib)
 #]=======================================================================]
 
 include("${CMAKE_SOURCE_DIR}/cmake/Detect/threading/DetectPThreads.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/Detect/threading/DetectOpenMP.cmake")
 
+#[=======================================================================[.rst:
+.. command:: nova_configure_cpu_target
+
+  Configure a target with CPU-specific compile options:
+
+  .. code-block:: cmake
+
+    nova_configure_cpu_target(<target>)
+
+  The ``<target>`` argument specifies the CMake target to configure.
+
+  This function performs the following actions:
+
+  - Appends ``SIMD_FLAGS`` to the target compile options.
+  - Links ``Threads::Threads`` when pthreads is available.
+  - Links ``OpenMP::OpenMP_C`` and ``OpenMP::OpenMP_CXX`` when OpenMP
+    is available, and defines ``NOVA_OPENMP=1``.
+  - Defines ``NOVA_OPENMP=0`` when OpenMP is absent.
+
+#]=======================================================================]
 function(nova_configure_cpu_target TARGET)
     if(SIMD_FLAGS)
         target_compile_options(${TARGET} PRIVATE ${SIMD_FLAGS})
