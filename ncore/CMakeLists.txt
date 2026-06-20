@@ -1,26 +1,26 @@
 #[=======================================================================[.rst:
-.. module:: ncore
-   :synopsis: Core C and C++ object libraries for NovaNN.
+NCore
+-----
 
-Defines the two OBJECT libraries that are assembled into the final
-``nova`` shared library.
+Core module of the NovaNN project.  Includes the native and Rust
+subdirectories, then builds the core object libraries from C and C++
+source files.
 
-**Targets:**
+Targets created:
 
-- ``ncore_obj``   — OBJECT library from all ``.c`` files in
-  ``ncore/src/repr/`` and ``ncore/src/core/``.
-- ``autograd_obj`` — OBJECT library from all ``.cpp`` files in
-  ``ncore/src/autograd/``.
+``ncore_obj``
+  OBJECT library containing core C sources (``repr/`` and ``core/``
+  subdirectories).
 
-Both targets have ``POSITION_INDEPENDENT_CODE ON`` and receive the
-same compile flags, SIMD flags, and backend configuration as the
-root ``nova`` target.
+``autograd_obj``
+  OBJECT library containing autograd C++ sources.
 
-**Subdirectories:**
+Both object libraries link against the ``native`` backend and receive
+build flags, CPU configuration, and optional CUDA/HIP configuration.
 
-- ``rust/`` — Builds the Rust memory subsystem.
 #]=======================================================================]
 
+add_subdirectory(native)
 add_subdirectory(rust)
 
 file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
@@ -32,16 +32,23 @@ add_library(ncore_obj OBJECT ${CORE_SOURCES})
 
 set_target_properties(ncore_obj PROPERTIES
     POSITION_INDEPENDENT_CODE ON
+    C_STANDARD 23
+    C_STANDARD_REQUIRED ON
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
 )
 
 target_include_directories(ncore_obj
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
     PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/src>
+    PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/cuda
+    PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/hip
     PRIVATE ${CMAKE_BINARY_DIR}
 )
 
-nova_configure_build_flags(ncore_obj)
+target_link_libraries(ncore_obj PRIVATE native)
 
+nova_configure_build_flags(ncore_obj)
 nova_configure_cpu_target(ncore_obj)
 
 if(NOVA_HAS_CUDA)
@@ -52,7 +59,6 @@ if(NOVA_HAS_HIP)
     nova_configure_hip_target(ncore_obj)
 endif()
 
-# Autograd C++ implementation
 file(GLOB_RECURSE AUTOGRAD_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/src/autograd/*.cpp"
 )
@@ -68,8 +74,9 @@ target_include_directories(autograd_obj
     PRIVATE ${CMAKE_BINARY_DIR}
 )
 
-nova_configure_build_flags(autograd_obj)
+target_link_libraries(autograd_obj PRIVATE native)
 
+nova_configure_build_flags(autograd_obj)
 nova_configure_cpu_target(autograd_obj)
 
 if(NOVA_HAS_CUDA)
