@@ -38,6 +38,7 @@
  * @see alloc.h      Storage allocation.
  */
 
+#include "ncore/core/storage.h"
 #include <ncore/core/alloc.h>
 #include <ncore/core/copy.h>
 #include <ncore/core/device.h>
@@ -162,14 +163,14 @@ static inline void copy_u64_host_buffer(const Tensor *restrict src,
  * layer:
  *
  * ```
- * cuda_memcpy() / hip_memcpy()   (CudaIO.cpp / HipIO.cpp)
- *   → map_error()                (backend-specific)
- *   → device_memcpy_c()          (ffi.cpp, direct passthrough)
+ * cudaTransfer() / hipTransfer()   (CudaIO.cpp / HipIO.cpp)
+ *   → mapError()                (backend-specific)
+ *   → device_transfer_c()          (ffi.cpp, direct passthrough)
  *   → transfer_to()              (device.c, returned verbatim)
  *   → map_code2err()             (this function)
  * ```
  *
- * The backend `map_error()` functions produce these integer codes:
+ * The backend `mapError()` functions produce these integer codes:
  * | Code | Meaning                          |
  * |------|----------------------------------|
  * |  0   | Success                          |
@@ -636,10 +637,17 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
     return;
   }
 
-  if (!is_allocated(dst)) {
+  if (is_allocated(dst)) {
     status->err = novaInvalidTensor;
     status->message = "dst must be an unallocated, use "
                       "`create_unallocated_tensor()`\n";
+    return;
+  }
+
+  if (src->device != dst->device) {
+    status->err =
+        src->dtype != dst->dtype ? novaInvalidDtype : novaInvalidDevice;
+    status->message = nova_get_error_msg(status->err, NULL);
     return;
   }
 
@@ -672,18 +680,30 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
 
     const CopyFn func = lookup_copy[src->device][src->dtype];
     func(src, dst, status);
+    if (status->err != novaSuccess) {
+      return;
+    }
   }
 
   if (src->grad != NULL) {
-    TensorGrad new_grad = create_unallocated_grad_tensor(
-        src->grad->shape, src->grad->dtype, src->grad->device,
-        src->grad->is_pinned, src->grad->ndims);
-    novaStatus_t gstatus;
+    TensorGrad new_grad =
+        (int)is_scalar(src)
+            ? create_unallocated_grad_tensor(
+                  src->grad->shape, src->grad->dtype, src->grad->device,
+                  src->grad->is_pinned, src->grad->ndims, status)
+            : create_unallocated_scalar_grad_tensor(
+                  src->grad->dtype, src->grad->device, src->grad->is_pinned,
+                  status);
+
+    if (status->err != novaSuccess) {
+      collect(dst);
+      return;
+    }
+
     dst->grad = new_grad;
-    deepcopy(src->grad, dst->grad, &gstatus);
-    if (gstatus.err != novaSuccess) {
-      status->err = gstatus.err;
-      status->message = gstatus.message;
+    deepcopy(src->grad, dst->grad, status);
+    if (status->err != novaSuccess) {
+      collect(dst);
       return;
     }
   } else {
