@@ -1,37 +1,32 @@
 #[=======================================================================[.rst:
-.. module:: DetectAMX
-   :synopsis: Detect Intel AMX and sub-extension compiler support.
+DetectAMX
+---------
 
-Tests base AMX-TILE support first.  If AMX-TILE is available,
-sets ``HAS_AMX`` to ``1`` and conditionally detects three sub-extensions
-for matrix operations.  If AMX-TILE is not found, all variables are
-forced to ``0``.
+Detect Intel AMX (Advanced Matrix Extensions) tile and sub-extension
+support.  Sets ``HAS_AMX_TILE`` to ``1`` if the compiler can emit
+AMX tile intrinsics.  When tile support is present, the module probes
+for FP16, BF16, and INT8 extensions.
 
-**Result variables:**
+Variables defined:
 
-- ``HAS_AMX``       — Set to ``1`` if AMX-TILE is supported.
-- ``HAS_AMX_FP16``  — FP16 matrix multiply (requires AMX-TILE).
-- ``HAS_AMX_BF16``  — BF16 matrix multiply (requires AMX-TILE).
-- ``HAS_AMX_INT8``  — INT8 matrix multiply (requires AMX-TILE).
+``HAS_AMX_TILE``
+  ``1`` if AMX tile operations are supported, ``0`` otherwise.
 
-**Appended flags:**
+``HAS_AMX``
+  Alias for ``HAS_AMX_TILE``.
 
-- ``-mamx-tile``  on AMX-TILE success.
-- ``-mamx-fp16``  on AMX-FP16 success.
-- ``-mamx-bf16``  on AMX-BF16 success.
-- ``-mamx-int8``  on AMX-INT8 success.
+``HAS_AMX_FP16``
+  ``1`` if AMX-FP16 is supported.
 
-**Instruction sets tested:**
+``HAS_AMX_BF16``
+  ``1`` if AMX-BF16 is supported.
 
-- AMX-TILE:  ``_tile_release`` (tile management).
-- AMX-FP16:  ``_tile_dpfp16ps`` (FP16 matrix multiply-accumulate).
-- AMX-BF16:  ``_tile_dpbf16ps`` (BF16 matrix multiply-accumulate).
-- AMX-INT8:  ``_tile_dpbusd`` (INT8 matrix multiply-accumulate).
+``HAS_AMX_INT8``
+  ``1`` if AMX-INT8 is supported.
 
-.. note::
+All sub-extension variables are set to ``0`` when ``HAS_AMX_TILE`` is
+absent.
 
-   AMX requires ``_tile_release()`` calls around tile operations to
-   avoid kernel conflicts.  All test snippets include these guards.
 #]=======================================================================]
 
 check_simd(HAS_AMX_TILE "-mamx-tile" "-mamx-tile" "

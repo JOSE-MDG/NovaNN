@@ -1,28 +1,24 @@
 #[=======================================================================[.rst:
-.. module:: DetectAVX
-   :synopsis: Detect AVX, F16C, and FMA3 compiler support.
+DetectAVX
+---------
 
-Tests base AVX support first.  If AVX is available, conditionally
-detects F16C (half-float conversion) and FMA3 (fused multiply-add).
-If AVX is not found, both sub-extensions are forced to ``0``.
+Detect AVX, F16C, and FMA3 instruction set support.  Sets ``HAS_AVX``
+to ``1`` if the compiler can emit AVX intrinsics.  When AVX is
+available, the module also probes for ``HAS_F16C`` and ``HAS_FMA3``.
 
-**Result variables:**
+Variables defined:
 
-- ``HAS_AVX``  — Set to ``1`` if AVX is supported.
-- ``HAS_F16C`` — Set to ``1`` if F16C is supported (requires AVX).
-- ``HAS_FMA3`` — Set to ``1`` if FMA3 is supported (requires AVX).
+``HAS_AVX``
+  ``1`` if AVX is supported, ``0`` otherwise.
 
-**Appended flags:**
+``HAS_F16C``
+  ``1`` if F16C is supported (requires AVX).  Set to ``0`` when AVX
+  is absent.
 
-- ``-mavx``  is added to ``SIMD_FLAGS`` on AVX success.
-- ``-mf16c`` is added on F16C success.
-- ``-mfma``  is added on FMA3 success.
+``HAS_FMA3``
+  ``1`` if FMA3 is supported (requires AVX).  Set to ``0`` when AVX
+  is absent.
 
-**Instruction sets tested:**
-
-- AVX:   ``_mm256_add_ps`` (256-bit single-precision add).
-- F16C:  ``_mm_cvtph_ps`` (half-to-float conversion).
-- FMA3:  ``_mm256_fmadd_ps`` (256-bit fused multiply-add).
 #]=======================================================================]
 
 check_simd(HAS_AVX "-mavx" "-mavx" "

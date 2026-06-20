@@ -1,17 +1,10 @@
 #[=======================================================================[.rst:
-.. module:: DetectSSE
-   :synopsis: Detect SSE4.2 compiler support.
+DetectSSE
+---------
 
-Tests whether the compiler can compile and run SSE4.2 intrinsics.
-The test snippet exercises ``_mm_crc32_u32`` from ``<nmmintrin.h>``.
+Detect SSE 4.2 instruction set support.  Sets ``HAS_SSE4_2`` to ``1``
+if the compiler can emit and execute SSE 4.2 intrinsics.
 
-**Result variables:**
-
-- ``HAS_SSE4_2`` — Set to ``1`` if SSE4.2 is supported.
-
-**Appended flags:**
-
-- ``-msse4.2`` is added to ``SIMD_FLAGS`` on success.
 #]=======================================================================]
 
 check_simd(HAS_SSE4_2 "-msse4.2" "-msse4.2" "
