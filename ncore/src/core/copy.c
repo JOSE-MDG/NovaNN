@@ -631,7 +631,7 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
     return;
   }
 
-  if (dst != NULL) {
+  if (dst == NULL) {
     status->err = novaInvalidTensor;
     status->message = "dst Tensor ptr is NULL\n";
     return;
@@ -687,13 +687,13 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
 
   if (src->grad != NULL) {
     TensorGrad new_grad =
-        (int)is_scalar(src)
-            ? create_unallocated_grad_tensor(
-                  src->grad->shape, src->grad->dtype, src->grad->device,
-                  src->grad->is_pinned, src->grad->ndims, status)
-            : create_unallocated_scalar_grad_tensor(
+        (int)is_scalar(src->grad)
+            ? create_unallocated_scalar_grad_tensor(
                   src->grad->dtype, src->grad->device, src->grad->is_pinned,
-                  status);
+                  status)
+            : create_unallocated_grad_tensor(
+                  src->grad->shape, src->grad->dtype, src->grad->device,
+                  src->grad->is_pinned, src->grad->ndims, status);
 
     if (status->err != novaSuccess) {
       collect(dst);
