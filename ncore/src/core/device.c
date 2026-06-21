@@ -603,8 +603,17 @@ bool is_hip_available(void) {
  */
 DeviceStatus transfer_to(Device src, Device dst, const void *src_buf,
                          void *dst_buf, size_t bytes) {
+  DeviceStatus status;
+  if (src == DEVICE_CPU && dst == DEVICE_CPU) {
+    status.code = -1;
+    status.message = "Can not transfer data betwen Host -> Host, use "
+                     "deepcopy()/memcpy() instead\n";
+
+    return status;
+  }
   TransferKind kind = transf_dispatch[src][dst];
-  return device_transfer_c(src_buf, dst_buf, kind, bytes);
+  status = device_transfer_c(src_buf, dst_buf, kind, bytes);
+  return status;
 }
 
 /**
