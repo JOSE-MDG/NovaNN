@@ -57,7 +57,9 @@ set(NOVA_CXX_FLAGS
 )
 
 set(NOVA_RELEASE_FLAGS
-  -O3 -march=native -ffast-math -fno-finite-math-only -fvectorize
+  -O3 -march=native -ffast-math -fno-finite-math-only
+  $<$<AND:$<COMPILE_LANGUAGE:C>,$<C_COMPILER_ID:Clang>>:-fvectorize>
+  $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-fvectorize>
 )
 set(NOVA_DEBUG_FLAGS -g -fno-omit-frame-pointer)
 
