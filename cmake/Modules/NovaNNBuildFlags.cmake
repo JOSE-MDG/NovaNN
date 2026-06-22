@@ -56,8 +56,10 @@ set(NOVA_CXX_FLAGS
   -Wpessimizing-move -Wredundant-move -Wold-style-cast
 )
 
+set(NOVA_RELEASE_FLAGS
+  -O3 -march=native -ffast-math -fno-finite-math-only -fvectorize
+)
 set(NOVA_DEBUG_FLAGS -g -fno-omit-frame-pointer)
-set(NOVA_RELEASE_FLAGS -O3 -march=native -ffast-math)
 
 include("${CMAKE_SOURCE_DIR}/cmake/Detect/lto/DetectLTO.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/Detect/sanitizers/DetectSanitizers.cmake")
