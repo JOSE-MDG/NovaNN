@@ -72,6 +72,11 @@ enum class DeviceMemcpyKind : std::int8_t {
   deviceMemcpyDeviceToDevice = 3 ///< Device → Device copy.
 };
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
+#endif
+
 extern "C" {
 
 /**
@@ -177,3 +182,7 @@ deviceStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes,
 deviceStatus_t deviceTransfer(const void *src, void *dst, DeviceMemcpyKind kind,
                               std::size_t bytes);
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
