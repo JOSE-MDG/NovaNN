@@ -127,7 +127,7 @@
  * @brief Total number of type errors
  *
  */
-#define NUM_ERRORS 30
+#define NUM_ERRORS 31
 
 /**
  * @def NUM_FLOATS
@@ -195,7 +195,7 @@
  * `EXIT_FAILURE`.  Uses `__VA_OPT__` for clean expansion when
  * no variadic arguments are provided.
  *
- * This macro is not a debugging aid — it guards
+ * This macro is for debugging aid — it guards
  * invariants that, if violated, indicate a bug in NovaNN
  * itself (e.g., null storage after a successful allocation).
  *
