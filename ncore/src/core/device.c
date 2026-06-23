@@ -393,42 +393,45 @@ bool is_device_available(DeviceKind kind, bool verbose) {
 #elif defined(_WIN64)
   InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, NULL, NULL);
 #endif
+
   switch (kind) {
   case CUDA_DEVICE: {
 #ifdef NOVA_HAS_CUDA
+    if (isCudaDeviceAvailable(verbose, verbose)) {
 #ifdef __linux__
-    mtx_lock(&runtime_flags_mtx);
-    device_detection_done = true;
-    detected_device_kind = CUDA_DEVICE;
-    mtx_unlock(&runtime_flags_mtx);
+      mtx_lock(&runtime_flags_mtx);
+      device_detection_done = true;
+      detected_device_kind = CUDA_DEVICE;
+      mtx_unlock(&runtime_flags_mtx);
 #elif defined(_WIN64)
-    EnterCriticalSection(&runtime_flags_mtx);
-    device_detection_done = true;
-    detected_device_kind = CUDA_DEVICE;
-    LeaveCriticalSection(&runtime_flags_mtx);
+      EnterCriticalSection(&runtime_flags_mtx);
+      device_detection_done = true;
+      detected_device_kind = CUDA_DEVICE;
+      LeaveCriticalSection(&runtime_flags_mtx);
 #endif
-    return isCudaDeviceAvailable(verbose, verbose);
-#else
+      return true;
+    }
+#endif
     return false;
-#endif
   }
   case HIP_DEVICE: {
 #ifdef NOVA_HAS_HIP
+    if (isHipDeviceAvailable(false, false)) {
 #ifdef __linux__
-    mtx_lock(&runtime_flags_mtx);
-    device_detection_done = true;
-    detected_device_kind = HIP_DEVICE;
-    mtx_unlock(&runtime_flags_mtx);
+      mtx_lock(&runtime_flags_mtx);
+      device_detection_done = true;
+      detected_device_kind = HIP_DEVICE;
+      mtx_unlock(&runtime_flags_mtx);
 #elif defined(_WIN64)
-    EnterCriticalSection(&runtime_flags_mtx);
-    device_detection_done = true;
-    detected_device_kind = HIP_DEVICE;
-    LeaveCriticalSection(&runtime_flags_mtx);
+      EnterCriticalSection(&runtime_flags_mtx);
+      device_detection_done = true;
+      detected_device_kind = HIP_DEVICE;
+      LeaveCriticalSection(&runtime_flags_mtx);
 #endif
-    return isHipDeviceAvailable(verbose, verbose);
-#else
+      return true;
+    }
+#endif
     return false;
-#endif
   }
   case NULL_DEVICE:
   default:
@@ -476,21 +479,22 @@ bool is_cuda_available(void) {
 #endif
 
 #ifdef NOVA_HAS_CUDA
+  if (isCudaDeviceAvailable(false, false)) {
 #ifdef __linux__
-  mtx_lock(&runtime_flags_mtx);
-  device_detection_done = true;
-  detected_device_kind = CUDA_DEVICE;
-  mtx_unlock(&runtime_flags_mtx);
+    mtx_lock(&runtime_flags_mtx);
+    device_detection_done = true;
+    detected_device_kind = CUDA_DEVICE;
+    mtx_unlock(&runtime_flags_mtx);
 #elif defined(_WIN64)
-  EnterCriticalSection(&runtime_flags_mtx);
-  device_detection_done = true;
-  detected_device_kind = CUDA_DEVICE;
-  LeaveCriticalSection(&runtime_flags_mtx);
+    EnterCriticalSection(&runtime_flags_mtx);
+    device_detection_done = true;
+    detected_device_kind = CUDA_DEVICE;
+    LeaveCriticalSection(&runtime_flags_mtx);
 #endif
-  return isCudaDeviceAvailable(false, false);
-#else
+    return true;
+  }
+#endif
   return false;
-#endif
 }
 
 /**
@@ -531,22 +535,24 @@ bool is_hip_available(void) {
 #elif defined(_WIN64)
   InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, NULL, NULL);
 #endif
+
 #ifdef NOVA_HAS_HIP
+  if (isHipDeviceAvailable(false, false)) {
 #ifdef __linux__
-  mtx_lock(&runtime_flags_mtx);
-  device_detection_done = true;
-  detected_device_kind = HIP_DEVICE;
-  mtx_unlock(&runtime_flags_mtx);
+    mtx_lock(&runtime_flags_mtx);
+    device_detection_done = true;
+    detected_device_kind = HIP_DEVICE;
+    mtx_unlock(&runtime_flags_mtx);
 #elif defined(_WIN64)
-  EnterCriticalSection(&runtime_flags_mtx);
-  device_detection_done = true;
-  detected_device_kind = HIP_DEVICE;
-  LeaveCriticalSection(&runtime_flags_mtx);
+    EnterCriticalSection(&runtime_flags_mtx);
+    device_detection_done = true;
+    detected_device_kind = HIP_DEVICE;
+    LeaveCriticalSection(&runtime_flags_mtx);
 #endif
-  return isHipDeviceAvailable(false, false);
-#else
+    return true;
+  }
+#endif
   return false;
-#endif
 }
 
 /**
@@ -606,8 +612,8 @@ DeviceStatus transfer_to(Device src, Device dst, const void *src_buf,
   DeviceStatus status;
   if (src == DEVICE_CPU && dst == DEVICE_CPU) {
     status.code = -1;
-    status.message = "Can not transfer data betwen Host -> Host, use "
-                     "deepcopy()/memcpy() instead\n";
+    status.message = "Cannot transfer data between host and host; use "
+                     "deepcopy() or memcpy() instead\n";
 
     return status;
   }
