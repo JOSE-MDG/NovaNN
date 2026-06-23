@@ -238,8 +238,7 @@ static inline void copy_f64_device_buffer(const Tensor *restrict src,
 
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
   DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.f64,
@@ -264,8 +263,7 @@ static inline void copy_f16_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
   DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.half,
@@ -290,8 +288,7 @@ static inline void copy_bf16_device_buffer(const Tensor *restrict src,
                                            novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
 
@@ -317,8 +314,7 @@ static inline void copy_s8_device_buffer(const Tensor *restrict src,
                                          novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
 
@@ -344,8 +340,7 @@ static inline void copy_u8_device_buffer(const Tensor *restrict src,
                                          novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
   DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.u8,
@@ -370,8 +365,7 @@ static inline void copy_qs8_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
   DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.qs8,
@@ -396,8 +390,7 @@ static inline void copy_qu8_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
   DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.qu8,
@@ -422,8 +415,7 @@ static inline void copy_s32_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
   DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.s32,
@@ -448,8 +440,7 @@ static inline void copy_u32_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
 
@@ -475,8 +466,7 @@ static inline void copy_s64_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
 
@@ -502,8 +492,7 @@ static inline void copy_u64_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "Can not copy bytes in an invalid device.\n Please check "
-                      "if any device was detected previously\n";
+    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
     return;
   }
 
