@@ -48,6 +48,7 @@ typedef enum ATTR(packed) {
   novaInvalidPointer,
   novaInvalidDtype,
   novaInvalidDevice,
+  novaInvalidNdims,
   novaInvalidAlignment,
   novaInvalidShape,
   novaInvalidIndex,
