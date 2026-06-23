@@ -56,49 +56,76 @@ ATTR(constructor) static inline void init_status_msg_dispatch() {
   status_msg_dispatch[novaSuccess] = "Success\n";
 
   /* Invalid parameters */
-  status_msg_dispatch[novaInvalidValue] = "Invalid value\n";
-  status_msg_dispatch[novaInvalidTensor] = "Invalid tensor\n";
-  status_msg_dispatch[novaInvalidPointer] = "Invalid pointer\n";
-  status_msg_dispatch[novaInvalidDtype] = "Invalid data type\n";
-  status_msg_dispatch[novaInvalidDevice] = "Invalid device\n";
-  status_msg_dispatch[novaInvalidAlignment] = "Invalid alignment\n";
-  status_msg_dispatch[novaInvalidShape] = "Invalid shape\n";
-  status_msg_dispatch[novaInvalidIndex] = "Invalid index\n";
+  status_msg_dispatch[novaInvalidValue] =
+      "One or more input values are invalid or out of range\n";
+  status_msg_dispatch[novaInvalidTensor] =
+      "Tensor object is invalid or in an inconsistent state\n";
+  status_msg_dispatch[novaInvalidPointer] =
+      "Null or invalid pointer provided where a valid address is required\n";
+  status_msg_dispatch[novaInvalidDtype] =
+      "Data type is not recognized or not valid for this operation\n";
+  status_msg_dispatch[novaInvalidDevice] =
+      "Device identifier is not valid or not supported\n";
+  status_msg_dispatch[novaInvalidNdims] =
+      "Number of dimensions is not valid or not supported\n";
+  status_msg_dispatch[novaInvalidAlignment] =
+      "Memory alignment requirement not met for the target device\n";
+  status_msg_dispatch[novaInvalidShape] =
+      "Tensor shape is invalid or violates operation constraints\n";
+  status_msg_dispatch[novaInvalidIndex] =
+      "Index is out of bounds for the given tensor dimensions\n";
 
   /* Memory */
-  status_msg_dispatch[novaBufferOverflow] = "Buffer overflow\n";
-  status_msg_dispatch[novaOutOfMemory] = "Out of memory\n";
-  status_msg_dispatch[novaReserveError] = "Reserve error\n";
-  status_msg_dispatch[novaReleaseError] = "Release error\n";
-  status_msg_dispatch[novaResizeError] = "Resize error\n";
+  status_msg_dispatch[novaBufferOverflow] =
+      "Buffer overflow: access exceeds allocated memory bounds\n";
+  status_msg_dispatch[novaOutOfMemory] =
+      "Out of memory: allocation request could not be satisfied\n";
+  status_msg_dispatch[novaReserveError] =
+      "Failed to reserve memory through the underlying allocator\n";
+  status_msg_dispatch[novaReleaseError] =
+      "Failed to release memory allocation\n";
+  status_msg_dispatch[novaResizeError] = "Failed to resize memory allocation\n";
 
   /* Data transfer */
-  status_msg_dispatch[novaTransferError] = "Transfer error\n";
-  status_msg_dispatch[novaTransferH2DError] = "Host-to-device transfer error\n";
-  status_msg_dispatch[novaTransferD2HError] = "Device-to-host transfer error\n";
+  status_msg_dispatch[novaTransferError] =
+      "Memory transfer between devices failed\n";
+  status_msg_dispatch[novaTransferH2DError] =
+      "Host-to-device memory transfer failed\n";
+  status_msg_dispatch[novaTransferD2HError] =
+      "Device-to-host memory transfer failed\n";
   status_msg_dispatch[novaInvalidTransfDirection] =
-      "Invalid transfer direction error\n";
+      "Invalid transfer direction specified for the operation\n";
 
   /* Device/Backend */
-  status_msg_dispatch[novaDeviceNotAvailable] = "Device not available\n";
-  status_msg_dispatch[novaDeviceNotInitialized] = "Device not initialized\n";
-  status_msg_dispatch[novaBackendNotCompiled] = "Backend not compiled\n";
-  status_msg_dispatch[novaBackendNotSupported] = "Backend not supported\n";
+  status_msg_dispatch[novaDeviceNotAvailable] =
+      "No compatible compute device is available\n";
+  status_msg_dispatch[novaDeviceNotInitialized] =
+      "Compute device has not been initialized\n";
+  status_msg_dispatch[novaBackendNotCompiled] =
+      "Requested backend was not compiled into this build\n";
+  status_msg_dispatch[novaBackendNotSupported] =
+      "Requested backend is not supported on this platform\n";
 
   /* Dtype/Cast */
-  status_msg_dispatch[novaDtypeNotSupported] = "Data type not supported\n";
-  status_msg_dispatch[novaCastNotSupported] = "Cast not supported\n";
-  status_msg_dispatch[novaShapeMismatch] = "Shape mismatch\n";
+  status_msg_dispatch[novaDtypeNotSupported] =
+      "Data type is not supported by the requested operation\n";
+  status_msg_dispatch[novaCastNotSupported] =
+      "Cast between the specified data types is not supported\n";
+  status_msg_dispatch[novaShapeMismatch] =
+      "Tensor shape mismatch: dimensions are incompatible for the operation\n";
 
   /* GPU-specific */
-  status_msg_dispatch[novaKernelLaunchError] = "Kernel launch error\n";
+  status_msg_dispatch[novaKernelLaunchError] = "GPU kernel launch failed\n";
   status_msg_dispatch[novaInvalidResourceHandle] =
-      "Internal resource handle error\n";
+      "Internal GPU resource handle is invalid or corrupted\n";
 
   /* Internal */
-  status_msg_dispatch[novaNotImplemented] = "Not implemented\n";
-  status_msg_dispatch[novaInternalError] = "Internal error\n";
+  status_msg_dispatch[novaNotImplemented] =
+      "Requested functionality is not yet implemented\n";
+  status_msg_dispatch[novaInternalError] =
+      "An unexpected internal failure occurred\n";
 
   /* General */
-  status_msg_dispatch[novaRuntimeError] = "Runtime error\n";
+  status_msg_dispatch[novaRuntimeError] =
+      "A runtime error occurred during operation execution\n";
 }
