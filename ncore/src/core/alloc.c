@@ -148,7 +148,7 @@ novaStatus_t safe_allocator(size_t bytes, Device device, bool pin_memory,
 
     if (storage == NULL) {
       status.err = novaInvalidPointer;
-      status.message = "Error creating tensor storage, storage ptr is NULL\n";
+      status.message = "Failed to allocate tensor storage descriptor: malloc returned NULL\n";
       return status;
     }
 
