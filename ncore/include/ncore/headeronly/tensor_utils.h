@@ -1,19 +1,49 @@
 /**
  * @file tensor_utils.h
- * @brief Inline tensor initialisation and coordinate utilities.
+ * @brief Header-only tensor utilities: creation, metadata
+ *        computation, coordinate manipulation, and view collapsing.
  *
  * @details
- * Header-only file providing low-level helpers used by `tensor.c`
- * and other internal modules.  All functions are `static inline`
- * for zero-overhead inclusion.
+ * This module provides a collection of `static inline` utilities
+ * for low-level tensor manipulation.  It is designed for
+ * zero-overhead inclusion in translation units that need tensor
+ * metadata operations without pulling in heavy dependencies.
  *
- * The creation functions in this file accept an output
- * @ref novaStatus_t pointer for error propagation.  On failure
- * the returned tensor is zeroed and the caller must not use it.
+ * The utilities fall into several categories:
  *
- * @see tensor.h    Tensor struct and public API.
+ * - **Tensor creation (unallocated)**: Functions to initialise
+ *   `Tensor` and `TensorGrad` metadata shells — including scalar
+ *   (0-D) variants — without allocating backing storage.  These
+ *   are used for deferred allocation and gradient tracking.
+ *   All creation functions accept a @ref novaStatus_t pointer
+ *   for error propagation; on failure the returned tensor is
+ *   zeroed and must not be used.
+ *
+ * - **Metadata computation**: Row-major stride and size
+ *   computation for both `Tensor` and `TensorGrad` types.
+ *
+ * - **Coordinate arithmetic**: Conversion between multi-
+ *   dimensional coordinates and linear byte offsets, plus an
+ *   odometer-style iterator for visiting every element in
+ *   row-major order.
+ *
+ * - **Dimension collapsing**: The @ref CollapsedView type and
+ *   @ref collapse() function merge contiguous dimensions,
+ *   reducing odometer overhead in memory-bound kernels.
+ *
+ * All functions operate on the public `Tensor` layout defined in
+ * @ref tensor.h and use the `DType_` enumeration from @ref dtype.h.
+ * The maximum supported rank is @ref NOVA_MAX_DIMS from
+ * @ref macros.h.
+ *
+ * @see tensor.h    Tensor struct, public API, and layout
+ *                  invariants.
  * @see dtype.h     DType_ enum and dtype_size().
- * @see macros.h    NOVA_MAX_DIMS, ALIGN().
+ * @see macros.h    NOVA_MAX_DIMS, ALIGN(), and other compile-time
+ *                  limits.
+ * @see alloc.h     Storage allocation (used by allocated variants
+ *                  in tensor.c).
+ * @see status.h    novaStatus_t error reporting.
  */
 
 #pragma once
@@ -26,6 +56,35 @@
 #include <ncore/tensor.h>
 #include <stdlib.h>
 #include <string.h>
+
+/**
+ * @typedef CollapsedView
+ * @brief Reduced-dimension view of a tensor after collapsing
+ *        contiguous dimensions.
+ *
+ * @details
+ * When a tensor has adjacent dimensions that are contiguous in
+ * memory (i.e., `strides[d] == strides[d+1] * shape[d+1]`), they
+ * can be merged into a single larger dimension without copying
+ * data.  `CollapsedView` captures the result of this merging
+ * operation performed by @ref collapse().
+ *
+ * The collapsed view preserves the total element count:
+ * `product(shape[0..ndims-1]) == original_tensor->size`.
+ *
+ * This view is used by operations like `contiguous_cpu_impl()` to
+ * iterate over the tensor with fewer odometer steps, reducing
+ * loop overhead.
+ *
+ * @see collapse()               Produces this view.
+ * @see contiguous_cpu_impl()    Consumer of this view.
+ * @see odometer()               Iterates using collapsed shape.
+ */
+typedef struct {
+  shape_t shape;     ///< Collapsed dimension sizes (row-major order).
+  strides_t strides; ///< Corresponding strides in bytes.
+  size_t ndims;      ///< Number of collapsed dimensions (<= original ndims).
+} CollapsedView;
 
 /**
  * @brief Forward declaration of create_unallocated_grad_tensor().
@@ -397,7 +456,8 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype, Device device,
   TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
   if (grad == NULL) {
     status->err = novaInvalidPointer;
-    status->message = "Error creating grad tensor, TensorGrad ptr is NULL\n";
+    status->message =
+        "Failed to allocate gradient tensor: malloc returned NULL\n";
     return NULL;
   }
   *grad = create_unallocated_tensor(shape, dtype, device, false, pin_memory,
@@ -511,7 +571,8 @@ create_unallocated_scalar_grad_tensor(DType_ dtype, Device device,
   TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
   if (grad == NULL) {
     status->err = novaInvalidPointer;
-    status->message = "Error creating grad tensor, TensorGrad ptr is NULL\n";
+    status->message =
+        "Failed to allocate gradient tensor: malloc returned NULL\n";
     return NULL;
   }
   *grad = create_unallocated_scalar_tensor(dtype, device, false, pin_memory,
@@ -563,4 +624,98 @@ static inline void odometer(coords_t coords, size_t ndims,
     }
     coords[dim] = 0;
   }
+}
+
+/**
+ * @brief Collapse contiguous dimensions of a tensor into a
+ *        reduced-dimension view.
+ *
+ * @details
+ * Iterates over the tensor's dimensions from the innermost
+ * (last) to the outermost (first) and merges adjacent dimensions
+ * that are contiguous in memory. Two dimensions `d` and
+ * `d+1` are contiguous when:
+ *
+ * ```
+ * strides[d] == strides[d+1] * shape[d+1]
+ * ```
+ *
+ * This is exactly the condition for row-major (C-style) memory
+ * layout where dimension `d+1` varies fastest. When the
+ * condition holds, the two dimensions can be treated as a
+ * single larger dimension without copying data.
+ *
+ * The algorithm:
+ * 1. Start with the innermost dimension as the first output
+ *    dimension.
+ * 2. Walk outward: if the current dimension is contiguous with
+ *    the accumulated output dimension, multiply the output
+ *    shape by the current shape.
+ * 3. Otherwise, start a new output dimension.
+ * 4. Reverse the collected dimensions so the result is in
+ *    standard order (outermost first).
+ *
+ * For a scalar tensor (`ndims == 0`), the function returns an
+ * empty `CollapsedView` with `ndims == 0`.
+ *
+ * The returned `CollapsedView` contains the collapsed `shape_t`
+ * and `strides_t` arrays, and the new dimension count `ndims`.
+ * This view can be used to iterate over the tensor with fewer
+ * odometer steps, reducing loop overhead in operations such as
+ * `contiguous_cpu_impl()`.
+ *
+ * @param[in] ten  Input tensor. Must not be `NULL`.
+ *                 The tensor's `shape_t`, `strides_t`, and
+ *                 `ndims` are read but not modified.
+ *
+ * @return A `CollapsedView` describing the collapsed layout.
+ *         If the input is a scalar, `cv.ndims == 0` and the
+ *         `shape_t`/`strides_t` arrays are zeroed.
+ *
+ * @pre  `ten` must not be `NULL`.
+ * @pre  `ten->ndims` must not exceed `NOVA_MAX_DIMS`.
+ * @post `cv.ndims <= ten->ndims`.
+ * @post `cv.shape` and `cv.strides` describe a valid
+ *       row-major layout for the same data buffer.
+ * @post The product of `cv.shape[0..cv.ndims-1]` equals
+ *       `ten->size` (total element count is preserved).
+ *
+ * @see CollapsedView           Returned view structure.
+ * @see is_scalar()             Scalar check used internally.
+ * @see contiguous_cpu_impl()   Consumer of this function.
+ * @see odometer()              Iteration helper that benefits
+ *                              from collapsed views.
+ */
+static inline CollapsedView collapse(const Tensor *restrict ten) {
+  CollapsedView cv = {0};
+  if (is_scalar(ten)) {
+    return cv;
+  }
+
+  int ndims_in = (int)ten->ndims;
+  shape_t tmp_shape;
+  strides_t tmp_strides;
+
+  int out_idx = 0;
+  tmp_shape[0] = ten->shape[ndims_in - 1];
+  tmp_strides[0] = ten->strides[ndims_in - 1];
+
+  for (int dim = ndims_in - 2; dim >= 0; dim--) {
+    if (ten->strides[dim] == tmp_strides[out_idx] * tmp_shape[out_idx]) {
+      // If these dimensions are contiguous merge them
+      tmp_shape[out_idx] *= ten->shape[dim];
+    } else {
+      out_idx++;
+      tmp_shape[out_idx] = ten->shape[dim];
+      tmp_strides[out_idx] = ten->strides[dim];
+    }
+  }
+
+  cv.ndims = (size_t)out_idx + 1;
+  for (size_t i = 0; i < cv.ndims; i++) {
+    cv.shape[i] = tmp_shape[cv.ndims - 1 - i];
+    cv.strides[i] = tmp_strides[cv.ndims - 1 - i];
+  }
+
+  return cv;
 }
