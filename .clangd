@@ -1,10 +1,11 @@
-CompileFlags:
+}CompileFlags:
   CompilationDatabase: build
   Add:
     - -Incore/include
     - -Ibuild
     - -I/opt/cuda/include
     - -I/opt/rocm/include
+    - -O3
     - -Wall
     - -Werror
     - -Wextra
