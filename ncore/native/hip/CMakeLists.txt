@@ -13,7 +13,7 @@ Targets created:
 
 #]=======================================================================]
 
-file(GLOB_RECURSE HIP_RESOURCES CONFIGURE_DEPENDS
+file(GLOB HIP_RESOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/native/hip/*.cpp"
     "${CMAKE_SOURCE_DIR}/ncore/native/hip/memory/*.cpp"
 )

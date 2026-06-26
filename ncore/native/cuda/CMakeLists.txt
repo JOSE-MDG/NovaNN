@@ -13,7 +13,7 @@ Targets created:
 
 #]=======================================================================]
 
-file(GLOB_RECURSE CUDA_RESOURCES CONFIGURE_DEPENDS
+file(GLOB CUDA_RESOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/native/cuda/*.cpp"
     "${CMAKE_SOURCE_DIR}/ncore/native/cuda/memory/*.cpp"
 )
