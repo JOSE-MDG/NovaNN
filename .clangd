@@ -1,4 +1,4 @@
-}CompileFlags:
+CompileFlags:
   CompilationDatabase: build
   Add:
     - -Incore/include
