@@ -2,34 +2,40 @@
 HIP Backend
 -----------
 
-Build the HIP backend object library.  Collects all ``.cpp`` source
-files (including the ``memory/`` subdirectory) and merges the
-``hip_kernels_obj`` object library into it.
+Builds the HIP host-side object library and its device kernels.
 
-Targets created:
+Targets created
+^^^^^^^^^^^^^^^
 
 ``hip_obj``
-  OBJECT library containing HIP host-side code and device kernels.
+  OBJECT library containing all HIP host-side translation units
+  (``*.cpp``, ``memory/*.cpp``).
+
+``hip_kernels_obj``  (via ``add_subdirectory(kernels)``)
+  OBJECT library containing compiled HIP device code (``*.hip``).
+  Collected by ``native/CMakeLists.txt`` via
+  ``$<TARGET_OBJECTS:hip_kernels_obj>``.
 
 #]=======================================================================]
 
 file(GLOB HIP_RESOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/ncore/native/hip/*.cpp"
-    "${CMAKE_SOURCE_DIR}/ncore/native/hip/memory/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cpp"
 )
 
 add_library(hip_obj OBJECT ${HIP_RESOURCES})
 
 set_target_properties(hip_obj PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
+  POSITION_INDEPENDENT_CODE ON
+  CXX_STANDARD 23
+  CXX_STANDARD_REQUIRED ON
 )
 
 target_include_directories(hip_obj
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
-    PRIVATE ${CMAKE_SOURCE_DIR}/ncore/rust/csrc
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
+  PRIVATE ${CMAKE_SOURCE_DIR}/ncore/rust/csrc
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/memory
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 add_subdirectory(kernels)
