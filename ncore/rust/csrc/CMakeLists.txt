@@ -24,12 +24,22 @@ set_target_properties(rustcsrc PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
-    CUDA_STANDARD 20
-    CUDA_STANDARD_REQUIRED ON
-    HIP_STANDARD 23
-    HIP_STANDARD_REQUIRED ON
     OUTPUT_NAME rustcsrc
 )
+
+if(NOVA_HAS_CUDA)
+    set_target_properties(rustcsrc PROPERTIES
+        CUDA_STANDARD 20
+        CUDA_STANDARD_REQUIRED ON
+    )
+endif()
+
+if(NOVA_HAS_HIP)
+    set_target_properties(rustcsrc PROPERTIES
+        HIP_STANDARD 23
+        HIP_STANDARD_REQUIRED ON
+    )
+endif()
 
 target_include_directories(rustcsrc
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
