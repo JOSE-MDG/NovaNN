@@ -17,7 +17,10 @@ This module defines the following cache variables:
 
 ``NOVA_SUPPORTED_HIP_ARCHS``
   Default list of supported HIP GPU architectures:
-  gfx908 gfx90a gfx942 gfx1030 gfx1100 gfx1200.
+  gfx908 gfx90a gfx942 gfx950
+  gfx1030
+  gfx1100 gfx1101
+  gfx1200 gfx1201.
 
 This module defines the following functions:
 
@@ -62,10 +65,32 @@ if(WIN32)
     return()
 endif()
 
-set(NOVA_SUPPORTED_HIP_ARCHS gfx908 gfx90a gfx942 gfx1030 gfx1100 gfx1200)
+set(NOVA_SUPPORTED_HIP_ARCHS
+
+    # CDNA1 (Arcturus)
+    gfx908
+
+    # CDNA2 (Aldebaran)
+    gfx90a
+
+    # CDNA3 (Aqua Vanjaram)
+    gfx942
+
+    # CDNA4 (CDNA Next)
+    gfx950
+
+    # RDNA2
+    gfx1030
+
+    # RDNA3
+    gfx1100 gfx1101
+
+    # RDNA4
+    gfx1200 gfx1201
+)
 
 set(_NOVA_HIP_REJECTED_PREFIXES
-    gfx6 gfx7 gfx80 gfx81 gfx900 gfx902 gfx904 gfx906 gfx1010 gfx1011 gfx1012
+    gfx6 gfx7 gfx80 gfx81 gfx900 gfx902 gfx904 gfx906 gfx101 gfx1011 gfx1012
 )
 
 #[=======================================================================[.rst:
@@ -229,7 +254,7 @@ if(NOT hip_FOUND)
     return()
 endif()
 
-set(NOVA_ROCM_MIN_VERSION "6.2")
+set(NOVA_ROCM_MIN_VERSION "7.0")
 
 if(hip_VERSION VERSION_LESS NOVA_ROCM_MIN_VERSION)
     message(FATAL_ERROR
