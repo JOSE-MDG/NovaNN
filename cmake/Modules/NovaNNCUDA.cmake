@@ -15,7 +15,8 @@ This module defines the following cache variables:
   ``1`` when a supported CUDA toolkit is found, ``0`` otherwise.
 
 ``NOVA_CUDA_ARCHITECTURES``
-  Default list of CUDA SM architectures: 75, 80, 86, 89, 90, 100.
+  Default list of CUDA SM architectures:
+  75, 80, 86, 89, 90, 100, 103, 110, 120, 121.
 
 This module defines the following functions:
 
@@ -208,7 +209,7 @@ if(NOT CUDAToolkit_FOUND)
     return()
 endif()
 
-set(NOVA_CUDA_MIN_VERSION "12.6")
+set(NOVA_CUDA_MIN_VERSION "13.0")
 
 if(CUDAToolkit_VERSION VERSION_LESS NOVA_CUDA_MIN_VERSION)
     message(FATAL_ERROR
@@ -223,10 +224,27 @@ set(NOVA_HAS_CUDA 1 CACHE INTERNAL "CUDA backend availability")
 message(STATUS "CUDA: ${CUDAToolkit_VERSION} — ${CUDAToolkit_LIBRARY_DIR}")
 
 set(NOVA_CUDA_ARCHITECTURES
+    # Turing
     75
+
+    # Ampere
     80
     86
+
+    # Ada Lovelace
     89
+
+    # Hopper
     90
+
+    # Blackwell – Data Center (B100/B200: sm_100; B300/GB300 Ultra: sm_103)
     100
+    103
+
+    # Blackwell – Jetson Thor (renamed from sm_101 in CUDA 13.0+)
+    110
+
+    # Blackwell – Consumer/Workstation (RTX 50-series: sm_120; GB10/DGX Spark: sm_121)
+    120
+    121
 )
