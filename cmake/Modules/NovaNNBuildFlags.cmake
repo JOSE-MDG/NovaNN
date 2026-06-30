@@ -84,8 +84,8 @@ include("${CMAKE_SOURCE_DIR}/cmake/Detect/sanitizers/DetectSanitizers.cmake")
   - Debug flags from ``NOVA_DEBUG_FLAGS`` in ``Debug`` configuration.
   - Release flags from ``NOVA_RELEASE_FLAGS`` in ``Release``
     configuration.
-  - Sets ``INTERPROCEDURAL_OPTIMIZATION`` to ``ON`` when
-    ``NOVA_HAS_LTO`` is true.
+  - Sets ``INTERPROCEDURAL_OPTIMIZATION`` to ``ON`` and the
+    ``-ffat-lto-objects`` flag when ``NOVA_HAS_LTO`` is true.
 
 #]=======================================================================]
 function(nova_configure_build_flags TARGET)
@@ -98,6 +98,7 @@ function(nova_configure_build_flags TARGET)
 
   if(NOVA_HAS_LTO)
     set_target_properties(${TARGET} PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
+    target_compile_options(${TARGET} PRIVATE -ffat-lto-objects)
   endif()
 endfunction()
 
