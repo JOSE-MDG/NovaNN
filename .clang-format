@@ -5,66 +5,15 @@ AccessModifierOffset: -2
 AlignArrayOfStructures: None
 AlignConsecutiveAssignments:
   Enabled:         false
-  AcrossEmptyLines: false
-  AcrossComments:  false
-  AlignCompound:   false
-  AlignFunctionDeclarations: false
-  AlignFunctionPointers: false
-  PadOperators:    true
 AlignConsecutiveBitFields:
   Enabled:         false
-  AcrossEmptyLines: false
-  AcrossComments:  false
-  AlignCompound:   false
-  AlignFunctionDeclarations: false
-  AlignFunctionPointers: false
-  PadOperators:    false
 AlignConsecutiveDeclarations:
   Enabled:         false
-  AcrossEmptyLines: false
-  AcrossComments:  false
-  AlignCompound:   false
   AlignFunctionDeclarations: true
-  AlignFunctionPointers: false
-  PadOperators:    false
 AlignConsecutiveMacros:
   Enabled:         false
-  AcrossEmptyLines: false
-  AcrossComments:  false
-  AlignCompound:   false
-  AlignFunctionDeclarations: false
-  AlignFunctionPointers: false
-  PadOperators:    false
 AlignConsecutiveShortCaseStatements:
   Enabled:         false
-  AcrossEmptyLines: false
-  AcrossComments:  false
-  AlignCaseArrows: false
-  AlignCaseColons: false
-AlignConsecutiveTableGenBreakingDAGArgColons:
-  Enabled:         false
-  AcrossEmptyLines: false
-  AcrossComments:  false
-  AlignCompound:   false
-  AlignFunctionDeclarations: false
-  AlignFunctionPointers: false
-  PadOperators:    false
-AlignConsecutiveTableGenCondOperatorColons:
-  Enabled:         false
-  AcrossEmptyLines: false
-  AcrossComments:  false
-  AlignCompound:   false
-  AlignFunctionDeclarations: false
-  AlignFunctionPointers: false
-  PadOperators:    false
-AlignConsecutiveTableGenDefinitionColons:
-  Enabled:         false
-  AcrossEmptyLines: false
-  AcrossComments:  false
-  AlignCompound:   false
-  AlignFunctionDeclarations: false
-  AlignFunctionPointers: false
-  PadOperators:    false
 AlignEscapedNewlines: Right
 AlignOperands:   Align
 AlignTrailingComments:
@@ -74,7 +23,6 @@ AlignTrailingComments:
 AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 AllowBreakBeforeNoexceptSpecifier: Never
-AllowBreakBeforeQtProperty: false
 AllowShortBlocksOnASingleLine: Never
 AllowShortCaseExpressionOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: false
@@ -89,6 +37,9 @@ AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 AttributeMacros:
   - __capability
+  - ALIGN
+  - ATTR
+  - __attribute__
 BinPackArguments: true
 BinPackLongBracedList: true
 BinPackParameters: BinPack
@@ -190,19 +141,8 @@ InsertNewlineAtEOF: false
 InsertTrailingCommas: None
 IntegerLiteralSeparator:
   Binary:          0
-  BinaryMinDigitsInsert: 0
-  BinaryMaxDigitsRemove: 0
   Decimal:         0
-  DecimalMinDigitsInsert: 0
-  DecimalMaxDigitsRemove: 0
   Hex:             0
-  HexMinDigitsInsert: 0
-  HexMaxDigitsRemove: 0
-  BinaryMinDigits: 0
-  DecimalMinDigits: 0
-  HexMinDigits:    0
-JavaScriptQuotes: Leave
-JavaScriptWrapImports: true
 KeepEmptyLines:
   AtEndOfFile:     false
   AtStartOfBlock:  true
@@ -303,6 +243,7 @@ SpacesInSquareBrackets: false
 Standard:        Latest
 StatementAttributeLikeMacros:
   - Q_EMIT
+  - ATTR
 StatementMacros:
   - Q_UNUSED
   - QT_REQUIRE_VERSION
@@ -318,4 +259,3 @@ WhitespaceSensitiveMacros:
   - STRINGIZE
 WrapNamespaceBodyWithEmptyLines: Leave
 ...
-
