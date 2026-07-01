@@ -140,7 +140,7 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
 
     if (err != hipSuccess) {
       status->err = (err != hipErrorInvalidValue) ? novaInvalidValue
-                                                   : novaDeviceNotAvailable;
+                                                  : novaDeviceNotAvailable;
       status->message = hipGetErrorString(err);
       return {.isAvailable = false};
     }
@@ -179,7 +179,7 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
   }();
 
   status->err = novaSuccess;
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
   return result;
 }
 
@@ -248,7 +248,7 @@ novaStatus_t printHipDeviceInfo(bool verbose) {
               << result.runtimeVersion << "\n"
               << NCORE_LOG_RESET;
     return {.err = novaSuccess,
-            .message = nova_get_error_msg(novaSuccess, NULL)};
+            .message = nova_get_error_msg(novaSuccess, nullptr)};
   }
 
   std::cout << NCORE_LOG_PREFIX << " [HIP] Device 0 "
@@ -263,7 +263,8 @@ novaStatus_t printHipDeviceInfo(bool verbose) {
             << "\n"
             << NCORE_LOG_RESET;
 
-  return {.err = novaSuccess, .message = nova_get_error_msg(novaSuccess, NULL)};
+  return {.err = novaSuccess,
+          .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 /**
@@ -294,13 +295,13 @@ hipDetectedDeviceProps_t getHipDeviceProperties(novaStatus_t *status) noexcept {
 /** @brief Stub: HIP runtime headers not available. */
 novaStatus_t printHipDeviceInfo(bool) {
   return {.err = novaBackendNotCompiled,
-          .message = nova_get_error_msg(novaBackendNotCompiled, NULL)};
+          .message = nova_get_error_msg(novaBackendNotCompiled, nullptr)};
 }
 
 /** @brief Stub: HIP runtime headers not available. */
 hipDetectedDeviceProps_t getHipDeviceProperties(novaStatus_t *status) {
   status->err = novaBackendNotCompiled;
-  status->message = nova_get_error_msg(novaBackendNotCompiled, NULL);
+  status->message = nova_get_error_msg(novaBackendNotCompiled, nullptr);
   return {.isAvailable = false};
 }
 
