@@ -129,7 +129,7 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
 
     if (err != cudaSuccess) {
       status->err = (err != cudaErrorInvalidValue) ? novaInvalidValue
-                                                    : novaDeviceNotAvailable;
+                                                   : novaDeviceNotAvailable;
       status->message = cudaGetErrorString(err);
       return {.isAvailable = false};
     }
@@ -168,7 +168,7 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
   }();
 
   status->err = novaSuccess;
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
   return result;
 }
 } // namespace
@@ -236,7 +236,7 @@ novaStatus_t printCudaDeviceInfo(bool verbose) {
               << result.runtimeVersion << "\n"
               << NCORE_LOG_RESET;
     return {.err = novaSuccess,
-            .message = nova_get_error_msg(novaSuccess, NULL)};
+            .message = nova_get_error_msg(novaSuccess, nullptr)};
   }
 
   std::cout << NCORE_LOG_PREFIX << " [CUDA] Device 0 "
@@ -250,7 +250,8 @@ novaStatus_t printCudaDeviceInfo(bool verbose) {
             << " | Runtime " << NCORE_LOG_VALUE << "v" << result.runtimeVersion
             << "\n"
             << NCORE_LOG_RESET;
-  return {.err = novaSuccess, .message = nova_get_error_msg(novaSuccess, NULL)};
+  return {.err = novaSuccess,
+          .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 /**
@@ -283,12 +284,12 @@ getCudaDeviceProperties(novaStatus_t *status) noexcept {
 /** @brief Stub: CUDA runtime headers not available. */
 novaStatus_t printCudaDeviceInfo(bool verbose) {
   return {.err = novaBackendNotCompiled,
-          .message = nova_get_error_msg(novaBackendNotCompiled, NULL)};
+          .message = nova_get_error_msg(novaBackendNotCompiled, nullptr)};
 }
 /** @brief Stub: CUDA runtime headers not available. */
 cudaDetectedDeviceProps_t getCudaDeviceProperties(novaStatus_t *status) {
   status->err = novaBackendNotCompiled;
-  status->message = nova_get_error_msg(novaBackendNotCompiled, NULL);
+  status->message = nova_get_error_msg(novaBackendNotCompiled, nullptr);
   return {.isAvailable = false};
 };
 #endif
