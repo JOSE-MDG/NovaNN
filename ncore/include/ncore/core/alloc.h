@@ -14,8 +14,8 @@
 /**
  * | create_storage | handle | ten     | Behavior                         |
  * |----------------|--------|---------|----------------------------------|
- * | `false`        | valid  | NULL    | Raw RustHandle allocation only   |
- * | `true`         | NULL   | valid   | Full TensorStorage + Tensor init |
+ * | `false`        | valid  | nullptr    | Raw RustHandle allocation only   |
+ * | `true`         | nullptr   | valid   | Full TensorStorage + Tensor init |
  *
  */
 // clang-format on
@@ -57,9 +57,9 @@ extern "C" {
  * @param[in]  pin_memory     If `true`, request page-locked host memory
  *                            (CPU only).
  * @param[out] handle         Pointer to receive the raw RustHandle.
- *                            Must not be `NULL` when @p create_storage
+ *                            Must not be `nullptr` when @p create_storage
  *                            is `false`.
- * @param[in,out] ten         Tensor to initialize.  Must not be `NULL`
+ * @param[in,out] ten         Tensor to initialize.  Must not be `nullptr`
  *                            when @p create_storage is `true`, and must
  *                            not already be allocated.
  * @param[in]  create_storage If `true`, create a full TensorStorage and
@@ -68,13 +68,13 @@ extern "C" {
  *
  * @return @ref novaStatus_t with `novaSuccess` on success.
  *
- * @retval novaInvalidPointer  @p ten is `NULL` when @p create_storage is
+ * @retval novaInvalidPointer  @p ten is `nullptr` when @p create_storage is
  *                             `true`, or @p ten is already allocated.
  * @retval novaSuccess         META device or successful allocation.
  * @retval ...                 Forwarded from @ref safe_reserve().
  *
  * @pre  @p bytes must be greater than zero.
- * @pre  Exactly one of @p handle or @p ten must be non-NULL,
+ * @pre  Exactly one of @p handle or @p ten must be non-nullptr,
  *       determined by @p create_storage.
  *
  * @post On success with @p create_storage `true`, @p ten is marked
