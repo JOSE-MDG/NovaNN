@@ -52,6 +52,7 @@ typedef enum ATTR(packed) {
   novaInvalidAlignment,
   novaInvalidShape,
   novaInvalidIndex,
+  novaInvalidNumThreads,
 
   /* Memory */
   novaBufferOverflow,
@@ -71,6 +72,9 @@ typedef enum ATTR(packed) {
   novaDeviceNotInitialized,
   novaBackendNotCompiled,
   novaBackendNotSupported,
+
+  /* OS/Platform */
+  novaOsPlatformNotSupported,
 
   /* Dtype/Cast */
   novaDtypeNotSupported,
@@ -115,9 +119,9 @@ extern "C" {
  *
  * @param[in] err The error code to look up.
  * @param[in] fallback Custom fallback message when @p err is out of
- *                     bounds or the table entry is NULL.  May be NULL.
+ *                     bounds or the table entry is nullptr.  May be nullptr.
  * @return A constant string containing the error message. If the code
- *         is not recognized and @p fallback is non-NULL, returns
+ *         is not recognized and @p fallback is non-nullptr, returns
  *         @p fallback.  Otherwise returns "Unknown error".
  *
  * @see novaError_t
