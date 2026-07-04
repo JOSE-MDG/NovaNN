@@ -71,7 +71,7 @@ extern CastFn cast_dispatch[NUM_DTYPES][NUM_DTYPES];
  * others.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `NULL` and must have a valid `dtype` field.
+ *                   `nullptr` and must have a valid `dtype` field.
  *
  * @return `true` if `input->dtype` is a floating-point type,
  *         `false` otherwise.
@@ -96,7 +96,7 @@ bool is_floating(const Tensor *restrict input) {
  * `UnSigned64`).
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `NULL` and must have a valid `dtype` field.
+ *                   `nullptr` and must have a valid `dtype` field.
  *
  * @return `true` if `input->dtype` is any integer type,
  *         `false` otherwise.
@@ -118,7 +118,7 @@ bool is_integer(const Tensor *restrict input) {
  * `Signed8`, `QSigned8`, `Signed32`, and `Signed64`.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `NULL` and must have a valid `dtype` field.
+ *                   `nullptr` and must have a valid `dtype` field.
  *
  * @return `true` if `input->dtype` is a signed integer type
  *         (including quantized), `false` otherwise.
@@ -140,7 +140,7 @@ bool is_signed_integer(const Tensor *restrict input) {
  * `UnSigned8`, `QUnSigned8`, `UnSigned32`, and `UnSigned64`.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `NULL` and must have a valid `dtype` field.
+ *                   `nullptr` and must have a valid `dtype` field.
  *
  * @return `true` if `input->dtype` is an unsigned integer type
  *         (including quantized), `false` otherwise.
@@ -163,7 +163,7 @@ bool is_unsigned_integer(const Tensor *restrict input) {
  * `QSigned8`.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `NULL` and must have a valid `dtype` field.
+ *                   `nullptr` and must have a valid `dtype` field.
  *
  * @return `true` if `input->dtype` is `QSigned8`, `false`
  *         otherwise.
@@ -186,7 +186,7 @@ bool is_quantized_signed_integer(const Tensor *restrict input) {
  * `QUnSigned8`.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `NULL` and must have a valid `dtype` field.
+ *                   `nullptr` and must have a valid `dtype` field.
  *
  * @return `true` if `input->dtype` is `QUnSigned8`, `false`
  *         otherwise.
@@ -213,13 +213,13 @@ bool is_quantized_unsigned_integer(const Tensor *restrict input) {
  * does not allocate memory — it only fills the data buffer of
  * @p dst.
  *
- * @param[in]  src           Source tensor.  Must not be `NULL`,
+ * @param[in]  src           Source tensor.  Must not be `nullptr`,
  *                           must have `is_allocated_ == true`,
  *                           and a valid `storage` pointer.
  * @param[in]  target_dtype  Desired output @ref DType_.
  * @param[out] dst           Destination tensor (must be
  *                           pre-allocated with the target dtype).
- *                           Must not be `NULL`.
+ *                           Must not be `nullptr`.
  *
  * @pre  @p dst must have been created via
  *       `create_unallocated_tensor()` with the correct shape and
