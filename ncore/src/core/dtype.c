@@ -81,7 +81,7 @@ extern CastFn cast_dispatch[NUM_DTYPES][NUM_DTYPES];
  * @see is_unsigned_integer()
  */
 bool is_floating(const Tensor *restrict input) {
-  return (bool)floating[input->dtype][0];
+  return floating[input->dtype][0];
 }
 
 /**
@@ -106,7 +106,7 @@ bool is_floating(const Tensor *restrict input) {
  * @see is_unsigned_integer()
  */
 bool is_integer(const Tensor *restrict input) {
-  return (bool)integer[input->dtype][0];
+  return integer[input->dtype][0];
 }
 
 /**
@@ -128,7 +128,7 @@ bool is_integer(const Tensor *restrict input) {
  * @see is_integer()
  */
 bool is_signed_integer(const Tensor *restrict input) {
-  return (bool)signed_integer[input->dtype][0];
+  return signed_integer[input->dtype][0];
 }
 
 /**
@@ -150,7 +150,7 @@ bool is_signed_integer(const Tensor *restrict input) {
  * @see is_integer()
  */
 bool is_unsigned_integer(const Tensor *restrict input) {
-  return (bool)unsigned_integer[input->dtype][0];
+  return unsigned_integer[input->dtype][0];
 }
 
 /**
@@ -173,7 +173,7 @@ bool is_unsigned_integer(const Tensor *restrict input) {
  * @see is_integer()
  */
 bool is_quantized_signed_integer(const Tensor *restrict input) {
-  return (bool)quantized_signed_integer[input->dtype][0];
+  return quantized_signed_integer[input->dtype][0];
 }
 
 /**
@@ -196,7 +196,7 @@ bool is_quantized_signed_integer(const Tensor *restrict input) {
  * @see is_integer()
  */
 bool is_quantized_unsigned_integer(const Tensor *restrict input) {
-  return (bool)quantized_unsigned_integer[input->dtype][0];
+  return quantized_unsigned_integer[input->dtype][0];
 }
 
 /**
