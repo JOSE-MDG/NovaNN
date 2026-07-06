@@ -1,19 +1,14 @@
 /**
  * @file int_formatter.c
- * @brief Implementation of integer element formatting logic.
+ * @brief Integer element formatting implementation.
  *
  * @details
- * This module provides the conversion of integer types to strings, using
- * standard C integer format specifiers. It includes a specialized path
- * for boolean interpretation of unsigned values.
+ * Implements the conversion of signed and unsigned integer types into
+ * human-readable strings. Uses portable format specifiers (`PRId64`,
+ * `PRIu64`) and supports boolean interpretation of unsigned values.
  *
- * ## Architecture
- * - **Format Specifiers**: Uses `PRId64` and `PRIu64` for maximum
- *   portability across 64-bit platforms.
- * - **Boolean Path**: Overrides numeric output with string literals
- *   when requested by the @ref ReprContext.
- *
- * @see int_formatter.h Interface definitions.
+ * @see int_formatter.h   Interface definitions.
+ * @see element_fmt.c     Element dispatch table.
  */
 
 #include <inttypes.h>
