@@ -52,7 +52,6 @@
  * @see simd.c Implementation of runtime detection
  */
 
-#include <stdbool.h>
 #pragma once
 
 /**
