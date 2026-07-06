@@ -38,11 +38,12 @@
  * @see alloc.h      Storage allocation.
  */
 
-#include "ncore/core/storage.h"
+#include "ncore/tables/cast_tables.h"
 #include <ncore/core/alloc.h>
 #include <ncore/core/copy.h>
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
+#include <ncore/core/storage.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/tensor_utils.h>
 #include <ncore/tensor.h>
@@ -215,11 +216,11 @@ static inline void copy_f32_device_buffer(const Tensor *restrict src,
     return;
   }
 
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.f32,
-                                     dst->data.f32, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.f32,
+                             dst->data.f32, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -238,14 +239,15 @@ static inline void copy_f64_device_buffer(const Tensor *restrict src,
 
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.f64,
-                                     dst->data.f64, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.f64,
+                             dst->data.f64, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -263,14 +265,15 @@ static inline void copy_f16_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.half,
-                                     dst->data.half, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.half,
+                             dst->data.half, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -288,15 +291,16 @@ static inline void copy_bf16_device_buffer(const Tensor *restrict src,
                                            novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
 
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.bf16,
-                                     dst->data.bf16, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.bf16,
+                             dst->data.bf16, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -314,15 +318,16 @@ static inline void copy_s8_device_buffer(const Tensor *restrict src,
                                          novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
 
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.s8,
-                                     dst->data.s8, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.s8,
+                             dst->data.s8, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -340,14 +345,15 @@ static inline void copy_u8_device_buffer(const Tensor *restrict src,
                                          novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.u8,
-                                     dst->data.u8, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.u8,
+                             dst->data.u8, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -365,14 +371,15 @@ static inline void copy_qs8_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.qs8,
-                                     dst->data.qs8, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.qs8,
+                             dst->data.qs8, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -390,14 +397,15 @@ static inline void copy_qu8_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.qu8,
-                                     dst->data.qu8, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.qu8,
+                             dst->data.qu8, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -415,14 +423,15 @@ static inline void copy_s32_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.s32,
-                                     dst->data.s32, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.s32,
+                             dst->data.s32, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -440,15 +449,16 @@ static inline void copy_u32_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
 
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.u32,
-                                     dst->data.u32, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.u32,
+                             dst->data.u32, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -466,15 +476,16 @@ static inline void copy_s64_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
 
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.s64,
-                                     dst->data.s64, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.s64,
+                             dst->data.s64, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -492,15 +503,16 @@ static inline void copy_u64_device_buffer(const Tensor *restrict src,
                                           novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
     status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform device-to-device copy\n";
+    status->message = "No valid compute device detected; cannot perform "
+                      "device-to-device copy\n";
     return;
   }
 
-  DeviceStatus dstatus = transfer_to(src->device, dst->device, src->data.u64,
-                                     dst->data.u64, src->storage->size_bytes);
+  auto dstatus = transfer_to(src->device, dst->device, src->data.u64,
+                             dst->data.u64, src->storage->size_bytes);
 
   status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
 }
 
 /**
@@ -580,18 +592,18 @@ const CopyFn *lookup_copy[2] = {
  *    `ndims`, `dtype`, `device`, `scale_`, `zero_point_`,
  *    `is_pinned`, gradient flags) are copied element-by-element.
  *    Fields `is_view_`, `grad_fn_`, and `offset` are set to fixed
- *    values (`false`, `NULL`, `0` respectively).
- * 2. If `src->storage` is non-NULL, a new @ref TensorStorage is
+ *    values (`false`, `nullptr`, `0` respectively).
+ * 2. If `src->storage` is non-nullptr, a new @ref TensorStorage is
  *    allocated via @ref safe_allocator() and the data is copied
  *    using the appropriate @ref CopyFn.
- * 3. If `src->grad` is non-NULL, the gradient tensor is recursively
+ * 3. If `src->grad` is non-nullptr, the gradient tensor is recursively
  *    deep-copied via a self-recursive call.  Gradient copy errors
  *    are propagated through @p status.
  * 4. The destination tensor is marked as `is_allocated_ = true`,
  *    `is_leaf_ = true`, and `is_view_ = false`.
  *
- * @param[in]  src     Source tensor.  May be `NULL` (no-op).
- * @param[out] dst     Destination tensor.  Must not be `NULL`.  Must
+ * @param[in]  src     Source tensor.  May be `nullptr` (no-op).
+ * @param[out] dst     Destination tensor.  Must not be `nullptr`.  Must
  *                     have `is_allocated_ == false` (i.e., created
  *                     by `create_unallocated_tensor()`).
  * @param[out] status  Receives the result of the deep-copy
@@ -600,7 +612,7 @@ const CopyFn *lookup_copy[2] = {
  *                     appropriate error code.
  *
  * @pre  @p dst must be an unallocated tensor.
- * @pre  If @p src has a non-NULL `storage`, its `size_bytes` must
+ * @pre  If @p src has a non-nullptr `storage`, its `size_bytes` must
  *       be > 0.
  * @post On success, @p dst is a complete independent copy of
  *       @p src, including gradient history.
@@ -616,13 +628,13 @@ const CopyFn *lookup_copy[2] = {
 void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
               novaStatus_t *status) {
 
-  if (src == NULL) {
+  if (src == nullptr) {
     return;
   }
 
-  if (dst == NULL) {
+  if (dst == nullptr) {
     status->err = novaInvalidTensor;
-    status->message = "dst Tensor ptr is NULL\n";
+    status->message = "dst Tensor ptr is nullptr\n";
     return;
   }
 
@@ -636,7 +648,7 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
   if (src->device != dst->device) {
     status->err =
         src->dtype != dst->dtype ? novaInvalidDtype : novaInvalidDevice;
-    status->message = nova_get_error_msg(status->err, NULL);
+    status->message = nova_get_error_msg(status->err, nullptr);
     return;
   }
 
@@ -644,6 +656,7 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
   memcpy(dst->strides, src->strides, src->ndims * sizeof(size_t));
   dst->item_size = src->item_size;
   dst->size = src->size;
+  dst->logical_size = src->logical_size;
   dst->ndims = src->ndims;
   dst->dtype = src->dtype;
   dst->device = src->device;
@@ -654,14 +667,14 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
   dst->is_leaf_ = true;
   dst->is_view_ = false;
   dst->is_pinned = src->is_pinned;
-  dst->grad_fn_ = NULL;
+  dst->grad_fn_ = nullptr;
   dst->offset = 0;
   dst->version_ = 0;
 
-  if (src->storage != NULL) {
+  if (src->storage != nullptr) {
 
     *status = safe_allocator(src->storage->size_bytes, src->device,
-                             src->is_pinned, NULL, dst, true);
+                             src->is_pinned, nullptr, dst, true);
 
     if (status->err != novaSuccess) {
       return;
@@ -674,8 +687,8 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
     }
   }
 
-  if (src->grad != NULL) {
-    TensorGrad new_grad =
+  if (src->grad != nullptr) {
+    auto new_grad =
         (int)is_scalar(src->grad)
             ? create_unallocated_scalar_grad_tensor(
                   src->grad->dtype, src->grad->device, src->grad->is_pinned,
@@ -696,6 +709,6 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
       return;
     }
   } else {
-    dst->grad = NULL;
+    dst->grad = nullptr;
   }
 }
