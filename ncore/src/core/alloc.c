@@ -87,9 +87,9 @@ static const char *map_device2string(Device device) {
  * @param[in]  pin_memory     If `true`, request page-locked host memory
  *                            (CPU only).
  * @param[out] handle         Pointer to receive the raw RustHandle.
- *                            Must not be `NULL` when @p create_storage
+ *                            Must not be `nullptr` when @p create_storage
  *                            is `false`.
- * @param[in,out] ten         Tensor to initialize.  Must not be `NULL`
+ * @param[in,out] ten         Tensor to initialize.  Must not be `nullptr`
  *                            when @p create_storage is `true`, and must
  *                            not already be allocated.
  * @param[in]  create_storage If `true`, create a full TensorStorage and
@@ -98,13 +98,13 @@ static const char *map_device2string(Device device) {
  *
  * @return @ref novaStatus_t with `novaSuccess` on success.
  *
- * @retval novaInvalidPointer  @p ten is `NULL` when @p create_storage is
+ * @retval novaInvalidPointer  @p ten is `nullptr` when @p create_storage is
  *                             `true`, or @p ten is already allocated.
  * @retval novaSuccess         META device or successful allocation.
  * @retval ...                 Forwarded from @ref safe_reserve().
  *
  * @pre  @p bytes must be greater than zero.
- * @pre  Exactly one of @p handle or @p ten must be non-NULL,
+ * @pre  Exactly one of @p handle or @p ten must be non-nullptr,
  *       determined by @p create_storage.
  *
  * @post On success with @p create_storage `true`, @p ten is marked
@@ -122,7 +122,7 @@ novaStatus_t safe_allocator(size_t bytes, Device device, bool pin_memory,
   novaStatus_t status;
   if (device == DEVICE_META) {
     status.err = novaSuccess;
-    status.message = nova_get_error_msg(status.err, NULL);
+    status.message = nova_get_error_msg(status.err, nullptr);
     return status;
   }
   const size_t align = (device == DEVICE_GPU) ? 512 : 64;
@@ -132,27 +132,28 @@ novaStatus_t safe_allocator(size_t bytes, Device device, bool pin_memory,
                           handle);
     return status;
   } else {
-    if (ten == NULL || (is_allocated(ten))) {
+    if (ten == nullptr || (is_allocated(ten))) {
       status.err = novaInvalidPointer;
-      status.message = nova_get_error_msg(status.err, NULL);
+      status.message = nova_get_error_msg(status.err, nullptr);
       return status;
     }
 
     if (ten->device == DEVICE_META) {
       status.err = novaSuccess;
-      status.message = nova_get_error_msg(status.err, NULL);
+      status.message = nova_get_error_msg(status.err, nullptr);
       return status;
     }
 
-    TensorStorage *storage = (TensorStorage *)malloc(sizeof(TensorStorage));
+    auto storage = (TensorStorage *)malloc(sizeof(TensorStorage));
 
-    if (storage == NULL) {
+    if (storage == nullptr) {
       status.err = novaInvalidPointer;
-      status.message = "Failed to allocate tensor storage descriptor: malloc returned NULL\n";
+      status.message = "Failed to allocate tensor storage descriptor: malloc "
+                       "returned nullptr\n";
       return status;
     }
 
-    RustHandle storage_handle = {0};
+    RustHandle storage_handle = {};
     status = safe_reserve(bytes, map_device2string(device), pin_memory, align,
                           &storage_handle);
 
@@ -171,6 +172,6 @@ novaStatus_t safe_allocator(size_t bytes, Device device, bool pin_memory,
   }
 
   status.err = novaSuccess;
-  status.message = nova_get_error_msg(status.err, NULL);
+  status.message = nova_get_error_msg(status.err, nullptr);
   return status;
 }
