@@ -41,7 +41,7 @@ extern "C" {
  *                     On success, set to @ref novaSuccess.  On
  *                     failure, set to the appropriate error code.
  *
- * @pre  Both @p src and @p dst must have non-NULL, allocated storage.
+ * @pre  Both @p src and @p dst must have non-nullptr, allocated storage.
  * @pre  `dst->storage->size_bytes >= src->storage->size_bytes`.
  * @post On success, `dst->data` contains a bitwise copy of
  *       `src->data` and @p status is @ref novaSuccess.
@@ -67,18 +67,18 @@ typedef void (*CopyFn)(const Tensor *restrict src, Tensor *restrict dst,
  *    `ndims`, `dtype`, `device`, `scale_`, `zero_point_`,
  *    `is_pinned`, gradient flags) are copied element-by-element.
  *    Fields `is_view_`, `grad_fn_`, and `offset` are set to fixed
- *    values (`false`, `NULL`, `0` respectively).
- * 2. If `src->storage` is non-NULL, a new @ref TensorStorage is
+ *    values (`false`, `nullptr`, `0` respectively).
+ * 2. If `src->storage` is non-nullptr, a new @ref TensorStorage is
  *    allocated via @ref safe_allocator() and the data is copied
  *    using the appropriate @ref CopyFn.
- * 3. If `src->grad` is non-NULL, the gradient tensor is recursively
+ * 3. If `src->grad` is non-nullptr, the gradient tensor is recursively
  *    deep-copied via a self-recursive call.  Gradient copy errors
  *    are propagated through @p status.
  * 4. The destination tensor is marked as `is_allocated_ = true`,
  *    `is_leaf_ = true`, and `is_view_ = false`.
  *
- * @param[in]  src     Source tensor.  May be `NULL` (no-op).
- * @param[out] dst     Destination tensor.  Must not be `NULL`.  Must
+ * @param[in]  src     Source tensor.  May be `nullptr` (no-op).
+ * @param[out] dst     Destination tensor.  Must not be `nullptr`.  Must
  *                     have `is_allocated_ == false` (i.e., created
  *                     by `create_unallocated_tensor()`).
  * @param[out] status  Receives the result of the deep-copy
@@ -87,7 +87,7 @@ typedef void (*CopyFn)(const Tensor *restrict src, Tensor *restrict dst,
  *                     appropriate error code.
  *
  * @pre  @p dst must be an unallocated tensor.
- * @pre  If @p src has a non-NULL `storage`, its `size_bytes` must
+ * @pre  If @p src has a non-nullptr `storage`, its `size_bytes` must
  *       be > 0.
  * @post On success, @p dst is a complete independent copy of
  *       @p src, including gradient history.
