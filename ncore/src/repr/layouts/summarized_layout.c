@@ -1,46 +1,59 @@
 /**
  * @file summarized_layout.c
- * @brief Implementation of the truncated (summarized) tensor layout renderer.
+ * @brief Truncated (summarized) tensor layout renderer implementation.
  *
  * @details
- * This module provides the logic for displaying high-dimensional tensors
- * that exceed the user-defined element threshold. It prevents terminal
- * saturation by only showing a small neighborhood of elements (edge items)
- * around the boundaries of each dimension.
+ * Provides the logic for displaying high-dimensional tensors that
+ * exceed the user-defined element threshold. Prevents terminal
+ * saturation by only showing a small neighborhood of elements (edge
+ * items) around the boundaries of each dimension.
  *
- * The renderer is fully strided-aware, allowing it to correctly summarize
- * both contiguous and view tensors.
+ * The renderer is fully strided-aware, allowing it to correctly
+ * summarize both contiguous and view tensors.
  *
  * ## Architecture
- * - **Recursive Range Rendering**: `render_range` decides for each dimension
- *   whether to show all elements or apply truncation.
- * - **Ellipsis Injection**: If a dimension is truncated, a central "..."
- *   marker is injected to represent the omitted elements.
- * - **Strided Navigation**: Uses @ref compute_linear_byte_offset() to ensure
- *   that the sampled edge items are correctly resolved in memory.
  *
- * @see dense_layout.h Renderer interface.
- * @see repr_options.h Edge-item and threshold configuration.
+ * - **Recursive Range Rendering**: `render_range` decides for each
+ *   dimension whether to show all elements or apply truncation.
+ * - **Ellipsis Injection**: If a dimension is truncated, a central
+ *   `"..."` marker is injected to represent omitted elements.
+ * - **Strided Navigation**: Uses @ref compute_linear_byte_offset()
+ *   to ensure sampled edge items are correctly resolved in memory.
+ *
+ * @see layouts.h          Renderer interface declarations.
+ * @see repr_options.h     Edge-item and threshold configuration.
+ * @see repr_context.h     Formatting parameters.
  */
+
+#include <string.h>
 
 #include <ncore/core/dtype.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/tensor_utils.h>
-#include <string.h>
 
 #include "layouts.h"
 #include "repr/formatters/element_fmt.h"
 
 /**
- * @brief Helper to resolve a pointer for a coordinate vector.
+ * @brief Compute the byte pointer for a coordinate vector.
+ *
+ * @param[in] ten    Pointer to the tensor.
+ * @param[in] coords Coordinate vector.
+ *
+ * @return Byte pointer to the element in storage.
  */
 static void *elem_ptr(const Tensor *ten, const coords_t coords) {
   size_t off = compute_linear_byte_offset(coords, ten->ndims, ten->strides);
-  return (uint8 *)ten->data.u8 + off;
+  return ten->data.u8 + off;
 }
 
 /**
- * @brief Helper to append right-padded element strings.
+ * @brief Append a string with right-justified padding.
+ *
+ * @param[in,out] sb    Output StringBuilder.
+ * @param[in]     val   The formatted string to append.
+ * @param[in]     len   Length of the string (excluding null).
+ * @param[in]     width Desired column width.
  */
 static void pad_and_append(StringBuilder *sb, const char *val, int len,
                            size_t width) {
@@ -70,7 +83,7 @@ static void append_elem(StringBuilder *sb, const ReprContext *ctx,
 static void append_ellipsis(StringBuilder *sb) { sb_append(sb, "..."); }
 
 /**
- * @brief Recursively render a range of elements for a specific dimension.
+ * @brief Recursively render a range of elements for a dimension.
  */
 static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
                          int indent, coords_t coords) {
@@ -83,6 +96,7 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
   size_t n_show = (int)truncate ? (edge * 2) + 1 : shape_dim;
 
   if (dim == ten->ndims - 1) {
+    size_t packing = dtype_packing_factor(ten->dtype);
     for (size_t d = 0; d < n_show; d++) {
       if (d > 0) {
         sb_append(sb, ", ");
@@ -102,7 +116,13 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
       } else {
         coords[dim] = actual_idx;
         void *ptr = elem_ptr(ten, coords);
-        append_elem(sb, ctx, ten, ptr);
+        for (size_t s = 0; s < packing; s++) {
+          if (s > 0) {
+            sb_append(sb, ", ");
+          }
+          ((ReprContext *)ctx)->sub_element_index = s;
+          append_elem(sb, ctx, ten, ptr);
+        }
       }
     }
   } else if (dim == ten->ndims - 2) {
@@ -160,6 +180,6 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
  * @brief Render a tensor with edge-item truncation.
  */
 void summarized_layout_render(const ReprContext *ctx, StringBuilder *sb) {
-  coords_t coords = {0};
+  coords_t coords = {};
   render_range(sb, ctx, 0, 7, coords);
 }
