@@ -1,28 +1,29 @@
 /**
  * @file string_builder.c
- * @brief Implementation of the dynamic growable string builder.
+ * @brief Dynamic growable string builder implementation.
  *
  * @details
- * This module implements a standard memory-safe string builder that
- * minimizes heap reallocations through a geometric growth strategy.
- * It provides a subset of common string operations (append, append-format,
- * repeated characters) optimized for the incremental construction of
+ * Implements a standard memory-safe string builder that minimizes
+ * heap reallocations through a geometric growth strategy. Provides
+ * a subset of common string operations (append, append-format,
+ * repeated characters) optimized for incremental construction of
  * large tensor representations.
  *
  * ## Architecture
- * - **Geometric Growth**: The builder starts with a user-defined capacity
- *   and doubles it whenever more space is needed.
- * - **Two-Phase Formatting**: `sb_appendf` first measures the required
- *   length using `vsnprintf(NULL, ...)` to ensure a single, perfectly-sized
- *   reallocation if needed.
- * - **Ownership Model**: Ownership of the internal buffer is transferred
- *   to the caller via @ref sb_build(), after which the builder instance
- *   is reset.
- * - **Error Propagation**: Allocation failures set @ref SbErrOom on the
- *   builder's status field. Once set, all subsequent append operations
- *   become no-ops and @ref sb_build() returns NULL.
  *
- * @see string_builder.h Public descriptor and API.
+ * - **Geometric Growth**: The buffer capacity doubles whenever an
+ *   append operation would exceed the current limit.
+ * - **Two-Phase Formatting**: @ref sb_appendf first measures the
+ *   required length using `vsnprintf(nullptr, ...)` to ensure a
+ *   single, perfectly-sized reallocation.
+ * - **Ownership Model**: Ownership of the internal buffer is
+ *   transferred to the caller via @ref sb_build(), after which the
+ *   builder instance is reset.
+ * - **Error Propagation**: Allocation failures set @ref SbErrOom on
+ *   the builder's status field. Once set, all subsequent append
+ *   operations become no-ops and @ref sb_build() returns `nullptr`.
+ *
+ * @see string_builder.h  Public descriptor and API.
  */
 
 #include <stdio.h>
@@ -30,23 +31,19 @@
 #include <string.h>
 
 #include "string_builder.h"
-#include <ncore/headeronly/macros.h>
 
 /**
  * @brief Initialise a StringBuilder with a specific starting capacity.
- *
- * @param[out] sb          Pointer to the builder to initialise.
- * @param[in]  initial_cap Initial allocation size (typically 256).
  */
 void sb_init(StringBuilder *sb, size_t initial_cap) {
   sb->buf = (char *)malloc(initial_cap);
-  if (sb->buf != NULL) {
+  if (sb->buf != nullptr) {
     sb->buf[0] = '\0';
     sb->len = 0;
     sb->cap = initial_cap;
     sb->status = SbOk;
   } else {
-    sb->buf = NULL;
+    sb->buf = nullptr;
     sb->len = 0;
     sb->cap = 0;
     sb->status = SbErrOom;
@@ -73,7 +70,7 @@ static void sb_grow(StringBuilder *sb, size_t needed) {
   }
 
   char *new_buf = (char *)realloc(sb->buf, new_cap);
-  if (new_buf == NULL) {
+  if (new_buf == nullptr) {
     sb->status = SbErrOom;
     return;
   }
@@ -90,7 +87,7 @@ SBStatus sb_get_status(const StringBuilder *sb) { return sb->status; }
  * @brief Append a null-terminated string to the builder.
  */
 void sb_append(StringBuilder *sb, const char *str) {
-  if (sb->status != SbOk || str == NULL || sb->buf == NULL) {
+  if (sb->status != SbOk || str == nullptr || sb->buf == nullptr) {
     return;
   }
   size_t slen = strlen(str);
@@ -117,7 +114,7 @@ void sb_appendf(StringBuilder *sb, const char *fmt, ...) {
   }
   va_list args;
   va_start(args, fmt);
-  int n = vsnprintf(NULL, 0, fmt, args);
+  int n = vsnprintf(nullptr, 0, fmt, args);
   va_end(args);
   if (n < 0) {
     sb->status = SbErrOom;
@@ -176,20 +173,21 @@ void sb_append_repeated(StringBuilder *sb, char c, size_t n) {
  *
  * @details
  * If the builder is in an error state, the internal buffer is freed
- * and NULL is returned.
+ * and `nullptr` is returned.
  *
- * @return Ownership of the heap-allocated string, or NULL on error.
+ * @return Ownership of the heap-allocated string, or `nullptr` on
+ *         error.
  */
 char *sb_build(StringBuilder *sb) {
   if (sb->status != SbOk) {
     free(sb->buf);
-    sb->buf = NULL;
+    sb->buf = nullptr;
     sb->len = 0;
     sb->cap = 0;
-    return NULL;
+    return nullptr;
   }
   char *result = sb->buf;
-  sb->buf = NULL;
+  sb->buf = nullptr;
   sb->len = 0;
   sb->cap = 0;
   return result;
@@ -200,7 +198,7 @@ char *sb_build(StringBuilder *sb) {
  */
 void sb_free(StringBuilder *sb) {
   free(sb->buf);
-  sb->buf = NULL;
+  sb->buf = nullptr;
   sb->len = 0;
   sb->cap = 0;
 }
