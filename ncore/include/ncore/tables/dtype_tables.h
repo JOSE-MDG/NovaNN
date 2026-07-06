@@ -13,14 +13,14 @@
  */
 // clang-format off
 /**
- * | Table                             | True for                                       |
- * |-----------------------------------|------------------------------------------------|
- * | @ref floating                     | Float32, Float64, Float16, BFloat16            |
- * | @ref integer                      | All integer + quantized integer types          |
- * | @ref signed_integer               | Signed8, QSigned8, Signed32, Signed64          |
- * | @ref unsigned_integer             | UnSigned8, QUnSigned8, UnSigned32, UnSigned64  |
- * | @ref quantized_signed_integer     | QSigned8 only                                  |
- * | @ref quantized_unsigned_integer   | QUnSigned8 only                                |
+ * | Table                             | True for                                                        |
+ * |-----------------------------------|-----------------------------------------------------------------|
+ * | @ref floating                     | Float32, Float64, Float16, BFloat16, Float8E4M3fn, Float8E5M2, Float4E2M1fn |
+ * | @ref integer                      | All integer + quantized integer types                           |
+ * | @ref signed_integer               | Signed8, QSigned8, Signed16, QSigned16, Signed32, QSigned32, Signed64 |
+ * | @ref unsigned_integer             | UnSigned8, QUnSigned8, UnSigned16, QUnSigned16, UnSigned32, QUnSigned32, UnSigned64 |
+ * | @ref quantized_signed_integer     | QSigned8, QSigned16, QSigned32                                  |
+ * | @ref quantized_unsigned_integer   | QUnSigned8, QUnSigned16, QUnSigned32                            |
  */
 // clang-format on
 /**
@@ -44,7 +44,6 @@
 #pragma once
 
 #include <ncore/headeronly/macros.h>
-#include <stdbool.h>
 #include <stddef.h>
 
 /**
@@ -53,7 +52,8 @@
  *
  * @details
  * `floating[dtype][0]` is `true` when `dtype` is `Float32`,
- * `Float64`, `Float16`, or `BFloat16`.
+ * `Float64`, `Float16`, `BFloat16`, `Float8E4M3fn`, `Float8E5M2`,
+ * or `Float4E2M1fn`.
  *
  * @see is_floating()  Classification function using this table.
  * @see DType_         Data-type enumeration.
@@ -68,8 +68,9 @@ extern const bool floating[NUM_DTYPES][1];
  * @details
  * `integer[dtype][0]` is `true` for all integer and quantized
  * integer dtypes: `Signed8`, `UnSigned8`, `QSigned8`,
- * `QUnSigned8`, `Signed32`, `UnSigned32`, `Signed64`,
- * `UnSigned64`.
+ * `QUnSigned8`, `Signed16`, `UnSigned16`, `QSigned16`,
+ * `QUnSigned16`, `Signed32`, `UnSigned32`, `QSigned32`,
+ * `QUnSigned32`, `Signed64`, `UnSigned64`.
  *
  * @see is_integer()  Classification function using this table.
  */
@@ -81,9 +82,11 @@ extern const bool integer[NUM_DTYPES][1];
  *        types (including quantized).
  *
  * @details
- * `signed_integer[dtype][0]` is `true` for `Signed8`,
- * `QSigned8`, `Signed32`, and `Signed64`.  Note that the
- * quantized type `QSigned8` is included here.
+ * `signed_integer[dtype][0]` is `true` for `Signed8`, `QSigned8`,
+ * `Signed16`, `QSigned16`, `Signed32`, `QSigned32`, and `Signed64`.
+ * Note that the quantized types `QSigned8`, `QSigned16`, and
+ * `QSigned32` are included because they are backed by signed
+ * storage types.
  *
  * @see is_signed_integer()  Classification function using this table.
  */
@@ -96,8 +99,10 @@ extern const bool signed_integer[NUM_DTYPES][1];
  *
  * @details
  * `unsigned_integer[dtype][0]` is `true` for `UnSigned8`,
- * `QUnSigned8`, `UnSigned32`, and `UnSigned64`.  Note that the
- * quantized type `QUnSigned8` is included here.
+ * `QUnSigned8`, `UnSigned16`, `QUnSigned16`, `UnSigned32`,
+ * `QUnSigned32`, and `UnSigned64`.  Note that the quantized types
+ * `QUnSigned8`, `QUnSigned16`, and `QUnSigned32` are included
+ * because they are backed by unsigned storage types.
  *
  * @see is_unsigned_integer()  Classification function using this table.
  */
@@ -109,8 +114,8 @@ extern const bool unsigned_integer[NUM_DTYPES][1];
  *        integer types.
  *
  * @details
- * `quantized_signed_integer[dtype][0]` is `true` only for
- * `QSigned8`.
+ * `quantized_signed_integer[dtype][0]` is `true` for `QSigned8`,
+ * `QSigned16`, and `QSigned32`.
  *
  * @see is_quantized_signed_integer()  Classification function using this table.
  */
@@ -122,13 +127,27 @@ extern const bool quantized_signed_integer[NUM_DTYPES][1];
  *        unsigned integer types.
  *
  * @details
- * `quantized_unsigned_integer[dtype][0]` is `true` only for
- * `QUnSigned8`.
+ * `quantized_unsigned_integer[dtype][0]` is `true` for
+ * `QUnSigned8`, `QUnSigned16`, and `QUnSigned32`.
  *
  * @see is_quantized_unsigned_integer()  Classification function using this
  * table.
  */
 extern const bool quantized_unsigned_integer[NUM_DTYPES][1];
+
+/**
+ * @var quantizable_dtype
+ * @brief Boolean mask indicating which dtypes can be quantized.
+ *
+ * @details
+ * `quantizable_dtype[dtype][0]` is `true` for `Float4E2M1fn`,
+ * `QSigned8`, `QUnSigned8`, `QSigned16`, `QUnSigned16`,
+ * `QSigned32`, and `QUnSigned32`.  These types are eligible to
+ * participate in quantization operations.
+ *
+ * @see is_quantizable_dtype()  Classification function using this table.
+ */
+extern const bool quantizable_dtype[NUM_DTYPES][1];
 
 /**
  * @var lookup_dtype_sizes
@@ -138,6 +157,7 @@ extern const bool quantized_unsigned_integer[NUM_DTYPES][1];
  * `lookup_dtype_sizes[dtype]` returns `sizeof` the corresponding
  * C type.  For example:
  * - `Float32 → sizeof(float32) = 4`
+ * - `Float8E4M3fn → sizeof(float8_e4m3fn) = 1`
  * - `Signed64 → sizeof(int64) = 8`
  * - `QSigned8 → sizeof(qint8) = 1`
  *

@@ -200,6 +200,25 @@ bool is_quantized_unsigned_integer(const Tensor *restrict input) {
 }
 
 /**
+ * @brief Check whether a given @ref DType_ can be quantized.
+ *
+ * @details
+ * Indexes into the `quantizable_dtype` lookup table with @p dtype as
+ * the index.  Returns `true` for `Float4E2M1fn`, `QSigned8`,
+ * `QUnSigned8`, `QSigned16`, `QUnSigned16`, `QSigned32`, and
+ * `QUnSigned32`.
+ *
+ * @param[in] dtype  The data type to query.
+ *
+ * @return `true` if @p dtype is a quantizable type, `false` otherwise.
+ *
+ * @see is_floating()
+ * @see is_integer()
+ * @see quantizable_dtype  Underlying lookup table.
+ */
+bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
+
+/**
  * @brief Cast a tensor's data to a different dtype.
  *
  * @details
@@ -256,3 +275,28 @@ void cast(const Tensor *restrict src, DType_ target_dtype,
  * @see lookup_dtype_sizes  Underlying lookup table.
  */
 size_t dtype_size(DType_ dtype) { return lookup_dtype_sizes[dtype]; }
+
+/**
+ * @brief Return the packing factor of a given @ref DType_.
+ *
+ * @details
+ * The packing factor indicates how many logical elements are stored
+ * in a single storage unit.  For most types this is 1, meaning one
+ * element per storage byte (or word).  For packed types such as
+ * @ref Float4E2M1fn the factor is 2, because each byte holds two
+ * 4-bit elements.
+ *
+ * @param[in] dtype  The data type to query.
+ *
+ * @return Number of logical elements packed into one storage unit.
+ *         Typically 1, except for packed types where it is 2.
+ *
+ * @see dtype_size()
+ * @see DType_
+ */
+size_t dtype_packing_factor(DType_ dtype) {
+  if (dtype == Float4E2M1fn) {
+    return 2;
+  }
+  return 1;
+}

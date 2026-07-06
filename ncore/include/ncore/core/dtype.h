@@ -275,6 +275,25 @@ bool is_quantized_signed_integer(const Tensor *restrict input);
  */
 bool is_quantized_unsigned_integer(const Tensor *restrict input);
 
+/**
+ * @brief Check whether a given @ref DType_ can be quantized.
+ *
+ * @details
+ * Some data types are inherently quantized (e.g., `QSigned8`, `QSigned16`,
+ * `QUnSigned8`), while others represent full-precision values.  This function
+ * reports whether a type is eligible to participate in quantization operations.
+ *
+ * @param[in] dtype  The data type to query.
+ *
+ * @return `true` if @p dtype is a quantizable type (`Float4E2M1fn`,
+ *         `QSigned8`, `QUnSigned8`, `QSigned16`, `QUnSigned16`,
+ *         `QSigned32`, `QUnSigned32`).  `false` otherwise.
+ *
+ * @see is_floating()
+ * @see is_integer()
+ */
+bool is_quantizable_dtype(DType_ dtype);
+
 /* ────────────────────────────────────────────────────────────────
  *  Cast and size utilities
  * ──────────────────────────────────────────────────────────────── */
@@ -318,6 +337,35 @@ void cast(const Tensor *restrict src, DType_ target_dtype,
  * @see DType_
  */
 size_t dtype_size(DType_ dtype);
+
+/**
+ * @brief Return the packing factor of a given @ref DType_.
+ *
+ * @details
+ * For most types the packing factor is 1 (one logical element per
+ * storage unit).  For packed types like @ref Float4E2M1fn the factor
+ * is 2, because each storage byte holds two logical elements.
+ *
+ * @param[in] dtype  The data type to query.
+ *
+ * @return Number of logical elements packed into one storage unit.
+ */
+/**
+ * @brief Return the packing factor of a given @ref DType_.
+ *
+ * @details
+ * For most types the packing factor is 1 (one logical element per
+ * storage unit).  For packed types like @ref Float4E2M1fn the factor
+ * is 2, because each storage byte holds two logical elements.
+ *
+ * @param[in] dtype  The data type to query.
+ *
+ * @return Number of logical elements packed into one storage unit.
+ *
+ * @see dtype_size()
+ * @see DType_
+ */
+size_t dtype_packing_factor(DType_ dtype);
 
 #ifdef __cplusplus
 }
