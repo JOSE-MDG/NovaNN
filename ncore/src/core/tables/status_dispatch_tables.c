@@ -5,7 +5,7 @@
  * @details
  * Populates the `status_msg_dispatch` array that maps each @ref novaError_t
  * code to its corresponding human-readable message. The table is
- * populated once at program load time via a `__attribute__((constructor))`
+ * populated once at program load time via an `ATTR(constructor)`
  * function.
  *
  * This separation ensures that the core status logic remains decoupled
@@ -13,7 +13,7 @@
  * dispatch tables in the runtime.
  *
  * ## Constructor ordering
- * `__attribute__((constructor))` runs at program load time. Because
+ * `ATTR(constructor)` runs at program load time. Because
  * this file only writes to the `status_msg_dispatch` array (no other
  * globals depend on it), there are no inter-file ordering constraints.
  *
@@ -38,13 +38,13 @@
  *
  * @see init_status_msg_dispatch()
  */
-const char *status_msg_dispatch[NUM_ERRORS] = {NULL};
+const char *status_msg_dispatch[NUM_ERRORS] = {};
 
 /**
  * @brief Populate every entry in `status_msg_dispatch`.
  *
  * @details
- * Called automatically before `main()` via `__attribute__((constructor))`.
+ * Called automatically before `main()` via `ATTR(constructor)`.
  * Assigns a descriptive string to each valid error code defined in
  * the @ref novaError_t enumeration.
  *
@@ -74,6 +74,8 @@ ATTR(constructor) static inline void init_status_msg_dispatch() {
       "Tensor shape is invalid or violates operation constraints\n";
   status_msg_dispatch[novaInvalidIndex] =
       "Index is out of bounds for the given tensor dimensions\n";
+  status_msg_dispatch[novaInvalidNumThreads] =
+      "Thread numbers is out of a valid range (thr <= 0) \n";
 
   /* Memory */
   status_msg_dispatch[novaBufferOverflow] =
@@ -105,6 +107,10 @@ ATTR(constructor) static inline void init_status_msg_dispatch() {
       "Requested backend was not compiled into this build\n";
   status_msg_dispatch[novaBackendNotSupported] =
       "Requested backend is not supported on this platform\n";
+
+  /* OS/Platform */
+  status_msg_dispatch[novaOsPlatformNotSupported] =
+      "Requested OS platform type is not currently supported\n";
 
   /* Dtype/Cast */
   status_msg_dispatch[novaDtypeNotSupported] =
