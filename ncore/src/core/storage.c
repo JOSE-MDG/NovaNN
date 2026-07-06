@@ -46,7 +46,7 @@ novaStatus_t safe_reserve(size_t bytes, const char *device, bool pin_memory,
   }
 
   status.err = novaSuccess;
-  status.message = nova_get_error_msg(status.err, NULL);
+  status.message = nova_get_error_msg(status.err, nullptr);
 
   return status;
 }
@@ -80,6 +80,6 @@ novaStatus_t safe_resize(RustHandle *handle, size_t new_size) {
   }
 
   status.err = novaSuccess;
-  status.message = nova_get_error_msg(status.err, NULL);
+  status.message = nova_get_error_msg(status.err, nullptr);
   return status;
 }
