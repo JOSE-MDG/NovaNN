@@ -11,7 +11,7 @@
  *    (`DetectCudaDevice.cpp` and `DetectHipDevice.cpp`) via native
  *    backend headers.
  * 2. **Initialize transfer dispatch table**: ( @ref transf_dispatch)
- *    at program startup using a `__attribute__((constructor))`
+ *    at program startup using an `ATTR(constructor)`
  *    function.
  * 3. **Routes memory transfers**: through @ref transfer_to(), which
  *    resolves the copy direction from the dispatch table and forwards
@@ -70,7 +70,6 @@
 #include <ncore/core/status.h>
 #include <ncore/ffi/cpp_ffi.h>
 #include <ncore/headeronly/macros.h>
-#include <stdbool.h>
 
 #ifdef __linux__
 #include <threads.h>
@@ -208,7 +207,7 @@ static DeviceKind detected_device_kind = NULL_DEVICE;
  * @brief C11 `call_once` guard ensuring @ref runtime_flags_mtx is
  *        initialised exactly once, even under concurrent access.
  */
-static once_flag runtime_flags_once = ONCE_FLAG_INIT;
+static once_flag runtime_flags_once = {};
 #elif defined(_WIN64)
 /**
  * @var runtime_flags_once
@@ -289,7 +288,7 @@ static BOOL CALLBACK init_runtime_flags_lock(PINIT_ONCE once, PVOID param,
  * encodes the correct copy direction for the given `(src, dst)` pair.
  *
  * The table is populated by @ref init_transf_dispatch() at program
- * startup (via `__attribute__((constructor))`).  After initialisation
+ * startup (via `ATTR(constructor)`).  After initialisation
  * it is read-only and safe to access from any thread.
  *
  * ## Initialised Entries
@@ -308,13 +307,13 @@ static BOOL CALLBACK init_runtime_flags_lock(PINIT_ONCE once, PVOID param,
  * @see transfer_to()
  * @see TransferKind
  */
-TransferKind transf_dispatch[3][3] = {0};
+TransferKind transf_dispatch[3][3] = {};
 
 /**
  * @brief Populate the transfer dispatch table at program startup.
  *
  * @details
- * This function is declared with `__attribute__((constructor))`, so
+ * This function is declared with `ATTR(constructor)`, so
  * it is called automatically before `main()` executes.  It fills in
  * the three meaningful entries of @ref transf_dispatch:
  *
@@ -391,7 +390,8 @@ bool is_device_available(DeviceKind kind, bool verbose) {
 #ifdef __linux__
   call_once(&runtime_flags_once, init_runtime_flags_lock);
 #elif defined(_WIN64)
-  InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, NULL, NULL);
+  InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, nullptr,
+                      nullptr);
 #endif
 
   switch (kind) {
@@ -475,7 +475,8 @@ bool is_cuda_available(void) {
 #ifdef __linux__
   call_once(&runtime_flags_once, init_runtime_flags_lock);
 #elif defined(_WIN64)
-  InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, NULL, NULL);
+  InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, nullptr,
+                      nullptr);
 #endif
 
 #ifdef NOVA_HAS_CUDA
@@ -533,7 +534,8 @@ bool is_hip_available(void) {
 #ifdef __linux__
   call_once(&runtime_flags_once, init_runtime_flags_lock);
 #elif defined(_WIN64)
-  InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, NULL, NULL);
+  InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, nullptr,
+                      nullptr);
 #endif
 
 #ifdef NOVA_HAS_HIP
@@ -717,11 +719,11 @@ novaStatus_t print_device_info(DeviceKind kind, bool verbose) {
   case NULL_DEVICE:
   default:
     status.err = novaDeviceNotAvailable;
-    status.message = nova_get_error_msg(status.err, NULL);
+    status.message = nova_get_error_msg(status.err, nullptr);
     break;
   }
   status.err = novaBackendNotSupported;
-  status.message = nova_get_error_msg(status.err, NULL);
+  status.message = nova_get_error_msg(status.err, nullptr);
   return status;
 }
 
