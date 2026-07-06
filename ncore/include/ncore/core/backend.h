@@ -61,7 +61,6 @@
 #pragma once
 
 #include <ncore/headeronly/macros.h>
-#include <stdbool.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -98,7 +97,7 @@ typedef enum ATTR(packed) {
   Meta,    ///< No-op backend; used for shape inference only.
   Miopen,  ///< AMD MIOpen library for GPU-accelerated convolutions.
   OneDNN,  ///< Intel oneDNN (MKL-DNN) for CPU/GPU fused operations.
-  Generic, ///< Portable fallback using scalar or SIMD-optimised kernels.
+  Generic, ///< Portable fallback using generic kernels.
 } Backend;
 
 /**
@@ -110,7 +109,7 @@ typedef enum ATTR(packed) {
  * of the process and must not be freed or modified by the caller.
  *
  * If @ref delegate_execution() has not been called yet, the return value
- * is implementation-defined — typically `NULL` or a pointer to the
+ * is implementation-defined — typically `nullptr` or a pointer to the
  * `Generic` backend descriptor.
  *
  * This function is intended for diagnostic logging and runtime introspection,
