@@ -32,7 +32,7 @@
 
 #include <ncore/core/dtype.h>
 #include <ncore/simd/simd.h>
-#include <sys/types.h>
+
 #ifdef __linux__
 #include <threads.h>
 #elif defined(_WIN64)
@@ -47,8 +47,6 @@
 #include <cpuid.h>
 #endif
 
-#include <string.h>
-
 /**
  * @var static SIMDCapabilities simd
  * @brief Global cached CPU capabilities structure.
@@ -61,7 +59,7 @@
  * @see get_simd_capabilities()
  * @see detect_simd_capabilities()
  */
-static SIMDCapabilities simd = {0};
+static SIMDCapabilities simd = {};
 
 #ifdef __linux__
 /**
@@ -71,12 +69,12 @@ static SIMDCapabilities simd = {0};
  * @details
  * Ensures @ref init_once() is called exactly once, even when
  * @ref get_simd_capabilities() is called concurrently from multiple threads.
- * Initialized to the standard ONCE_FLAG_INIT.
+ * Initialized to the C23 empty initializer `= {}`.
  *
  * @see init_once()
  * @see get_simd_capabilities()
  */
-static once_flag init_flag = ONCE_FLAG_INIT;
+static once_flag init_flag = {};
 #elif defined(_WIN64)
 /**
  * @var static INIT_ONCE init_flag
@@ -158,17 +156,16 @@ static inline void detect_simd_capabilities(SIMDCapabilities *restrict caps) {
   __cpuid_count(7, 0, eax, ebx, ecx, edx);
 #endif
 
-  caps->avx2_ = (bool)((ebx & (1 << 5)) != 0);     ///< AVX2
-  caps->avx512f_ = (bool)((ebx & (1 << 16)) != 0); ///< AVX-512 Foundation
-  caps->avx512_dq_ =
-      (bool)((ebx & (1 << 17)) != 0); ///< AVX-512 Doubleword/Quadword
-  caps->avx512_bw_ = (bool)((ebx & (1 << 30)) != 0); ///< AVX-512 Byte/Word
+  caps->avx2_ = ((ebx & (1 << 5)) != 0);       ///< AVX2
+  caps->avx512f_ = ((ebx & (1 << 16)) != 0);   ///< AVX-512 Foundation
+  caps->avx512_dq_ = ((ebx & (1 << 17)) != 0); ///< AVX-512 Doubleword/Quadword
+  caps->avx512_bw_ = ((ebx & (1 << 30)) != 0); ///< AVX-512 Byte/Word
   caps->avx512_vl_ =
-      (bool)((ebx & (1U << 31)) != 0); ///< AVX-512 Vector Length extensions
-  caps->avx512_vnni_ = (bool)((ecx & (1 << 11)) != 0); ///< AVX-512 VNNI
-  caps->amx_bf16_ = (bool)((edx & (1 << 22)) != 0);    ///< AMX BF16
-  caps->avx512_fp16_ = (bool)((edx & (1 << 23)) != 0); ///< AVX-512 FP16
-  caps->amx_int8_ = (bool)((edx & (1 << 25)) != 0);    ///< AMX INT8
+      ((ebx & (1U << 31)) != 0); ///< AVX-512 Vector Length extensions
+  caps->avx512_vnni_ = ((ecx & (1 << 11)) != 0); ///< AVX-512 VNNI
+  caps->amx_bf16_ = ((edx & (1 << 22)) != 0);    ///< AMX BF16
+  caps->avx512_fp16_ = ((edx & (1 << 23)) != 0); ///< AVX-512 FP16
+  caps->amx_int8_ = ((edx & (1 << 25)) != 0);    ///< AMX INT8
 
   /* CPUID leaf 7, subleaf 1: AVX2 VNNI, AVX-512 BF16, AMX FP16 */
 #ifdef _WIN64
@@ -181,14 +178,14 @@ static inline void detect_simd_capabilities(SIMDCapabilities *restrict caps) {
   __cpuid_count(7, 1, eax, ebx, ecx, edx);
 #endif
 
-  caps->avx2_vnni_ = (bool)((eax & (1 << 4)) != 0);   ///< AVX2 VNNI
-  caps->avx512_bf16_ = (bool)((eax & (1 << 5)) != 0); ///< AVX-512 BF16
-  caps->amx_fp16_ = (bool)((eax & (1 << 21)) != 0);   ///< AMX FP16
-  caps->avx2_int8_ = (bool)((edx & (1 << 4)) != 0);   ///< AVX2 INT8
+  caps->avx2_vnni_ = ((eax & (1 << 4)) != 0);   ///< AVX2 VNNI
+  caps->avx512_bf16_ = ((eax & (1 << 5)) != 0); ///< AVX-512 BF16
+  caps->amx_fp16_ = ((eax & (1 << 21)) != 0);   ///< AMX FP16
+  caps->avx2_int8_ = ((edx & (1 << 4)) != 0);   ///< AVX2 INT8
 
   /* Composite flags */
-  caps->amx_ = (bool)(caps->amx_bf16_ || caps->amx_fp16_ || caps->amx_int8_);
-  caps->vnni_ = (bool)(caps->avx512_vnni_ || caps->avx2_vnni_);
+  caps->amx_ = ((caps->amx_bf16_ || caps->amx_fp16_ || caps->amx_int8_) != 0);
+  caps->vnni_ = ((caps->avx512_vnni_ || caps->avx2_vnni_) != 0);
 }
 
 #ifdef __linux__
@@ -265,7 +262,7 @@ const SIMDCapabilities *get_simd_capabilities() {
 #ifdef __linux__
   call_once(&init_flag, init_once);
 #elif defined(_WIN64)
-  InitOnceExecuteOnce(&init_flag, init_once_win, NULL, NULL);
+  InitOnceExecuteOnce(&init_flag, init_once_win, nullptr, nullptr);
 #endif
   return &simd;
 }
