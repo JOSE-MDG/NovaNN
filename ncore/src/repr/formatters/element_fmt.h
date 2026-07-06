@@ -1,34 +1,27 @@
 /**
  * @file element_fmt.h
- * @brief Dispatch table interface for per-dtype element formatting.
+ * @brief Per-dtype element formatting dispatch table interface.
  *
  * @details
- * This header defines the function pointer type and global dispatch table
- * used to convert raw tensor elements into human-readable strings. The
- * mechanism is designed for O(1) performance, selecting the correct
- * formatter based on the tensor's @ref DType_ identifier.
+ * Defines the @ref element_formatter_t function pointer type, the
+ * global dispatch table @ref g_element_formatters, and the inline
+ * wrapper @ref format_element(). The dispatch mechanism provides
+ * O(1) element formatting by indexing directly into the table with
+ * the tensor's @ref DType_ value.
  *
- * Each formatter implementation is responsible for type-safe data extraction
- * and applying visual parameters from the @ref ReprContext.
- *
- * ## Architecture
- * - **element_formatter_t**: The standard signature for all dtype-specific
- *   formatting functions.
- * - **g_element_formatters**: The externalized dispatch table indexed by
- *   DType value.
- * - **format_element()**: Inline wrapper that provides a clean, type-agnostic
- *   interface for layout renderers.
- *
- * @see element_fmt.c Table initialization and handlers.
- * @see  float_formatter.h Floating-point internals.
+ * @see element_fmt.c          Table initialization and handlers.
+ * @see float_formatter.h      Floating-point formatting internals.
+ * @see int_formatter.h        Integer formatting internals.
+ * @see qint_formatter.h       Quantized formatting internals.
  */
 
 #pragma once
 
+#include <stddef.h>
+
 #include <ncore/core/dtype.h>
 #include <ncore/repr/repr_context.h>
 #include <ncore/tensor.h>
-#include <stddef.h>
 
 /**
  * @brief Function pointer signature for element-wise string formatting.
@@ -47,23 +40,30 @@ typedef int (*element_formatter_t)(char *buf, size_t buf_size,
                                    const ReprContext *ctx);
 
 /**
+ * @var g_element_formatters
  * @brief Global dispatch table containing formatters for all DTypes.
  *
  * @details
- * This table is initialised in @ref element_fmt.c and is indexed directly
- * by @ref DType_ values (0..NUM_DTYPES-1).
+ * A `NUM_DTYPES`-sized array of @ref element_formatter_t function
+ * pointers, indexed directly by @ref DType_ values (`0` ..
+ * `NUM_DTYPES-1`). Populated at compile time via designated
+ * initializers in @ref element_fmt.c.
+ *
+ * @see format_element()
+ * @see DType_
  */
 extern element_formatter_t g_element_formatters[NUM_DTYPES];
 
 /**
- * @brief High-level dispatch wrapper for element formatting.
+ * @brief Format a single tensor element into a string buffer.
  *
  * @details
- * Looks up the correct formatter function for the tensor's data type
- * and executes it. This is the primary interface for layout renderers.
+ * Inline wrapper that looks up the correct formatter function for
+ * the tensor's data type in @ref g_element_formatters and executes
+ * it. This is the primary interface for layout renderers.
  *
- * @param[out] buf      Output string buffer.
- * @param[in]  buf_size Buffer capacity.
+ * @param[out] buf      Output string buffer. Must not be `nullptr`.
+ * @param[in]  buf_size Buffer capacity in bytes.
  * @param[in]  ptr      Pointer to the element data.
  * @param[in]  ten      Parent tensor.
  * @param[in]  ctx      Active representation context.
