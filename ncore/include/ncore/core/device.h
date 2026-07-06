@@ -68,7 +68,6 @@
 
 #include <ncore/core/status.h>
 #include <ncore/headeronly/macros.h>
-#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -310,7 +309,7 @@ bool is_hip_available(void);
  *    @ref cpp_ffi.h) with the resolved transfer kind.
  *
  * The dispatch table is initialised at program startup by a
- * `__attribute__((constructor))` function in @ref device.c, so it is
+ * `ATTR(constructor)` function in @ref device.c, so it is
  * always ready when this function is called.
  *
  * @param[in]  src       Source device placement.  Determines the
