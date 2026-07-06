@@ -48,14 +48,15 @@
 
 #pragma once
 
+#include <stdlib.h>
+#include <string.h>
+
 #include <ncore/core/alloc.h>
 #include <ncore/core/dtype.h>
 #include <ncore/core/status.h>
 #include <ncore/core/storage.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/tensor.h>
-#include <stdlib.h>
-#include <string.h>
 
 /**
  * @typedef CollapsedView
@@ -171,7 +172,7 @@ typedef size_t coords_t[NOVA_MAX_DIMS];
  * @param[in]      item_size Element size in bytes (from
  *                           `dtype_size()`).
  *
- * @pre  `ten` must not be `NULL`.
+ * @pre  `ten` must not be `nullptr`.
  * @pre  `ndims` must be > 0.
  * @post `ten->strides[0..ndims-1]` contain valid row-major strides.
  *
@@ -199,7 +200,7 @@ static inline void compute_tensor_strides_(Tensor *ten, size_t ndims,
  * @param[in]     shape  Dimension sizes (first `ten->ndims`
  *                       entries).
  *
- * @pre  `ten` must not be `NULL`.
+ * @pre  `ten` must not be `nullptr`.
  * @post `ten->size == product(shape[0..ten->ndims-1])`, or 1 if
  *       `ten->ndims == 0`.
  *
@@ -212,6 +213,7 @@ static inline void compute_tensor_size_(Tensor *ten, const shape_t shape) {
     size *= shape[dim];
   }
   ten->size = size;
+  ten->logical_size = size * dtype_packing_factor(ten->dtype);
 }
 
 /**
@@ -227,7 +229,7 @@ static inline void compute_tensor_size_(Tensor *ten, const shape_t shape) {
  * @param[in]     shape     Dimension sizes.
  * @param[in]     item_size Element size in bytes.
  *
- * @pre  `grad` must not be `NULL`.
+ * @pre  `grad` must not be `nullptr`.
  * @pre  `ndims` must be > 0.
  * @post `grad->strides[0..ndims-1]` contain valid row-major strides.
  *
@@ -253,7 +255,7 @@ static inline void compute_grad_tensor_strides_(TensorGrad grad, size_t ndims,
  * @param[in]     shape  Dimension sizes (first `grad->ndims`
  *                       entries).
  *
- * @pre  `grad` must not be `NULL`.
+ * @pre  `grad` must not be `nullptr`.
  * @post `grad->size == product(shape[0..grad->ndims-1])`, or 1 if
  *       `grad->ndims == 0`.
  *
@@ -266,6 +268,7 @@ static inline void compute_grad_tensor_size_(TensorGrad grad,
     size *= shape[dim];
   }
   grad->size = size;
+  grad->logical_size = size * dtype_packing_factor(grad->dtype);
 }
 
 /**
@@ -346,8 +349,8 @@ static inline void compute_coords_given_linear_byte_offset_(
  *
  * @details
  * Zero-initialises a `Tensor`, copies shape metadata, computes
- * size and strides, but leaves `storage = NULL`,
- * `data.data = NULL`, and `is_allocated_ = false`.  The tensor
+ * size and strides, but leaves `storage = nullptr`,
+ * `data.data = nullptr`, and `is_allocated_ = false`.  The tensor
  * is a valid metadata-only shell ready for deferred allocation.
  *
  * When @p requires_grad is `true`, an unallocated gradient tensor
@@ -368,9 +371,9 @@ static inline void compute_coords_given_linear_byte_offset_(
  * @return Initialised `Tensor` with no backing storage.
  *
  * @pre  `ndims` must not exceed `NOVA_MAX_DIMS`.
- * @pre  @p status must not be `NULL`.
- * @post `is_allocated_ == false`, `storage == NULL`,
- *       `data.data == NULL`.
+ * @pre  @p status must not be `nullptr`.
+ * @post `is_allocated_ == false`, `storage == nullptr`,
+ *       `data.data == nullptr`.
  * @post `shape`, `strides`, `size`, and `item_size` are valid.
  *
  * @see create_tensor()                   Allocated variant.
@@ -382,7 +385,7 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
                                                bool requires_grad,
                                                bool pin_memory, size_t ndims,
                                                novaStatus_t *status) {
-  Tensor tensor = {0};
+  Tensor tensor = {};
   memcpy(tensor.shape, shape, ndims * sizeof(size_t));
   tensor.dtype = dtype;
   tensor.device = device;
@@ -393,11 +396,11 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
   tensor.is_view_ = false;
   tensor.requires_grad_ = requires_grad;
   tensor.retain_grad_ = false;
-  tensor.grad_fn_ = NULL;
+  tensor.grad_fn_ = nullptr;
   tensor.scale_ = 1.0F;
   tensor.zero_point_ = 0;
-  tensor.storage = NULL;
-  tensor.data.data = NULL;
+  tensor.storage = nullptr;
+  tensor.data.data = nullptr;
   tensor.is_allocated_ = false;
   tensor.version_ = 0;
   tensor.is_pinned = pin_memory;
@@ -427,7 +430,7 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
  * shell — no data buffer is allocated.
  *
  * If `malloc()` fails, @p status is set to @ref novaInvalidPointer
- * and `NULL` is returned.  The caller takes ownership of the
+ * and `nullptr` is returned.  The caller takes ownership of the
  * returned pointer and must free it (or let @ref collect() on the
  * parent handle it).
  *
@@ -440,9 +443,9 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
  * @param[out] status     Receives the operation result.
  *
  * @return Pointer to newly allocated `Tensor` (as `TensorGrad`),
- *         or `NULL` on allocation failure.
+ *         or `nullptr` on allocation failure.
  *
- * @pre  @p status must not be `NULL`.
+ * @pre  @p status must not be `nullptr`.
  * @post The returned pointer is heap-allocated and must be freed.
  * @post `grad->is_allocated_ == false`.
  *
@@ -454,11 +457,11 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype, Device device,
                                bool pin_memory, size_t ndims,
                                novaStatus_t *status) {
   TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
-  if (grad == NULL) {
+  if (grad == nullptr) {
     status->err = novaInvalidPointer;
     status->message =
-        "Failed to allocate gradient tensor: malloc returned NULL\n";
-    return NULL;
+        "Failed to allocate gradient tensor: malloc returned nullptr\n";
+    return nullptr;
   }
   *grad = create_unallocated_tensor(shape, dtype, device, false, pin_memory,
                                     ndims, status);
@@ -488,9 +491,9 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype, Device device,
  *
  * @return Initialised scalar `Tensor` with no backing storage.
  *
- * @pre  @p status must not be `NULL`.
- * @post `is_allocated_ == false`, `storage == NULL`,
- *       `data.data == NULL`.
+ * @pre  @p status must not be `nullptr`.
+ * @post `is_allocated_ == false`, `storage == nullptr`,
+ *       `data.data == nullptr`.
  * @post `ndims == 0`, `size == 1`, `shape[0] == 0`,
  *       `strides[0] == 0`.
  *
@@ -503,10 +506,11 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
                                                       bool requires_grad,
                                                       bool pin_memory,
                                                       novaStatus_t *status) {
-  Tensor tensor = {0};
+  Tensor tensor = {};
   tensor.shape[0] = 0;
   tensor.strides[0] = 0;
   tensor.size = 1;
+  tensor.logical_size = 1;
   tensor.ndims = 0;
   tensor.dtype = dtype;
   tensor.device = device;
@@ -516,11 +520,11 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
   tensor.is_view_ = false;
   tensor.requires_grad_ = requires_grad;
   tensor.retain_grad_ = false;
-  tensor.grad_fn_ = NULL;
+  tensor.grad_fn_ = nullptr;
   tensor.scale_ = 1.0F;
   tensor.zero_point_ = 0;
-  tensor.storage = NULL;
-  tensor.data.data = NULL;
+  tensor.storage = nullptr;
+  tensor.data.data = nullptr;
   tensor.is_allocated_ = false;
   tensor.version_ = 0;
   tensor.is_pinned = pin_memory;
@@ -547,7 +551,7 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
  * `create_unallocated_scalar_tensor()`.
  *
  * If `malloc()` fails, @p status is set to @ref novaInvalidPointer
- * and `NULL` is returned.
+ * and `nullptr` is returned.
  *
  * @param[in]  dtype      Element data type (`DType_`).
  * @param[in]  device     Target device.
@@ -556,9 +560,9 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
  * @param[out] status     Receives the operation result.
  *
  * @return Pointer to newly allocated scalar `Tensor` (as
- *         `TensorGrad`), or `NULL` on allocation failure.
+ *         `TensorGrad`), or `nullptr` on allocation failure.
  *
- * @pre  @p status must not be `NULL`.
+ * @pre  @p status must not be `nullptr`.
  * @post The returned pointer is heap-allocated and must be freed.
  * @post `grad->is_allocated_ == false`, `grad->ndims == 0`.
  *
@@ -569,11 +573,11 @@ static inline TensorGrad
 create_unallocated_scalar_grad_tensor(DType_ dtype, Device device,
                                       bool pin_memory, novaStatus_t *status) {
   TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
-  if (grad == NULL) {
+  if (grad == nullptr) {
     status->err = novaInvalidPointer;
     status->message =
-        "Failed to allocate gradient tensor: malloc returned NULL\n";
-    return NULL;
+        "Failed to allocate gradient tensor: malloc returned nullptr\n";
+    return nullptr;
   }
   *grad = create_unallocated_scalar_tensor(dtype, device, false, pin_memory,
                                            status);
@@ -596,7 +600,7 @@ create_unallocated_scalar_grad_tensor(DType_ dtype, Device device,
  * Typical usage for iterating over all elements:
  *
  * ```c
- * coords_t coord = {0};
+ * coords_t coord = {};
  * for (size_t i = 0; i < tensor.size; i++) {
  *     // process element at coord
  *     odometer(coord, tensor.ndims, tensor.shape);
@@ -664,7 +668,7 @@ static inline void odometer(coords_t coords, size_t ndims,
  * odometer steps, reducing loop overhead in operations such as
  * `contiguous_cpu_impl()`.
  *
- * @param[in] ten  Input tensor. Must not be `NULL`.
+ * @param[in] ten  Input tensor. Must not be `nullptr`.
  *                 The tensor's `shape_t`, `strides_t`, and
  *                 `ndims` are read but not modified.
  *
@@ -672,7 +676,7 @@ static inline void odometer(coords_t coords, size_t ndims,
  *         If the input is a scalar, `cv.ndims == 0` and the
  *         `shape_t`/`strides_t` arrays are zeroed.
  *
- * @pre  `ten` must not be `NULL`.
+ * @pre  `ten` must not be `nullptr`.
  * @pre  `ten->ndims` must not exceed `NOVA_MAX_DIMS`.
  * @post `cv.ndims <= ten->ndims`.
  * @post `cv.shape` and `cv.strides` describe a valid
@@ -687,7 +691,7 @@ static inline void odometer(coords_t coords, size_t ndims,
  *                              from collapsed views.
  */
 static inline CollapsedView collapse(const Tensor *restrict ten) {
-  CollapsedView cv = {0};
+  CollapsedView cv = {};
   if (is_scalar(ten)) {
     return cv;
   }
