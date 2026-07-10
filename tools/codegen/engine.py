@@ -266,16 +266,16 @@ class EngineManager:
         ...     EngineManager,
         ... )
         >>>
-        >>> templates_dir = Path('templates/ncore/native/cpu/dtype')
+        >>> templates_dir = Path('templates/')
         >>> jinja_env = Environment(loader=FileSystemLoader(templates_dir))
         >>> env_spec = [EnvSpec(id=0, env=jinja_env, name='env_0')]
         >>>
         >>> # Load rules and define renders for scalar dtype casting
-        >>> rules = json.loads((Path('rules/scalar_dtype_casting.json')).read_text())
-        >>> output = Path('ncore/native/cpu/dtype/DTypeCastingGen.c')
+        >>> rules = json.loads((Path('rules/rules.json')).read_text())
+        >>> output = Path('output.c')
         >>> renders = [
         ...     Renders(
-        ...         template_name='scalar_dtype_casting.jinja',
+        ...         template_name='template.jinja',
         ...         render_path=output,
         ...         formatter=ClangFormatter(target=output),
         ...         data=rules,
@@ -284,7 +284,7 @@ class EngineManager:
         >>>
         >>> cg = CodeGenEngine(env_spec)
         >>> cg.add_rendering_templates(env_spec, [renders])
-        >>> engine = Engine(engine=cg, name='scalar_dtype_casting', id=0)
+        >>> engine = Engine(engine=cg, name='engine', id=0)
         >>>
         >>> manager = EngineManager()
         >>> manager.register_engine(engine)
@@ -454,17 +454,17 @@ class CodeGenEngine:
         ...     ClangFormatter, CodeGenEngine, EnvSpec, Renders,
         ... )
         >>>
-        >>> templates_dir = Path('templates/ncore/native/cpu/dtype')
+        >>> templates_dir = Path('templates/')
         >>> jinja_env = Environment(loader=FileSystemLoader(templates_dir))
-        >>> spec = [EnvSpec(id=0, env=jinja_env, name='env_0')]
+        >>> spec = [EnvSpec(id=1, env=jinja_env, name='env_1')]
         >>>
-        >>> rules_path = Path('rules/native/cpu/dtype/scalar_dtype_casting_rules.json')
+        >>> rules_path = Path('rules/rules.json')
         >>> rules = json.loads(rules_path.read_text())
         >>>
-        >>> output = Path('ncore/native/cpu/dtype/DTypeCastingGen.c')
+        >>> output = Path('file.c')
         >>> renders = [
         ...     Renders(
-        ...         template_name='scalar_dtype_casting.jinja',
+        ...         template_name='other_template.jinja',
         ...         render_path=output,
         ...         formatter=ClangFormatter(target=output),
         ...         data=rules,
@@ -728,6 +728,11 @@ def register_engine(engine: Engine | list[Engine]) -> None:
         raise ValueError(
             f"Expected Engine or list[Engine], got {type(engine).__name__}"
         )
+
+
+def is_manager_empty() -> bool:
+    """Returns True if the manager has registered engines; otherwise, returns False."""
+    return not manager._engines
 
 
 def generate(
