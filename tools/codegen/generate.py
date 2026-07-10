@@ -11,7 +11,7 @@ from pathlib import Path
 
 import typer
 
-from tools.codegen.engine import generate, manager
+from tools.codegen.engine import generate, is_manager_empty
 
 app: typer.Typer = typer.Typer(help="NovaNN code generation toolchain.")
 
@@ -104,7 +104,7 @@ def gen(
             "No --all or --exclude given; generating all registered engines."
         )
 
-    if not manager._engines:
+    if is_manager_empty():
         typer.echo(
             "No engines were registered. Check that scripts/ exists and that "
             "each gen_*.py script calls register_engine() at import time.",
