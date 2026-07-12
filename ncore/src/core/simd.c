@@ -6,19 +6,15 @@
  * @details
  * This module provides runtime detection of CPU SIMD (Single Instruction,
  * Multiple Data) capabilities using the CPUID instruction. It supports
- * detection of SSE, AVX, AVX-512, FMA, F16C, VNNI, and AMX instruction
- * sets on both x86_64 Linux and Windows platforms.
+ * detection of SSE, AVX, AVX-512, FMA, F16C, VNNI, AMX, and AVX10
+ * instruction sets on both x86_64 Linux and Windows platforms, giving the
+ * rest of NovaNN a single, reliable source of truth for which vectorized
+ * kernel variants are safe to dispatch to on the current machine.
  *
  * The detected capabilities are cached in a thread-safe singleton pattern
  * using platform-specific threading primitives (C11 `call_once` on Linux,
  * Windows `InitOnceExecuteOnce` on `_WIN64`) to ensure the detection is
  * performed only once, even when called from multiple threads.
- *
- * ## Architecture
- * The detection follows a three-phase CPUID query strategy:
- * - **Phase 1**: Leaf 1 for base features (SSE4.2, FMA3, AVX, F16C)
- * - **Phase 2**: Leaf 7, subleaf 0 for AVX2, AVX-512 variants, AMX
- * - **Phase 3**: Leaf 7, subleaf 1 for VNNI, BF16, FP16 extensions
  *
  * ## Platform Support
  * - **Windows (_WIN64)**: Uses __cpuid() and __cpuidex() from intrin.h;
@@ -29,9 +25,6 @@
  * @see simd.h Public interface and @ref SIMDCapabilities structure
  * @see get_simd_capabilities() Thread-safe singleton accessor
  */
-
-#include <ncore/core/dtype.h>
-#include <ncore/simd/simd.h>
 
 #ifdef __linux__
 #include <threads.h>
@@ -46,6 +39,9 @@
 /** @brief GCC/Clang CPUID intrinsic support. */
 #include <cpuid.h>
 #endif
+
+#include <ncore/core/dtype.h>
+#include <ncore/simd/simd.h>
 
 /**
  * @var static SIMDCapabilities simd
@@ -95,16 +91,13 @@ static INIT_ONCE init_flag = INIT_ONCE_STATIC_INIT;
  * @brief Detect CPU SIMD capabilities via CPUID instruction.
  *
  * @details
- * Queries CPUID leaves to detect available SIMD features and populates
- * the provided @ref SIMDCapabilities structure. The function clears the
- * structure before detection and sets each flag based on CPU support.
+ * Queries the relevant CPUID leaves to detect available SIMD features and
+ * populates the provided @ref SIMDCapabilities structure. The function
+ * clears the structure before detection and sets each flag based on CPU
+ * support; individual leaves and bit positions are documented inline
+ * alongside the fields they populate.
  *
- * @par CPUID Leaves Queried:
- * - **Leaf 1 (ECX/EDX):** SSE4.2, FMA3, AVX, F16C
- * - **Leaf 7, subleaf 0 (EBX/ECX/EDX):** AVX2, AVX-512 variants, AMX
- * - **Leaf 7, subleaf 1 (EAX/EDX):** AVX2 VNNI, AVX-512 BF16, AMX FP16
- *
- * @param[out] caps Pointer to the SIMDCapabilities structure to populate.
+ * @param[in,out] caps Pointer to the SIMDCapabilities structure to populate.
  *                  All fields are zeroed before detection.
  *
  * @pre caps must point to a valid SIMDCapabilities structure.
@@ -140,12 +133,12 @@ static inline void detect_simd_capabilities(SIMDCapabilities *restrict caps) {
   }
 #endif
 
-  caps->sse4_2_ = (bool)((ecx & (1 << 20)) != 0); ///< SSE4.2
-  caps->fma3_ = (bool)((ecx & (1 << 12)) != 0);   ///< FMA3
-  caps->avx_ = (bool)((ecx & (1 << 28)) != 0);    ///< AVX
-  caps->f16c_ = (bool)((ecx & (1 << 29)) != 0);   ///< F16C
+  caps->sse4_2_ = ((ecx & (1 << 20)) != 0); ///< SSE4.2
+  caps->fma3_ = ((ecx & (1 << 12)) != 0);   ///< FMA3
+  caps->avx_ = ((ecx & (1 << 28)) != 0);    ///< AVX
+  caps->f16c_ = ((ecx & (1 << 29)) != 0);   ///< F16C
 
-  /* CPUID leaf 7, subleaf 0: AVX2, AVX-512, AMX detection */
+  /* CPUID leaf 7, subleaf 0: AVX2, AVX-512, AMX, AVX10 presence flag */
 #ifdef _WIN64
   __cpuidex(cpu_info, 7, 0);
   eax = (uint32)cpu_info[0];
@@ -167,6 +160,11 @@ static inline void detect_simd_capabilities(SIMDCapabilities *restrict caps) {
   caps->avx512_fp16_ = ((edx & (1 << 23)) != 0); ///< AVX-512 FP16
   caps->amx_int8_ = ((edx & (1 << 25)) != 0);    ///< AMX INT8
 
+  /* CPUID.(EAX=07H,ECX=0H):EDX[19] — Intel AVX10 converged vector ISA
+   * presence flag. Leaf 0x24 is only architecturally valid when this bit
+   * is set; it must not be queried otherwise. */
+  const bool avx10_present = ((edx & (1 << 19)) != 0);
+
   /* CPUID leaf 7, subleaf 1: AVX2 VNNI, AVX-512 BF16, AMX FP16 */
 #ifdef _WIN64
   __cpuidex(cpu_info, 7, 1);
@@ -182,6 +180,34 @@ static inline void detect_simd_capabilities(SIMDCapabilities *restrict caps) {
   caps->avx512_bf16_ = ((eax & (1 << 5)) != 0); ///< AVX-512 BF16
   caps->amx_fp16_ = ((eax & (1 << 21)) != 0);   ///< AMX FP16
   caps->avx2_int8_ = ((edx & (1 << 4)) != 0);   ///< AVX2 INT8
+
+  /* CPUID leaf 0x24, subleaf 0, EBX[7:0]: AVX10 version number (1 or 2).
+   * Only queried when avx10_present is set, since the leaf is otherwise
+   * undefined. EBX[18:16] (legacy per-width support bits) are reserved
+   * on all shipped AVX10 parts and are not consulted here. */
+  caps->avx10_1_ = false;
+  caps->avx10_2_ = false;
+
+  if (avx10_present) {
+    uint32 eax24, ebx24, ecx24, edx24;
+#ifdef _WIN64
+    __cpuidex(cpu_info, 0x24, 0);
+    eax24 = (uint32)cpu_info[0];
+    ebx24 = (uint32)cpu_info[1];
+    ecx24 = (uint32)cpu_info[2];
+    edx24 = (uint32)cpu_info[3];
+#else
+    __cpuid_count(0x24, 0, eax24, ebx24, ecx24, edx24);
+#endif
+    (void)eax24;
+    (void)ecx24;
+    (void)edx24;
+
+    const uint32 avx10_version = ebx24 & 0xFFu; ///< EBX[7:0]: AVX10 version
+
+    caps->avx10_1_ = (avx10_version >= 1); ///< AVX10.1 or newer
+    caps->avx10_2_ = (avx10_version >= 2); ///< AVX10.2 or newer
+  }
 
   /* Composite flags */
   caps->amx_ = ((caps->amx_bf16_ || caps->amx_fp16_ || caps->amx_int8_) != 0);
