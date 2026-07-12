@@ -98,6 +98,9 @@ typedef struct {
   bool avx512_fp16_; ///< AVX-512 FP16 (half-precision floating-point ops).
   bool avx512_bf16_; ///< AVX-512 BF16 (bfloat16 dot product instructions).
 
+  bool avx10_1_; ///< AVX-10.1 (converged AVX-512 baseline; version >= 1).
+  bool avx10_2_; ///< AVX-10.2 (mandatory 512-bit width; version >= 2).
+
   bool amx_;      ///< Any AMX tile support (composite flag).
   bool amx_fp16_; ///< AMX FP16 tile support (half-precision matrix ops).
   bool amx_bf16_; ///< AMX BF16 tile support (bfloat16 matrix ops).
