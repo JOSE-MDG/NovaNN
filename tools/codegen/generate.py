@@ -21,6 +21,8 @@ def _discover_and_import_scripts() -> None:
 
     Each script is expected to call ``register_engine()`` at module
     level so its engines are available to the global ``EngineManager``.
+    Helper modules are imported too, so they can expose utility entry
+    points consumed by registered engines.
     """
     scripts_dir = Path(__file__).resolve().parent / "scripts"
     if not scripts_dir.is_dir():
@@ -31,9 +33,6 @@ def _discover_and_import_scripts() -> None:
         sys.path.insert(0, project_root)
 
     for py_file in sorted(scripts_dir.rglob("*.py")):
-        if py_file.name.startswith("_"):
-            continue
-
         # Build a dotted module name from PROJECT ROOT.
         # e.g. tools/codegen/scripts/ncore/native/cpu/gen_...
         #   -> tools.codegen.scripts.ncore.native.cpu.gen_...
@@ -47,11 +46,16 @@ def _discover_and_import_scripts() -> None:
         if module_name in sys.modules:
             continue
 
-        importlib.import_module(module_name)
+        module = importlib.import_module(module_name)
+
+        if py_file.stem.startswith("_"):
+            main = getattr(module, "main", None)
+            if callable(main):
+                main()
 
 
-def _parse_exclude(raw: str) -> list[int] | None:
-    """Parse a comma-separated list of integers from a CLI argument."""
+def _parse_exclude(raw: str | None) -> list[int] | None:
+    """Parse the ``--exclude`` CLI argument into a list of engine IDs."""
     if raw is None:
         return None
     parts = [v.strip() for v in raw.split(",") if v.strip()]
@@ -78,7 +82,7 @@ def gen(
         "--all",
         help="Generate all registered engines. Mutually exclusive with --exclude.",
     ),
-    exclude: list[int] | None = typer.Option(  # noqa: B008
+    exclude: str | None = typer.Option(
         None,
         "--exclude",
         help="Comma-separated list of engine IDs to exclude (e.g. '1,3').",
@@ -113,12 +117,14 @@ def gen(
         raise typer.Exit(code=1)
 
     if not keep_going:
-        generate(exclude_id=exclude, run_formatters=run_formatters)
+        generate(exclude_id=exclude, run_formatters=run_formatters)  # type: ignore
         typer.echo("Generation complete.")
         return
 
     results = generate(
-        exclude_id=exclude, stop_on_error=False, run_formatters=run_formatters
+        exclude_id=exclude,  # type: ignore
+        stop_on_error=False,
+        run_formatters=run_formatters,  # type: ignore
     )
     failures = [r for r in results if not r.ok]
 
