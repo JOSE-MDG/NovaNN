@@ -6,6 +6,11 @@ Detect AVX2 and AVX2-VNNI instruction set support.  Sets
 ``HAS_AVX2`` to ``1`` if the compiler can emit AVX2 intrinsics.
 When AVX2 is available, the module also probes for ``HAS_AVX2_VNNI``.
 
+.. note::
+  Unconditionally ``0`` under MSVC. See ``CheckInstructionSupport.cmake``
+  for why -- no logic change needed here, ``check_simd`` handles the
+  MSVC guard internally.
+
 Variables defined:
 
 ``HAS_AVX2``
