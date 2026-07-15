@@ -7,6 +7,11 @@ support.  Sets ``HAS_AMX_TILE`` to ``1`` if the compiler can emit
 AMX tile intrinsics.  When tile support is present, the module probes
 for FP16, BF16, and INT8 extensions.
 
+.. note::
+  Unconditionally ``0`` under MSVC. See ``CheckInstructionSupport.cmake``
+  for why -- no logic change needed here, ``check_simd`` handles the
+  MSVC guard internally.
+
 Variables defined:
 
 ``HAS_AMX_TILE``
@@ -35,22 +40,22 @@ check_simd(HAS_AMX_TILE "-mamx-tile" "-mamx-tile" "
 ")
 
 if(HAS_AMX_TILE)
-    set(HAS_AMX 1)
-    check_simd(HAS_AMX_FP16 "-mamx-tile -mamx-fp16" "-mamx-fp16" "
+  set(HAS_AMX 1)
+  check_simd(HAS_AMX_FP16 "-mamx-tile -mamx-fp16" "-mamx-fp16" "
         #include <immintrin.h>
         int main() { _tile_release(); _tile_dpfp16ps(0, 1, 2); _tile_release(); return 0; }
     ")
-    check_simd(HAS_AMX_BF16 "-mamx-tile -mamx-bf16" "-mamx-bf16" "
+  check_simd(HAS_AMX_BF16 "-mamx-tile -mamx-bf16" "-mamx-bf16" "
         #include <immintrin.h>
         int main() { _tile_release(); _tile_dpbf16ps(0, 1, 2); _tile_release(); return 0; }
     ")
-    check_simd(HAS_AMX_INT8 "-mamx-tile -mamx-int8" "-mamx-int8" "
+  check_simd(HAS_AMX_INT8 "-mamx-tile -mamx-int8" "-mamx-int8" "
         #include <immintrin.h>
         int main() { _tile_release(); _tile_dpbusd(0, 1, 2); _tile_release(); return 0; }
     ")
 else()
-    set(HAS_AMX 0)
-    set(HAS_AMX_FP16 0)
-    set(HAS_AMX_BF16 0)
-    set(HAS_AMX_INT8 0)
+  set(HAS_AMX 0)
+  set(HAS_AMX_FP16 0)
+  set(HAS_AMX_BF16 0)
+  set(HAS_AMX_INT8 0)
 endif()
