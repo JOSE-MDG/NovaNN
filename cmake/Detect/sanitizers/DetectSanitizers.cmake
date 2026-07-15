@@ -25,6 +25,10 @@ if(NOT USE_ASAN AND NOT USE_UBSAN)
   return()
 endif()
 
+if(MSVC)
+  return()
+endif()
+
 if(USE_ASAN)
   add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
   add_link_options(-fsanitize=address)
