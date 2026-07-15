@@ -6,6 +6,11 @@ Detect AVX, F16C, and FMA3 instruction set support.  Sets ``HAS_AVX``
 to ``1`` if the compiler can emit AVX intrinsics.  When AVX is
 available, the module also probes for ``HAS_F16C`` and ``HAS_FMA3``.
 
+.. note::
+  Unconditionally ``0`` under MSVC. See ``CheckInstructionSupport.cmake``
+  for why -- no logic change needed here, ``check_simd`` handles the
+  MSVC guard internally.
+
 Variables defined:
 
 ``HAS_AVX``
