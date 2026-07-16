@@ -10,14 +10,22 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar, NamedTuple
 
-from jinja2 import Environment, Template, TemplateError, TemplateNotFound
+from jinja2 import (
+    Environment,
+    FileSystemLoader,
+    Template,
+    TemplateError,
+    TemplateNotFound,
+)
 from tqdm import tqdm
 
 """Core classes for Jinja2-based template-driven code generation.
 
-Provides CodeGenEngine for rendering templates with JSON rules files,
-EngineManager for orchestrating multiple generation stages, and the
-supporting data classes Renders, EnvSpec and Engine.
+Provides CodeGenEngine for rendering templates with JSON/YAML rules
+files, EngineManager for orchestrating multiple generation stages,
+the data classes Renders, EnvSpec and Engine, and module-level
+constants for project paths, formatter binaries and the default
+template loader.
 """
 
 
@@ -113,7 +121,20 @@ class Formatter:
     file: Path
 
 
+# Root of the project repository (three levels up from this file).
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+# Absolute path to ``tools/codegen/`` within the project.
+CODEGEN_DIR = PROJECT_ROOT / "tools" / "codegen"
+# Directory holding JSON/YAML rules files that feed the templates.
+RULES_DIR = CODEGEN_DIR / "rules"
+# Directory holding Python scripts that register engine configurations.
+SCRIPTS_DIR = CODEGEN_DIR / "scripts"
+# Directory holding Jinja2 template files (``.jinja``).
+TEMPLATES_DIR = CODEGEN_DIR / "templates"
+
+# Default `FileSystemLoader` instance pointing to
+# `TEMPLATES_DIR`. Used by engines that do not provide a custom loader.
+DEFAULT_LOADER: FileSystemLoader = FileSystemLoader(TEMPLATES_DIR)
 
 
 def get_clang_format_path() -> Path:
@@ -195,8 +216,13 @@ def get_ruff_path() -> Path:
     )
 
 
+# Absolute path to the ``ruff`` binary, resolved once at import time.
 RUFF_PATH = get_ruff_path()
+# Absolute path to the ``clang-format`` binary, resolved once at import
+# time.
 CLANG_FORMATTER_PATH = get_clang_format_path()
+# User home directory, used as a fallback target for formatters when no
+# specific output file has been set.
 HOME = Path.home()
 
 
