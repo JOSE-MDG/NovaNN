@@ -8,10 +8,14 @@ specific engine ids.
 import importlib
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 
-from tools.codegen.engine import generate, is_manager_empty
+from tools.codegen.engine import SCRIPTS_DIR, generate, is_manager_empty
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 app: typer.Typer = typer.Typer(help="NovaNN code generation toolchain.")
 
@@ -24,18 +28,17 @@ def _discover_and_import_scripts() -> None:
     Helper modules are imported too, so they can expose utility entry
     points consumed by registered engines.
     """
-    scripts_dir = Path(__file__).resolve().parent / "scripts"
-    if not scripts_dir.is_dir():
+    if not SCRIPTS_DIR.is_dir():
         return
 
     project_root = str(Path(__file__).resolve().parent.parent.parent)
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
 
-    for py_file in sorted(scripts_dir.rglob("*.py")):
+    for py_file in sorted(SCRIPTS_DIR.rglob("*.py")):
         # Build a dotted module name from PROJECT ROOT.
-        # e.g. tools/codegen/scripts/ncore/native/cpu/gen_...
-        #   -> tools.codegen.scripts.ncore.native.cpu.gen_...
+        # e.g. tools/codegen/scripts/.../gen_...
+        #   -> tools.codegen.scripts.{...}.gen_...
         module_name = (
             py_file.relative_to(project_root)
             .with_suffix("")
@@ -49,7 +52,7 @@ def _discover_and_import_scripts() -> None:
         module = importlib.import_module(module_name)
 
         if py_file.stem.startswith("_"):
-            main = getattr(module, "main", None)
+            main: Callable[[], None] | None = getattr(module, "main", None)
             if callable(main):
                 main()
 
