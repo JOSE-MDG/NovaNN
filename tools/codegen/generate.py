@@ -7,17 +7,24 @@ specific engine ids.
 
 import importlib
 import sys
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import typer
 
-from tools.codegen.engine import SCRIPTS_DIR, generate, is_manager_empty
+from tools.codegen.engine import (
+    PROJECT_ROOT,
+    SCRIPTS_DIR,
+    generate,
+    is_manager_empty,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from types import ModuleType
 
 app: typer.Typer = typer.Typer(help="NovaNN code generation toolchain.")
+
+type Main = Callable[[], None] | None
 
 
 def _discover_and_import_scripts() -> None:
@@ -27,20 +34,25 @@ def _discover_and_import_scripts() -> None:
     level so its engines are available to the global ``EngineManager``.
     Helper modules are imported too, so they can expose utility entry
     points consumed by registered engines.
+
+    Modules that define a ``BUILD_PRIORITY`` integer are collected and
+    their ``main()`` is called in ascending priority order (lower value
+    = earlier execution).
     """
     if not SCRIPTS_DIR.is_dir():
         return
 
-    project_root = str(Path(__file__).resolve().parent.parent.parent)
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
+    if str(PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT))
+
+    build_modules: list[tuple[int, ModuleType]] = []
 
     for py_file in sorted(SCRIPTS_DIR.rglob("*.py")):
         # Build a dotted module name from PROJECT ROOT.
         # e.g. tools/codegen/scripts/.../gen_...
         #   -> tools.codegen.scripts.{...}.gen_...
         module_name = (
-            py_file.relative_to(project_root)
+            py_file.relative_to(PROJECT_ROOT)
             .with_suffix("")
             .as_posix()
             .replace("/", ".")
@@ -49,12 +61,19 @@ def _discover_and_import_scripts() -> None:
         if module_name in sys.modules:
             continue
 
-        module = importlib.import_module(module_name)
+        module: ModuleType = importlib.import_module(module_name)
 
-        if py_file.stem.startswith("_"):
-            main: Callable[[], None] | None = getattr(module, "main", None)
-            if callable(main):
-                main()
+        # Collect any module with a BUILD_PRIORITY attribute for
+        # ordered execution, regardless of its file name pattern.
+        priority: int | None = getattr(module, "BUILD_PRIORITY", None)
+        if priority is not None:
+            build_modules.append((priority, module))
+
+    # Execute build modules in priority order.
+    for _, module in sorted(build_modules, key=lambda x: x[0]):
+        main: Main = getattr(module, "main", None)
+        if callable(main):
+            main()
 
 
 def _parse_exclude(raw: str | None) -> list[int] | None:
@@ -83,11 +102,13 @@ def gen(
     all: bool = typer.Option(
         False,
         "--all",
+        "-a",
         help="Generate all registered engines. Mutually exclusive with --exclude.",
     ),
     exclude: str | None = typer.Option(
         None,
         "--exclude",
+        "-e",
         help="Comma-separated list of engine IDs to exclude (e.g. '1,3').",
         callback=_parse_exclude,
     ),
@@ -100,6 +121,12 @@ def gen(
         True,
         "--run-formatters/--no-run-formatters",
         help="Execute file formatters (clang-format, ruff) on rendered outputs.",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show per-engine log messages during generation.",
     ),
 ) -> None:
     """Run code generation for all registered engines."""
@@ -120,14 +147,19 @@ def gen(
         raise typer.Exit(code=1)
 
     if not keep_going:
-        generate(exclude_id=exclude, run_formatters=run_formatters)  # type: ignore
+        generate(
+            exclude_id=exclude,  # type: ignore
+            run_formatters=run_formatters,
+            verbose=verbose,
+        )
         typer.echo("Generation complete.")
         return
 
     results = generate(
         exclude_id=exclude,  # type: ignore
         stop_on_error=False,
-        run_formatters=run_formatters,  # type: ignore
+        run_formatters=run_formatters,
+        verbose=verbose,
     )
     failures = [r for r in results if not r.ok]
 
