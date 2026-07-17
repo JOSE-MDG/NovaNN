@@ -379,6 +379,7 @@ class EngineManager:
         *,
         stop_on_error: bool = True,
         run_formatters: bool = True,
+        verbose: bool = False,
     ) -> list[EngineRunResult]:
         """Run code generation for all engines, optionally excluding some.
 
@@ -393,10 +394,15 @@ class EngineManager:
             run_formatters: If True (default), execute file formatters
                 (clang-format, ruff) on each rendered output. If False,
                 skip formatting entirely.
+            verbose: If True, print a log message per engine before
+                execution, showing the engine name and id.
+
+        Engines are always executed in ascending id order regardless of
+        the order in which they were registered.
 
         Returns:
             A list of EngineRunResult, one per engine that was attempted,
-            in execution order. Only meaningful when stop_on_error=False;
+            in id order. Only meaningful when stop_on_error=False;
             when stop_on_error=True and everything succeeds, this is the
             full list of successful results.
 
@@ -407,23 +413,25 @@ class EngineManager:
                 the original exception.
         """
         if exclude_id is None:
-            engines_to_run = list(self._engines.values())
+            engines_to_run = sorted(self._engines.values(), key=lambda e: e.id)
         elif isinstance(exclude_id, int):
             if exclude_id not in self._engines:
                 raise ValueError(
                     f"Engine id '{exclude_id}' not found in registry"
                 )
-            engines_to_run = [
-                e for e in self._engines.values() if e.id != exclude_id
-            ]
+            engines_to_run = sorted(
+                (e for e in self._engines.values() if e.id != exclude_id),
+                key=lambda e: e.id,
+            )
         elif isinstance(exclude_id, list):
             exclude_set = set(exclude_id)
             for eid in exclude_set:
                 if eid not in self._engines:
                     raise ValueError(f"Engine id '{eid}' not found in registry")
-            engines_to_run = [
-                e for e in self._engines.values() if e.id not in exclude_set
-            ]
+            engines_to_run = sorted(
+                (e for e in self._engines.values() if e.id not in exclude_set),
+                key=lambda e: e.id,
+            )
         else:
             raise TypeError(
                 f"Expected int, list[int], or None, got {type(exclude_id).__name__}"
@@ -439,6 +447,10 @@ class EngineManager:
 
         with tqdm(total=total_renders, desc="Rendering", unit="render") as pbar:
             for engine in engines_to_run:
+                if verbose:
+                    tqdm.write(
+                        f"Executing {engine.name}... (Engine ID: {engine.id})"
+                    )
                 try:
                     engine.engine.generate(
                         run_formatters=run_formatters, pbar=pbar
@@ -766,6 +778,7 @@ def generate(
     *,
     stop_on_error: bool = True,
     run_formatters: bool = True,
+    verbose: bool = False,
 ) -> list[EngineRunResult]:
     """Run code generation for all registered engines.
 
@@ -781,6 +794,8 @@ def generate(
         run_formatters: If True (default), execute file formatters
             (clang-format, ruff) on each rendered output. If False,
             skip formatting entirely.
+        verbose: If True, print per-engine log messages during
+            generation.
 
     Returns:
         A list of EngineRunResult describing what happened per engine.
@@ -789,5 +804,8 @@ def generate(
         RuntimeError: If stop_on_error=True and an engine fails.
     """
     return manager.run(
-        exclude_id, stop_on_error=stop_on_error, run_formatters=run_formatters
+        exclude_id,
+        stop_on_error=stop_on_error,
+        run_formatters=run_formatters,
+        verbose=verbose,
     )
