@@ -68,8 +68,8 @@ static inline int fmt_float16(char *buf, size_t cap, const void *ptr,
 #ifdef _GNUC_CLANG_
   return float_format_value(buf, cap, (double)*(const float16 *)ptr, ctx);
 #else
-  return float_format_value(
-      buf, cap, (double)fp16_to_float(*(const float16 *)ptr), ctx);
+  return float_format_value(buf, cap,
+                            (double)fp16_to_float(*(const float16 *)ptr), ctx);
 #endif
 }
 
@@ -82,8 +82,8 @@ static inline int fmt_bfloat16(char *buf, size_t cap, const void *ptr,
 #ifdef _GNUC_CLANG_
   return float_format_value(buf, cap, (double)*(const bfloat16 *)ptr, ctx);
 #else
-  return float_format_value(
-      buf, cap, (double)bf16_to_float(*(const bfloat16 *)ptr), ctx);
+  return float_format_value(buf, cap,
+                            (double)bf16_to_float(*(const bfloat16 *)ptr), ctx);
 #endif
 }
 
@@ -105,9 +105,8 @@ static inline int fmt_float8_e5m2(char *buf, size_t cap, const void *ptr,
                                   const Tensor *ten, const ReprContext *ctx) {
 
   (void)ten;
-  return float_format_value(buf, cap,
-                            (double)fp8e5m2_to_float(*(const float8_e5m2 *)ptr),
-                            ctx);
+  return float_format_value(
+      buf, cap, (double)fp8e5m2_to_float(*(const float8_e5m2 *)ptr), ctx);
 }
 
 /**
@@ -121,7 +120,7 @@ static inline int fmt_float4_e2m1fn(char *buf, size_t cap, const void *ptr,
   float lo;
   float hi;
 
-  fp4e2m1x2_to_floats(*(const float4_e2m1_x2 *)ptr, &lo, &hi);
+  fp4e2m1x2_to_floats(*(const float4_e2m1fn_x2 *)ptr, &lo, &hi);
 
   double val = (ctx->sub_element_index == 0) ? (double)lo : (double)hi;
   return float_format_value(buf, cap, val, ctx);
