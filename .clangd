@@ -15,7 +15,6 @@ CompileFlags:
     - -I/opt/rocm/include
     - -O3
     - -Wall
-    - -Werror
     - -Wextra
     - -Wpedantic
     - -Wshadow
@@ -31,7 +30,8 @@ CompileFlags:
     - -Wno-unused-parameter
     - -g
     - -fno-omit-frame-pointer
-    - -march=native
+    - -mtune=generic
+    - -march=x86-64-v2
 
 Diagnostics:
   ClangTidy:
