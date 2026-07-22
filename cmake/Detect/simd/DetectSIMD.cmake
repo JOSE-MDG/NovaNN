@@ -40,4 +40,3 @@ else()
 endif()
 
 list(REMOVE_DUPLICATES SIMD_FLAGS)
-message(STATUS "SIMD flags: ${SIMD_FLAGS}")
