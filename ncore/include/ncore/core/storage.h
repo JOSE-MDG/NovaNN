@@ -56,7 +56,8 @@ extern "C" {
 
 // clang-format off
 /**
- * @var data_ptr
+
+ * @union data_ptr
  * @brief Typed pointer union for tensor data buffers.
  *
  * @details
@@ -74,29 +75,29 @@ extern "C" {
  * @see TensorStorage  Embeds a data_ptr as its `ptr` field.
  */
 typedef union {
-  void *v;                      ///< Untyped pointer (generic access).
-  unsigned char *data;          ///< Raw byte pointer (serialisation / memcpy).
-  float32 *f32;                 ///< Pointer to 32-bit float elements.
-  float64 *f64;                 ///< Pointer to 64-bit float (double) elements.
-  float16 *half;                ///< Pointer to IEEE 754 half-precision (16-bit) elements.
-  bfloat16 *bf16;               ///< Pointer to Brain Float 16 elements.
-  float8_e4m3fn *fp8e4m3fn;     ///< Pointer to 8-bit E4M3FN float elements.
-  float8_e5m2 *fp8e5m2;         ///< Pointer to 8-bit E5M2 float elements.
-  float4_e2m1_x2 *fp4e2m1fn_x2; ///< Pointer to 4-bit E2M1FN float elements.
-  int8 *s8;                     ///< Pointer to signed 8-bit integer elements.
-  uint8 *u8;                    ///< Pointer to unsigned 8-bit integer elements.
-  int16 *s16;                   ///< Pointer to signed 16-bit integer elements.
-  uint16 *u16;                  ///< Pointer to unsigned 16-bit integer elements.
-  int32 *s32;                   ///< Pointer to signed 32-bit integer elements.
-  uint32 *u32;                  ///< Pointer to unsigned 32-bit integer elements.
-  int64 *s64;                   ///< Pointer to signed 64-bit integer elements.
-  uint64 *u64;                  ///< Pointer to unsigned 64-bit integer elements.
-  qint8 *qs8;                   ///< Pointer to quantised signed 8-bit elements.
-  quint8 *qu8;                  ///< Pointer to quantised unsigned 8-bit elements.
-  qint16 *qs16;                 ///< Pointer to quantised signed 16-bit elements.
-  quint16 *qu16;                ///< Pointer to quantised unsigned 16-bit elements.
-  qint32 *qs32;                 ///< Pointer to quantised signed 32-bit elements.
-  quint32 *qu32;                ///< Pointer to quantised unsigned 32-bit elements.
+  void *v;                        ///< Untyped pointer (generic access).
+  unsigned char *data;            ///< Raw byte pointer (serialisation / memcpy).
+  float32 *f32;                   ///< Pointer to 32-bit float elements.
+  float64 *f64;                   ///< Pointer to 64-bit float (double) elements.
+  float16 *half;                  ///< Pointer to IEEE 754 half-precision (16-bit) elements.
+  bfloat16 *bf16;                 ///< Pointer to Brain Float 16 elements.
+  float8_e4m3fn *fp8e4m3fn;       ///< Pointer to 8-bit E4M3FN float elements.
+  float8_e5m2 *fp8e5m2;           ///< Pointer to 8-bit E5M2 float elements.
+  float4_e2m1fn_x2 *fp4e2m1fn_x2; ///< Pointer to 4-bit E2M1FN float elements.
+  int8 *s8;                       ///< Pointer to signed 8-bit integer elements.
+  uint8 *u8;                      ///< Pointer to unsigned 8-bit integer elements.
+  int16 *s16;                     ///< Pointer to signed 16-bit integer elements.
+  uint16 *u16;                    ///< Pointer to unsigned 16-bit integer elements.
+  int32 *s32;                     ///< Pointer to signed 32-bit integer elements.
+  uint32 *u32;                    ///< Pointer to unsigned 32-bit integer elements.
+  int64 *s64;                     ///< Pointer to signed 64-bit integer elements.
+  uint64 *u64;                    ///< Pointer to unsigned 64-bit integer elements.
+  qint8 *qs8;                     ///< Pointer to quantised signed 8-bit elements.
+  quint8 *qu8;                    ///< Pointer to quantised unsigned 8-bit elements.
+  qint16 *qs16;                   ///< Pointer to quantised signed 16-bit elements.
+  quint16 *qu16;                  ///< Pointer to quantised unsigned 16-bit elements.
+  qint32 *qs32;                   ///< Pointer to quantised signed 32-bit elements.
+  quint32 *qu32;                  ///< Pointer to quantised unsigned 32-bit elements.
 } data_ptr;
 // clang-format on
 /**
