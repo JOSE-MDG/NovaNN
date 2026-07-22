@@ -67,7 +67,7 @@ typedef uint8_t float8_e5m2;
 
 /** @brief Floating Point 4-bit (FP4 E2M1FN packed-pair native
    implementation). */
-typedef uint8_t float4_e2m1_x2;
+typedef uint8_t float4_e2m1fn_x2;
 
 /** @brief Signed 8-bit two's-complement integer. */
 typedef int8_t int8;
