@@ -71,8 +71,8 @@
  * @brief Align a type or variable to @p N bytes.
  *
  * @details
- * Expands to `[[gnu::aligned(N)]]` on GCC/Clang using C23 attribute
- * syntax or `[[align(N)]]` on MSVC.  Used extensively to enforce cache-line
+ * Expands to `__attribute__((aligned(N)))` on GCC/Clang and
+ * `[[align(N)]]` on MSVC.  Used extensively to enforce cache-line
  * alignment (64 bytes) for tensor hot fields and SIMD-friendly data structures.
  *
  * @param N  Alignment boundary in bytes.  Must be a power of two.
@@ -87,7 +87,7 @@
 #ifdef _MSC_VER
 #define ALIGN(N) [[align(N)]]
 #elif defined(__clang__) || defined(__GNUC__)
-#define ALIGN(N) [[gnu::aligned(N)]]
+#define ALIGN(N) __attribute__((aligned(N)))
 #else
 #define ALIGN(N) __attribute__((aligned(N)))
 #endif
