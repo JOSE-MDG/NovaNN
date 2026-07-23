@@ -67,7 +67,12 @@ else()
       ")
     check_simd(HAS_AVX512_VL "-mavx512f -mavx512vl" "-mavx512vl" "
           #include <immintrin.h>
-          int main() { __m256i a = _mm256_set1_epi32(1); __mmask8 m = _mm256_movepi32_mask(a); (void)m; return 0; }
+          int main() {
+              __m256 a = _mm256_set1_ps(1.0f), b = _mm256_set1_ps(2.0f);
+              __mmask8 m = _mm256_cmp_ps_mask(a, b, _CMP_LT_OQ);
+              (void)_mm256_maskz_add_ps(m, a, b);
+              return 0;
+          }
       ")
     check_simd(HAS_AVX512_VNNI "-mavx512f -mavx512vnni" "-mavx512vnni" "
           #include <immintrin.h>
