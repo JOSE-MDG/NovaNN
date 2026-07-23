@@ -40,6 +40,14 @@ This module defines the following functions:
 
     nova_configure_hip_runtime_target(<target>)
 
+.. command:: nova_configure_hip_includes_target
+
+  Configure a target that include the ROCm headers:
+
+  .. code-block:: cmake
+
+    nova_configure_hip_includes_target(<target>)
+
 .. command:: nova_configure_hip_kernels_target
 
   Configure a target that compiles HIP kernel code:
@@ -208,6 +216,31 @@ function(nova_configure_hip_runtime_target TARGET)
 endfunction()
 
 #[=======================================================================[.rst:
+.. command:: nova_configure_hip_includes_target
+
+  Configure a target that include the ROCm headers:
+
+  .. code-block:: cmake
+
+    nova_configure_hip_includes_target(<target>)
+
+  The ``<target>`` argument specifies the CMake target to configure.
+
+  This function calls ``_nova_configure_hip_common`` and include
+  the ``INTERFACE_INCLUDE_DIRECTORIES`` headers.
+
+#]=======================================================================]
+function(nova_configure_hip_includes_target TARGET)
+    if(NOT NOVA_HAS_HIP)
+        return()
+    endif()
+
+    _nova_configure_hip_common(${TARGET})
+
+    target_include_directories(${TARGET} PRIVATE ${HIP_INCLUDE_DIRS})
+endfunction()
+
+#[=======================================================================[.rst:
 .. command:: nova_configure_hip_kernels_target
 
   Configure a target that compiles HIP kernel code:
@@ -218,8 +251,8 @@ endfunction()
 
   The ``<target>`` argument specifies the CMake target to configure.
 
-  Any additional arguments after ``<target>`` are forwarded as
-  private link libraries to the target.
+  Additional ``EXTRA_LIBS`` are parsed as a keyword argument and linked
+  as private libraries.
 
 #]=======================================================================]
 function(nova_configure_hip_kernels_target TARGET)
@@ -227,10 +260,12 @@ function(nova_configure_hip_kernels_target TARGET)
         return()
     endif()
 
+    cmake_parse_arguments(_HIP_K "" "" "EXTRA_LIBS" ${ARGN})
+
     _nova_configure_hip_common(${TARGET})
 
-    if(ARGN)
-        target_link_libraries(${TARGET} PRIVATE ${ARGN})
+    if(_HIP_K_EXTRA_LIBS)
+        target_link_libraries(${TARGET} PRIVATE ${_HIP_K_EXTRA_LIBS})
     endif()
 endfunction()
 
@@ -263,8 +298,6 @@ if(hip_VERSION VERSION_LESS NOVA_ROCM_MIN_VERSION)
         "Upgrade your ROCm installation or disable HIP."
     )
 endif()
-
-enable_language(HIP)
 
 set(NOVA_HAS_HIP 1 CACHE INTERNAL "HIP backend availability")
 message(STATUS "HIP: ROCm ${hip_VERSION} — ${NOVA_ROCM_PATH}")
