@@ -23,6 +23,7 @@ build flags, CPU configuration, and optional CUDA/HIP configuration.
 add_subdirectory(native)
 add_subdirectory(rust)
 
+# Create the core object library from C sources in the repr and core subdirectories.
 file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/src/repr/*.c"
     "${CMAKE_SOURCE_DIR}/ncore/src/core/*.c"
@@ -59,6 +60,7 @@ if(NOVA_HAS_HIP)
     nova_configure_hip_target(ncore_obj)
 endif()
 
+# Autograd object library
 file(GLOB_RECURSE AUTOGRAD_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/src/autograd/*.cpp"
 )
@@ -85,4 +87,33 @@ endif()
 
 if(NOVA_HAS_HIP)
     nova_configure_hip_target(autograd_obj)
+endif()
+
+# Custom dtypes object library
+file(GLOB DTYPES_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/ncore/src/dtypes/*.cpp"
+)
+
+add_library(dtypes_obj OBJECT ${DTYPES_SOURCES})
+
+set_target_properties(dtypes_obj PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
+target_include_directories(dtypes_obj
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
+    PRIVATE ${CMAKE_BINARY_DIR}
+)
+
+nova_configure_build_flags(dtypes_obj)
+nova_configure_cpu_target(dtypes_obj)
+
+if(NOVA_HAS_CUDA)
+    nova_configure_cuda_target(dtypes_obj)
+    nova_configure_cuda_includes_target(dtypes_obj)
+endif()
+
+if(NOVA_HAS_HIP)
+    nova_configure_hip_target(dtypes_obj)
+    nova_configure_hip_includes_target(dtypes_obj)
 endif()
