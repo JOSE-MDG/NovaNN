@@ -36,6 +36,15 @@ This module defines the following functions:
 
     nova_configure_cuda_runtime_target(<target>)
 
+
+.. command:: nova_configure_cuda_includes_target
+
+  Configure a target that include the CUDA headers:
+
+  .. code-block:: cmake
+
+    nova_configure_cuda_includes_target(<target>)
+
 .. command:: nova_configure_cuda_kernels_target
 
   Configure a target that compiles CUDA kernel code:
@@ -171,6 +180,31 @@ function(nova_configure_cuda_runtime_target TARGET)
 endfunction()
 
 #[=======================================================================[.rst:
+.. command:: nova_configure_cuda_includes_target
+
+  Configure a target that include the CUDA headers:
+
+  .. code-block:: cmake
+
+    nova_configure_cuda_includes_target(<target>)
+
+  The ``<target>`` argument specifies the CMake target to configure.
+
+  This function calls ``_nova_configure_cuda_common`` and include
+  the ``${CUDAToolkit_INCLUDE_DIRS}`` headers.
+
+#]=======================================================================]
+function(nova_configure_cuda_includes_target TARGET)
+    if(NOT NOVA_HAS_CUDA)
+        return()
+    endif()
+
+    _nova_configure_cuda_common(${TARGET})
+
+    target_include_directories(${TARGET} INTERFACE ${CUDAToolkit_INCLUDE_DIRS})
+endfunction()
+
+#[=======================================================================[.rst:
 .. command:: nova_configure_cuda_kernels_target
 
   Configure a target that compiles CUDA kernel code:
@@ -181,8 +215,8 @@ endfunction()
 
   The ``<target>`` argument specifies the CMake target to configure.
 
-  Any additional arguments after ``<target>`` are forwarded as
-  private link libraries to the target.
+  Additional ``EXTRA_LIBS`` are parsed as a keyword argument and linked
+  as private libraries.
 
 #]=======================================================================]
 function(nova_configure_cuda_kernels_target TARGET)
@@ -190,10 +224,12 @@ function(nova_configure_cuda_kernels_target TARGET)
         return()
     endif()
 
+    cmake_parse_arguments(_CUDA_K "" "" "EXTRA_LIBS" ${ARGN})
+
     _nova_configure_cuda_common(${TARGET})
 
-    if(ARGN)
-        target_link_libraries(${TARGET} PRIVATE ${ARGN})
+    if(_CUDA_K_EXTRA_LIBS)
+        target_link_libraries(${TARGET} PRIVATE ${_CUDA_K_EXTRA_LIBS})
     endif()
 endfunction()
 
@@ -219,11 +255,11 @@ if(CUDAToolkit_VERSION VERSION_LESS NOVA_CUDA_MIN_VERSION)
     )
 endif()
 
-enable_language(CUDA)
 set(NOVA_HAS_CUDA 1 CACHE INTERNAL "CUDA backend availability")
 message(STATUS "CUDA: ${CUDAToolkit_VERSION} — ${CUDAToolkit_LIBRARY_DIR}")
 
 set(NOVA_CUDA_ARCHITECTURES
+
     # Turing
     75
 
