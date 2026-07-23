@@ -10,31 +10,53 @@ This module includes:
 
 - ``DetectSIMD`` — CPU SIMD instruction detection.
 - ``NovaNNCPU`` — CPU target configuration (threading, OpenMP).
-- ``NovaNNBuildFlags`` — compiler warnings, optimization, LTO,
-  sanitizers.
+- ``NovaNNBuildFlags`` — compiler warnings, optimization, LTO, sanitizers.
+- ``DetectGTest`` — GoogleTest testing framework detection (only when
+  ``BUILD_TESTING`` is ``ON``).
 - ``NovaNNCUDA`` — CUDA backend (when ``USE_CUDA`` is ``ON``).
 - ``NovaNNHIP`` — HIP/ROCm backend (when ``USE_HIP`` is ``ON``).
 
 When ``USE_CUDA`` or ``USE_HIP`` is ``OFF`` the module defines empty
 stub functions for the corresponding ``nova_configure_*`` API so that
-callers do not need to guard every call site.
+callers do not need to guard every call site.  The same is done for
+GTest when ``BUILD_TESTING`` is ``OFF`` or the library is not found.
 
-This module prints a status summary to the CMake output including
-SIMD flags, threading backends, GPU backends, LTO, and sanitizer
-status.
+After printing a status summary to the CMake output (SIMD flags,
+threading backends, GPU backends, GTest, LTO, and sanitizer status),
+this module runs the auto-code generation command
+``uv run tools/codegen/generate.py gen -a`` at configure time.
 
 #]=======================================================================]
 
-include("${CMAKE_SOURCE_DIR}/cmake/Detect/simd/DetectSIMD.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/Modules/NovaNNCPU.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/Modules/NovaNNBuildFlags.cmake")
+include(Detect/simd/DetectSIMD)
+include(Modules/NovaNNCPU)
+include(Modules/NovaNNBuildFlags)
+
+if(BUILD_TESTING)
+    include(Detect/testing/DetectGTest)
+
+    if(NOT NOVA_HAS_GTEST)
+        set(NOVA_HAS_GTEST 0 CACHE INTERNAL "")
+
+        function(nova_configure_gtest_target TARGET)
+        endfunction()
+    endif()
+else()
+    set(NOVA_HAS_GTEST 0 CACHE INTERNAL "")
+
+    function(nova_configure_gtest_target TARGET)
+    endfunction()
+endif()
 
 if(USE_CUDA)
-    include("${CMAKE_SOURCE_DIR}/cmake/Modules/NovaNNCUDA.cmake")
+    include(Modules/NovaNNCUDA)
 else()
     set(NOVA_HAS_CUDA 0 CACHE INTERNAL "")
 
     function(nova_configure_cuda_runtime_target TARGET)
+    endfunction()
+
+    function(nova_configure_cuda_includes_target TARGET)
     endfunction()
 
     function(nova_configure_cuda_kernels_target TARGET)
@@ -45,11 +67,14 @@ else()
 endif()
 
 if(USE_HIP)
-    include("${CMAKE_SOURCE_DIR}/cmake/Modules/NovaNNHIP.cmake")
+    include(Modules/NovaNNHIP)
 else()
     set(NOVA_HAS_HIP 0 CACHE INTERNAL "")
 
     function(nova_configure_hip_runtime_target TARGET)
+    endfunction()
+
+    function(nova_configure_hip_includes_target TARGET)
     endfunction()
 
     function(nova_configure_hip_kernels_target TARGET)
@@ -60,7 +85,7 @@ else()
 endif()
 
 message(STATUS "NovaNN Runtime capabilities:")
-message(STATUS "  CPU SIMD flags : ${SIMD_FLAGS}")
+message(STATUS "  CPU SIMD flags  : ${SIMD_FLAGS}")
 
 if(NOVA_HAS_PTHREADS)
     message(STATUS "  pthreads        : Enabled")
@@ -103,3 +128,42 @@ endif()
 if(NOVA_HAS_UBSAN)
     message(STATUS "  UBSan           : Enabled")
 endif()
+
+if(BUILD_TESTING)
+    if(NOVA_HAS_GTEST)
+        message(STATUS "  GTest           : Enabled")
+    else()
+        message(STATUS "  GTest           : Disabled")
+    endif()
+endif()
+
+# Code generation step via uv toolchain
+message(STATUS "Codegen: generating auto-generated code using uv toolchain ...")
+
+execute_process(
+    COMMAND uv run tools/codegen/generate.py gen --all --keep-going --run-formatters
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    RESULT_VARIABLE _nova_codegen_result
+    OUTPUT_VARIABLE _nova_codegen_output
+    ERROR_VARIABLE _nova_codegen_error
+)
+
+if(_nova_codegen_result EQUAL 0)
+    message(STATUS "Codegen: auto-generated code generated successfully ✓")
+else()
+    message(WARNING
+        "Codegen: failed with exit code ${_nova_codegen_result}"
+    )
+
+    if(_nova_codegen_output)
+        message(STATUS "Codegen output: ${_nova_codegen_output}")
+    endif()
+
+    if(_nova_codegen_error)
+        message(STATUS "Codegen error: ${_nova_codegen_error}")
+    endif()
+endif()
+
+unset(_nova_codegen_result)
+unset(_nova_codegen_output)
+unset(_nova_codegen_error)
