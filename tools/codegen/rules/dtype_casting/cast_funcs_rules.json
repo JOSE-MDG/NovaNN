@@ -1,0 +1,4405 @@
+{
+  "rules": {
+    "funcs": {
+      "return": "void",
+      "arguments": "const Tensor *restrict src, Tensor *restrict dst",
+      "types": {
+        "floating_to_floating": [
+          {
+            "name": "tfp4e2m1_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_fp16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_fp16",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_fp16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_bf16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_bf16",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_bf16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_f32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_f32",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_f32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_f64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_f64",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_f64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_fp16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_fp16",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_fp16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_bf16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_bf16",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_bf16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_f32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_f32",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_f32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_f64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_f64",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_f64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_fp16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_fp16",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_fp16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_bf16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_bf16",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_bf16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_f32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_f32",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_f32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_f64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_f64",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_f64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp16_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "tfp16_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp16_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "tfp16_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp16_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "tfp16_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_f32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tfp16_to_f32",
+              "funcs": [
+                {
+                  "name": "tfp16_to_f32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tfp16_to_f32_avx_avx2_fp16c",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2",
+                    "F16C"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_) && (SIMD->f16c_)"
+                },
+                {
+                  "name": "tfp16_to_f32_scalar",
+                  "idx": 2,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_f64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tfp16_to_f64",
+              "funcs": [
+                {
+                  "name": "tfp16_to_f64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                },
+                {
+                  "name": "tfp16_to_f64_avx_avx2_fp16c",
+                  "idx": 1,
+                  "isa_required": [
+                    "F16C"
+                  ],
+                  "condition": "(SIMD->f16c_)"
+                },
+                {
+                  "name": "tfp16_to_f64_scalar",
+                  "idx": 2,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_bf16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tfp16_to_bf16",
+              "funcs": [
+                {
+                  "name": "tfp16_to_bf16_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_)"
+                },
+                {
+                  "name": "tfp16_to_bf16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf32_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "tf32_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf32_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "tf32_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf32_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "tf32_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_fp16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf32_to_fp16",
+              "funcs": [
+                {
+                  "name": "tf32_to_fp16_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                },
+                {
+                  "name": "tf32_to_fp16_avx_avx2_f16c",
+                  "idx": 1,
+                  "isa_required": [
+                    "F16C"
+                  ],
+                  "condition": "(SIMD->f16c_)"
+                },
+                {
+                  "name": "tf32_to_fp16_scalar",
+                  "idx": 2,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_f64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf32_to_f64",
+              "funcs": [
+                {
+                  "name": "tf32_to_f64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tf32_to_f64_avx_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                },
+                {
+                  "name": "tf32_to_f64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tf32_to_f64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_bf16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf32_to_bf16",
+              "funcs": [
+                {
+                  "name": "tf32_to_bf16_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16",
+                    "AVX512BW",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_bw_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tf32_to_bf16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tbf16_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "tbf16_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tbf16_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "tbf16_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tbf16_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "tbf16_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_fp16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tbf16_to_fp16",
+              "funcs": [
+                {
+                  "name": "tbf16_to_fp16_avx512bf16_fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16",
+                    "AVX512FP16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_fp16_)"
+                },
+                {
+                  "name": "tbf16_to_fp16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_f32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tbf16_to_f32",
+              "funcs": [
+                {
+                  "name": "tbf16_to_f32_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512BF16",
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512_bf16_) && (SIMD->avx512f_)"
+                },
+                {
+                  "name": "tbf16_to_f32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_f64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tbf16_to_f64",
+              "funcs": [
+                {
+                  "name": "tbf16_to_f64_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tbf16_to_f64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf64_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "tf64_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf64_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "tf64_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf64_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "tf64_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_fp16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf64_to_fp16",
+              "funcs": [
+                {
+                  "name": "tf64_to_fp16_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                },
+                {
+                  "name": "tf64_to_fp16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_f32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf64_to_f32",
+              "funcs": [
+                {
+                  "name": "tf64_to_f32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tf64_to_f32_avx_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                },
+                {
+                  "name": "tf64_to_f32_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tf64_to_f32_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_bf16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf64_to_bf16",
+              "funcs": [
+                {
+                  "name": "tf64_to_bf16_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tf64_to_bf16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          }
+        ],
+        "floating_to_sinteger": [
+          {
+            "name": "tfp4e2m1_to_s8",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_s8",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_s8_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_s16",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_s32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_s32",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_s32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_s64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_s64",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_s64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_s8",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_s8",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_s8_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_s16",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_s32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_s32",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_s32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_s64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_s64",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_s64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_s8",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_s8",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_s8_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_s16",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_s32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_s32",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_s32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_s64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_s64",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_s64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_s8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tfp16_to_s8",
+              "funcs": [
+                {
+                  "name": "tfp16_to_s8_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512FP16",
+                    "AVX512BW",
+                    "AVX512F",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512_fp16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tfp16_to_s8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp16_to_s16",
+              "funcs": [
+                {
+                  "name": "tfp16_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_s32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tfp16_to_s32",
+              "funcs": [
+                {
+                  "name": "tfp16_to_s32_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512FP16",
+                    "AVX512F",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512_fp16_) && (SIMD->avx512f_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tfp16_to_s32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_s64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tfp16_to_s64",
+              "funcs": [
+                {
+                  "name": "tfp16_to_s64_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tfp16_to_s64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_s8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf32_to_s8",
+              "funcs": [
+                {
+                  "name": "tf32_to_s8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BW"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                },
+                {
+                  "name": "tf32_to_s8_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tf32_to_s8_scalar",
+                  "idx": 2,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf32_to_s16",
+              "funcs": [
+                {
+                  "name": "tf32_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_s32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf32_to_s32",
+              "funcs": [
+                {
+                  "name": "tf32_to_s32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tf32_to_s32_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tf32_to_s32_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tf32_to_s32_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_s64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf32_to_s64",
+              "funcs": [
+                {
+                  "name": "tf32_to_s64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512DQ",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tf32_to_s64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_s8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tbf16_to_s8",
+              "funcs": [
+                {
+                  "name": "tbf16_to_s8_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512BF16",
+                    "AVX512BW",
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512_bf16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_)"
+                },
+                {
+                  "name": "tbf16_to_s8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tbf16_to_s16",
+              "funcs": [
+                {
+                  "name": "tbf16_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_s32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tbf16_to_s32",
+              "funcs": [
+                {
+                  "name": "tbf16_to_s32_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512BF16",
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512_bf16_) && (SIMD->avx512f_)"
+                },
+                {
+                  "name": "tbf16_to_s32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_s64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tbf16_to_s64",
+              "funcs": [
+                {
+                  "name": "tbf16_to_s64_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16",
+                    "AVX512VL",
+                    "AVX512DQ"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_) && (SIMD->avx512_dq_)"
+                },
+                {
+                  "name": "tbf16_to_s64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_s8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf64_to_s8",
+              "funcs": [
+                {
+                  "name": "tf64_to_s8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tf64_to_s8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf64_to_s16",
+              "funcs": [
+                {
+                  "name": "tf64_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_s32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf64_to_s32",
+              "funcs": [
+                {
+                  "name": "tf64_to_s32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tf64_to_s32_avx_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                },
+                {
+                  "name": "tf64_to_s32_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tf64_to_s32_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_s64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf64_to_s64",
+              "funcs": [
+                {
+                  "name": "tf64_to_s64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512DQ"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                },
+                {
+                  "name": "tf64_to_s64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          }
+        ],
+        "floating_to_uinteger": [
+          {
+            "name": "tfp4e2m1_to_u8",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_u8",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_u8_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_u16",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_u32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_u32",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_u32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp4e2m1_to_u64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp4e2m1_to_u64",
+              "funcs": [
+                {
+                  "name": "tfp4e2m1_to_u64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_u8",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_u8",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_u8_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_u16",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_u32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_u32",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_u32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e4m3_to_u64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e4m3_to_u64",
+              "funcs": [
+                {
+                  "name": "tfp8e4m3_to_u64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_u8",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_u8",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_u8_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_u16",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_u32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_u32",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_u32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e5m2_to_u64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e5m2_to_u64",
+              "funcs": [
+                {
+                  "name": "tfp8e5m2_to_u64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_u8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tfp16_to_u8",
+              "funcs": [
+                {
+                  "name": "tfp16_to_u8_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16",
+                    "AVX512BW",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_bw_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tfp16_to_u8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp16_to_u16",
+              "funcs": [
+                {
+                  "name": "tfp16_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_u32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tfp16_to_u32",
+              "funcs": [
+                {
+                  "name": "tfp16_to_u32_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tfp16_to_u32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp16_to_u64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tfp16_to_u64",
+              "funcs": [
+                {
+                  "name": "tfp16_to_u64_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tfp16_to_u64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_u8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf32_to_u8",
+              "funcs": [
+                {
+                  "name": "tf32_to_u8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BW",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tf32_to_u8_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tf32_to_u8_scalar",
+                  "idx": 2,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf32_to_u16",
+              "funcs": [
+                {
+                  "name": "tf32_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_u32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf32_to_u32",
+              "funcs": [
+                {
+                  "name": "tf32_to_u32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tf32_to_u32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf32_to_u64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf32_to_u64",
+              "funcs": [
+                {
+                  "name": "tf32_to_u64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512DQ",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tf32_to_u64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_u8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tbf16_to_u8",
+              "funcs": [
+                {
+                  "name": "tbf16_to_u8_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512BF16",
+                    "AVX512BW",
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512_bf16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_)"
+                },
+                {
+                  "name": "tbf16_to_u8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tbf16_to_u16",
+              "funcs": [
+                {
+                  "name": "tbf16_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_u32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tbf16_to_u32",
+              "funcs": [
+                {
+                  "name": "tbf16_to_u32_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512BF16",
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512_bf16_) && (SIMD->avx512f_)"
+                },
+                {
+                  "name": "tbf16_to_u32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tbf16_to_u64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tbf16_to_u64",
+              "funcs": [
+                {
+                  "name": "tbf16_to_u64_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16",
+                    "AVX512VL",
+                    "AVX512DQ"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_) && (SIMD->avx512_dq_)"
+                },
+                {
+                  "name": "tbf16_to_u64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_u8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf64_to_u8",
+              "funcs": [
+                {
+                  "name": "tf64_to_u8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tf64_to_u8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf64_to_u16",
+              "funcs": [
+                {
+                  "name": "tf64_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_u32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf64_to_u32",
+              "funcs": [
+                {
+                  "name": "tf64_to_u32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tf64_to_u32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tf64_to_u64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tf64_to_u64",
+              "funcs": [
+                {
+                  "name": "tf64_to_u64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512DQ"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                },
+                {
+                  "name": "tf64_to_u64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          }
+        ],
+        "sinteger_to_floating": [
+          {
+            "name": "ts8_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts8_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "ts8_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts8_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "ts8_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts8_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "ts8_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_fp16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts8_to_fp16",
+              "funcs": [
+                {
+                  "name": "ts8_to_fp16_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                },
+                {
+                  "name": "ts8_to_fp16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_bf16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts8_to_bf16",
+              "funcs": [
+                {
+                  "name": "ts8_to_bf16_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_)"
+                },
+                {
+                  "name": "ts8_to_bf16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_f32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts8_to_f32",
+              "funcs": [
+                {
+                  "name": "ts8_to_f32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts8_to_f32_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "ts8_to_f32_scalar",
+                  "idx": 2,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_f64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts8_to_f64",
+              "funcs": [
+                {
+                  "name": "ts8_to_f64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts8_to_f64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "ts16_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "ts16_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "ts16_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_fp16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_fp16",
+              "funcs": [
+                {
+                  "name": "ts16_to_fp16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_bf16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_bf16",
+              "funcs": [
+                {
+                  "name": "ts16_to_bf16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_f32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_f32",
+              "funcs": [
+                {
+                  "name": "ts16_to_f32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_f64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_f64",
+              "funcs": [
+                {
+                  "name": "ts16_to_f64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts32_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "ts32_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts32_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "ts32_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts32_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "ts32_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_fp16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts32_to_fp16",
+              "funcs": [
+                {
+                  "name": "ts32_to_fp16_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                },
+                {
+                  "name": "ts32_to_fp16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_bf16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts32_to_bf16",
+              "funcs": [
+                {
+                  "name": "ts32_to_bf16_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_)"
+                },
+                {
+                  "name": "ts32_to_bf16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_f32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts32_to_f32",
+              "funcs": [
+                {
+                  "name": "ts32_to_f32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts32_to_f32_avx_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                },
+                {
+                  "name": "ts32_to_f32_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts32_to_f32_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_f64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts32_to_f64",
+              "funcs": [
+                {
+                  "name": "ts32_to_f64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts32_to_f64_avx_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                },
+                {
+                  "name": "ts32_to_f64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts32_to_f64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts64_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "ts64_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts64_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "ts64_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts64_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "ts64_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_fp16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts64_to_fp16",
+              "funcs": [
+                {
+                  "name": "ts64_to_fp16_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                },
+                {
+                  "name": "ts64_to_fp16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_bf16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts64_to_bf16",
+              "funcs": [
+                {
+                  "name": "ts64_to_bf16_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512DQ",
+                    "AVX512BF16",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "ts64_to_bf16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_f32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts64_to_f32",
+              "funcs": [
+                {
+                  "name": "ts64_to_f32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512DQ"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                },
+                {
+                  "name": "ts64_to_f32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_f64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts64_to_f64",
+              "funcs": [
+                {
+                  "name": "ts64_to_f64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512DQ"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                },
+                {
+                  "name": "ts64_to_f64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          }
+        ],
+        "sinteger_to_sinteger": [
+          {
+            "name": "ts8_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts8_to_s16",
+              "funcs": [
+                {
+                  "name": "ts8_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_s32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts8_to_s32",
+              "funcs": [
+                {
+                  "name": "ts8_to_s32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts8_to_s32_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "ts8_to_s32_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts8_to_s32_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_s64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts8_to_s64",
+              "funcs": [
+                {
+                  "name": "ts8_to_s64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts8_to_s64_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "ts8_to_s64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts8_to_s64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_s8",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_s8",
+              "funcs": [
+                {
+                  "name": "ts16_to_s8_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_s32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_s32",
+              "funcs": [
+                {
+                  "name": "ts16_to_s32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_s64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_s64",
+              "funcs": [
+                {
+                  "name": "ts16_to_s64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_s8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts32_to_s8",
+              "funcs": [
+                {
+                  "name": "ts32_to_s8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts32_to_s8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts32_to_s16",
+              "funcs": [
+                {
+                  "name": "ts32_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_s64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts32_to_s64",
+              "funcs": [
+                {
+                  "name": "ts32_to_s64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts32_to_s64_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "ts32_to_s64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts32_to_s64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_s8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts64_to_s8",
+              "funcs": [
+                {
+                  "name": "ts64_to_s8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BW"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                },
+                {
+                  "name": "ts64_to_s8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts64_to_s16",
+              "funcs": [
+                {
+                  "name": "ts64_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_s32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts64_to_s32",
+              "funcs": [
+                {
+                  "name": "ts64_to_s32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts64_to_s32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          }
+        ],
+        "sinteger_to_uinteger": [
+          {
+            "name": "ts8_to_u8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts8_to_u8",
+              "funcs": [
+                {
+                  "name": "ts8_to_u8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts8_to_u8_avx_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                },
+                {
+                  "name": "ts8_to_u8_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts8_to_u8_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts8_to_u16",
+              "funcs": [
+                {
+                  "name": "ts8_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_u32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts8_to_u32",
+              "funcs": [
+                {
+                  "name": "ts8_to_u32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts8_to_u32_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "ts8_to_u32_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts8_to_u32_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts8_to_u64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts8_to_u64",
+              "funcs": [
+                {
+                  "name": "ts8_to_u64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts8_to_u64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_u8",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_u8",
+              "funcs": [
+                {
+                  "name": "ts16_to_u8_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_u16",
+              "funcs": [
+                {
+                  "name": "ts16_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_u32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_u32",
+              "funcs": [
+                {
+                  "name": "ts16_to_u32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts16_to_u64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts16_to_u64",
+              "funcs": [
+                {
+                  "name": "ts16_to_u64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_u8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts32_to_u8",
+              "funcs": [
+                {
+                  "name": "ts32_to_u8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BW"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                },
+                {
+                  "name": "ts32_to_u8_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "ts32_to_u8_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts32_to_u8_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts32_to_u16",
+              "funcs": [
+                {
+                  "name": "ts32_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_u32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts32_to_u32",
+              "funcs": [
+                {
+                  "name": "ts32_to_u32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts32_to_u32_avx_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                },
+                {
+                  "name": "ts32_to_u32_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts32_to_u32_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts32_to_u64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts32_to_u64",
+              "funcs": [
+                {
+                  "name": "ts32_to_u64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts32_to_u64_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "ts32_to_u64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts32_to_u64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_u8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts64_to_u8",
+              "funcs": [
+                {
+                  "name": "ts64_to_u8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts64_to_u8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_ts64_to_u16",
+              "funcs": [
+                {
+                  "name": "ts64_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_u32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts64_to_u32",
+              "funcs": [
+                {
+                  "name": "ts64_to_u32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts64_to_u32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "ts64_to_u64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_ts64_to_u64",
+              "funcs": [
+                {
+                  "name": "ts64_to_u64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "ts64_to_u64_avx_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                },
+                {
+                  "name": "ts64_to_u64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "ts64_to_u64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          }
+        ],
+        "uinteger_to_floating": [
+          {
+            "name": "tu8_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu8_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "tu8_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu8_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "tu8_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu8_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "tu8_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_fp16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu8_to_fp16",
+              "funcs": [
+                {
+                  "name": "tu8_to_fp16_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                },
+                {
+                  "name": "tu8_to_fp16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_bf16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu8_to_bf16",
+              "funcs": [
+                {
+                  "name": "tu8_to_bf16_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_)"
+                },
+                {
+                  "name": "tu8_to_bf16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_f32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu8_to_f32",
+              "funcs": [
+                {
+                  "name": "tu8_to_f32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu8_to_f32_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tu8_to_f32_scalar",
+                  "idx": 2,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_f64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu8_to_f64",
+              "funcs": [
+                {
+                  "name": "tu8_to_f64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu8_to_f64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "tu16_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "tu16_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "tu16_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_fp16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_fp16",
+              "funcs": [
+                {
+                  "name": "tu16_to_fp16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_bf16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_bf16",
+              "funcs": [
+                {
+                  "name": "tu16_to_bf16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_f32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_f32",
+              "funcs": [
+                {
+                  "name": "tu16_to_f32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_f64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_f64",
+              "funcs": [
+                {
+                  "name": "tu16_to_f64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu32_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "tu32_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu32_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "tu32_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu32_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "tu32_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_fp16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu32_to_fp16",
+              "funcs": [
+                {
+                  "name": "tu32_to_fp16_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                },
+                {
+                  "name": "tu32_to_fp16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_bf16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu32_to_bf16",
+              "funcs": [
+                {
+                  "name": "tu32_to_bf16_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BF16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_)"
+                },
+                {
+                  "name": "tu32_to_bf16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_f32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu32_to_f32",
+              "funcs": [
+                {
+                  "name": "tu32_to_f32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu32_to_f32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_f64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu32_to_f64",
+              "funcs": [
+                {
+                  "name": "tu32_to_f64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu32_to_f64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_fp4e2m1",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu64_to_fp4e2m1",
+              "funcs": [
+                {
+                  "name": "tu64_to_fp4e2m1_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_fp8e4m3",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu64_to_fp8e4m3",
+              "funcs": [
+                {
+                  "name": "tu64_to_fp8e4m3_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_fp8e5m2",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu64_to_fp8e5m2",
+              "funcs": [
+                {
+                  "name": "tu64_to_fp8e5m2_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_fp16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu64_to_fp16",
+              "funcs": [
+                {
+                  "name": "tu64_to_fp16_avx512fp16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512FP16"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                },
+                {
+                  "name": "tu64_to_fp16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_bf16",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu64_to_bf16",
+              "funcs": [
+                {
+                  "name": "tu64_to_bf16_avx512bf16",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512DQ",
+                    "AVX512BF16",
+                    "AVX512VL"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)"
+                },
+                {
+                  "name": "tu64_to_bf16_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_f32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu64_to_f32",
+              "funcs": [
+                {
+                  "name": "tu64_to_f32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512DQ"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                },
+                {
+                  "name": "tu64_to_f32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_f64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu64_to_f64",
+              "funcs": [
+                {
+                  "name": "tu64_to_f64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512DQ"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                },
+                {
+                  "name": "tu64_to_f64_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          }
+        ],
+        "uinteger_to_sinteger": [
+          {
+            "name": "tu8_to_s8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu8_to_s8",
+              "funcs": [
+                {
+                  "name": "tu8_to_s8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BW"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                },
+                {
+                  "name": "tu8_to_s8_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tu8_to_s8_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tu8_to_s8_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu8_to_s16",
+              "funcs": [
+                {
+                  "name": "tu8_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_s32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu8_to_s32",
+              "funcs": [
+                {
+                  "name": "tu8_to_s32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu8_to_s32_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tu8_to_s32_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tu8_to_s32_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_s64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu8_to_s64",
+              "funcs": [
+                {
+                  "name": "tu8_to_s64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu8_to_s64_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tu8_to_s64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tu8_to_s64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_s8",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_s8",
+              "funcs": [
+                {
+                  "name": "tu16_to_s8_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_s16",
+              "funcs": [
+                {
+                  "name": "tu16_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_s32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_s32",
+              "funcs": [
+                {
+                  "name": "tu16_to_s32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_s64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_s64",
+              "funcs": [
+                {
+                  "name": "tu16_to_s64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_s8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu32_to_s8",
+              "funcs": [
+                {
+                  "name": "tu32_to_s8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BW"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                },
+                {
+                  "name": "tu32_to_s8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu32_to_s16",
+              "funcs": [
+                {
+                  "name": "tu32_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_s32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu32_to_s32",
+              "funcs": [
+                {
+                  "name": "tu32_to_s32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu32_to_s32_avx_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                },
+                {
+                  "name": "tu32_to_s32_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tu32_to_s32_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_s64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu32_to_s64",
+              "funcs": [
+                {
+                  "name": "tu32_to_s64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu32_to_s64_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tu32_to_s64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tu32_to_s64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_s8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu64_to_s8",
+              "funcs": [
+                {
+                  "name": "tu64_to_s8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu64_to_s8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_s16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu64_to_s16",
+              "funcs": [
+                {
+                  "name": "tu64_to_s16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_s32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu64_to_s32",
+              "funcs": [
+                {
+                  "name": "tu64_to_s32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu64_to_s32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_s64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu64_to_s64",
+              "funcs": [
+                {
+                  "name": "tu64_to_s64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu64_to_s64_avx_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX/AVX2"
+                  ],
+                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                },
+                {
+                  "name": "tu64_to_s64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tu64_to_s64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          }
+        ],
+        "uinteger_to_uinteger": [
+          {
+            "name": "tu8_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu8_to_u16",
+              "funcs": [
+                {
+                  "name": "tu8_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_u32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu8_to_u32",
+              "funcs": [
+                {
+                  "name": "tu8_to_u32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu8_to_u32_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tu8_to_u32_scalar",
+                  "idx": 2,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu8_to_u64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu8_to_u64",
+              "funcs": [
+                {
+                  "name": "tu8_to_u64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu8_to_u64_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tu8_to_u64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tu8_to_u64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_u8",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_u8",
+              "funcs": [
+                {
+                  "name": "tu16_to_u8_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_u32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_u32",
+              "funcs": [
+                {
+                  "name": "tu16_to_u32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu16_to_u64",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu16_to_u64",
+              "funcs": [
+                {
+                  "name": "tu16_to_u64_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_u8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu32_to_u8",
+              "funcs": [
+                {
+                  "name": "tu32_to_u8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu32_to_u8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu32_to_u16",
+              "funcs": [
+                {
+                  "name": "tu32_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu32_to_u64",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu32_to_u64",
+              "funcs": [
+                {
+                  "name": "tu32_to_u64_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu32_to_u64_avx2",
+                  "idx": 1,
+                  "isa_required": [
+                    "AVX2"
+                  ],
+                  "condition": "(SIMD->avx2_)"
+                },
+                {
+                  "name": "tu32_to_u64_sse4_2",
+                  "idx": 2,
+                  "isa_required": [
+                    "SSE4.2"
+                  ],
+                  "condition": "(SIMD->sse4_2_)"
+                },
+                {
+                  "name": "tu32_to_u64_scalar",
+                  "idx": 3,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_u8",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu64_to_u8",
+              "funcs": [
+                {
+                  "name": "tu64_to_u8_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F",
+                    "AVX512BW"
+                  ],
+                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                },
+                {
+                  "name": "tu64_to_u8_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_u16",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tu64_to_u16",
+              "funcs": [
+                {
+                  "name": "tu64_to_u16_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tu64_to_u32",
+            "scalar_only": false,
+            "lookup_table": {
+              "guard_required": true,
+              "name": "lookup_tu64_to_u32",
+              "funcs": [
+                {
+                  "name": "tu64_to_u32_avx512",
+                  "idx": 0,
+                  "isa_required": [
+                    "AVX512F"
+                  ],
+                  "condition": "(SIMD->avx512f_)"
+                },
+                {
+                  "name": "tu64_to_u32_scalar",
+                  "idx": 1,
+                  "is_scalar": true
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
