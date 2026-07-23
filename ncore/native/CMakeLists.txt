@@ -28,8 +28,11 @@ Targets created
 Subdirectories
 ^^^^^^^^^^^^^^
 
+``cpu/``
+  Vectorized CPU implementations. Defines cpu_obj
+
 ``kernels/``
-  CPU-side dispatch.  Always included.
+  CPU-side dispatch.  Always included. Defines kernels_obj
 
 ``cuda/``
   CUDA host-side code and device kernels.  Included when
@@ -46,6 +49,7 @@ Subdirectories
 set(NATIVE_SOURCES "")
 
 add_subdirectory(kernels)
+add_subdirectory(cpu)
 
 if(NOVA_HAS_CUDA)
     add_subdirectory(cuda)
@@ -53,6 +57,10 @@ endif()
 
 if(NOVA_HAS_HIP)
     add_subdirectory(hip)
+endif()
+
+if(TARGET cpu_obj)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:cpu_obj>)
 endif()
 
 if(TARGET cuda_kernels_obj)
