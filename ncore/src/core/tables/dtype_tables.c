@@ -28,8 +28,8 @@
  * @see dtype.h         DType_ enumeration.
  */
 
-#include "ncore/headeronly/macros.h"
 #include <ncore/core/dtype.h>
+#include <ncore/headeronly/macros.h>
 #include <ncore/tables/dtype_tables.h>
 
 /**
@@ -199,7 +199,7 @@ const size_t lookup_dtype_sizes[NUM_DTYPES] = {
     [BFloat16] = sizeof(bfloat16),
     [Float8E4M3fn] = sizeof(float8_e4m3fn),
     [Float8E5M2] = sizeof(float8_e5m2),
-    [Float4E2M1fn] = sizeof(float4_e2m1_x2),
+    [Float4E2M1fn] = sizeof(float4_e2m1fn_x2),
     [Signed8] = sizeof(int8),
     [UnSigned8] = sizeof(uint8),
     [QSigned8] = sizeof(qint8),
