@@ -28,10 +28,10 @@ This module defines the following functions:
     check_min_compiler_version()
 
   ``GNU``
-    Minimum ``14.0.0``.
+    Minimum ``15.0.0``.
 
   ``Clang``
-    Minimum ``17.0.0``.
+    Minimum ``20.1.0``.
 
   ``MSVC``
     Minimum ``19.38`` (VS2022 17.8, the first release with reasonable
@@ -49,8 +49,8 @@ This module defines the following functions:
 
 #]=======================================================================]
 function(check_min_compiler_version)
-  set(_gnu_min "14.0.0")
-  set(_clang_min "17.0.0")
+  set(_gnu_min "15.0.0")
+  set(_clang_min "20.1.0")
   set(_msvc_min "19.38")
 
   foreach(lang C CXX)
