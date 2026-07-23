@@ -30,12 +30,10 @@ installed after the initial configuration.
 
 find_package(GTest QUIET CONFIG)
 
-if(NOT GTest_FOUND)
-  find_package(GTest QUIET MODULE)
-endif()
-
 if(GTest_FOUND)
   set(NOVA_HAS_GTEST 1 CACHE INTERNAL "")
+  include(GoogleTest)
+  message(STATUS "GTest: ${GTest_VERSION} — ${GTest_DIR}")
 
   function(nova_configure_gtest_target TARGET)
     target_link_libraries(${TARGET} PRIVATE GTest::gtest GTest::gtest_main)
