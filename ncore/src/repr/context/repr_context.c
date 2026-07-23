@@ -32,9 +32,9 @@
 
 #include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
+#include <ncore/core/fp_utils.h>
 #include <ncore/core/storage.h>
 #include <ncore/headeronly/tensor_utils.h>
-#include <ncore/native/cpu/dtype/casting.h>
 #include <ncore/repr/repr_context.h>
 #include <ncore/tensor.h>
 

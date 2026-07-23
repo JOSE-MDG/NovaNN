@@ -28,6 +28,7 @@
  */
 
 #include <ncore/core/dtype.h>
+#include <ncore/core/fp_utils.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/native/cpu/dtype/casting.h>
 #include <ncore/tensor.h>
