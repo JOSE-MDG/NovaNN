@@ -32,7 +32,7 @@ _RULES_PATH = RULES_DIR / "dtype_casting" / "cast_funcs_rules.json"
 _TARGET_PATH = (
     PROJECT_ROOT / "ncore" / "include" / "ncore" / "headeronly" / "cast.h"
 )
-_TEMPLATE = str(Path("dtype_casting") / "CastFuncs.h.jinja")
+_TEMPLATE = (Path("dtype_casting") / "CastFuncs.h.jinja").as_posix()
 
 # Jinja2 environment
 _jinja_env = Environment(loader=DEFAULT_LOADER, keep_trailing_newline=True)

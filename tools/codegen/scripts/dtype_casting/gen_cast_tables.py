@@ -38,8 +38,8 @@ _TARGET_PATH1 = (
 )
 
 # Jinja2 environment
-_TEMPLATE0 = str(Path("dtype_casting") / "CastTables.jinja")
-_TEMPLATE1 = str(Path("dtype_casting") / "CastTables.h.jinja")
+_TEMPLATE0 = (Path("dtype_casting") / "CastTables.jinja").as_posix()
+_TEMPLATE1 = (Path("dtype_casting") / "CastTables.h.jinja").as_posix()
 
 _jinja_env = Environment(loader=DEFAULT_LOADER, keep_trailing_newline=True)
 
