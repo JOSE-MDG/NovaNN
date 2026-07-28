@@ -601,7 +601,7 @@ class CodeGenEngine:
         """
         try:
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(result)
         except OSError as exc:
             raise RuntimeError(
