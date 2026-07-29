@@ -1,16 +1,17 @@
 /**
  * @file copy.c
- * @brief Per-dtype tensor copy routines and deep-copy dispatch.
+ * @brief Generic tensor copy routines and deep-copy dispatch.
  *
  * @details
  * This translation unit implements the tensor deep-copy machinery
  * declared in @ref copy.h.  It provides:
  *
- * 1. **CPU copy functions** — 12 `static inline` routines (one per
- *    dtype) that perform host-to-host `memcpy`.
- * 2. **GPU copy functions** — 12 `static inline` routines (one per
- *    dtype) that delegate to @ref transfer_to() for device-to-device
- *    copies.
+ * 1. **CPU copy function** — a single `static inline` routine
+ *    (@ref copy_host_buffer) that performs host-to-host `memcpy`
+ *    via a `void*` pointer, working for every dtype.
+ * 2. **GPU copy function** — a single `static inline` routine
+ *    (@ref copy_device_buffer) that delegates to @ref transfer_to()
+ *    for device-to-device copies.
  * 3. **Dispatch tables** — @ref lookup_host_copy, @ref lookup_device_copy,
  *    and @ref lookup_copy map `(device, dtype)` pairs to the correct
  *    @ref CopyFn.
@@ -20,17 +21,14 @@
  *
  * ## Design
  *
- * The per-dtype functions are kept as `static inline` so that the
- * compiler can inline the `memcpy` / `transfer_to` call and eliminate
- * the function-call overhead for small tensors.  The dispatch tables
- * are `const static` and zero-initialised; only the entries that
- * correspond to supported dtypes are filled in.
- *
- * ## Thread Safety
- *
- * The dispatch tables are read-only after process startup and are
- * safe to access from any thread.  The GPU copy functions delegate
- * to @ref transfer_to(), which is expected to be thread-safe.
+ * Rather than maintaining one copy function per dtype (as in earlier
+ * versions), a single `static inline` `copy_host_buffer` uses
+ * `src->data.v` / `dst->data.v` (`void*`) so the compiler can still
+ * inline the `memcpy` call while keeping the codebase minimal.
+ * Similarly, `copy_device_buffer` handles all dtypes in one routine,
+ * directly returning the @ref transfer_to() result.  The dispatch
+ * tables are `const static` and zero-initialised; only the entries
+ * that correspond to supported dtypes are filled in.
  *
  * @see copy.h       Public API for deep-copy.
  * @see device.h     Device placement and transfer functions.
@@ -38,176 +36,90 @@
  * @see alloc.h      Storage allocation.
  */
 
-#include "ncore/tables/cast_tables.h"
+#include <string.h>
+
 #include <ncore/core/alloc.h>
 #include <ncore/core/copy.h>
 #include <ncore/core/device.h>
+#include <ncore/core/dtype.h>
 #include <ncore/core/status.h>
 #include <ncore/core/storage.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/tensor_utils.h>
 #include <ncore/tensor.h>
-#include <string.h>
-
-/* ────────────────────────────────────────────────────────────────
- *  CPU copy functions — host-to-host memcpy, one per dtype
- * ──────────────────────────────────────────────────────────────── */
-
-/** @brief Copy Float32 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_f32_host_buffer(const Tensor *restrict src,
-                                        Tensor *restrict dst,
-                                        novaStatus_t *status) {
-
-  (void)status;
-  memcpy(dst->data.f32, src->data.f32, src->storage->size_bytes);
-}
-
-/** @brief Copy Float64 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_f64_host_buffer(const Tensor *restrict src,
-                                        Tensor *restrict dst,
-                                        novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.f64, src->data.f64, src->storage->size_bytes);
-}
-
-/** @brief Copy Float16 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_f16_host_buffer(const Tensor *restrict src,
-                                        Tensor *restrict dst,
-                                        novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.half, src->data.half, src->storage->size_bytes);
-}
-
-/** @brief Copy BFloat16 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_bf16_host_buffer(const Tensor *restrict src,
-                                         Tensor *restrict dst,
-                                         novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.bf16, src->data.bf16, src->storage->size_bytes);
-}
-
-/** @brief Copy Signed8 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_s8_host_buffer(const Tensor *restrict src,
-                                       Tensor *restrict dst,
-                                       novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.s8, src->data.s8, src->storage->size_bytes);
-}
-
-/** @brief Copy UnSigned8 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_u8_host_buffer(const Tensor *restrict src,
-                                       Tensor *restrict dst,
-                                       novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.u8, src->data.u8, src->storage->size_bytes);
-}
-
-/** @brief Copy QSigned8 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_qs8_host_buffer(const Tensor *restrict src,
-                                        Tensor *restrict dst,
-                                        novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.qs8, src->data.qs8, src->storage->size_bytes);
-}
-
-/** @brief Copy QUnSigned8 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_qu8_host_buffer(const Tensor *restrict src,
-                                        Tensor *restrict dst,
-                                        novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.qu8, src->data.qu8, src->storage->size_bytes);
-}
-
-/** @brief Copy Signed32 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_s32_host_buffer(const Tensor *restrict src,
-                                        Tensor *restrict dst,
-                                        novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.s32, src->data.s32, src->storage->size_bytes);
-}
-
-/** @brief Copy UnSigned32 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_u32_host_buffer(const Tensor *restrict src,
-                                        Tensor *restrict dst,
-                                        novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.u32, src->data.u32, src->storage->size_bytes);
-}
-
-/** @brief Copy Signed64 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_s64_host_buffer(const Tensor *restrict src,
-                                        Tensor *restrict dst,
-                                        novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.s64, src->data.s64, src->storage->size_bytes);
-}
-
-/** @brief Copy UnSigned64 elements from @p src to @p dst via `memcpy`. */
-static inline void copy_u64_host_buffer(const Tensor *restrict src,
-                                        Tensor *restrict dst,
-                                        novaStatus_t *status) {
-  (void)status;
-  memcpy(dst->data.u64, src->data.u64, src->storage->size_bytes);
-}
-
-/* ────────────────────────────────────────────────────────────────
- *  GPU copy functions — device-to-device via transfer_to()
- * ──────────────────────────────────────────────────────────────── */
 
 /**
- * @brief Map a DeviceStatus integer code to a novaError_t.
+ * @brief Bitwise-copy all element data from @p src to @p dst via
+ *        `memcpy`.
  *
  * @details
- * Translates the low-level device transfer return code into the
- * centralized error enumeration.  The integer codes are
- * identity-mapped from the CUDA/HIP backends through the FFI
- * layer:
+ * Copies exactly `src->storage->size_bytes` bytes from the source
+ * data buffer to the destination buffer using `memcpy`.  The copy is
+ * dtype-agnostic — it operates on the raw `void*` pointers
+ * (`src->data.v`, `dst->data.v`) so a single routine serves every
+ * dtype.  The `status` parameter is accepted for interface uniformity
+ * with @ref CopyFn but is not modified (the operation is infallible).
  *
- * ```
- * cudaTransfer() / hipTransfer()   (CudaIO.cpp / HipIO.cpp)
- *   → mapError()                (backend-specific)
- *   → device_transfer_c()          (ffi.cpp, direct passthrough)
- *   → transfer_to()              (device.c, returned verbatim)
- *   → map_code2err()             (this function)
- * ```
+ * @param[in]  src     Source tensor with allocated storage.  The
+ *                     data buffer is read-only.
+ * @param[out] dst     Destination tensor with pre-allocated storage
+ *                     of at least `src->storage->size_bytes`.
+ * @param[out] status  Unused for this function (always left
+ *                     unchanged).  Provided for signature
+ *                     compatibility with @ref CopyFn.
  *
- * The backend `mapError()` functions produce these integer codes:
- * | Code | Meaning                          |
- * |------|----------------------------------|
- * |  0   | Success                          |
- * |  1   | Invalid value / null pointer     |
- * |  2   | Invalid memcpy direction         |
- * |  3   | Invalid resource handle          |
- * | -1   | Catch-all / unrecognised error   |
- *
- * Negative codes (e.g., `-1`) are mapped to @ref novaTransferError.
- * Positive codes are looked up in the local table; unmapped positive
- * codes also fall back to @ref novaTransferError.
- *
- * @param[in] err_code  Code returned by @ref transfer_to() via
- *                      @ref DeviceStatus::code.
- * @return Corresponding @ref novaError_t.
+ * @pre  Both @p src and @p dst have non-null, allocated storage.
+ * @pre  `dst->storage->size_bytes >= src->storage->size_bytes`.
+ * @post The first `src->storage->size_bytes` bytes of `dst->data`
+ *       are a bitwise copy of `src->data`.
  */
-static inline novaError_t map_code2err(int err_code) {
-  const novaError_t table[NUM_ERRORS] = {novaSuccess, novaInvalidValue,
-                                         novaInvalidTransfDirection,
-                                         novaInvalidResourceHandle};
-  return (err_code >= 0) ? table[err_code] : novaTransferError;
+static inline void copy_host_buffer(const Tensor *restrict src,
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+
+  (void)status;
+  memcpy(dst->data.v, src->data.v, src->storage->size_bytes);
 }
 
 /**
- * @brief Copy Float32 elements between GPU buffers via
+ * @brief Copy element data between device buffers via
  *        @ref transfer_to().
  *
  * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
+ * Guards the transfer with a device-availability check through
+ * @ref get_detected_device_kind().  If no compute device has been
+ * detected, sets @p status to @ref novaDeviceNotAvailable and
+ * returns early.  Otherwise delegates to @ref transfer_to() and
+ * assigns the returned @ref novaStatus_t directly — the intermediate
+ * `map_code2err()` translation is no longer required because
+ * @ref transfer_to() now returns a @ref novaStatus_t natively.
+ *
+ * @param[in]  src     Source tensor residing on a GPU device.  Must
+ *                     have allocated storage.
+ * @param[out] dst     Destination tensor on a GPU device.  Must have
+ *                     pre-allocated storage of at least
+ *                     `src->storage->size_bytes`.
+ * @param[out] status  Receives the result.  On success, set to
+ *                     @ref novaSuccess.  If no device is available,
+ *                     set to @ref novaDeviceNotAvailable.  On
+ *                     transfer failure, set to the error code
+ *                     returned by @ref transfer_to().
+ *
+ * @pre  A compute device (CUDA or HIP) must have been detected and
+ *       initialised via @ref nova_initialize_device().
+ * @pre  Both @p src and @p dst must have non-null, allocated storage
+ *       on the active device.
+ * @pre  `dst->storage->size_bytes >= src->storage->size_bytes`.
+ * @post On success, `dst->data` contains a device-side bitwise copy
+ *       of `src->data` and @p status is @ref novaSuccess.
+ * @post On failure, @p status contains the appropriate error code
+ *       and the contents of `dst->data` are undefined.
+ *
+ * @see transfer_to()   Low-level device memory transfer.
  */
-static inline void copy_f32_device_buffer(const Tensor *restrict src,
-                                          Tensor *restrict dst,
-                                          novaStatus_t *status) {
+static inline void copy_device_buffer(const Tensor *restrict src,
+                                      Tensor *restrict dst,
+                                      novaStatus_t *status) {
   if (get_detected_device_kind() != NULL_DEVICE) {
 
     status->err = novaDeviceNotAvailable;
@@ -216,303 +128,8 @@ static inline void copy_f32_device_buffer(const Tensor *restrict src,
     return;
   }
 
-  auto dstatus = transfer_to(src->device, dst->device, src->data.f32,
-                             dst->data.f32, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy Float64 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_f64_device_buffer(const Tensor *restrict src,
-                                          Tensor *restrict dst,
-                                          novaStatus_t *status) {
-
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-  auto dstatus = transfer_to(src->device, dst->device, src->data.f64,
-                             dst->data.f64, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy Float16 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_f16_device_buffer(const Tensor *restrict src,
-                                          Tensor *restrict dst,
-                                          novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-  auto dstatus = transfer_to(src->device, dst->device, src->data.half,
-                             dst->data.half, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy BFloat16 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_bf16_device_buffer(const Tensor *restrict src,
-                                           Tensor *restrict dst,
-                                           novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-
-  auto dstatus = transfer_to(src->device, dst->device, src->data.bf16,
-                             dst->data.bf16, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy Signed8 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_s8_device_buffer(const Tensor *restrict src,
-                                         Tensor *restrict dst,
-                                         novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-
-  auto dstatus = transfer_to(src->device, dst->device, src->data.s8,
-                             dst->data.s8, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy UnSigned8 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_u8_device_buffer(const Tensor *restrict src,
-                                         Tensor *restrict dst,
-                                         novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-  auto dstatus = transfer_to(src->device, dst->device, src->data.u8,
-                             dst->data.u8, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy QSigned8 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_qs8_device_buffer(const Tensor *restrict src,
-                                          Tensor *restrict dst,
-                                          novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-  auto dstatus = transfer_to(src->device, dst->device, src->data.qs8,
-                             dst->data.qs8, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy QUnSigned8 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_qu8_device_buffer(const Tensor *restrict src,
-                                          Tensor *restrict dst,
-                                          novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-  auto dstatus = transfer_to(src->device, dst->device, src->data.qu8,
-                             dst->data.qu8, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy Signed32 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_s32_device_buffer(const Tensor *restrict src,
-                                          Tensor *restrict dst,
-                                          novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-  auto dstatus = transfer_to(src->device, dst->device, src->data.s32,
-                             dst->data.s32, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy UnSigned32 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_u32_device_buffer(const Tensor *restrict src,
-                                          Tensor *restrict dst,
-                                          novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-
-  auto dstatus = transfer_to(src->device, dst->device, src->data.u32,
-                             dst->data.u32, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy Signed64 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_s64_device_buffer(const Tensor *restrict src,
-                                          Tensor *restrict dst,
-                                          novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-
-  auto dstatus = transfer_to(src->device, dst->device, src->data.s64,
-                             dst->data.s64, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
-}
-
-/**
- * @brief Copy UnSigned64 elements between GPU buffers via
- *        @ref transfer_to().
- *
- * @details
- * Checks that a valid device has been detected via
- * @ref get_detected_device_kind().  If no device is available, sets
- * @p status to @ref novaDeviceNotAvailable.  Otherwise delegates to
- * @ref transfer_to() and maps the result through @ref map_code2err().
- */
-static inline void copy_u64_device_buffer(const Tensor *restrict src,
-                                          Tensor *restrict dst,
-                                          novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
-    status->err = novaDeviceNotAvailable;
-    status->message = "No valid compute device detected; cannot perform "
-                      "device-to-device copy\n";
-    return;
-  }
-
-  auto dstatus = transfer_to(src->device, dst->device, src->data.u64,
-                             dst->data.u64, src->storage->size_bytes);
-
-  status->err = map_code2err(dstatus.code);
-  status->message = nova_get_error_msg(status->err, nullptr);
+  *status = transfer_to(src->device, dst->device, src->data.v, dst->data.v,
+                        src->storage->size_bytes);
 }
 
 /**
@@ -520,17 +137,46 @@ static inline void copy_u64_device_buffer(const Tensor *restrict src,
  * @brief Host-to-host copy dispatch table, indexed by `DType_`.
  *
  * @details
- * A `NUM_DTYPES × 1` array of @ref CopyFn pointers.  Each entry
- * maps a dtype to its corresponding `copy_*_host_buffer()` function.
- * Used by @ref deepcopy() when `src->device == DEVICE_CPU`.
+ * A `NUM_DTYPES × 1` array of @ref CopyFn pointers.  Every entry
+ * points to the generic @ref copy_host_buffer function, which handles
+ * all dtypes via a `void*` `memcpy`.  Twenty-one dtypes are supported
+ * (all standard float, low-precision, signed/unsigned integer, and
+ * quantized variants).  Used by @ref deepcopy() when
+ * `src->device == DEVICE_CPU`.
  */
 const CopyFn lookup_host_copy[NUM_DTYPES][1] = {
-    [Float32] = {copy_f32_host_buffer},  [Float64] = {copy_f64_host_buffer},
-    [Float16] = {copy_f16_host_buffer},  [BFloat16] = {copy_bf16_host_buffer},
-    [Signed8] = {copy_s8_host_buffer},   [UnSigned8] = {copy_u8_host_buffer},
-    [QSigned8] = {copy_qs8_host_buffer}, [QUnSigned8] = {copy_qu8_host_buffer},
-    [Signed32] = {copy_s32_host_buffer}, [UnSigned32] = {copy_u32_host_buffer},
-    [Signed64] = {copy_s64_host_buffer}, [UnSigned64] = {copy_u64_host_buffer},
+    /* Low-precision floats */
+    [Float4E2M1fn] = {copy_host_buffer},
+    [Float8E4M3fn] = {copy_host_buffer},
+    [Float8E5M2] = {copy_host_buffer},
+
+    /* Standard floats */
+    [Float16] = {copy_host_buffer},
+    [BFloat16] = {copy_host_buffer},
+    [Float32] = {copy_host_buffer},
+    [Float64] = {copy_host_buffer},
+
+    /* Signed integers */
+    [Signed8] = {copy_host_buffer},
+    [Signed16] = {copy_host_buffer},
+    [Signed32] = {copy_host_buffer},
+    [Signed64] = {copy_host_buffer},
+
+    /* Unsigned integers */
+    [UnSigned8] = {copy_host_buffer},
+    [UnSigned16] = {copy_host_buffer},
+    [UnSigned32] = {copy_host_buffer},
+    [UnSigned64] = {copy_host_buffer},
+
+    /* Quantized signed */
+    [QSigned8] = {copy_host_buffer},
+    [QSigned16] = {copy_host_buffer},
+    [QSigned32] = {copy_host_buffer},
+
+    /* Quantized unsigned */
+    [QUnSigned8] = {copy_host_buffer},
+    [QUnSigned16] = {copy_host_buffer},
+    [QUnSigned32] = {copy_host_buffer},
 };
 
 /**
@@ -538,23 +184,46 @@ const CopyFn lookup_host_copy[NUM_DTYPES][1] = {
  * @brief Device-to-device copy dispatch table, indexed by `DType_`.
  *
  * @details
- * A `NUM_DTYPES × 1` array of @ref CopyFn pointers.  Each entry
- * maps a dtype to its corresponding `copy_*_device_buffer()` function.
- * Used by @ref deepcopy() when `src->device == DEVICE_GPU`.
+ * A `NUM_DTYPES × 1` array of @ref CopyFn pointers.  Every entry
+ * points to the generic @ref copy_device_buffer function, which
+ * handles all dtypes in a single routine.  Twenty-one dtypes are
+ * supported (all standard float, low-precision, signed/unsigned
+ * integer, and quantized variants).  Used by @ref deepcopy() when
+ * `src->device == DEVICE_GPU`.
  */
 const CopyFn lookup_device_copy[NUM_DTYPES][1] = {
-    [Float32] = {copy_f32_device_buffer},
-    [Float64] = {copy_f64_device_buffer},
-    [Float16] = {copy_f16_device_buffer},
-    [BFloat16] = {copy_bf16_device_buffer},
-    [Signed8] = {copy_s8_device_buffer},
-    [UnSigned8] = {copy_u8_device_buffer},
-    [QSigned8] = {copy_qs8_device_buffer},
-    [QUnSigned8] = {copy_qu8_device_buffer},
-    [Signed32] = {copy_s32_device_buffer},
-    [UnSigned32] = {copy_u32_device_buffer},
-    [Signed64] = {copy_s64_device_buffer},
-    [UnSigned64] = {copy_u64_device_buffer},
+    /* Low-precision floats */
+    [Float4E2M1fn] = {copy_device_buffer},
+    [Float8E4M3fn] = {copy_device_buffer},
+    [Float8E5M2] = {copy_device_buffer},
+
+    /* Standard floats */
+    [Float16] = {copy_device_buffer},
+    [BFloat16] = {copy_device_buffer},
+    [Float32] = {copy_device_buffer},
+    [Float64] = {copy_device_buffer},
+
+    /* Signed integers */
+    [Signed8] = {copy_device_buffer},
+    [Signed16] = {copy_device_buffer},
+    [Signed32] = {copy_device_buffer},
+    [Signed64] = {copy_device_buffer},
+
+    /* Unsigned integers */
+    [UnSigned8] = {copy_device_buffer},
+    [UnSigned16] = {copy_device_buffer},
+    [UnSigned32] = {copy_device_buffer},
+    [UnSigned64] = {copy_device_buffer},
+
+    /* Quantized signed */
+    [QSigned8] = {copy_device_buffer},
+    [QSigned16] = {copy_device_buffer},
+    [QSigned32] = {copy_device_buffer},
+
+    /* Quantized unsigned */
+    [QUnSigned8] = {copy_device_buffer},
+    [QUnSigned16] = {copy_device_buffer},
+    [QUnSigned32] = {copy_device_buffer},
 };
 
 /**
@@ -590,7 +259,7 @@ const CopyFn *lookup_copy[2] = {
  *
  * 1. All metadata fields (`shape`, `strides`, `item_size`, `size`,
  *    `ndims`, `dtype`, `device`, `scale_`, `zero_point_`,
- *    `is_pinned`, gradient flags) are copied element-by-element.
+ *    `is_pinned`, gradient flags, etc) are copied element-by-element.
  *    Fields `is_view_`, `grad_fn_`, and `offset` are set to fixed
  *    values (`false`, `nullptr`, `0` respectively).
  * 2. If `src->storage` is non-nullptr, a new @ref TensorStorage is
