@@ -43,8 +43,10 @@
 
 #pragma once
 
-#include <ncore/headeronly/macros.h>
+#include <stdbool.h>
 #include <stddef.h>
+
+#include <ncore/headeronly/macros.h>
 
 /**
  * @var floating
