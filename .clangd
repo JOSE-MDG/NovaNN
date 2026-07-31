@@ -8,6 +8,8 @@
 
 CompileFlags:
   CompilationDatabase: build
+  Remove:
+    - -forward-unknown-to-host-compiler
   Add:
     - -O3
     - -Wall
