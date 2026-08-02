@@ -11,11 +11,11 @@
  * The detected backend is determined once at process start by
  * probing CUDA and HIP runtime availability via
  * @ref is_cuda_available() and @ref is_hip_available() from
- * `<ncore/device.h>`.
+ * @c <ncore/device.h>.
  *
  * @see admin.cpp       Implementation of the runtime probe.
  * @see ffi.hpp         Top-level FFI dispatch that consumes this enum.
- * @see ncore/device.h  Backend availability query functions.
+ * @see device.h        Backend availability query functions.
  */
 
 #pragma once
@@ -49,9 +49,9 @@ extern "C" {
  * @details
  * Probes CUDA and HIP runtime availability in order.  The first
  * runtime found wins:
- * 1. CUDA — returns @ref deviceKind_t::DeviceCUDA.
- * 2. HIP  — returns @ref deviceKind_t::DeviceHIP.
- * 3. Neither — returns @ref deviceKind_t::DeviceNull.
+ * @li 1. CUDA — returns @ref deviceKind_t::DeviceCUDA.
+ * @li 2. HIP  — returns @ref deviceKind_t::DeviceHIP.
+ * @li 3. Neither — returns @ref deviceKind_t::DeviceNull.
  *
  * @return The detected GPU backend.
  *
