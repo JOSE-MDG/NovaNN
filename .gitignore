@@ -8,7 +8,6 @@ __pycache__/
 .env
 .venv/
 .vscode/
-.DS_Store
 
 # Notebooks and experimentation
 .ipynb_checkpoints/
@@ -36,3 +35,9 @@ dist/
 
 # Cargo crate
 Cargo.lock
+
+# vcpkg artifacts
+vcpkg_installed/
+
+# CMake test artifacts
+Testing/
