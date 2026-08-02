@@ -8,15 +8,19 @@ source files.
 
 Targets created:
 
-``ncore_obj``
+``ncore_obj`` — alias ``ncore::obj::core``
   OBJECT library containing core C sources (``repr/`` and ``core/``
   subdirectories).
 
-``autograd_obj``
+``autograd_obj`` — alias ``ncore::obj::autograd``
   OBJECT library containing autograd C++ sources.
 
-Both object libraries link against the ``native`` backend and receive
-build flags, CPU configuration, and optional CUDA/HIP configuration.
+``dtypes_obj`` — alias ``ncore::obj::dtypes``
+  OBJECT library containing reduced-precision dtype sources.
+
+The object libraries link against the ``native`` backend (alias
+``ncore::native``) and receive build flags, CPU configuration, and
+optional CUDA/HIP configuration.
 
 #]=======================================================================]
 
@@ -30,6 +34,7 @@ file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
 )
 
 add_library(ncore_obj OBJECT ${CORE_SOURCES})
+add_library(ncore::obj::core ALIAS ncore_obj)
 
 set_target_properties(ncore_obj PROPERTIES
     POSITION_INDEPENDENT_CODE ON
@@ -47,7 +52,7 @@ target_include_directories(ncore_obj
     PRIVATE ${CMAKE_BINARY_DIR}
 )
 
-target_link_libraries(ncore_obj PRIVATE native)
+target_link_libraries(ncore_obj PRIVATE ncore::native)
 
 nova_configure_build_flags(ncore_obj)
 nova_configure_cpu_target(ncore_obj)
@@ -60,12 +65,15 @@ if(NOVA_HAS_HIP)
     nova_configure_hip_target(ncore_obj)
 endif()
 
+add_dependencies(ncore_obj nova::codegen)
+
 # Autograd object library
 file(GLOB_RECURSE AUTOGRAD_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/src/autograd/*.cpp"
 )
 
 add_library(autograd_obj OBJECT ${AUTOGRAD_SOURCES})
+add_library(ncore::obj::autograd ALIAS autograd_obj)
 
 set_target_properties(autograd_obj PROPERTIES
     POSITION_INDEPENDENT_CODE ON
@@ -76,7 +84,7 @@ target_include_directories(autograd_obj
     PRIVATE ${CMAKE_BINARY_DIR}
 )
 
-target_link_libraries(autograd_obj PRIVATE native)
+target_link_libraries(autograd_obj PRIVATE ncore::native)
 
 nova_configure_build_flags(autograd_obj)
 nova_configure_cpu_target(autograd_obj)
@@ -89,12 +97,15 @@ if(NOVA_HAS_HIP)
     nova_configure_hip_target(autograd_obj)
 endif()
 
+add_dependencies(autograd_obj nova::codegen)
+
 # Custom dtypes object library
 file(GLOB DTYPES_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/src/dtypes/*.cpp"
 )
 
 add_library(dtypes_obj OBJECT ${DTYPES_SOURCES})
+add_library(ncore::obj::dtypes ALIAS dtypes_obj)
 
 set_target_properties(dtypes_obj PROPERTIES
     POSITION_INDEPENDENT_CODE ON
@@ -117,3 +128,5 @@ if(NOVA_HAS_HIP)
     nova_configure_hip_target(dtypes_obj)
     nova_configure_hip_includes_target(dtypes_obj)
 endif()
+
+add_dependencies(dtypes_obj nova::codegen)
