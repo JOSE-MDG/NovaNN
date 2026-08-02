@@ -5,27 +5,27 @@
  * @details
  * Implements the public detection API declared in
  * @ref DetectHipDevice.hpp.  Uses the HIP runtime API
- * (`hipGetDeviceCount`) to probe for an available GPU and caches
+ * (@c hipGetDeviceCount) to probe for an available GPU and caches
  * the result in module-level atomics for subsequent queries.
  *
- * The file is conditionally compiled behind `NOVA_HAS_HIP` and
- * `__has_include(<hip/hip_runtime_api.h>)`.  When HIP headers are
- * unavailable, stub functions that return `false` / `-1` are
+ * The file is conditionally compiled behind @c NOVA_HAS_HIP and
+ * @c __has_include(<hip/hip_runtime_api.h>).  When HIP headers are
+ * unavailable, stub functions that return @c false / @c -1 are
  * provided.
  *
- * A `__HIP_PLATFORM_AMD__` macro is defined when neither AMD nor
+ * A @c __HIP_PLATFORM_AMD__ macro is defined when neither AMD nor
  * NVIDIA platform macros are set, ensuring clangd and clang-tidy
  * can parse the HIP headers correctly.
  *
- * ## Thread Safety
+ * @section thread-safety Thread Safety
  *
- * The initial probe is guarded by `std::call_once`, ensuring that
- * `hipGetDeviceCount` is called exactly once even under concurrent
- * access.  The cached results are stored in `std::atomic` variables
- * with `std::memory_order_release` (write) and
- * `std::memory_order_acquire` (read) semantics.
+ * The initial probe is guarded by @c std::call_once, ensuring that
+ * @c hipGetDeviceCount is called exactly once even under concurrent
+ * access.  The cached results are stored in @c std::atomic variables
+ * with @c std::memory_order_release (write) and
+ * @c std::memory_order_acquire (read) semantics.
  *
- * ## One-shot Caching
+ * @section one-shot-caching One-shot Caching
  *
  * After the first call to @ref isHipDeviceAvailable, the probe
  * result is cached.  All subsequent calls — regardless of the
@@ -40,6 +40,7 @@
 #include <atomic>
 #include <iostream>
 #include <mutex>
+
 #include <ncore/core/status.h>
 
 #ifdef NOVA_HAS_HIP
@@ -47,16 +48,17 @@
 #if !defined(__HIP_PLATFORM_AMD__) && !defined(__HIP_PLATFORM_NVIDIA__)
 #define __HIP_PLATFORM_AMD__ 1
 #endif
+#include <hip/hip_runtime_api.h>
+
 #include "DetectHipDevice.hpp"
 #include "DetectHipDeviceInfo.hpp"
-#include <hip/hip_runtime_api.h>
 
 namespace {
 /**
  * @var activeHipDeviceId
  * @brief 0-based index of the detected HIP device.
  *
- * Stores `-1` before detection, or `0` after a successful probe.
+ * Stores @c -1 before detection, or @c 0 after a successful probe.
  * Accessed with acquire/release memory ordering.
  */
 std::atomic<int> activeHipDeviceId{-1};
@@ -65,7 +67,7 @@ std::atomic<int> activeHipDeviceId{-1};
  * @var hipDeviceAvailable
  * @brief Whether a HIP-capable device was found.
  *
- * Set to `true` after a successful probe.  Accessed with
+ * Set to @c true after a successful probe.  Accessed with
  * acquire/release memory ordering.
  */
 std::atomic_bool hipDeviceAvailable{false};
@@ -93,11 +95,11 @@ std::mutex hipDeviceLogMtx;
  * @brief Outcome of a HIP device probe.
  *
  * @var DetectionResult::available
- * @brief `true` if a HIP device was found.
+ * @brief @c true if a HIP device was found.
  *
  * @var DetectionResult::errorMessage
- * @brief Human-readable error string from `hipGetErrorString`,
- *        or `nullptr` on success.
+ * @brief Human-readable error string from @c hipGetErrorString,
+ *        or @c nullptr on success.
  */
 struct DetectionResult {
   bool available = false;
@@ -108,9 +110,9 @@ struct DetectionResult {
  * @brief Perform the actual HIP device detection.
  *
  * @details
- * Calls `hipGetDeviceCount` to query the number of available HIP
- * devices.  If at least one device is found, stores `0` in
- * @ref activeHipDeviceId and `true` in @ref hipDeviceAvailable.
+ * Calls @c hipGetDeviceCount to query the number of available HIP
+ * devices.  If at least one device is found, stores @c 0 in
+ * @ref activeHipDeviceId and @c true in @ref hipDeviceAvailable.
  *
  * @return A @ref DetectionResult indicating whether a device was
  *         found and any error message from the HIP runtime.
@@ -136,20 +138,20 @@ DetectionResult probeHipDevice() {
  * @brief Probe the HIP runtime for an available GPU device.
  *
  * @details
- * Uses `std::call_once` to ensure the probe runs exactly once.
+ * Uses @c std::call_once to ensure the probe runs exactly once.
  * On success, optionally prints device information via
- * @ref printHipDeviceInfo when @p log is `true`.
+ * @ref printHipDeviceInfo when @p log is @c true.
  *
- * @param[in] log      If `true`, print error messages to stderr on
+ * @param[in] log      If @c true, print error messages to stderr on
  *                     failure, or call @ref printHipDeviceInfo on
  *                     success.
- * @param[in] verbose  If `true`, pass verbose flag to
+ * @param[in] verbose  If @c true, pass verbose flag to
  *                     @ref printHipDeviceInfo for detailed output.
  *
- * @return `true` when a HIP-capable device is found.  `false` if
+ * @return @c true when a HIP-capable device is found.  @c false if
  *         no device is available or the runtime reports an error.
  *
- * @note Thread-safe.  The probe is serialised by `std::call_once`.
+ * @note Thread-safe.  The probe is serialised by @c std::call_once.
  *       The log mutex serialises stderr output.
  */
 bool isHipDeviceAvailable(bool log, bool verbose) {
@@ -184,10 +186,10 @@ bool isHipDeviceAvailable(bool log, bool verbose) {
  *
  * @details
  * Returns the value stored in @ref activeHipDeviceId by the most
- * recent successful probe.  The value is `0` when a GPU is found,
- * or `-1` if detection has not yet been performed.
+ * recent successful probe.  The value is @c 0 when a GPU is found,
+ * or @c -1 if detection has not yet been performed.
  *
- * @return 0-based HIP device index, or `-1` if unavailable.
+ * @return 0-based HIP device index, or @c -1 if unavailable.
  *
  * @note The return value is only meaningful after at least one call
  *       to @ref isHipDeviceAvailable has completed.
