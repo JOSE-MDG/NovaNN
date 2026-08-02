@@ -22,27 +22,31 @@ portable, generator-agnostic approach.
 Targets created
 ^^^^^^^^^^^^^^^
 
-``native``
+``native`` — alias ``ncore::native``
   STATIC library containing all active backend object files.
 
 Subdirectories
 ^^^^^^^^^^^^^^
 
 ``cpu/``
-  Vectorized CPU implementations. Defines cpu_obj
+  Vectorized CPU implementations. Defines ``cpu_obj`` (alias
+  ``ncore::native::obj::cpu``)
 
 ``kernels/``
-  CPU-side dispatch.  Always included. Defines kernels_obj
+  CPU-side dispatch.  Always included. Defines ``kernels_obj`` (alias
+  ``ncore::native::obj::kernels``)
 
 ``cuda/``
   CUDA host-side code and device kernels.  Included when
-  ``NOVA_HAS_CUDA`` is set.  Defines ``cuda_obj`` and
-  ``cuda_kernels_obj``.
+  ``NOVA_HAS_CUDA`` is set.  Defines ``cuda_obj`` (alias
+  ``ncore::native::obj::cuda``) and ``cuda_kernels_obj`` (alias
+  ``ncore::native::obj::cuda::kernels``).
 
 ``hip/``
   HIP host-side code and device kernels.  Included when
-  ``NOVA_HAS_HIP`` is set.  Defines ``hip_obj`` and
-  ``hip_kernels_obj``.
+  ``NOVA_HAS_HIP`` is set.  Defines ``hip_obj`` (alias
+  ``ncore::native::obj::hip``) and ``hip_kernels_obj`` (alias
+  ``ncore::native::obj::hip::kernels``).
 
 #]=======================================================================]
 
@@ -59,28 +63,28 @@ if(NOVA_HAS_HIP)
     add_subdirectory(hip)
 endif()
 
-if(TARGET cpu_obj)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:cpu_obj>)
+if(TARGET ncore::native::obj::cpu)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::cpu>)
 endif()
 
-if(TARGET cuda_kernels_obj)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:cuda_kernels_obj>)
+if(TARGET ncore::native::obj::cuda::kernels)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::cuda::kernels>)
 endif()
 
-if(TARGET hip_kernels_obj)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:hip_kernels_obj>)
+if(TARGET ncore::native::obj::hip::kernels)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::hip::kernels>)
 endif()
 
-if(TARGET cuda_obj)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:cuda_obj>)
+if(TARGET ncore::native::obj::cuda)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::cuda>)
 endif()
 
-if(TARGET hip_obj)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:hip_obj>)
+if(TARGET ncore::native::obj::hip)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::hip>)
 endif()
 
-if(TARGET kernels_obj)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:kernels_obj>)
+if(TARGET ncore::native::obj::kernels)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::kernels>)
 endif()
 
 if(NOT NATIVE_SOURCES)
@@ -88,6 +92,7 @@ if(NOT NATIVE_SOURCES)
 endif()
 
 add_library(native STATIC ${NATIVE_SOURCES})
+add_library(ncore::native ALIAS native)
 
 set_target_properties(native PROPERTIES
     POSITION_INDEPENDENT_CODE ON
