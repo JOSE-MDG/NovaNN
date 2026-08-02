@@ -4,115 +4,106 @@
  *
  * @details
  * Implements the master memcpy dispatcher @ref hipTransfer using
- * `hipMemcpyAsync` on a reusable HIP stream for all copy
+ * @c hipMemcpyAsync on a reusable HIP stream for all copy
  * directions.  The stream is created once and lives for the
  * lifetime of the process (singleton pattern).
  *
- * The file is conditionally compiled behind `NOVA_HAS_HIP` and
- * `__has_include(<hip/hip_runtime_api.h>)`.  When HIP headers are
+ * The file is conditionally compiled behind @c NOVA_HAS_HIP and
+ * @c __has_include(<hip/hip_runtime_api.h>).  When HIP headers are
  * unavailable, a stub function returning an error status is
  * provided.
  *
- * A `__HIP_PLATFORM_AMD__` macro is defined when neither AMD not
+ * A @c __HIP_PLATFORM_AMD__ macro is defined when neither AMD not
  * NVIDIA platform macros are set, ensuring clangd and clang-tidy
  * can parse the HIP headers correctly.
  *
- * ## Architecture
+ * @section architecture Architecture
  *
  * The module exposes a single public function (@ref hipTransfer)
  * that handles H2D, D2H, and D2D transfers.  Internally it uses:
- * - @ref mapError — maps `hipError_t` to @ref hipStatus_t.
- * - @ref mapMemcpyKind — converts @ref DeviceMemcpyKind to
- *   `hipMemcpyKind`.
- * - @ref getStream — returns a singleton HIP stream.
+ * @li @ref mapError — maps @c hipError_t to @ref novaStatus_t.
+ * @li @ref mapMemcpyKind — converts @ref DeviceMemcpyKind to
+ *   @c hipMemcpyKind.
+ * @li @ref getStream — returns a singleton HIP stream.
  *
- * ## Error Mapping
+ * @section error-mapping Error Mapping
  *
- * All HIP errors are mapped to a @ref hipStatus_t via a single
- * @ref mapError function that covers `hipSuccess` (code 0),
- * `hipErrorInvalidValue` (code 1), `hipErrorInvalidMemcpyDirection`
- * (code 2), `hipErrorInvalidResourceHandle` (code 3),
- * `hipErrorOutOfMemory` (code 4), and everything else (code -1).
+ * All HIP errors are mapped to a @ref novaStatus_t via a single
+ * @ref mapError function. HIP exposes no @c hipErrorExternalDevice equivalent;
+ * unsupported or otherwise unclassified failures map to
+ * @ref novaNotImplemented.
  *
  * @see HipIO.hpp        Function declaration.
  * @see HipAllocator.cpp HIP memory allocation implementation.
  * @see ffi.cpp          Dispatch layer that calls into this file.
  */
 
+#include <ncore/core/status.h>
+
 #ifdef NOVA_HAS_HIP
 #if __has_include(<hip/hip_runtime_api.h>)
 #if !defined(__HIP_PLATFORM_AMD__) && !defined(__HIP_PLATFORM_NVIDIA__)
 #define __HIP_PLATFORM_AMD__ 1
 #endif
-#include "HipIO.hpp"
-#include "HipAllocator.hpp"
 #include <hip/hip_runtime_api.h>
+
+#include "HipIO.hpp"
 
 namespace {
 
 /**
- * @brief Map a HIP runtime error to a @ref hipStatus_t.
+ * @brief Map a HIP runtime error to a @ref novaStatus_t.
  *
  * @details
- * Converts `hipError_t` codes returned by `hipMemcpyAsync`
- * and `hipStreamSynchronize` into the project-standard
- * @ref hipStatus_t format.  Each error code is mapped to a
- * unique integer for programmatic handling, and the human-readable
- * error string is obtained via `hipGetErrorString`.
+ * Converts @c hipError_t codes returned by @c hipMemcpyAsync
+ * and @c hipStreamSynchronize into the project-standard
+ * @ref novaStatus_t format. Each error category is mapped to the shared Nova
+ * error enumeration and the corresponding standard message is selected from
+ * the Nova status table.
  *
- * The mapped codes are: `hipSuccess` → 0,
- * `hipErrorInvalidValue` → 1, `hipErrorInvalidMemcpyDirection`
- * → 2, `hipErrorInvalidResourceHandle` → 3,
- * `hipErrorOutOfMemory` → 4, everything else → -1.
+ * The mapped categories include invalid values, invalid transfer direction,
+ * invalid resource handles, and the generic unsupported-operation fallback.
  *
  * @param[in] err  The HIP error to map.
  *
- * @return @ref hipStatus_t with the mapped code and message.
+ * @return @ref novaStatus_t with the mapped error and message.
  *
- * @post  On success, `status.code == 0` and `status.msg == "ok"`.
- * @post  On failure, `status.code != 0` and `status.msg` contains
- *        the error string from `hipGetErrorString`.
+ * @post  On success, @c status.err == novaSuccess.
+ * @post  On failure, @c status.err != novaSuccess.
  */
-hipStatus_t mapError(hipError_t err) {
-  hipStatus_t status = {};
+novaStatus_t mapError(hipError_t err) {
+  novaStatus_t status = {};
   switch (err) {
   case hipSuccess:
-    status.code = 0;
-    status.msg = "ok";
-    return status;
+    status.err = novaSuccess;
+    break;
   case hipErrorInvalidValue:
-    status.code = 1;
-    status.msg = hipGetErrorString(err);
-    return status;
+    status.err = novaInvalidValue;
+    break;
   case hipErrorInvalidMemcpyDirection:
-    status.code = 2;
-    status.msg = hipGetErrorString(err);
-    return status;
+    status.err = novaInvalidTransfDirection;
+    break;
   case hipErrorInvalidResourceHandle:
-    status.code = 3;
-    status.msg = hipGetErrorString(err);
-    return status;
-  case hipErrorOutOfMemory:
-    status.code = 4;
-    status.msg = hipGetErrorString(err);
-    return status;
+    status.err = novaInvalidResourceHandle;
+    break;
   default:
-    status.code = -1;
-    status.msg = hipGetErrorString(err);
-    return status;
+    status.err = novaNotImplemented;
+    break;
   }
+  status.message = nova_get_error_msg(status.err, nullptr);
+  return status;
 }
 
 /**
- * @brief Convert @ref DeviceMemcpyKind to `hipMemcpyKind`.
+ * @brief Convert @ref DeviceMemcpyKind to @c hipMemcpyKind.
  *
  * @details
  * Maps the backend-agnostic @ref DeviceMemcpyKind enum to the
- * HIP-specific `hipMemcpyKind` enum used by `hipMemcpyAsync`.
- * The mapping is: `deviceMemcpyHostToDevice` →
- * `hipMemcpyHostToDevice`, `deviceMemcpyDeviceToHost` →
- * `hipMemcpyDeviceToHost`, `deviceMemcpyDeviceToDevice` →
- * `hipMemcpyDeviceToDevice`, default → `hipMemcpyDefault`.
+ * HIP-specific @c hipMemcpyKind enum used by @c hipMemcpyAsync.
+ * The mapping is: @c deviceMemcpyHostToDevice →
+ * @c hipMemcpyHostToDevice, @c deviceMemcpyDeviceToHost →
+ * @c hipMemcpyDeviceToHost, @c deviceMemcpyDeviceToDevice →
+ * @c hipMemcpyDeviceToDevice, default → @c hipMemcpyDefault.
  *
  * @param[in] kind  The device-agnostic copy direction.
  *
@@ -145,15 +136,15 @@ hipMemcpyKind mapMemcpyKind(DeviceMemcpyKind kind) {
  * overhead of create/destroy per transfer and eliminates the
  * risk of use-after-free in concurrent scenarios.
  *
- * The `static` local variable is initialised exactly once, even
+ * The @c static local variable is initialised exactly once, even
  * under concurrent access (C++11 guarantee).  The
- * `hipStreamCreate` call is serialised by the C++ runtime.
+ * @c hipStreamCreate call is serialised by the C++ runtime.
  *
  * @param[in,out] status an error status
  *
- * @return The singleton `hipStream_t`.
+ * @return The singleton @c hipStream_t.
  */
-hipStream_t getStream(hipStatus_t *status) {
+hipStream_t getStream(novaStatus_t *status) {
   static hipStream_t stream = nullptr;
   if (stream == nullptr) {
     const hipError_t err = hipStreamCreate(&stream);
@@ -170,17 +161,17 @@ hipStream_t getStream(hipStatus_t *status) {
  * @brief Copy memory between host and device (or device to device).
  *
  * @details
- * Performs a memory transfer using `hipMemcpyAsync` on a
+ * Performs a memory transfer using @c hipMemcpyAsync on a
  * reusable internal HIP stream, then synchronises the stream
  * before returning.  The transfer direction is determined by
  * @p kind.
  *
- * ### Execution Flow
+ * @subsection execution-flow Execution Flow
  *
  * @code{.cpp}
- *   hipStatus_t status;
+ *   novaStatus_t status;
  *   stream = getStream(&status);        // singleton stream
- *    if(!status) {
+ *    if(status.err != novaSuccess) {
  *       // code
  *    }
  *   err = hipMemcpyAsync(dst, src,      // enqueue transfer
@@ -192,11 +183,11 @@ hipStream_t getStream(hipStatus_t *status) {
  *   return HIP_OK;
  * @endcode
  *
- * ### Error Handling
+ * @subsection error-handling Error Handling
  *
  * Errors are detected at two points:
- * 1. `hipMemcpyAsync` launch failure — returns immediately.
- * 2. `hipStreamSynchronize` failure — detected after transfer
+ * @li 1. @c hipMemcpyAsync launch failure — returns immediately.
+ * @li 2. @c hipStreamSynchronize failure — detected after transfer
  *    completes (or fails asynchronously).
  *
  * Both use @ref mapError for consistent error mapping.
@@ -206,15 +197,15 @@ hipStream_t getStream(hipStatus_t *status) {
  * @param[in]  src       Source pointer (host or device memory).
  * @param[out] dst       Destination pointer (host or device memory).
  *
- * @return @ref HIP_OK on success, or a @ref hipStatus_t with
- *         a non-zero code and a descriptive message.
+ * @return @ref HIP_OK on success, or a @ref novaStatus_t with
+ *         a non-success error and a descriptive message.
  */
-hipStatus_t hipTransfer(std::size_t bytes, DeviceMemcpyKind kind,
-                        const void *src, void *dst) {
-  hipStatus_t status;
+novaStatus_t hipTransfer(std::size_t bytes, DeviceMemcpyKind kind,
+                         const void *src, void *dst) {
+  novaStatus_t status = {};
   hipStream_t stream = getStream(&status);
 
-  if (!status) {
+  if (status.err != novaSuccess) {
     return status;
   }
 
@@ -236,9 +227,10 @@ hipStatus_t hipTransfer(std::size_t bytes, DeviceMemcpyKind kind,
 #else // !__has_include(<hip/hip_runtime_api.h>)
 
 /** @brief Stub: HIP runtime headers not available. */
-hipStatus_t hipTransfer(std::size_t, DeviceMemcpyKind, const void *,
-                        void *) {
-  return hipStatus_t{.code = -1, .msg = "HIP runtime headers not available"};
+novaStatus_t hipTransfer(std::size_t, DeviceMemcpyKind, const void *, void *) {
+  return novaStatus_t{.err = novaBackendNotCompiled,
+                      .message =
+                          nova_get_error_msg(novaBackendNotCompiled, nullptr)};
 }
 
 #endif
