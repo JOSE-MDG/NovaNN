@@ -9,16 +9,16 @@
  * state-based interface for layout renderers and other modules
  * needing to visit every element of a view.
  *
- * ## Architecture
+ * @section architecture Architecture
  *
- * - **Odometer Logic**: Maintains a coordinate vector incremented
+ * @li Odometer Logic: Maintains a coordinate vector incremented
  *   using the @ref odometer() algorithm, ensuring correct carry
  *   propagation across dimensions.
- * - **Stride Mapping**: At each step, translates the current
+ * @li Stride Mapping: At each step, translates the current
  *   coordinate vector into a linear byte offset using the tensor's
  *   stride array.
- * - **State Management**: @ref TensorIterator tracks the linear
- *   element count and a termination flag (`done`) to simplify
+ * @li State Management: @ref TensorIterator tracks the linear
+ *   element count and a termination flag (@c done) to simplify
  *   iteration loops.
  *
  * @see tensor_iterator.h  Public descriptor and API.
@@ -46,7 +46,7 @@ void iter_init(TensorIterator *it, const Tensor *ten) {
  *
  * @details
  * Increments the internal coordinate vector and checks for
- * termination. If the end of the tensor is reached, the `done` flag
+ * termination. If the end of the tensor is reached, the @c done flag
  * is set.
  */
 void iter_advance(TensorIterator *it) {

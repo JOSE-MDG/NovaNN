@@ -12,11 +12,11 @@
  * Primarily used by layout renderers to decouple visual formatting
  * logic from strided memory access complexities.
  *
- * ## Architecture
+ * @section architecture Architecture
  *
- * - **Stateful Iteration**: The iterator encapsulates the current
+ * @li Stateful Iteration: The iterator encapsulates the current
  *   position using a coordinate vector and a linear element counter.
- * - **Stride Transparency**: Callers retrieve memory offsets via
+ * @li Stride Transparency: Callers retrieve memory offsets via
  *   @ref iter_byte_offset(), hiding internal stride arithmetic.
  *
  * @see tensor_iterator.c  Implementation details.
@@ -43,7 +43,7 @@ typedef struct {
   const Tensor *tensor; ///< Pointer to the tensor being traversed.
   coords_t coords;      ///< Current multidimensional coordinate vector.
   size_t linear_index;  ///< Current logical element count (0 to size-1).
-  bool done;            ///< Termination flag (`true` when iteration complete).
+  bool done;            ///< Termination flag (@c true when iteration complete).
 } TensorIterator;
 
 /**
@@ -76,6 +76,6 @@ size_t iter_byte_offset(const TensorIterator *it);
  *
  * @param[in] it Pointer to the iterator.
  *
- * @return `true` if all logical elements have been visited.
+ * @return @c true if all logical elements have been visited.
  */
 bool iter_done(const TensorIterator *it);
