@@ -8,22 +8,18 @@
  * This header defines the @ref SIMDCapabilities structure and the
  * @ref get_simd_capabilities() accessor for querying SIMD features.
  *
- * ## SIMD Support Tiers
+ * @section simd-support-tiers SIMD Support Tiers
  * The detection follows a hierarchical model:
  */
-// clang-format off
- /**
- * | Tier        | Feature      | Width   | Typical Use          |
- * |-------------|--------------|---------|----------------------|
- * | SSE4.2      | sse4_2_      | 128-bit | Basic vectorization  |
- * | AVX         | avx_         | 256-bit | Float ops            |
- * | AVX2        | avx2_        | 256-bit | Integer SIMD         |
- * | AVX-512     | avx512_*     | 512-bit | High-throughput      |
- * | AMX         | amx_*        | Tile    | Matrix ops           |
- */
-// clang-format on
 /**
- * ## Usage
+ * @li SSE4.2 — sse4_2_ — 128-bit — Basic vectorization
+ * @li AVX — avx_ — 256-bit — Float ops
+ * @li AVX2 — avx2_ — 256-bit — Integer SIMD
+ * @li AVX-512 — avx512_* — 512-bit — High-throughput
+ * @li AMX — amx_* — Tile — Matrix ops
+ */
+/**
+ * @section usage Usage
  * @code{.c}
  * const SIMDCapabilities *simd = get_simd_capabilities();
  * if (simd->avx512f_) {
@@ -33,15 +29,15 @@
  * }
  * @endcode
  *
- * ## Thread Safety
+ * @section thread-safety Thread Safety
  * Detection is performed once on first call.
  * The returned pointer is safe to use from any thread.
  *
- * ## Detection Process
- * 1. get_simd_capabilities() is called
- * 2. CPUID instruction queries available features
- * 3. Results are cached in global static
- * 4. Subsequent calls return cached result
+ * @section detection-process Detection Process
+ * @li 1. get_simd_capabilities() is called
+ * @li 2. CPUID instruction queries available features
+ * @li 3. Results are cached in global static
+ * @li 4. Subsequent calls return cached result
  *
  * @note AVX-512 features are detected only if AVX-512F is available.
  *       VNNI flags (avx2_vnni_, avx512_vnni_) enable neural network
@@ -54,6 +50,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 /**
  * @struct SIMDCapabilities
  * @brief CPU SIMD capabilities detected at runtime.
@@ -64,11 +62,11 @@
  * @ref get_simd_capabilities() and remain read-only thereafter.
  *
  * Flags are organized into logical groups:
- * - **Base SIMD**: sse4_2_, avx_, avx2_, f16c_, fma3_
- * - **AVX-512 Family**: avx512f_, avx512_bw_, avx512_dq_, avx512_vl_,
+ * @li Base SIMD: sse4_2_, avx_, avx2_, f16c_, fma3_
+ * @li AVX-512 Family: avx512f_, avx512_bw_, avx512_dq_, avx512_vl_,
  *   avx512_vnni_, avx512_fp16_, avx512_bf16_
- * - **AMX Tiles**: amx_, amx_fp16_, amx_bf16_, amx_int8_
- * - **Neural Network**: vnni_, avx2_vnni_, avx2_int8_
+ * @li AMX Tiles: amx_, amx_fp16_, amx_bf16_, amx_int8_
+ * @li Neural Network: vnni_, avx2_vnni_, avx2_int8_
  *
  * @note Composite flags (amx_, vnni_) are OR of their constituent features.
  *
@@ -120,7 +118,7 @@ typedef struct {
  *         and must not be freed by the caller.
  *
  * @note This function is thread-safe. The detection is performed at most
- *       once using C11 `call_once` on Linux or `InitOnceExecuteOnce` on
+ *       once using C11 @c call_once on Linux or @c InitOnceExecuteOnce on
  *       Windows.
  *
  * @par Example:
