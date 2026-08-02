@@ -26,12 +26,12 @@
  * from @ref get_last_reserve_error().
  *
  * @param[in]  bytes      Requested size in bytes.
- * @param[in]  device     Target device: `"cpu"` or `"device"`.
- * @param[in]  pin_memory If `true`, allocate page-locked host memory.
+ * @param[in]  device     Target device: @c "cpu" or @c "device".
+ * @param[in]  pin_memory If @c true, allocate page-locked host memory.
  * @param[in]  align      Required alignment in bytes (power of two).
  * @param[out] handle     Pointer to receive the allocated handle.
  *
- * @return @ref novaStatus_t with `novaSuccess` on success, or
+ * @return @ref novaStatus_t with @c novaSuccess on success, or
  *         @ref novaReserveError on failure.
  */
 novaStatus_t safe_reserve(size_t bytes, const char *device, bool pin_memory,
@@ -62,7 +62,7 @@ novaStatus_t safe_reserve(size_t bytes, const char *device, bool pin_memory,
  * @param[in,out] handle   Pointer to the @ref RustHandle to resize.
  * @param[in]     new_size New size in bytes.
  *
- * @return @ref novaStatus_t with `novaSuccess` on success, or
+ * @return @ref novaStatus_t with @c novaSuccess on success, or
  *         @ref novaOutOfMemory / @ref novaResizeError on failure.
  */
 novaStatus_t safe_resize(RustHandle *handle, size_t new_size) {
