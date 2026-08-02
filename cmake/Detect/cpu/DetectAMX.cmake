@@ -8,9 +8,8 @@ AMX tile intrinsics.  When tile support is present, the module probes
 for FP16, BF16, and INT8 extensions.
 
 .. note::
-  Unconditionally ``0`` under MSVC. See ``CheckInstructionSupport.cmake``
-  for why -- no logic change needed here, ``check_simd`` handles the
-  MSVC guard internally.
+  Detection is performed via :command:`check_simd`, which wraps
+  ``-m`` flags with ``/clang:`` prefix when using clang-cl.
 
 Variables defined:
 

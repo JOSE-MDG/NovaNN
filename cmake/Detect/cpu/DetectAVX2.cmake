@@ -7,9 +7,8 @@ Detect AVX2 and AVX2-VNNI instruction set support.  Sets
 When AVX2 is available, the module also probes for ``HAS_AVX2_VNNI``.
 
 .. note::
-  Unconditionally ``0`` under MSVC. See ``CheckInstructionSupport.cmake``
-  for why -- no logic change needed here, ``check_simd`` handles the
-  MSVC guard internally.
+  Detection is performed via :command:`check_simd`, which wraps
+  ``-m`` flags with ``/clang:`` prefix when using clang-cl.
 
 Variables defined:
 

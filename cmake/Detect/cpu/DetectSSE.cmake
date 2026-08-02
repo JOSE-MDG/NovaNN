@@ -6,9 +6,8 @@ Detect SSE 4.2 instruction set support.  Sets ``HAS_SSE4_2`` to ``1``
 if the compiler can emit and execute SSE 4.2 intrinsics.
 
 .. note::
-  Unconditionally ``0`` under MSVC. See ``CheckInstructionSupport.cmake``
-  for why -- no change needed here, ``check_simd`` handles the MSVC
-  guard internally.
+  Detection is performed via :command:`check_simd`, which wraps
+  ``-m`` flags with ``/clang:`` prefix when using clang-cl.
 
 #]=======================================================================]
 

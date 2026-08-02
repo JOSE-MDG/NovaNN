@@ -7,9 +7,8 @@ to ``1`` if the compiler can emit AVX intrinsics.  When AVX is
 available, the module also probes for ``HAS_F16C`` and ``HAS_FMA3``.
 
 .. note::
-  Unconditionally ``0`` under MSVC. See ``CheckInstructionSupport.cmake``
-  for why -- no logic change needed here, ``check_simd`` handles the
-  MSVC guard internally.
+  Detection is performed via :command:`check_simd`, which wraps
+  ``-m`` flags with ``/clang:`` prefix when using clang-cl.
 
 Variables defined:
 
