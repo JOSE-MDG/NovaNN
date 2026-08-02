@@ -3,24 +3,24 @@
  * @brief Definitions of dtype classification and size lookup tables.
  *
  * @details
- * This file contains the definitions of the global `const` lookup
+ * This file contains the definitions of the global @c const lookup
  * tables declared in @ref dtype_tables.h.  Each classification
- * table is a `NUM_DTYPES × 1` array of `bool`, populated using
- * C99 designated initialisers so that only the `true` entries
- * need to be listed explicitly (all others default to `false`).
+ * table is a @c NUM_DTYPES × 1 array of @c bool, populated using
+ * C99 designated initialisers so that only the @c true entries
+ * need to be listed explicitly (all others default to @c false).
  *
  * The tables are:
- * - @ref floating — floating-point types.
- * - @ref integer — all integer types (signed, unsigned, quantized).
- * - @ref signed_integer — signed integer types (including quantized).
- * - @ref unsigned_integer — unsigned integer types (including quantized).
- * - @ref quantized_signed_integer — quantized signed only.
- * - @ref quantized_unsigned_integer — quantized unsigned only.
- * - @ref lookup_dtype_sizes — byte-width per dtype.
+ * @li @ref floating — floating-point types.
+ * @li @ref integer — all integer types (signed, unsigned, quantized).
+ * @li @ref signed_integer — signed integer types (including quantized).
+ * @li @ref unsigned_integer — unsigned integer types (including quantized).
+ * @li @ref quantized_signed_integer — quantized signed only.
+ * @li @ref quantized_unsigned_integer — quantized unsigned only.
+ * @li @ref lookup_dtype_sizes — byte-width per dtype.
  *
- * ## Thread Safety
+ * @section thread-safety Thread Safety
  *
- * All tables are `const` and read-only after process startup.
+ * All tables are @c const and read-only after process startup.
  * They are safe to access from any thread.
  *
  * @see dtype_tables.h  Public declarations.
@@ -37,9 +37,9 @@
  * @brief Boolean mask for floating-point dtypes.
  *
  * @details
- * `floating[dtype][0]` is `true` when `dtype` is `Float32`,
- * `Float64`, `Float16`, `BFloat16`, `Float8E4M3fn`, `Float8E5M2`,
- * or `Float4E2M1fn`.  All other entries are `false`.  Used by
+ * @c floating[dtype][0] is @c true when @c dtype is @c Float32,
+ * @c Float64, @c Float16, @c BFloat16, @c Float8E4M3fn, @c Float8E5M2,
+ * or @c Float4E2M1fn.  All other entries are @c false.  Used by
  * @ref is_floating() in @ref dtype.c.
  */
 const bool floating[NUM_DTYPES][1] = {
@@ -58,11 +58,11 @@ const bool floating[NUM_DTYPES][1] = {
  *        and quantized).
  *
  * @details
- * `integer[dtype][0]` is `true` for `Signed8`, `UnSigned8`,
- * `QSigned8`, `QUnSigned8`, `Signed16`, `UnSigned16`, `QSigned16`,
- * `QUnSigned16`, `Signed32`, `UnSigned32`, `QSigned32`,
- * `QUnSigned32`, `Signed64`, `UnSigned64`.  All float types are
- * `false`.  Used by @ref is_integer() in @ref dtype.c.
+ * @c integer[dtype][0] is @c true for @c Signed8, @c UnSigned8,
+ * @c QSigned8, @c QUnSigned8, @c Signed16, @c UnSigned16, @c QSigned16,
+ * @c QUnSigned16, @c Signed32, @c UnSigned32, @c QSigned32,
+ * @c QUnSigned32, @c Signed64, @c UnSigned64.  All float types are
+ * @c false.  Used by @ref is_integer() in @ref dtype.c.
  */
 const bool integer[NUM_DTYPES][1] = {
     [Float32] = {false},      [Float64] = {false},      [Float16] = {false},
@@ -80,10 +80,10 @@ const bool integer[NUM_DTYPES][1] = {
  *        quantized).
  *
  * @details
- * `signed_integer[dtype][0]` is `true` for `Signed8`, `QSigned8`,
- * `Signed16`, `QSigned16`, `Signed32`, `QSigned32`, and `Signed64`.
- * Note that the quantized types `QSigned8`, `QSigned16`, and
- * `QSigned32` are included because they are backed by signed
+ * @c signed_integer[dtype][0] is @c true for @c Signed8, @c QSigned8,
+ * @c Signed16, @c QSigned16, @c Signed32, @c QSigned32, and @c Signed64.
+ * Note that the quantized types @c QSigned8, @c QSigned16, and
+ * @c QSigned32 are included because they are backed by signed
  * storage types.  Used by @ref is_signed_integer() in @ref dtype.c.
  */
 const bool signed_integer[NUM_DTYPES][1] = {
@@ -102,10 +102,10 @@ const bool signed_integer[NUM_DTYPES][1] = {
  *        quantized).
  *
  * @details
- * `unsigned_integer[dtype][0]` is `true` for `UnSigned8`,
- * `QUnSigned8`, `UnSigned16`, `QUnSigned16`, `UnSigned32`,
- * `QUnSigned32`, and `UnSigned64`.  Note that the quantized types
- * `QUnSigned8`, `QUnSigned16`, and `QUnSigned32` are included
+ * @c unsigned_integer[dtype][0] is @c true for @c UnSigned8,
+ * @c QUnSigned8, @c UnSigned16, @c QUnSigned16, @c UnSigned32,
+ * @c QUnSigned32, and @c UnSigned64.  Note that the quantized types
+ * @c QUnSigned8, @c QUnSigned16, and @c QUnSigned32 are included
  * because they are backed by unsigned storage types.  Used by
  * @ref is_unsigned_integer() in @ref dtype.c.
  */
@@ -124,8 +124,8 @@ const bool unsigned_integer[NUM_DTYPES][1] = {
  * @brief Boolean mask for quantized signed integer dtypes.
  *
  * @details
- * `quantized_signed_integer[dtype][0]` is `true` for `QSigned8`,
- * `QSigned16`, and `QSigned32`.  Used by
+ * @c quantized_signed_integer[dtype][0] is @c true for @c QSigned8,
+ * @c QSigned16, and @c QSigned32.  Used by
  * @ref is_quantized_signed_integer() in @ref dtype.c.
  */
 const bool quantized_signed_integer[NUM_DTYPES][1] = {
@@ -143,8 +143,8 @@ const bool quantized_signed_integer[NUM_DTYPES][1] = {
  * @brief Boolean mask for quantized unsigned integer dtypes.
  *
  * @details
- * `quantized_unsigned_integer[dtype][0]` is `true` for
- * `QUnSigned8`, `QUnSigned16`, and `QUnSigned32`.  Used by
+ * @c quantized_unsigned_integer[dtype][0] is @c true for
+ * @c QUnSigned8, @c QUnSigned16, and @c QUnSigned32.  Used by
  * @ref is_quantized_unsigned_integer() in @ref dtype.c.
  */
 const bool quantized_unsigned_integer[NUM_DTYPES][1] = {
@@ -162,9 +162,9 @@ const bool quantized_unsigned_integer[NUM_DTYPES][1] = {
  * @brief Boolean mask for dtypes that can be quantized.
  *
  * @details
- * `quantizable_dtype[dtype][0]` is `true` for `Float4E2M1fn`,
- * `QSigned8`, `QUnSigned8`, `QSigned16`, `QUnSigned16`,
- * `QSigned32`, and `QUnSigned32`.  Used by
+ * @c quantizable_dtype[dtype][0] is @c true for @c Float4E2M1fn,
+ * @c QSigned8, @c QUnSigned8, @c QSigned16, @c QUnSigned16,
+ * @c QSigned32, and @c QUnSigned32.  Used by
  * @ref is_quantizable_dtype() in @ref dtype.c.
  */
 const bool quantizable_dtype[NUM_DTYPES][1] = {
@@ -182,13 +182,13 @@ const bool quantizable_dtype[NUM_DTYPES][1] = {
  * @brief Byte-width of each @ref DType_, indexed by the enum value.
  *
  * @details
- * `lookup_dtype_sizes[dtype]` returns `sizeof` the corresponding
+ * @c lookup_dtype_sizes[dtype] returns @c sizeof the corresponding
  * C type for that dtype.  For example:
- * - `lookup_dtype_sizes[Float32]` = `sizeof(float32)` = 4
- * - `lookup_dtype_sizes[Float64]` = `sizeof(float64)` = 8
- * - `lookup_dtype_sizes[Float8E4M3fn]` = `sizeof(float8_e4m3fn)` = 1
- * - `lookup_dtype_sizes[Signed64]` = `sizeof(int64)` = 8
- * - `lookup_dtype_sizes[QSigned8]` = `sizeof(qint8)` = 1
+ * @li @c lookup_dtype_sizes[Float32] = @c sizeof(float32) = 4
+ * @li @c lookup_dtype_sizes[Float64] = @c sizeof(float64) = 8
+ * @li @c lookup_dtype_sizes[Float8E4M3fn] = @c sizeof(float8_e4m3fn) = 1
+ * @li @c lookup_dtype_sizes[Signed64] = @c sizeof(int64) = 8
+ * @li @c lookup_dtype_sizes[QSigned8] = @c sizeof(qint8) = 1
  *
  * Used by @ref dtype_size() in @ref dtype.c.
  */
