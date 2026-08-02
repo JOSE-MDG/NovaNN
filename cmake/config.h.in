@@ -2,14 +2,14 @@
  * @file config.h.in
  * @brief CMake configuration template — generates config.h at configure time.
  *
- * Every `@VAR@` placeholder is substituted by CMake's configure_file() with
+ * Every @VAR@ placeholder is substituted by CMake's configure_file() with
  * the corresponding CMake variable.  The resulting config.h is consumed by
  * C/C++ source files to conditionally enable SIMD paths and feature gates.
  *
  * Variables populated by:
- *   - DetectSIMD.cmake  → HAS_SSE4_2, HAS_AVX, HAS_AVX2, HAS_AVX512*,
+ *   @li DetectSIMD.cmake  → HAS_SSE4_2, HAS_AVX, HAS_AVX2, HAS_AVX512*,
  * HAS_AVX10* HAS_AMX*, etc.
- *   - NovaNNRuntime.cmake → (indirectly, via DetectSIMD)
+ *   @li NovaNNRuntime.cmake → (indirectly, via DetectSIMD)
  *
  * @note This file is NOT a public header — it lives in CMAKE_BINARY_DIR
  *       and is included with a PRIVATE path.
