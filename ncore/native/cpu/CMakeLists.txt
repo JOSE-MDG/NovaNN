@@ -9,7 +9,7 @@ vectorised (SIMD) implementations of element-wise operations.
 Targets created
 ^^^^^^^^^^^^^^^
 
-``cpu_obj``
+``cpu_obj`` — alias ``ncore::native::obj::cpu``
   OBJECT library containing all CPU backend kernel implementations.
 
 Functions used
@@ -27,6 +27,7 @@ file(GLOB_RECURSE CPU_SOURCES CONFIGURE_DEPENDS
 )
 
 add_library(cpu_obj OBJECT ${CPU_SOURCES})
+add_library(ncore::native::obj::cpu ALIAS cpu_obj)
 
 set_target_properties(cpu_obj PROPERTIES
     C_STANDARD 23
@@ -40,3 +41,5 @@ target_include_directories(cpu_obj
 
 nova_configure_build_flags(cpu_obj)
 nova_configure_cpu_target(cpu_obj)
+
+add_dependencies(cpu_obj nova::codegen)
