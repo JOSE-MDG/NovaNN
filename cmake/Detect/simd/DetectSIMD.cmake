@@ -13,7 +13,6 @@ This module sets the following variables:
 ``SIMD_FLAGS``
   Aggregated compiler flags for all detected SIMD instruction sets.
   Duplicate flags are removed before the variable is finalized.
-  Always empty under MSVC (see ``NovaNNCPU.cmake``).
 
 ``HAS_VNNI``
   ``1`` if any of ``HAS_AVX2_VNNI``, ``HAS_AVX512_VNNI``, or
