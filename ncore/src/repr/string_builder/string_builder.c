@@ -9,19 +9,19 @@
  * repeated characters) optimized for incremental construction of
  * large tensor representations.
  *
- * ## Architecture
+ * @section architecture Architecture
  *
- * - **Geometric Growth**: The buffer capacity doubles whenever an
+ * @li Geometric Growth: The buffer capacity doubles whenever an
  *   append operation would exceed the current limit.
- * - **Two-Phase Formatting**: @ref sb_appendf first measures the
- *   required length using `vsnprintf(nullptr, ...)` to ensure a
+ * @li Two-Phase Formatting: @ref sb_appendf first measures the
+ *   required length using @c "vsnprintf(nullptr, ...)" to ensure a
  *   single, perfectly-sized reallocation.
- * - **Ownership Model**: Ownership of the internal buffer is
+ * @li Ownership Model: Ownership of the internal buffer is
  *   transferred to the caller via @ref sb_build(), after which the
  *   builder instance is reset.
- * - **Error Propagation**: Allocation failures set @ref SbErrOom on
+ * @li Error Propagation: Allocation failures set @ref SbErrOom on
  *   the builder's status field. Once set, all subsequent append
- *   operations become no-ops and @ref sb_build() returns `nullptr`.
+ *   operations become no-ops and @ref sb_build() returns @c nullptr.
  *
  * @see string_builder.h  Public descriptor and API.
  */
@@ -173,9 +173,9 @@ void sb_append_repeated(StringBuilder *sb, char c, size_t n) {
  *
  * @details
  * If the builder is in an error state, the internal buffer is freed
- * and `nullptr` is returned.
+ * and @c nullptr is returned.
  *
- * @return Ownership of the heap-allocated string, or `nullptr` on
+ * @return Ownership of the heap-allocated string, or @c nullptr on
  *         error.
  */
 char *sb_build(StringBuilder *sb) {

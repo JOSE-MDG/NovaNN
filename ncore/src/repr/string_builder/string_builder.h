@@ -4,13 +4,13 @@
  *
  * @details
  * Declares a robust, growable character buffer designed for
- * high-performance string assembly. Uses a standard `malloc`/`realloc`
+ * high-performance string assembly. Uses a standard @c malloc/@c realloc
  * strategy with geometric growth to minimize allocation overhead.
  *
  * Used throughout the representation module to avoid the quadratic
- * performance penalty of repeated `strcat` calls.
+ * performance penalty of repeated @c strcat calls.
  *
- * ## Error Propagation
+ * @section error-propagation Error Propagation
  *
  * The @ref SBStatus member tracks allocation failures. On error, all
  * subsequent append operations become no-ops and the error is
@@ -36,8 +36,9 @@
  * is set, all subsequent append operations become no-ops.
  */
 typedef enum {
-  SbOk         = 0, ///< No error.
-  SbErrOom     = 1, ///< Memory allocation failure (`malloc`/`realloc` returned `nullptr`).
+  SbOk = 0, ///< No error.
+  SbErrOom =
+      1, ///< Memory allocation failure (@c malloc/@c realloc returned @c nullptr).
   SbErrOverflow = 2 ///< Size arithmetic overflow.
 } SBStatus;
 
@@ -84,7 +85,7 @@ SBStatus sb_get_status(const StringBuilder *sb);
  *
  * @param[in,out] sb  Pointer to the StringBuilder.
  * @param[in]     str Null-terminated string to append. May be
- *                    `nullptr` (no-op).
+ *                    @c nullptr (no-op).
  */
 void sb_append(StringBuilder *sb, const char *str);
 
@@ -92,15 +93,15 @@ void sb_append(StringBuilder *sb, const char *str);
  * @brief Append a formatted string (printf-style) to the builder.
  *
  * @details
- * Uses `vsnprintf` to determine the required length, then performs
+ * Uses @c vsnprintf to determine the required length, then performs
  * a safe append. If the builder is in an error state, the operation
  * is silently ignored.
  *
  * @param[in,out] sb  Pointer to the StringBuilder.
- * @param[in]     fmt `printf`-compatible format string.
+ * @param[in]     fmt @c printf-compatible format string.
  */
-ATTR(format(printf, 2, 3))
-void sb_appendf(StringBuilder *sb, const char *fmt, ...);
+ATTR(format(printf, 2, 3)) void sb_appendf(StringBuilder *sb, const char *fmt,
+                                           ...);
 
 /**
  * @brief Append a single character to the builder.
@@ -133,15 +134,15 @@ void sb_append_repeated(StringBuilder *sb, char c, size_t n);
  * @details
  * Returns the underlying heap buffer and resets the StringBuilder
  * to an empty state. The caller is responsible for calling
- * `free()` on the returned pointer.
+ * @c free() on the returned pointer.
  *
  * @pre  The builder must be in @ref SbOk state. If the builder has
- *       encountered an error, this function returns `nullptr` and
+ *       encountered an error, this function returns @c nullptr and
  *       frees the internal buffer.
  *
  * @param[in,out] sb Pointer to the StringBuilder.
  *
- * @return Heap-allocated null-terminated string, or `nullptr` on
+ * @return Heap-allocated null-terminated string, or @c nullptr on
  *         error.
  */
 char *sb_build(StringBuilder *sb);
