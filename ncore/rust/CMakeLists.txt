@@ -10,7 +10,7 @@ custom target that passes all required environment variables to
 Variables defined:
 
 ``RUST_LIB``
-  Path to the built static library (``libncore_memory.a``).
+  Path to the built static library (``libncore_memory.a``/``libncore_memory.lib``).
 
 ``CARGO_TARGET_DIR``
   Cargo output directory inside the CMake build tree.
@@ -20,17 +20,14 @@ Targets created:
 ``memory_cargo``
   Custom target that runs ``cargo build``.
 
-``ncore_memory``
+``ncore_memory`` — alias ``ncore::memory``
   Imported static library wrapping the Cargo output.  Links against
-  ``rustcsrc``, ``Threads::Threads``, ``dl``, and ``m``.
+  ``ncore::memory::csrc`` (alias of ``rustcsrc``), ``Threads::Threads``,
+  ``dl``, and ``m``.
 
 #]=======================================================================]
 
 add_subdirectory(csrc)
-
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release")
-endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(RUSTFLAGS "-C debuginfo=2 -C opt-level=0")
@@ -45,7 +42,16 @@ endif()
 set(CARGO_TARGET_DIR "${CMAKE_BINARY_DIR}/cargo")
 set(CUDA_DEVICE_MEMORY_DIR "${CMAKE_SOURCE_DIR}/ncore/native/cuda/memory")
 set(HIP_DEVICE_MEMORY_DIR "${CMAKE_SOURCE_DIR}/ncore/native/hip/memory")
-set(RUST_LIB "${CARGO_TARGET_DIR}/${RUST_BUILD_SUBDIR}/libncore_memory.a")
+
+if(WIN32)
+  set(RUST_STATIC_PREFIX "")
+  set(RUST_STATIC_EXT ".lib")
+else()
+  set(RUST_STATIC_PREFIX "lib")
+  set(RUST_STATIC_EXT ".a")
+endif()
+
+set(RUST_LIB "${CARGO_TARGET_DIR}/${RUST_BUILD_SUBDIR}/${RUST_STATIC_PREFIX}ncore_memory${RUST_STATIC_EXT}")
 
 add_custom_target(memory_cargo
   COMMAND ${CMAKE_COMMAND} -E env
@@ -53,7 +59,7 @@ add_custom_target(memory_cargo
   "RUST_DIR=${RUST_DIR}"
   "CUDA_DEVICE_MEMORY_DIR=${CUDA_DEVICE_MEMORY_DIR}"
   "HIP_DEVICE_MEMORY_DIR=${HIP_DEVICE_MEMORY_DIR}"
-  "RUSTCSRC_DIR=$<TARGET_FILE_DIR:rustcsrc>"
+  "RUSTCSRC_DIR=$<TARGET_FILE_DIR:ncore::memory::csrc>"
   "RUSTCSRC_NAME=rustcsrc"
   "NOVA_HAS_CUDA=${NOVA_HAS_CUDA}"
   "NOVA_HAS_HIP=${NOVA_HAS_HIP}"
@@ -63,17 +69,19 @@ add_custom_target(memory_cargo
   BYPRODUCTS ${RUST_LIB}
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
   COMMENT "Building Rust crate ncore_memory"
-  DEPENDS rustcsrc
+  DEPENDS ncore::memory::csrc
 )
 
 add_library(ncore_memory STATIC IMPORTED GLOBAL)
+add_library(ncore::memory ALIAS ncore_memory)
 set_target_properties(ncore_memory PROPERTIES
   IMPORTED_LOCATION ${RUST_LIB}
+  POSITION_INDEPENDENT_CODE ON
 )
 add_dependencies(ncore_memory memory_cargo)
 
 target_link_libraries(ncore_memory INTERFACE
-  Threads::Threads
-  ${CMAKE_DL_LIBS}
-  m
+  $<$<NOT:$<PLATFORM_ID:Windows>>:Threads::Threads>
+  $<$<NOT:$<PLATFORM_ID:Windows>>:${CMAKE_DL_LIBS}>
+  $<$<NOT:$<PLATFORM_ID:Windows>>:m>
 )
