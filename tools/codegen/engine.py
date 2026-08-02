@@ -373,6 +373,60 @@ class EngineManager:
 
         return self._engines.pop(engine_id)
 
+    def _select_engines(
+        self, exclude_id: int | list[int] | None
+    ) -> list[Engine]:
+        """Return the engines selected for execution, in ascending id order.
+
+        Args:
+            exclude_id: Engine id or list of engine ids to skip, or None
+                to select all registered engines.
+
+        Returns:
+            The selected engines, sorted by id.
+
+        Raises:
+            ValueError: If an id in exclude_id is not found in the registry.
+            TypeError: If exclude_id is not None, int, or list[int].
+        """
+        if exclude_id is None:
+            return sorted(self._engines.values(), key=lambda e: e.id)
+        if isinstance(exclude_id, int):
+            if exclude_id not in self._engines:
+                raise ValueError(self._registry_ids_message(exclude_id))
+            return sorted(
+                (e for e in self._engines.values() if e.id != exclude_id),
+                key=lambda e: e.id,
+            )
+        if isinstance(exclude_id, list):
+            exclude_set = set(exclude_id)
+            for eid in exclude_set:
+                if eid not in self._engines:
+                    raise ValueError(self._registry_ids_message(eid))
+            return sorted(
+                (e for e in self._engines.values() if e.id not in exclude_set),
+                key=lambda e: e.id,
+            )
+        raise TypeError(
+            f"Expected int, list[int], or None, got {type(exclude_id).__name__}"
+        )
+
+    def _registry_ids_message(self, engine_id: int) -> str:
+        """Build the error message for an engine id missing from the registry.
+
+        Args:
+            engine_id: The engine id that was not found.
+
+        Returns:
+            A ValueError message listing the registered engine ids.
+        """
+        ids = sorted(self._engines)
+        available = ", ".join(str(i) for i in ids) if ids else "none"
+        return (
+            f"Engine id '{engine_id}' not found in registry. "
+            f"Available engine ids: {available}."
+        )
+
     def run(
         self,
         exclude_id: int | list[int] | None = None,
@@ -412,30 +466,7 @@ class EngineManager:
             RuntimeError: If stop_on_error=True and an engine fails; wraps
                 the original exception.
         """
-        if exclude_id is None:
-            engines_to_run = sorted(self._engines.values(), key=lambda e: e.id)
-        elif isinstance(exclude_id, int):
-            if exclude_id not in self._engines:
-                raise ValueError(
-                    f"Engine id '{exclude_id}' not found in registry"
-                )
-            engines_to_run = sorted(
-                (e for e in self._engines.values() if e.id != exclude_id),
-                key=lambda e: e.id,
-            )
-        elif isinstance(exclude_id, list):
-            exclude_set = set(exclude_id)
-            for eid in exclude_set:
-                if eid not in self._engines:
-                    raise ValueError(f"Engine id '{eid}' not found in registry")
-            engines_to_run = sorted(
-                (e for e in self._engines.values() if e.id not in exclude_set),
-                key=lambda e: e.id,
-            )
-        else:
-            raise TypeError(
-                f"Expected int, list[int], or None, got {type(exclude_id).__name__}"
-            )
+        engines_to_run = self._select_engines(exclude_id)
 
         results: list[EngineRunResult] = []
 
@@ -470,6 +501,35 @@ class EngineManager:
                 )
 
         return results
+
+    def list_outputs(
+        self, exclude_id: int | list[int] | None = None
+    ) -> list[Path]:
+        """Return the output paths of the selected engines, in engine order.
+
+        Collects the ``render_path`` of every registered render of the
+        engines selected for execution, deduplicated and in ascending
+        engine id order.  No rendering is performed.
+
+        Args:
+            exclude_id: Engine id or list of engine ids to skip, or None
+                to consider all registered engines.
+
+        Returns:
+            The destination paths of the files that ``run()`` would
+            generate, in the order the engines would execute.
+
+        Raises:
+            ValueError: If an id in exclude_id is not found in the registry.
+            TypeError: If exclude_id is not None, int, or list[int].
+        """
+        paths: list[Path] = []
+        for engine in self._select_engines(exclude_id):
+            for entry in engine.engine._registry.values():
+                for render in entry.renders:
+                    if render.render_path not in paths:
+                        paths.append(render.render_path)
+        return paths
 
 
 class CodeGenEngine:
@@ -769,7 +829,7 @@ def register_engine(engine: Engine | list[Engine]) -> None:
 
 
 def is_manager_empty() -> bool:
-    """Returns True if the manager has registered engines; otherwise, returns False."""
+    """Return True if the manager has no registered engines."""
     return not manager._engines
 
 
@@ -809,3 +869,25 @@ def generate(
         run_formatters=run_formatters,
         verbose=verbose,
     )
+
+
+def list_outputs(exclude_id: int | list[int] | None = None) -> list[Path]:
+    """Return the output paths of all registered engines.
+
+    Convenience wrapper around ``manager.list_outputs()``.  Returns the
+    destination paths of the files that ``generate()`` would produce,
+    without rendering or writing anything.
+
+    Args:
+        exclude_id: Engine id or list of engine ids to skip, or None
+            to consider all registered engines.
+
+    Returns:
+        The destination paths of the files that ``generate()`` would
+        produce, in engine execution order.
+
+    Raises:
+        ValueError: If an id in exclude_id is not found in the registry.
+        TypeError: If exclude_id is not None, int, or list[int].
+    """
+    return manager.list_outputs(exclude_id)
