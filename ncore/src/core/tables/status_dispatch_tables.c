@@ -3,18 +3,18 @@
  * @brief Initialisation of the global error message dispatch table.
  *
  * @details
- * Populates the `status_msg_dispatch` array that maps each @ref novaError_t
+ * Populates the @c status_msg_dispatch array that maps each @ref novaError_t
  * code to its corresponding human-readable message. The table is
- * populated once at program load time via an `ATTR(constructor)`
+ * populated once at program load time via an @c INITIALIZE(init_status_msg_dispatch)
  * function.
  *
  * This separation ensures that the core status logic remains decoupled
  * from the specific message strings, following the same pattern as other
  * dispatch tables in the runtime.
  *
- * ## Constructor ordering
- * `ATTR(constructor)` runs at program load time. Because
- * this file only writes to the `status_msg_dispatch` array (no other
+ * @section constructor-ordering Constructor ordering
+ * @c INITIALIZE(init_status_msg_dispatch) runs at program load time. Because
+ * this file only writes to the @c status_msg_dispatch array (no other
  * globals depend on it), there are no inter-file ordering constraints.
  *
  * @see status_msg_dispatch The message lookup array.
@@ -41,17 +41,17 @@
 const char *status_msg_dispatch[NUM_ERRORS] = {};
 
 /**
- * @brief Populate every entry in `status_msg_dispatch`.
+ * @brief Populate every entry in @c status_msg_dispatch.
  *
  * @details
- * Called automatically before `main()` via `ATTR(constructor)`.
+ * Called automatically at library initialisation time via @c INITIALIZE(init_status_msg_dispatch).
  * Assigns a descriptive string to each valid error code defined in
  * the @ref novaError_t enumeration.
  *
  * @post All entries in @ref status_msg_dispatch are set to valid
  *       string pointers.
  */
-ATTR(constructor) static inline void init_status_msg_dispatch() {
+INITIALIZE(init_status_msg_dispatch) {
   /* Success */
   status_msg_dispatch[novaSuccess] = "Success\n";
 
@@ -99,6 +99,9 @@ ATTR(constructor) static inline void init_status_msg_dispatch() {
       "Invalid transfer direction specified for the operation\n";
 
   /* Device/Backend */
+  status_msg_dispatch[novaExternalDeviceError] =
+      "An error occurred on an external device while executing a resource or "
+      "an external operation \n";
   status_msg_dispatch[novaDeviceNotAvailable] =
       "No compatible compute device is available\n";
   status_msg_dispatch[novaDeviceNotInitialized] =
