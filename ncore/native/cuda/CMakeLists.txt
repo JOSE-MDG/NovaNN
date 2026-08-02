@@ -7,14 +7,15 @@ Builds the CUDA host-side object library and its device kernels.
 Targets created
 ^^^^^^^^^^^^^^^
 
-``cuda_obj``
+``cuda_obj`` — alias ``ncore::native::obj::cuda``
   OBJECT library containing all CUDA host-side translation units
   (``*.cpp``, ``memory/*.cpp``).
 
-``cuda_kernels_obj``  (via ``add_subdirectory(kernels)``)
+``cuda_kernels_obj`` — alias ``ncore::native::obj::cuda::kernels``
+  (via ``add_subdirectory(kernels)``)
   OBJECT library containing compiled CUDA device code (``*.cu``).
   Collected by ``native/CMakeLists.txt`` via
-  ``$<TARGET_OBJECTS:cuda_kernels_obj>``.
+  ``$<TARGET_OBJECTS:ncore::native::obj::cuda::kernels>``.
 
 #]=======================================================================]
 
@@ -24,6 +25,7 @@ file(GLOB CUDA_RESOURCES CONFIGURE_DEPENDS
 )
 
 add_library(cuda_obj OBJECT ${CUDA_RESOURCES})
+add_library(ncore::native::obj::cuda ALIAS cuda_obj)
 
 set_target_properties(cuda_obj PROPERTIES
   POSITION_INDEPENDENT_CODE ON
