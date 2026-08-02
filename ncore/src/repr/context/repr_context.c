@@ -9,16 +9,16 @@
  * layout and formatting operations, ensuring consistent alignment
  * and numeric representation.
  *
- * ## Context Building Process
+ * @section context-building-process Context Building Process
  *
  * The builder performs two primary passes:
  *
- * 1. **Classification**: Maps the tensor's metadata (dtype, device,
+ * @li 1. Classification: Maps the tensor's metadata (dtype, device,
  *    ndims) to categorical flags in the context.
- * 2. **Analysis Pass**: Samples the tensor's data (up to 1000
+ * @li 2. Analysis Pass: Samples the tensor's data (up to 1000
  *    elements from each edge) to:
- *    - Apply an auto-detection heuristic for scientific notation.
- *    - Calculate the maximum formatted width of elements, accounting
+ *    @li Apply an auto-detection heuristic for scientific notation.
+ *    @li Calculate the maximum formatted width of elements, accounting
  *      for strided (view) layouts.
  *
  * @see repr_context.h  Structure definition.
@@ -50,7 +50,7 @@
  * @param[in] ten Pointer to the tensor.
  * @param[in] idx Linear index of the element.
  *
- * @return The element value converted to `double`.
+ * @return The element value converted to @c double.
  */
 static inline double get_double_value(const Tensor *ten, size_t idx) {
   if (ten->dtype == Float4E2M1fn) {
