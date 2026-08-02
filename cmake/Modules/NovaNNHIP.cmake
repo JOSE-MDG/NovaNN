@@ -18,8 +18,9 @@ This module defines the following cache variables:
 ``NOVA_SUPPORTED_HIP_ARCHS``
   Default list of supported HIP GPU architectures:
   gfx908 gfx90a gfx942 gfx950
-  gfx1030
-  gfx1100 gfx1101
+  gfx1030 gfx1031 gfx1032 gfx1033 gfx1034 gfx1035 gfx1036
+  gfx1100 gfx1101 gfx1102 gfx1103
+  gfx1150 gfx1151 gfx1152 gfx1153
   gfx1200 gfx1201.
 
 This module defines the following functions:
@@ -88,17 +89,20 @@ set(NOVA_SUPPORTED_HIP_ARCHS
     gfx950
 
     # RDNA2
-    gfx1030
+    gfx1030 gfx1031 gfx1032 gfx1033 gfx1034 gfx1035 gfx1036
 
     # RDNA3
-    gfx1100 gfx1101
+    gfx1100 gfx1101 gfx1102 gfx1103
+
+    # RDNA3.5
+    gfx1150 gfx1151 gfx1152 gfx1153
 
     # RDNA4
     gfx1200 gfx1201
 )
 
 set(_NOVA_HIP_REJECTED_PREFIXES
-    gfx6 gfx7 gfx80 gfx81 gfx900 gfx902 gfx904 gfx906 gfx101 gfx1011 gfx1012
+    gfx6 gfx7 gfx80 gfx81 gfx900 gfx902 gfx904 gfx906 gfx1010 gfx1011 gfx1012
 )
 
 #[=======================================================================[.rst:
@@ -155,37 +159,30 @@ endfunction()
 
     _nova_configure_hip_common(<target>)
 
-  Validates ``CMAKE_HIP_ARCHITECTURES`` against
-  ``_NOVA_HIP_REJECTED_PREFIXES`` (legacy Polaris/Vega/RDNA1
-  architectures).  When no user-specified architectures are provided
-  the function defaults to ``NOVA_SUPPORTED_HIP_ARCHS``.  Sets
-  ``HIP_STANDARD`` to 23 and defines ``NOVA_HAS_HIP=1``.
+  Sets ``HIP_STANDARD`` to 23 and sets the ``HIP_ARCHITECTURES``
+  target property from ``CMAKE_HIP_ARCHITECTURES``.  Validates the
+  architectures against ``_NOVA_HIP_REJECTED_PREFIXES`` (legacy
+  Polaris/Vega/RDNA1).  Defines ``NOVA_HAS_HIP=1``.
 
 #]=======================================================================]
 function(_nova_configure_hip_common TARGET)
-    if(DEFINED CMAKE_HIP_ARCHITECTURES)
-        foreach(GFX IN LISTS CMAKE_HIP_ARCHITECTURES)
-            foreach(REJECTED IN LISTS _NOVA_HIP_REJECTED_PREFIXES)
-                if(GFX MATCHES "^${REJECTED}")
-                    message(FATAL_ERROR
-                        "GPU target '${GFX}' is not supported by NovaNN. "
-                        "Legacy architectures (Polaris/Vega/RDNA1) are unsupported."
-                    )
-                endif()
-            endforeach()
+    foreach(GFX IN LISTS CMAKE_HIP_ARCHITECTURES)
+        foreach(REJECTED IN LISTS _NOVA_HIP_REJECTED_PREFIXES)
+            if(GFX MATCHES "^${REJECTED}")
+                message(FATAL_ERROR
+                    "GPU target '${GFX}' is not supported by NovaNN. "
+                    "Legacy architectures (Polaris/Vega/RDNA1) are unsupported."
+                )
+            endif()
         endforeach()
-    else()
-        set_target_properties(${TARGET} PROPERTIES
-            HIP_STANDARD 23
-            HIP_ARCHITECTURES "${NOVA_SUPPORTED_HIP_ARCHS}"
-        )
-    endif()
-
-    _nova_configure_hip_macros(${TARGET})
+    endforeach()
 
     set_target_properties(${TARGET} PROPERTIES
         HIP_STANDARD 23
+        HIP_ARCHITECTURES "${CMAKE_HIP_ARCHITECTURES}"
     )
+
+    _nova_configure_hip_macros(${TARGET})
 endfunction()
 
 #[=======================================================================[.rst:
@@ -263,6 +260,7 @@ function(nova_configure_hip_kernels_target TARGET)
     cmake_parse_arguments(_HIP_K "" "" "EXTRA_LIBS" ${ARGN})
 
     _nova_configure_hip_common(${TARGET})
+
 
     if(_HIP_K_EXTRA_LIBS)
         target_link_libraries(${TARGET} PRIVATE ${_HIP_K_EXTRA_LIBS})
