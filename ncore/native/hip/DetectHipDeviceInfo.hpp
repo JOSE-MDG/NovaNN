@@ -29,9 +29,9 @@
  * Populated by @ref getHipDeviceProperties on the first call and
  * cached thereafter.  The @ref isAvailable member indicates whether
  * the struct contains valid data; all other fields are undefined
- * when @ref isAvailable is `false`.
+ * when @ref isAvailable is @c false.
  *
- * Provides an `explicit operator bool()` for convenient
+ * Provides an @c explicit operator bool() for convenient
  * availability checking:
  *
  * @code{.cpp}
@@ -42,7 +42,7 @@
  * @endcode
  */
 struct hipDetectedDeviceProps_t {
-  bool isAvailable;                ///< `true` if the device was detected.
+  bool isAvailable;                ///< @c true if the device was detected.
   std::string name;                ///< Device name (e.g., "AMD Radeon RX 7900 XTX").
   std::string runtimeVersion;      ///< HIP runtime version (e.g., "6.4.54321").
   std::string driverVersion;       ///< HIP driver version (e.g., "6.4.54321").
@@ -63,14 +63,14 @@ struct hipDetectedDeviceProps_t {
  * first call.  Subsequent calls return the cached value without
  * additional HIP runtime API calls.
  *
- * @param[out] status  Receives `novaSuccess` on success, or an
+ * @param[out] status  Receives @c novaSuccess on success, or an
  *                     error code with a descriptive message on
  *                     failure.
  *
  * @return Cached device properties.  Check @ref isAvailable to
  *         determine whether the data is valid.
  *
- * @note Thread-safe.  The result is cached in a `static` local
+ * @note Thread-safe.  The result is cached in a @c static local
  *       variable initialised exactly once (C++11 guarantee).
  *
  * @see printHipDeviceInfo()  Prints the properties to stdout.
@@ -87,12 +87,12 @@ extern "C" {
  *
  * @details
  * Queries the HIP runtime for device 0 properties and prints
- * them using ANSI colour codes.  When @p verbose is `false`, a
- * concise two-line summary is printed.  When @p verbose is `true`,
+ * them using ANSI colour codes.  When @p verbose is @c false, a
+ * concise two-line summary is printed.  When @p verbose is @c true,
  * a detailed multi-line block is printed.
  *
- * @param[in] verbose  If `true`, print the full property block.
- *                     If `false`, print a concise summary.
+ * @param[in] verbose  If @c true, print the full property block.
+ *                     If @c false, print a concise summary.
  *
  * @return @ref novaStatus_t with the result of the detection.
  *         On success, set to @ref novaSuccess.  On failure, set to
