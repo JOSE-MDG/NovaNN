@@ -7,22 +7,22 @@
  * Provides the canonical C extern functions for converting between IEEE 754
  * single-precision float32 and each of the reduced-precision formats
  * supported by NovaNN:
- *   - FP16       (IEEE 754 half-precision)
- *   - BF16       (Brain Float 16, 1.8.7 layout)
- *   - FP8 E5M2   (8-bit, 1.5.2 layout, bias = 15, matches FP16 exponent)
- *   - FP8 E4M3FN (8-bit, 1.4.3 layout, bias = 7, finite only, no inf/NaN)
- *   - FP4 E2M1FN (4-bit, 1.2.1 layout, bias = 1, finite, pair-packed ×2)
+ * @li FP16       (IEEE 754 half-precision)
+ * @li BF16       (Brain Float 16, 1.8.7 layout)
+ * @li FP8 E5M2   (8-bit, 1.5.2 layout, bias = 15, matches FP16 exponent)
+ * @li FP8 E4M3FN (8-bit, 1.4.3 layout, bias = 7, finite only, no inf/NaN)
+ * @li FP4 E2M1FN (4-bit, 1.2.1 layout, bias = 1, finite, pair-packed ×2)
  *
  * Each conversion is implemented via a compile-time dispatch:
- *   - When the native compiler type is available (e.g. `_Float16` on
- *     GCC/Clang, `__bf16` on GCC/Clang, or CUDA/HIP device intrinsics),
- *     the conversion uses the corresponding hardware instruction.
- *   - Otherwise, a software bit-manipulation fallback from
- *     `ncore/include/ncore/headeronly/dtypes/` is used, with
- *     round-to-nearest-even semantics where applicable.
+ * @li When the native compiler type is available (e.g. @c _Float16 on
+ *   GCC/Clang, @c __bf16 on GCC/Clang, or CUDA/HIP device intrinsics),
+ *   the conversion uses the corresponding hardware instruction.
+ * @li Otherwise, a software bit-manipulation fallback from
+ *   @c ncore/include/ncore/headeronly/dtypes/ is used, with
+ *   round-to-nearest-even semantics where applicable.
  *
  * The implementation lives in @c ncore/src/dtypes/DTypes.cpp and its
- * associated `.hpp` headers.
+ * associated @c .hpp headers.
  *
  * @see DTypes.cpp       Implementation of these conversion functions.
  * @see half.hh          IEEE 754 half-precision (FP16).

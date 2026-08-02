@@ -28,23 +28,23 @@ extern "C" {
  * @details
  * Every dtype that the framework supports has a dedicated copy
  * function matching this signature.  The function copies
- * `src->storage->size_bytes` from the source tensor's data buffer
+ * @c src->storage->size_bytes from the source tensor's data buffer
  * into the destination tensor's data buffer.
  *
  * @param[in]  src     Source tensor (read-only).  Must have
- *                     `is_allocated_ == true` and a valid `storage`
+ *                     @c is_allocated_ == true and a valid @c storage
  *                     pointer.
  * @param[out] dst     Destination tensor (write-only).  Must have
- *                     `is_allocated_ == true` and a pre-allocated
- *                     `storage` of at least the same size as @p src.
+ *                     @c is_allocated_ == true and a pre-allocated
+ *                     @c storage of at least the same size as @p src.
  * @param[out] status  Receives the result of the copy operation.
  *                     On success, set to @ref novaSuccess.  On
  *                     failure, set to the appropriate error code.
  *
  * @pre  Both @p src and @p dst must have non-nullptr, allocated storage.
- * @pre  `dst->storage->size_bytes >= src->storage->size_bytes`.
- * @post On success, `dst->data` contains a bitwise copy of
- *       `src->data` and @p status is @ref novaSuccess.
+ * @pre  @c dst->storage->size_bytes >= src->storage->size_bytes.
+ * @post On success, @c dst->data contains a bitwise copy of
+ *       @c src->data and @p status is @ref novaSuccess.
  * @post On failure, @p status contains the error code.
  */
 typedef void (*CopyFn)(const Tensor *restrict src, Tensor *restrict dst,
@@ -58,36 +58,36 @@ typedef void (*CopyFn)(const Tensor *restrict src, Tensor *restrict dst,
  * Allocates new storage for @p dst via @ref safe_allocator(),
  * copies all metadata and element data from @p src, and recursively
  * deep-copies the gradient subtree.  The copy is dispatched through
- * the @ref lookup_copy table based on `src->device` and
- * `src->dtype`.
+ * the @ref lookup_copy table based on @c src->device and
+ * @c src->dtype.
  *
- * ## Behaviour
+ * @section behaviour Behaviour
  *
- * 1. All metadata fields (`shape`, `strides`, `item_size`, `size`,
- *    `ndims`, `dtype`, `device`, `scale_`, `zero_point_`,
- *    `is_pinned`, gradient flags) are copied element-by-element.
- *    Fields `is_view_`, `grad_fn_`, and `offset` are set to fixed
- *    values (`false`, `nullptr`, `0` respectively).
- * 2. If `src->storage` is non-nullptr, a new @ref TensorStorage is
+ * @li 1. All metadata fields (@c shape, @c strides, @c item_size, @c size,
+ *    @c ndims, @c dtype, @c device, @c scale_, @c zero_point_,
+ *    @c is_pinned, gradient flags) are copied element-by-element.
+ *    Fields @c is_view_, @c grad_fn_, and @c offset are set to fixed
+ *    values (@c false, @c nullptr, @c 0 respectively).
+ * @li 2. If @c src->storage is non-nullptr, a new @ref TensorStorage is
  *    allocated via @ref safe_allocator() and the data is copied
  *    using the appropriate @ref CopyFn.
- * 3. If `src->grad` is non-nullptr, the gradient tensor is recursively
+ * @li 3. If @c src->grad is non-nullptr, the gradient tensor is recursively
  *    deep-copied via a self-recursive call.  Gradient copy errors
  *    are propagated through @p status.
- * 4. The destination tensor is marked as `is_allocated_ = true`,
- *    `is_leaf_ = true`, and `is_view_ = false`.
+ * @li 4. The destination tensor is marked as @c is_allocated_ = true,
+ *    @c is_leaf_ = true, and @c is_view_ = false.
  *
- * @param[in]  src     Source tensor.  May be `nullptr` (no-op).
- * @param[out] dst     Destination tensor.  Must not be `nullptr`.  Must
- *                     have `is_allocated_ == false` (i.e., created
- *                     by `create_unallocated_tensor()`).
+ * @param[in]  src     Source tensor.  May be @c nullptr (no-op).
+ * @param[out] dst     Destination tensor.  Must not be @c nullptr.  Must
+ *                     have @c is_allocated_ == false (i.e., created
+ *                     by @c create_unallocated_tensor()).
  * @param[out] status  Receives the result of the deep-copy
  *                     operation.  On success, set to
  *                     @ref novaSuccess.  On failure, set to the
  *                     appropriate error code.
  *
  * @pre  @p dst must be an unallocated tensor.
- * @pre  If @p src has a non-nullptr `storage`, its `size_bytes` must
+ * @pre  If @p src has a non-nullptr @c storage, its @c size_bytes must
  *       be > 0.
  * @post On success, @p dst is a complete independent copy of
  *       @p src, including gradient history.
