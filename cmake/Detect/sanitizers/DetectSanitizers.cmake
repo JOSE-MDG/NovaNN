@@ -164,10 +164,14 @@ if(USE_ASAN)
       -fsanitize=address -fno-omit-frame-pointer)
     target_link_options(nova_sanitizers INTERFACE
       -fsanitize=address
-      # Required for libnova.so to satisfy -Wl,--no-undefined.
-      -shared-libasan
       ${_nova_san_rpath}
     )
+    # Clang links the ASan runtime statically by default; force the shared
+    # runtime so libnova.so satisfies -Wl,--no-undefined. GCC already links
+    # libasan dynamically by default and does not accept -shared-libasan.
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      target_link_options(nova_sanitizers INTERFACE -shared-libasan)
+    endif()
   endif()
 endif()
 
