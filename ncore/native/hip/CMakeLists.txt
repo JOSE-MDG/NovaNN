@@ -7,14 +7,15 @@ Builds the HIP host-side object library and its device kernels.
 Targets created
 ^^^^^^^^^^^^^^^
 
-``hip_obj``
+``hip_obj`` — alias ``ncore::native::obj::hip``
   OBJECT library containing all HIP host-side translation units
   (``*.cpp``, ``memory/*.cpp``).
 
-``hip_kernels_obj``  (via ``add_subdirectory(kernels)``)
+``hip_kernels_obj`` — alias ``ncore::native::obj::hip::kernels``
+  (via ``add_subdirectory(kernels)``)
   OBJECT library containing compiled HIP device code (``*.hip``).
   Collected by ``native/CMakeLists.txt`` via
-  ``$<TARGET_OBJECTS:hip_kernels_obj>``.
+  ``$<TARGET_OBJECTS:ncore::native::obj::hip::kernels>``.
 
 #]=======================================================================]
 
@@ -24,6 +25,7 @@ file(GLOB HIP_RESOURCES CONFIGURE_DEPENDS
 )
 
 add_library(hip_obj OBJECT ${HIP_RESOURCES})
+add_library(ncore::native::obj::hip ALIAS hip_obj)
 
 set_target_properties(hip_obj PROPERTIES
   POSITION_INDEPENDENT_CODE ON
