@@ -8,7 +8,7 @@ into via ``extern "C"``.
 
 Targets created:
 
-``rustcsrc``
+``rustcsrc`` — alias ``ncore::memory::csrc``
   Static library containing ``ffi.cpp`` and ``admin.cpp``.
 
 #]=======================================================================]
@@ -19,6 +19,7 @@ set(RUSTCSRC_SOURCES
 )
 
 add_library(rustcsrc STATIC ${RUSTCSRC_SOURCES})
+add_library(ncore::memory::csrc ALIAS rustcsrc)
 
 set_target_properties(rustcsrc PROPERTIES
     POSITION_INDEPENDENT_CODE ON
@@ -32,6 +33,10 @@ if(NOVA_HAS_CUDA)
         CUDA_STANDARD 20
         CUDA_STANDARD_REQUIRED ON
     )
+    target_include_directories(rustcsrc
+        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/cuda/memory
+        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/cuda
+    )
 endif()
 
 if(NOVA_HAS_HIP)
@@ -39,18 +44,20 @@ if(NOVA_HAS_HIP)
         HIP_STANDARD 23
         HIP_STANDARD_REQUIRED ON
     )
+    target_include_directories(rustcsrc
+        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/hip/memory
+        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/hip
+    )
 endif()
 
 target_include_directories(rustcsrc
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
-    PRIVATE ${CMAKE_SOURCE_DIR}/ncore/rust/csrc
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(rustcsrc PRIVATE native)
+target_link_libraries(rustcsrc PRIVATE ncore::native)
 
 nova_configure_build_flags(rustcsrc)
-
 nova_configure_cpu_target(rustcsrc)
 
 if(NOVA_HAS_CUDA)
