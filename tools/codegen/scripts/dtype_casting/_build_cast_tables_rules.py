@@ -116,13 +116,11 @@ def _parse_tables(source_text: str) -> list[dict[str, Any]]:
             continue
 
         requires = _extract_requires(comment)
-        entry["variants"].append(
-            {
-                "name": name,
-                "requires": requires,
-                "is_scalar": False,
-            }
-        )
+        entry["variants"].append({
+            "name": name,
+            "requires": requires,
+            "is_scalar": False,
+        })
         entry["guard_required"] = True
 
     tables: list[dict[str, Any]] = []
@@ -140,15 +138,13 @@ def _parse_tables(source_text: str) -> list[dict[str, Any]]:
                 "is_scalar": True,
             },
         ]
-        tables.append(
-            {
-                "signature": entry["signature"],
-                "src_type_abbr": entry["src_type_abbr"],
-                "dst_type_abbr": entry["dst_type_abbr"],
-                "guard_required": entry["guard_required"],
-                "variants": variants,
-            }
-        )
+        tables.append({
+            "signature": entry["signature"],
+            "src_type_abbr": entry["src_type_abbr"],
+            "dst_type_abbr": entry["dst_type_abbr"],
+            "guard_required": entry["guard_required"],
+            "variants": variants,
+        })
 
     return tables
 
