@@ -6,20 +6,20 @@
  * Generates the metadata footer that follows the tensor's data block.
  * Provides contextual information such as data type, shape, device
  * placement, and autograd status, depending on the display mode
- * (`ReprModeNormal` vs `ReprModeDebug`).
+ * (@c ReprModeNormal vs @c ReprModeDebug).
  *
- * ## Mode Behavior
+ * @section mode-behavior Mode Behavior
  *
- * - **Normal mode**: Suppresses "default" information (e.g.,
- *   `Float32`, `CPU`) to reduce visual noise. Meta and GPU tensors
+ * @li Normal mode: Suppresses "default" information (e.g.,
+ *   @c Float32, @c CPU) to reduce visual noise. Meta and GPU tensors
  *   always show dtype and device.
- * - **Debug mode**: Forces emission of all metadata fields on a new
+ * @li Debug mode: Forces emission of all metadata fields on a new
  *   line for diagnostic clarity.
  *
- * ## String Mapping
+ * @section string-mapping String Mapping
  *
- * Uses precomputed string tables (`g_dtype_string`,
- * `g_device_string`) for @ref DType_ and @ref Device enumeration
+ * Uses precomputed string tables (@c g_dtype_string,
+ * @c g_device_string) for @ref DType_ and @ref Device enumeration
  * values.
  *
  * @see metadata_fmt.h    Footer interface.
@@ -40,7 +40,7 @@
  * @brief String table mapping @ref DType_ values to human-readable labels.
  *
  * @details
- * Indexed by @ref DType_ values (`0` .. `NUM_DTYPES-1`). Every
+ * Indexed by @ref DType_ values (@c 0 .. @c NUM_DTYPES-1). Every
  * entry is a static string literal.
  *
  * @see dtype_string()
@@ -83,7 +83,7 @@ static const char *g_device_string[3] = {
  *
  * @param[in] d The data type to look up.
  *
- * @return A static string literal, or `"unknown"` if the type is
+ * @return A static string literal, or @c "unknown" if the type is
  *         out of range.
  */
 static const char *dtype_string(DType_ d) {
@@ -98,7 +98,7 @@ static const char *dtype_string(DType_ d) {
  *
  * @param[in] d The device to look up.
  *
- * @return A static string literal, or `"unknown"` if the device is
+ * @return A static string literal, or @c "unknown" if the device is
  *         out of range.
  */
 static const char *device_string(Device d) {

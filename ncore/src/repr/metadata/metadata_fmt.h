@@ -23,14 +23,14 @@
  * @brief Append the metadata suffix and finalize the tensor string.
  *
  * @details
- * Writes the closing `")"` and any required metadata fields (e.g.,
- * `dtype=float32`, `device=cuda`) to the provided builder. In
+ * Writes the closing @c ")" and any required metadata fields (e.g.,
+ * @c dtype=float32, @c device=cuda) to the provided builder. In
  * normal mode, only non-default values are emitted. In debug mode,
  * all fields are always shown on a new line.
  *
  * @param[in]     ctx Pointer to the representation context. Must not
- *                    be `nullptr`.
+ *                    be @c nullptr.
  * @param[in,out] sb  Pointer to the StringBuilder. Must not be
- *                    `nullptr`.
+ *                    @c nullptr.
  */
 void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb);
