@@ -5,32 +5,34 @@
  * @details
  * This header provides:
  *
- * - **Type aliases** — Portable names for the numeric types used by
- *   tensor storage (`float32`, `int8`, `qint8`, etc.).  Each alias
+ * @li Type aliases — Portable names for the numeric types used by
+ *   tensor storage (@c float32, @c int8, @c qint8, etc.).  Each alias
  *   maps to a standard C type.
- * - **DType_ enumeration** — A packed enum that identifies a data
+ * @li DType_ enumeration — A packed enum that identifies a data
  *   type at run time, used for dispatch tables and tensor metadata.
- * - **Classification functions** — `is_floating()`, `is_integer()`,
+ * @li Classification functions — @c is_floating(), @c is_integer(),
  *   etc. that test a tensor's dtype against category lookup tables.
- * - **Cast and size utilities** — `cast()` for type conversion and
- *   `dtype_size()` for byte-width queries.
+ * @li Cast and size utilities — @c cast() for type conversion and
+ *   @c dtype_size() for byte-width queries.
  *
- * ## Type Alias Convention
+ * @section type-alias-convention Type Alias Convention
  *
- * Public aliases use lowercase names (`float32`, `int8`, …) without
+ * Public aliases use lowercase names (@c float32, @c int8, …) without
  * a prefix.  They are defined as direct typedefs to the underlying
  * C types and are stable across platforms.
  *
- * @see macros.h    ATTR(packed) and NOVA_INTERNAL_ASSERT macros.
+ * @see macros.h    NOVA_INTERNAL_ASSERT macro.
  * @see tensor.h    Tensor struct embedding a @ref DType_ field.
  * @see storage.h   data_ptr union using these types.
  */
 
 #pragma once
 
-#include <ncore/headeronly/macros.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#include <ncore/headeronly/macros.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -120,37 +122,31 @@ typedef uint64_t uint64;
  * kernel, copy routine, and print formatter at run time.  The
  * values are sequential integers starting from 0, which allows
  * them to be used as array indices in dispatch tables (e.g.,
- * `cast_dispatch`, `lookup_dtype_sizes`).
- */
-// clang-format off
-/**
- * | Value | Name            | C type        | Bytes |
- * |-------|-----------------|---------------|-------|
- * | 0     | `Float32`       | `float`       | 4     |
- * | 1     | `Float64`       | `double`      | 8     |
- * | 2     | `Float16`       | `uint16_t`    | 2     |
- * | 3     | `BFloat16`      | `uint16_t`    | 2     |
- * | 4     | `Float8E4M3fn`  | `uint8_t`     | 1     |
- * | 5     | `Float8E5M2`    | `uint8_t`     | 1     |
- * | 6     | `Float4E2M1fn`  | `uint8_t`     | 1     |
- * | 7     | `Signed8`       | `int8_t`      | 1     |
- * | 8     | `UnSigned8`     | `uint8_t`     | 1     |
- * | 9     | `QSigned8`      | `int8_t`      | 1     |
- * | 10    | `QUnSigned8`    | `uint8_t`     | 1     |
- * | 11    | `Signed16`      | `int16_t`     | 2     |
- * | 12    | `UnSigned16`    | `uint16_t`    | 2     |
- * | 13    | `QSigned16`     | `int16_t`     | 2     |
- * | 14    | `QUnSigned16`   | `uint16_t`    | 2     |
- * | 15    | `Signed32`      | `int32_t`     | 4     |
- * | 16    | `UnSigned32`    | `uint32_t`    | 4     |
- * | 17    | `QSigned32`     | `int32_t`     | 4     |
- * | 18    | `QUnSigned32`   | `uint32_t`    | 4     |
- * | 19    | `Signed64`      | `int64_t`     | 8     |
- * | 20    | `UnSigned64`    | `uint64_t`    | 8     |
- */
-// clang-format on
-/**
- * @note This enum is packed (`ATTR(packed)`) to minimise its
+ * @c cast_dispatch, @c lookup_dtype_sizes).
+ *
+ * @li @c 0 — @c Float32 — @c float — 4 bytes
+ * @li @c 1 — @c Float64 — @c double — 8 bytes
+ * @li @c 2 — @c Float16 — @c uint16_t — 2 bytes
+ * @li @c 3 — @c BFloat16 — @c uint16_t — 2 bytes
+ * @li @c 4 — @c Float8E4M3fn — @c uint8_t — 1 byte
+ * @li @c 5 — @c Float8E5M2 — @c uint8_t — 1 byte
+ * @li @c 6 — @c Float4E2M1fn — @c uint8_t — 1 byte
+ * @li @c 7 — @c Signed8 — @c int8_t — 1 byte
+ * @li @c 8 — @c UnSigned8 — @c uint8_t — 1 byte
+ * @li @c 9 — @c QSigned8 — @c int8_t — 1 byte
+ * @li @c 10 — @c QUnSigned8 — @c uint8_t — 1 byte
+ * @li @c 11 — @c Signed16 — @c int16_t — 2 bytes
+ * @li @c 12 — @c UnSigned16 — @c uint16_t — 2 bytes
+ * @li @c 13 — @c QSigned16 — @c int16_t — 2 bytes
+ * @li @c 14 — @c QUnSigned16 — @c uint16_t — 2 bytes
+ * @li @c 15 — @c Signed32 — @c int32_t — 4 bytes
+ * @li @c 16 — @c UnSigned32 — @c uint32_t — 4 bytes
+ * @li @c 17 — @c QSigned32 — @c int32_t — 4 bytes
+ * @li @c 18 — @c QUnSigned32 — @c uint32_t — 4 bytes
+ * @li @c 19 — @c Signed64 — @c int64_t — 8 bytes
+ * @li @c 20 — @c UnSigned64 — @c uint64_t — 8 bytes
+ *
+ * @note This enum uses a @c uint8_t underlying type (C23) to minimise its
  *       footprint in structs that are serialised or copied
  *       frequently.
  *
@@ -158,7 +154,7 @@ typedef uint64_t uint64;
  * @see is_floating()    Classification helpers.
  * @see cast()           Type conversion.
  */
-typedef enum ATTR(packed) {
+typedef enum DType_ : uint8_t {
   Float32,      ///< 32-bit floating point.
   Float64,      ///< 64-bit floating point (double precision).
   Float16,      ///< 16-bit floating point (half precision).
@@ -186,11 +182,11 @@ typedef enum ATTR(packed) {
  * @brief Check whether a tensor's dtype is a floating-point type.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr`.
+ *                   @c nullptr.
  *
- * @return `true` if `input->dtype` is `Float32`, `Float64`,
- *         `Float16`, `BFloat16`, `Float8E4M3fn`, `Float8E5M2`,
- *         or `Float4E2M1fn`.  `false` otherwise.
+ * @return @c true if @c input->dtype is @c Float32, @c Float64,
+ *         @c Float16, @c BFloat16, @c Float8E4M3fn, @c Float8E5M2,
+ *         or @c Float4E2M1fn.  @c false otherwise.
  *
  * @see is_integer()
  * @see is_signed_integer()
@@ -202,10 +198,10 @@ bool is_floating(const Tensor *restrict input);
  *        (signed or unsigned, including quantized).
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr`.
+ *                   @c nullptr.
  *
- * @return `true` if `input->dtype` is any integer or quantized
- *         integer type.  `false` otherwise.
+ * @return @c true if @c input->dtype is any integer or quantized
+ *         integer type.  @c false otherwise.
  *
  * @see is_floating()
  * @see is_signed_integer()
@@ -218,11 +214,11 @@ bool is_integer(const Tensor *restrict input);
  *        (including quantized).
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr`.
+ *                   @c nullptr.
  *
- * @return `true` if `input->dtype` is `Signed8`, `QSigned8`,
- *         `Signed16`, `QSigned16`, `Signed32`, `QSigned32`,
- *         or `Signed64`.  `false` otherwise.
+ * @return @c true if @c input->dtype is @c Signed8, @c QSigned8,
+ *         @c Signed16, @c QSigned16, @c Signed32, @c QSigned32,
+ *         or @c Signed64.  @c false otherwise.
  *
  * @see is_unsigned_integer()
  * @see is_quantized_signed_integer()
@@ -234,11 +230,11 @@ bool is_signed_integer(const Tensor *restrict input);
  *        (including quantized).
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr`.
+ *                   @c nullptr.
  *
- * @return `true` if `input->dtype` is `UnSigned8`, `QUnSigned8`,
- *         `UnSigned16`, `QUnSigned16`, `UnSigned32`,
- *         `QUnSigned32`, or `UnSigned64`.  `false` otherwise.
+ * @return @c true if @c input->dtype is @c UnSigned8, @c QUnSigned8,
+ *         @c UnSigned16, @c QUnSigned16, @c UnSigned32,
+ *         @c QUnSigned32, or @c UnSigned64.  @c false otherwise.
  *
  * @see is_signed_integer()
  * @see is_quantized_unsigned_integer()
@@ -250,10 +246,10 @@ bool is_unsigned_integer(const Tensor *restrict input);
  *        integer type.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr`.
+ *                   @c nullptr.
  *
- * @return `true` if `input->dtype` is `QSigned8`, `QSigned16`,
- *         or `QSigned32`.  `false` otherwise.
+ * @return @c true if @c input->dtype is @c QSigned8, @c QSigned16,
+ *         or @c QSigned32.  @c false otherwise.
  *
  * @see is_quantized_unsigned_integer()
  * @see is_signed_integer()
@@ -265,10 +261,10 @@ bool is_quantized_signed_integer(const Tensor *restrict input);
  *        integer type.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr`.
+ *                   @c nullptr.
  *
- * @return `true` if `input->dtype` is `QUnSigned8`,
- *         `QUnSigned16`, or `QUnSigned32`.  `false` otherwise.
+ * @return @c true if @c input->dtype is @c QUnSigned8,
+ *         @c QUnSigned16, or @c QUnSigned32.  @c false otherwise.
  *
  * @see is_quantized_signed_integer()
  * @see is_unsigned_integer()
@@ -279,15 +275,15 @@ bool is_quantized_unsigned_integer(const Tensor *restrict input);
  * @brief Check whether a given @ref DType_ can be quantized.
  *
  * @details
- * Some data types are inherently quantized (e.g., `QSigned8`, `QSigned16`,
- * `QUnSigned8`), while others represent full-precision values.  This function
+ * Some data types are inherently quantized (e.g., @c QSigned8, @c QSigned16,
+ * @c QUnSigned8), while others represent full-precision values.  This function
  * reports whether a type is eligible to participate in quantization operations.
  *
  * @param[in] dtype  The data type to query.
  *
- * @return `true` if @p dtype is a quantizable type (`Float4E2M1fn`,
- *         `QSigned8`, `QUnSigned8`, `QSigned16`, `QUnSigned16`,
- *         `QSigned32`, `QUnSigned32`).  `false` otherwise.
+ * @return @c true if @p dtype is a quantizable type (@c Float4E2M1fn,
+ *         @c QSigned8, @c QUnSigned8, @c QSigned16, @c QUnSigned16,
+ *         @c QSigned32, @c QUnSigned32).  @c false otherwise.
  *
  * @see is_floating()
  * @see is_integer()
@@ -302,18 +298,18 @@ bool is_quantizable_dtype(DType_ dtype);
  * @brief Cast a tensor's data to a different dtype.
  *
  * @details
- * Dispatches through the `cast_dispatch` table (defined in
+ * Dispatches through the @c cast_dispatch table (defined in
  * @ref dtype.c) to select the correct element-wise conversion.
  * The destination tensor must be pre-allocated with the target
  * dtype and matching shape.
  *
- * @param[in]  src           Source tensor.  Must not be `nullptr`.
+ * @param[in]  src           Source tensor.  Must not be @c nullptr.
  * @param[in]  target_dtype  Desired output @ref DType_.
  * @param[out] dst           Destination tensor (must be
- *                           pre-allocated).  Must not be `nullptr`.
+ *                           pre-allocated).  Must not be @c nullptr.
  *
  * @pre  @p dst must have been created via
- *       `create_unallocated_tensor()` with the correct shape.
+ *       @c create_unallocated_tensor() with the correct shape.
  * @post On success, @p dst contains the type-converted copy of
  *       @p src.
  *
@@ -328,7 +324,7 @@ void cast(const Tensor *restrict src, DType_ target_dtype,
  *
  * @details
  * Looks up the byte-width from the precomputed
- * `lookup_dtype_sizes` table indexed by @p dtype.
+ * @c lookup_dtype_sizes table indexed by @p dtype.
  *
  * @param[in] dtype  The data type to query.
  *

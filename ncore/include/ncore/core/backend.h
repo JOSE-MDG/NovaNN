@@ -10,48 +10,42 @@
  * compute libraries, and this module is the single entry point for backend
  * management.
  *
- * ## Architecture
+ * @section architecture Architecture
  *
- * The runtime follows a **strategy pattern** for backend selection:
+ * The runtime follows a strategy pattern for backend selection:
  *
- * 1. At process startup, the application calls @ref is_backend_available()
+ * @li 1. At process startup, the application calls @ref is_backend_available()
  *    to probe which backends are compiled in and have matching hardware.
- * 2. The application then calls @ref delegate_execution() to set the
+ * @li 2. The application then calls @ref delegate_execution() to set the
  *    preferred backend for upcoming tensor operations.
- * 3. When the tensor dispatcher processes a computation, it opts for the
+ * @li 3. When the tensor dispatcher processes a computation, it opts for the
  *    preferred backend (if available), falling back to another option
  *    otherwise.
- * 4. The preferred backend can be queried at any time via
+ * @li 4. The preferred backend can be queried at any time via
  *    @ref get_current_running_backend().
  *
- * ## Backend Catalogue
- */
-// clang-format off
-/**
- * | Enumerator | Vendor / Library       | Typical Hardware       |
- * |------------|------------------------|------------------------|
- * | `CUDA`     | NVIDIA cuBLAS / cuDNN  | NVIDIA GPUs            |
- * | `HIP`      | AMD rocBLAS / MIOpen   | AMD GPUs               |
- * | `CPU`      | Scalar / SIMD fallback | Any CPU                |
- * | `Meta`     | No-op (shape inference)| N/A                    |
- * | `Miopen`   | AMD MIOpen             | AMD GPUs (convolution) |
- * | `OneDNN`   | Intel oneDNN / MKL-DNN | Intel/AMD CPUs / GPUs  |
- * | `Generic`  | Scalar / SIMD fallback | Any platform           |
- */
-// clang-format on
-/**
- * ## Thread Safety
+ * @section backend-catalogue Backend Catalogue
  *
- * - @ref get_current_running_backend() returns a pointer to a process-lifetime
+ * @li @c CUDA — NVIDIA cuBLAS / cuDNN — NVIDIA GPUs
+ * @li @c HIP — AMD rocBLAS / MIOpen — AMD GPUs
+ * @li @c CPU — Scalar / SIMD fallback — Any CPU
+ * @li @c Meta — No-op (shape inference) — N/A
+ * @li @c Miopen — AMD MIOpen — AMD GPUs (convolution)
+ * @li @c OneDNN — Intel oneDNN / MKL-DNN — Intel/AMD CPUs / GPUs
+ * @li @c Generic — Scalar / SIMD fallback — Any platform
+ *
+ * @section thread-safety Thread Safety
+ *
+ * @li @ref get_current_running_backend() returns a pointer to a process-lifetime
  *   object; it is safe to call from any thread.
- * - @ref delegate_execution() is safe to call from any thread.  Each call
+ * @li @ref delegate_execution() is safe to call from any thread.  Each call
  *   updates the preferred backend for subsequent dispatch; concurrent calls
  *   may race on the preference, but no undefined behaviour occurs.
- * - @ref is_backend_available() is a pure query with no side effects and is
+ * @li @ref is_backend_available() is a pure query with no side effects and is
  *   safe to call from any thread.
  *
  * @note This is a C header.  When included from C++ code, the declarations
- *       are wrapped in `extern "C"` for ABI compatibility.
+ *       are wrapped in @c extern "C" for ABI compatibility.
  *
  * @see simd.h   CPU SIMD capability detection (orthogonal to backend
  * selection).
@@ -60,8 +54,11 @@
 
 #pragma once
 
-#include <ncore/headeronly/macros.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
+
+#include <ncore/headeronly/macros.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,19 +75,20 @@ extern "C" {
  * The runtime selects an appropriate backend at startup based on compiled-in
  * support and available hardware.
  *
- * The `Generic` backend serves as a portable fallback that uses scalar or
- * SIMD-optimised kernels and is always available.  The `Meta` backend
+ * The @c Generic backend serves as a portable fallback that uses scalar or
+ * SIMD-optimised kernels and is always available.  The @c Meta backend
  * performs no computation and exists solely for shape inference and graph
  * construction — it never allocates device memory or launches kernels.
  *
- * @note The enumerator values are explicit and packed to guarantee a stable
- *       ABI across compilation units.  Do not renumber or reorder existing
- *       entries; append new backends after `Meta`.
+ * @note This enum uses a @c uint8_t underlying type (C23).  The enumerator
+ *       values are explicit to guarantee a stable ABI across compilation
+ *       units.  Do not renumber or reorder existing entries; append new
+ *       backends after @c Meta.
  *
  * @see delegate_execution()
  * @see is_backend_available()
  */
-typedef enum ATTR(packed) {
+typedef enum Backend : uint8_t {
   CUDA,    ///< NVIDIA CUDA runtime (cuBLAS, cuDNN, custom kernels).
   HIP,     ///< AMD HIP/ROCm runtime (rocBLAS, MIOpen).
   CPU,     ///< CPU-only execution with scalar or SIMD-optimised kernels.
@@ -109,8 +107,8 @@ typedef enum ATTR(packed) {
  * of the process and must not be freed or modified by the caller.
  *
  * If @ref delegate_execution() has not been called yet, the return value
- * is implementation-defined — typically `nullptr` or a pointer to the
- * `Generic` backend descriptor.
+ * is implementation-defined — typically @c nullptr or a pointer to the
+ * @c Generic backend descriptor.
  *
  * This function is intended for diagnostic logging and runtime introspection,
  * not for hot-path dispatch.  Backend selection should be performed once at
@@ -141,19 +139,19 @@ Backend *get_current_running_backend(void);
  * preference.  The actual backend used for a given operation depends on
  * availability at dispatch time.
  *
- * ## Behaviour
+ * @section behaviour Behaviour
  *
- * 1. Store @p backend as the preferred target for subsequent dispatch.
- * 2. Return `true` if the backend is available and was set as preferred.
- * 3. Return `false` if the backend is unavailable or @p backend is not a
+ * @li 1. Store @p backend as the preferred target for subsequent dispatch.
+ * @li 2. Return @c true if the backend is available and was set as preferred.
+ * @li 3. Return @c false if the backend is unavailable or @p backend is not a
  *    valid enumerator.
  *
  * @param[in] backend  The backend to prefer for upcoming tensor operations.
  *                     Must be a value defined in the @ref Backend enumeration.
  *
- * @return `true` if @p backend is available and was set as the preferred
+ * @return @c true if @p backend is available and was set as the preferred
  *         dispatch target.
- * @return `false` if the requested backend is unavailable on this platform
+ * @return @c false if the requested backend is unavailable on this platform
  *         or @p backend is not a valid enumerator.
  *
  * @pre  @p backend must be a value defined in the @ref Backend enumeration.
@@ -176,12 +174,12 @@ bool delegate_execution(Backend backend);
  * Probes the system to determine whether the specified backend can be used.
  * A backend is considered available when:
  *
- * - The corresponding vendor library is linked into the process (or can be
+ * @li The corresponding vendor library is linked into the process (or can be
  *   loaded dynamically).
- * - The required hardware is detected at runtime (e.g. an NVIDIA GPU for
- *   `CUDA`).
+ * @li The required hardware is detected at runtime (e.g. an NVIDIA GPU for
+ *   @c CUDA).
  *
- * The `Generic` backend is always available on every platform.  The `Meta`
+ * The @c Generic backend is always available on every platform.  The @c Meta
  * backend is always available as it performs no computation.
  *
  * This function has no side effects and does not allocate resources.
@@ -191,8 +189,8 @@ bool delegate_execution(Backend backend);
  * @param[in] backend  The backend to query.  Must be a valid enumerator
  *                     from the @ref Backend enumeration.
  *
- * @return `true` if the backend is available for use on this platform.
- * @return `false` if the backend is not supported, the vendor library is
+ * @return @c true if the backend is available for use on this platform.
+ * @return @c false if the backend is not supported, the vendor library is
  *         missing, or the required hardware was not detected.
  *
  * @note Thread-safe and reentrant.  No global state is modified.
