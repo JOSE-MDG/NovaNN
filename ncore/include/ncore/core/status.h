@@ -8,13 +8,13 @@
  * It provides a unified way to report failures across different
  * compute backends and internal modules.
  *
- * ## Architecture
+ * @section architecture Architecture
  * The error handling system is built around a centralized enumeration
  * of error codes (@ref novaError_t) that are mapped to human-readable
  * messages in constant time. This ensures that error reporting is both
  * lightweight and descriptive.
  *
- * ## Usage
+ * @section usage Usage
  * Functions that can fail should return a @ref novaError_t or a
  * @ref novaStatus_t structure. Callers can then use @ref nova_get_error_msg()
  * to log or display a descriptive message about the failure.
@@ -23,6 +23,9 @@
  */
 
 #pragma once
+
+#include <stdbool.h>
+#include <stdint.h>
 
 #include <ncore/headeronly/macros.h>
 
@@ -38,7 +41,7 @@
  * @note The enumerators are organized into logical groups (Parameters,
  *       Memory, Transfers, etc.) to aid in categorization and debugging.
  */
-typedef enum ATTR(packed) {
+typedef enum novaError_t : uint8_t {
   /* Success */
   novaSuccess,
 
@@ -70,6 +73,7 @@ typedef enum ATTR(packed) {
   /* Device/Backend */
   novaDeviceNotAvailable,
   novaDeviceNotInitialized,
+  novaExternalDeviceError,
   novaBackendNotCompiled,
   novaBackendNotSupported,
 
