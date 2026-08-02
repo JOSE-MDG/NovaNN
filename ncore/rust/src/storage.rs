@@ -6,7 +6,8 @@
 
 use crate::error::StorageError;
 use crate::ffi::cpp::{
-    DeviceBuffer, DeviceKind, deviceRelease, deviceReserve, deviceResize, getDeviceBackend,
+    DeviceBuffer, DeviceKind, NovaError, deviceRelease, deviceReserve, deviceResize,
+    getDeviceBackend,
 };
 use std::alloc::{Layout, alloc, dealloc, realloc};
 use std::ffi::CStr;
@@ -125,9 +126,9 @@ impl RustStorage {
         // SAFETY: device_buf is a valid, writable stack allocation.
         let status = unsafe { deviceReserve(size, &mut device_buf, pin_memory, alignment, kind) };
 
-        if status.code != 0 {
+        if status.err != NovaError::Success {
             let msg = if status.message.is_null() {
-                "Unknown device error message, the message null".into()
+                "Device operation failed with no error message".into()
             } else {
                 // SAFETY: message points to a static C string literal.
                 unsafe { CStr::from_ptr(status.message) }
@@ -196,9 +197,9 @@ impl RustStorage {
                 let status =
                     unsafe { deviceResize(device_buf as *mut DeviceBuffer, new_size, *alignment) };
 
-                if status.code != 0 {
+                if status.err != NovaError::Success {
                     let msg = if status.message.is_null() {
-                        "Unknown device error message, the message null".into()
+                        "Device operation failed with no error message".into()
                     } else {
                         // SAFETY: message points to a static C string literal.
                         unsafe { CStr::from_ptr(status.message) }
@@ -271,9 +272,9 @@ impl Drop for RustStorage {
                 // SAFETY: device_buf was returned by a previous
                 // deviceReserve call and has not been freed yet.
                 let status = unsafe { deviceRelease(device_buf as *mut DeviceBuffer) };
-                if status.code != 0 {
+                if status.err != NovaError::Success {
                     let msg = if status.message.is_null() {
-                        "Unknown device error message, the message null".to_string()
+                        "Device operation failed with no error message".to_string()
                     } else {
                         // SAFETY: message points to a static C string literal.
                         unsafe { CStr::from_ptr(status.message) }
@@ -282,7 +283,7 @@ impl Drop for RustStorage {
                     };
                     eprintln!(
                         "RustStorage::drop: deviceRelease failed (code={}): {msg}",
-                        status.code
+                        status.err as i32
                     );
                 }
             }
