@@ -6,10 +6,10 @@
  * @details
  * Declares the single memcpy function @ref cudaTransfer that
  * handles all copy directions via a @ref DeviceMemcpyKind tag.
- * Internally uses a reusable CUDA stream and `cudaMemcpyAsync`
+ * Internally uses a reusable CUDA stream and @c cudaMemcpyAsync
  * for all transfers, followed by stream synchronisation.
  *
- * ## Stream Model
+ * @section stream-model Stream Model
  *
  * This module maintains a single reusable CUDA stream (singleton
  * pattern) created on first call to @ref cudaTransfer.  All
@@ -17,22 +17,22 @@
  * is not destroyed during program execution; the CUDA runtime
  * reclaims it on process exit.
  *
- * ## Error Handling
+ * @section error-handling Error Handling
  *
- * Errors from `cudaMemcpyAsync` and `cudaStreamSynchronize` are
- * mapped to @ref cudaStatus_t codes via the internal @ref map_error
- * function.  The caller receives `CUDA_OK` on success or a
+ * Errors from @c cudaMemcpyAsync and @c cudaStreamSynchronize are
+ * mapped to @ref novaStatus_t codes via the internal @ref mapError
+ * function.  The caller receives @c CUDA_OK on success or a
  * descriptive error status otherwise.
  *
- * ## Thread Safety
+ * @section thread-safety Thread Safety
  *
  * @ref cudaTransfer is safe to call from multiple threads.  The
  * internal stream serialises all transfers, and CUDA runtime
  * calls are thread-safe.
  *
- * This header is the CUDA counterpart of `HipIO.hpp` and
+ * This header is the CUDA counterpart of @c HipIO.hpp and
  * provides an identical API surface.  The dispatch layer in
- * `ffi.cpp` selects between CUDA and HIP at runtime.
+ * @c ffi.cpp selects between CUDA and HIP at runtime.
  *
  * @see CudaIO.cpp        Implementation of the transfer function.
  * @see CudaAllocator.hpp CUDA memory allocation operations.
@@ -41,50 +41,45 @@
 
 #pragma once
 
+#include <cstddef>
+
+#include <ncore/core/status.h>
+
 #include "CudaAllocator.hpp"
 #include "ffi.hpp"
-#include <cstddef>
 
 /**
  * @brief Copy memory between host and device (or device to device).
  *
  * @details
- * Performs a memory transfer using `cudaMemcpyAsync` on a
+ * Performs a memory transfer using @c cudaMemcpyAsync on a
  * reusable internal CUDA stream, then synchronises the stream
  * before returning.  The transfer direction is determined by
  * @p kind.
  *
- * ### Supported Directions
+ * @subsection supported-directions Supported Directions
  *
- * - `deviceMemcpyHostToDevice` — H2D (host source, device dest).
- * - `deviceMemcpyDeviceToHost` — D2H (device source, host dest).
- * - `deviceMemcpyDeviceToDevice` — D2D (device source, device dest).
+ * @li @c deviceMemcpyHostToDevice — H2D (host source, device dest).
+ * @li @c deviceMemcpyDeviceToHost — D2H (device source, host dest).
+ * @li @c deviceMemcpyDeviceToDevice — D2D (device source, device dest).
  *
- * ### Execution Flow
+ * @subsection execution-flow Execution Flow
  *
- * 1. Obtain the singleton stream via @ref get_stream.
- * 2. Call `cudaMemcpyAsync(dst, src, bytes, kind, stream)`.
- * 3. If step 2 fails, return mapped error status.
- * 4. Call `cudaStreamSynchronize(stream)` to block until the
+ * @li 1. Obtain the singleton stream via @ref get_stream.
+ * @li 2. Call @c cudaMemcpyAsync(dst, src, bytes, kind, stream).
+ * @li 3. If step 2 fails, return mapped error status.
+ * @li 4. Call @c cudaStreamSynchronize(stream) to block until the
  *    transfer completes.
- * 5. If step 4 fails, return mapped error status.
- * 6. Return `CUDA_OK`.
- *
- * ### Error Codes
- *
- * - `0` — Success.
- * - `1` — Invalid value (null pointer, zero bytes, etc).
- * - `2` — Invalid memcpy direction.
- * - `3` — Invalid resource handle (bad stream).
- * - `-1` — Unrecognised CUDA error.
+ * @li 5. If step 4 fails, return mapped error status.
+ * @li 6. Return @c CUDA_OK.
  *
  * @param[in]  bytes     Number of bytes to copy.
  * @param[in]  kind      Copy direction (@ref DeviceMemcpyKind).
  * @param[in]  src       Source pointer (host or device memory).
  * @param[out] dst       Destination pointer (host or device memory).
  *
- * @return @ref CUDA_OK on success, or a @ref cudaStatus_t with
- *         a non-zero code and a descriptive message.
+ * @return @ref CUDA_OK on success, or a @ref novaStatus_t with
+ *         a novaSuccess error and a descriptive message.
  *
  * @pre  @p bytes must be greater than zero.
  * @pre  @p src must point to a valid memory region of at least
@@ -97,13 +92,13 @@
  *
  * @post On success, @p dst contains @p bytes copied from @p src.
  *
- * @note If @p kind is `deviceMemcpyHostToDevice` or
- *       `deviceMemcpyDeviceToHost`, the host-side pointer should
+ * @note If @p kind is @c deviceMemcpyHostToDevice or
+ *       @c deviceMemcpyDeviceToHost, the host-side pointer should
  *       ideally be page-locked for best async performance.
- *       However, `cudaMemcpyAsync` handles pageable memory by
+ *       However, @c cudaMemcpyAsync handles pageable memory by
  *       internally staging through a pinned buffer.
  *
  * @see deviceMemcpy()  Device-agnostic wrapper that calls this.
  */
-cudaStatus_t cudaTransfer(std::size_t bytes, DeviceMemcpyKind kind,
+novaStatus_t cudaTransfer(std::size_t bytes, DeviceMemcpyKind kind,
                           const void *src, void *dst);
