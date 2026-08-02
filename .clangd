@@ -89,9 +89,7 @@ Diagnostics:
       - modernize-use-nullptr
       - modernize-use-bool-literals
       - modernize-use-default-member-init
-      - misc-const-correctness
       - misc-definitions-in-headers
-      - misc-header-include-cycle
       - misc-misplaced-const
       - misc-no-recursion
       - misc-redundant-expression
@@ -120,9 +118,7 @@ Diagnostics:
       - modernize-use-bool-literals
       - misc-no-recursion
     Add:
-      - misc-const-correctness
       - misc-definitions-in-headers
-      - misc-header-include-cycle
       - misc-misplaced-const
       - misc-redundant-expression
       - misc-static-assert
