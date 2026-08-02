@@ -6,18 +6,18 @@
  * Each (Except FP4 and FP8) conversion function selects between two strategies
  * at compile time:
  *
- *   - **Compiler builtin** — when the platform provides a native type
- *     (`_Float16` for FP16, `__bf16` for BF16 on GCC/Clang) the conversion
- *     is a simple `static_cast`, producing optimal code.
- *   - **Software fallback** — an integer-only bit-manipulation routine
- *     from the corresponding `ncore/headeronly/dtypes/<file>.hh` header.  The
- *     fallback is pulled in via a conditional `#include` on the matching
- *     `*.hpp` wrapper in this directory.
+ *   @li Compiler builtin — when the platform provides a native type
+ *     (@c _Float16 for FP16, @c __bf16 for BF16 on GCC/Clang) the conversion
+ *     is a simple @c static_cast, producing optimal code.
+ *   @li Software fallback — an integer-only bit-manipulation routine
+ *     from the corresponding @c ncore/headeronly/dtypes/<file>.hh header.  The
+ *     fallback is pulled in via a conditional @c #include on the matching
+ *     @c *.hpp wrapper in this directory.
  *
  * FP8 formats (E5M2, E4M3FN) and FP4 always use the software path because
  * no mainstream compiler exposes a native 8-bit or 4-bit float type.
  *
- * The functions are declared with `extern "C"` linkage in DTypes.hpp and
+ * The functions are declared with @c extern "C" linkage in DTypes.hpp and
  * exposed to user code through fp_utils.h.
  *
  * @see fp_utils.h       C API for reduced-precision float conversions.
