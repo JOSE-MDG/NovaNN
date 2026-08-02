@@ -10,29 +10,29 @@
  *
  * All returned strings are heap-allocated via the internal
  * @ref StringBuilder and must be explicitly freed by the caller using
- * `free()`.
+ * @c free().
  *
- * ## Representation Pipeline
+ * @section representation-pipeline Representation Pipeline
  *
- * 1. **Sanitization**: Validates input tensor and handles
+ * @li 1. Sanitization: Validates input tensor and handles
  *    device-to-host transfers.
- * 2. **Contextualization**: Calls @ref build_repr_context() to scan
+ * @li 2. Contextualization: Calls @ref build_repr_context() to scan
  *    the tensor and derive formatting parameters.
- * 3. **Initialization**: Sets up a @ref StringBuilder with an
+ * @li 3. Initialization: Sets up a @ref StringBuilder with an
  *    initial capacity of 256 bytes.
- * 4. **Header Emission**: Appends the `"tensor("` prefix.
- * 5. **Layout Dispatch**: Routes rendering to the appropriate
+ * @li 4. Header Emission: Appends the @c "tensor(" prefix.
+ * @li 5. Layout Dispatch: Routes rendering to the appropriate
  *    engine:
- *    - **Scalar**: Single element formatted directly.
- *    - **Summarized**: Large tensors with edge-item truncation.
- *    - **Strided**: Non-contiguous views via @ref TensorIterator.
- *    - **Dense**: Optimized path for contiguous tensors.
- * 6. **Metadata & Closure**: Appends the closing suffix and
+ *    @li @c Scalar: Single element formatted directly.
+ *    @li @c Summarized: Large tensors with edge-item truncation.
+ *    @li @c Strided: Non-contiguous views via @ref TensorIterator.
+ *    @li @c Dense: Optimized path for contiguous tensors.
+ * @li 6. Metadata & Closure: Appends the closing suffix and
  *    metadata footer.
  *
  * If any step encounters a memory allocation failure, the
  * @ref StringBuilder propagates the error via its @ref SBStatus field
- * and the pipeline returns `nullptr` gracefully.
+ * and the pipeline returns @c nullptr gracefully.
  *
  * @see tensor_repr.h     Public API definitions.
  * @see repr_context.h    Context and scanning logic.
@@ -66,14 +66,14 @@
  * Performs the actual orchestration of the repr pipeline: builds the
  * context, initializes the builder, dispatches to layout renderers,
  * and appends metadata. On allocation failure, the error is
- * propagated and `nullptr` is returned.
+ * propagated and @c nullptr is returned.
  *
  * @param[in] ten  Pointer to the tensor to render. Must be
  *                 host-accessible.
  * @param[in] opts Pointer to the formatting options. Must not be
- *                 `nullptr`.
+ *                 @c nullptr.
  *
- * @return Heap-allocated string on success, or `nullptr` on
+ * @return Heap-allocated string on success, or @c nullptr on
  *         allocation failure. The caller takes ownership.
  *
  * @see build_repr_context()
@@ -128,11 +128,11 @@ static char *repr_internal(const Tensor *ten, const ReprOptions *opts) {
  * transferred with @ref transf_tensor_from_device(). The shadow is
  * freed after rendering.
  *
- * @param[in] ten Pointer to the tensor to render. May be `nullptr`
- *                (returns `nullptr`).
+ * @param[in] ten Pointer to the tensor to render. May be @c nullptr
+ *                (returns @c nullptr).
  *
- * @return Heap-allocated string (caller must `free()`), or
- *         `nullptr` on failure.
+ * @return Heap-allocated string (caller must @c free()), or
+ *         @c nullptr on failure.
  *
  * @see tensor_repr_debug()
  * @see tensor_repr_with_options()
@@ -201,11 +201,11 @@ char *tensor_repr(const Tensor *ten) {
  * temporary host-side shadow is created and the data is transferred
  * to CPU for rendering.
  *
- * @param[in] ten Pointer to the tensor to render. May be `nullptr`
- *                (returns `nullptr`).
+ * @param[in] ten Pointer to the tensor to render. May be @c nullptr
+ *                (returns @c nullptr).
  *
- * @return Heap-allocated string (caller must `free()`), or
- *         `nullptr` on failure.
+ * @return Heap-allocated string (caller must @c free()), or
+ *         @c nullptr on failure.
  *
  * @see tensor_repr()
  * @see tensor_repr_with_options()
@@ -271,16 +271,16 @@ char *tensor_repr_debug(const Tensor *ten) {
  * @details
  * Advanced entry point that accepts a @ref ReprOptions struct to
  * customize thresholds, precision, scientific notation, and other
- * formatting parameters. If @p opts is `nullptr`, defaults are used
+ * formatting parameters. If @p opts is @c nullptr, defaults are used
  * (equivalent to @ref tensor_repr()).
  *
- * @param[in]  ten  Pointer to the tensor to render. May be `nullptr`
- *                  (returns `nullptr`).
+ * @param[in]  ten  Pointer to the tensor to render. May be @c nullptr
+ *                  (returns @c nullptr).
  * @param[in]  opts Pointer to a @ref ReprOptions struct. If
- *                  `nullptr`, defaults are used.
+ *                  @c nullptr, defaults are used.
  *
- * @return Heap-allocated string (caller must `free()`), or
- *         `nullptr` on failure.
+ * @return Heap-allocated string (caller must @c free()), or
+ *         @c nullptr on failure.
  *
  * @see repr_default_options()
  * @see tensor_repr()
@@ -344,11 +344,11 @@ char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts) {
  *
  * @details
  * Convenience wrapper that calls @ref tensor_repr(), writes the
- * result to `stdout` followed by a newline, and automatically frees
+ * result to @c stdout followed by a newline, and automatically frees
  * the allocated memory. GPU tensors are handled transparently via
  * host-side shadowing.
  *
- * @param[in] ten Pointer to the tensor to print. May be `nullptr`
+ * @param[in] ten Pointer to the tensor to print. May be @c nullptr
  *                (no-op).
  */
 void tensor_print(const Tensor *ten) {
@@ -368,11 +368,11 @@ void tensor_print(const Tensor *ten) {
  *
  * @details
  * Convenience wrapper that calls @ref tensor_repr_debug(), writes
- * the result to `stdout` followed by a newline, and automatically
+ * the result to @c stdout followed by a newline, and automatically
  * frees the allocated memory. GPU tensors are handled transparently
  * via host-side shadowing.
  *
- * @param[in] ten Pointer to the tensor to print. May be `nullptr`
+ * @param[in] ten Pointer to the tensor to print. May be @c nullptr
  *                (no-op).
  */
 void tensor_print_debug(const Tensor *ten) {
