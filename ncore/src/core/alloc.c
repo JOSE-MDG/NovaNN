@@ -7,28 +7,28 @@
  * for all buffer allocation in NovaNN.  Allocates through the Rust
  * FFI allocator and returns structured @ref novaStatus_t errors.
  *
- * ## Operating Modes
+ * @section operating-modes Operating Modes
  *
  * The function operates in one of two modes determined by
  * @p create_storage:
  *
- * 1. **Raw handle mode** (@p create_storage == `false`):
+ * @li Raw handle mode (@p create_storage == @c false):
  *    Allocates memory via @ref safe_reserve() and returns the
  *    @ref RustHandle through @p handle.  The caller owns the handle
  *    and must manage its lifetime.
  *
- * 2. **Full tensor mode** (@p create_storage == `true`):
+ * @li Full tensor mode (@p create_storage == @c true):
  *    Allocates memory, heap-allocates a @ref TensorStorage, and
  *    attaches it to the tensor pointed to by @p ten.  The tensor's
- *    `storage`, `data`, and `is_allocated_` fields are populated.
+ *    @c storage, @c data, and @c is_allocated_ fields are populated.
  *
- * ## Alignment
+ * @section alignment Alignment
  *
  * Buffer alignment is selected automatically:
- * - **GPU**: 512 bytes (coalesced memory access).
- * - **CPU / other**: 64 bytes (cache-line aligned).
+ * @li GPU: 512 bytes (coalesced memory access).
+ * @li CPU / other: 64 bytes (cache-line aligned).
  *
- * ## Thread Safety
+ * @section thread-safety Thread Safety
  *
  * All functions are thread-safe.  The underlying Rust allocator
  * manages its own synchronisation.
@@ -53,8 +53,8 @@
  *
  * @param[in] device  The device selection (CPU, GPU, or META).
  *
- * @return `"cpu"` for `DEVICE_CPU`, `"device"` for `DEVICE_GPU`,
- *         or `"none"` as a fallback for META / unknown values.
+ * @return @c "cpu" for @c DEVICE_CPU, @c "device" for @c DEVICE_GPU,
+ *         or @c "none" as a fallback for META / unknown values.
  */
 static const char *map_device2string(Device device) {
   switch (device) {
@@ -76,30 +76,30 @@ static const char *map_device2string(Device device) {
  * @ref RustHandle.  Alignment is selected automatically: 512 bytes
  * for GPU, 64 bytes otherwise.
  *
- * When @p create_storage is `false`, only a raw @ref RustHandle is
- * returned via @p handle.  When `true`, a @ref TensorStorage is
+ * When @p create_storage is @c false, only a raw @ref RustHandle is
+ * returned via @p handle.  When @c true, a @ref TensorStorage is
  * heap-allocated, populated with the handle and data pointer, and
  * attached to the tensor pointed to by @p ten.
  *
  * @param[in]  bytes          Requested allocation size in bytes.
- * @param[in]  device         Target device (`DEVICE_CPU`, `DEVICE_GPU`,
- *                            or `DEVICE_META`).
- * @param[in]  pin_memory     If `true`, request page-locked host memory
+ * @param[in]  device         Target device (@c DEVICE_CPU, @c DEVICE_GPU,
+ *                            or @c DEVICE_META).
+ * @param[in]  pin_memory     If @c true, request page-locked host memory
  *                            (CPU only).
  * @param[out] handle         Pointer to receive the raw RustHandle.
- *                            Must not be `nullptr` when @p create_storage
- *                            is `false`.
- * @param[in,out] ten         Tensor to initialize.  Must not be `nullptr`
- *                            when @p create_storage is `true`, and must
+ *                            Must not be @c nullptr when @p create_storage
+ *                            is @c false.
+ * @param[in,out] ten         Tensor to initialize.  Must not be @c nullptr
+ *                            when @p create_storage is @c true, and must
  *                            not already be allocated.
- * @param[in]  create_storage If `true`, create a full TensorStorage and
- *                            attach it to @p ten.  If `false`, only
+ * @param[in]  create_storage If @c true, create a full TensorStorage and
+ *                            attach it to @p ten.  If @c false, only
  *                            populate @p handle.
  *
- * @return @ref novaStatus_t with `novaSuccess` on success.
+ * @return @ref novaStatus_t with @c novaSuccess on success.
  *
- * @retval novaInvalidPointer  @p ten is `nullptr` when @p create_storage is
- *                             `true`, or @p ten is already allocated.
+ * @retval novaInvalidPointer  @p ten is @c nullptr when @p create_storage is
+ *                             @c true, or @p ten is already allocated.
  * @retval novaSuccess         META device or successful allocation.
  * @retval ...                 Forwarded from @ref safe_reserve().
  *
@@ -107,7 +107,7 @@ static const char *map_device2string(Device device) {
  * @pre  Exactly one of @p handle or @p ten must be non-nullptr,
  *       determined by @p create_storage.
  *
- * @post On success with @p create_storage `true`, @p ten is marked
+ * @post On success with @p create_storage @c true, @p ten is marked
  *       as allocated and its @c storage, @c data, and @c is_allocated_
  *       fields are populated.
  *
