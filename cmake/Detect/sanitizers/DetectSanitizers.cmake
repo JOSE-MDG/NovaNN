@@ -185,6 +185,7 @@ if(USE_UBSAN)
     # --push-state,--no-as-needed pair keeps it on the line despite
     # -Wl,--as-needed + LTO.
     set(_nova_ubsan_runtime_link "")
+    set(_nova_san_arch "x86_64")
     if(_nova_san_arch AND
        EXISTS "${_nova_san_runtime_dir}/libclang_rt.ubsan_standalone-x86_64.so")
       set(_nova_ubsan_runtime_link
