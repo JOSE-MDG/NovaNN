@@ -14,10 +14,10 @@
  * @ref int_format_value, @ref uint_format_value, or
  * @ref qint_format_value).
  *
- * ## Dispatch Table
+ * @section dispatch-table Dispatch Table
  *
- * @ref g_element_formatters is a `NUM_DTYPES`-sized array populated
- * via designated initializers. Every entry `0` .. `NUM_DTYPES-1` is
+ * @ref g_element_formatters is a @c NUM_DTYPES-sized array populated
+ * via designated initializers. Every entry @c 0 .. @c NUM_DTYPES-1 is
  * explicitly filled, ensuring that @ref format_element() is always
  * safe to call for any valid @ref DType_.
  *
@@ -277,7 +277,7 @@ static inline int fmt_qunsigned32(char *buf, size_t cap, const void *ptr,
  * @brief Global dispatch table for element formatting.
  *
  * @details
- * Every entry `0` .. `NUM_DTYPES-1` is explicitly populated via
+ * Every entry @c 0 .. @c NUM_DTYPES-1 is explicitly populated via
  * designated initializers. This ensures that @ref format_element()
  * is always safe to call for any valid @ref DType_.
  *

@@ -4,8 +4,8 @@
  *
  * @details
  * Implements the conversion of signed and unsigned integer types into
- * human-readable strings. Uses portable format specifiers (`PRId64`,
- * `PRIu64`) and supports boolean interpretation of unsigned values.
+ * human-readable strings. Uses portable format specifiers (@c PRId64,
+ * @c PRIu64) and supports boolean interpretation of unsigned values.
  *
  * @see int_formatter.h   Interface definitions.
  * @see element_fmt.c     Element dispatch table.

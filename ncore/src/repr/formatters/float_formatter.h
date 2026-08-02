@@ -5,7 +5,7 @@
  * @details
  * Declares @ref float_format_value(), the low-level routine that converts
  * IEEE 754 floating-point values into human-readable strings. Supports
- * standard decimal (`%f`) and scientific (`%e`) notation and IEEE 754
+ * standard decimal (@c %f) and scientific (@c %e) notation and IEEE 754
  * special values (NaN, inf).
  *
  * @see float_formatter.c  Implementation details.
@@ -22,14 +22,14 @@
  * @brief Convert a floating-point value into a character buffer.
  *
  * @details
- * Performs the low-level string conversion using `snprintf`. IEEE 754
- * special values (`nan`, `inf`, `-inf`) are handled explicitly.
+ * Performs the low-level string conversion using @c snprintf. IEEE 754
+ * special values (@c nan, @c inf, @c -inf) are handled explicitly.
  *
- * @param[out] buf       Target string buffer. Must not be `nullptr`.
+ * @param[out] buf       Target string buffer. Must not be @c nullptr.
  * @param[in]  buf_size  Capacity of @p buf in bytes.
  * @param[in]  val       The numeric value to format.
  * @param[in]  ctx       Active representation context. Must not be
- *                       `nullptr`.
+ *                       @c nullptr.
  *
  * @return Number of characters written (excluding the null-terminator).
  */

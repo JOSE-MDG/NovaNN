@@ -8,11 +8,11 @@
  * dispatch table (@ref g_element_formatters) and relies on the
  * calling context for formatting parameters (precision, notation).
  *
- * ## Special Cases
+ * @section special-cases Special Cases
  *
- * - `nan` — rendered as the literal string `"nan"`.
- * - `+inf` / `-inf` — rendered as `"inf"` / `"-inf"`.
- * - Subnormal values are handled transparently by `snprintf`.
+ * @li @c nan — rendered as the literal string @c "nan".
+ * @li @c +inf / @c -inf — rendered as @c "inf" / @c "-inf".
+ * @li Subnormal values are handled transparently by @c snprintf.
  *
  * @see float_formatter.h   Interface definitions.
  * @see element_fmt.c       Element dispatch table.

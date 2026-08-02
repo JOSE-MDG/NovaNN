@@ -44,9 +44,9 @@ typedef int (*element_formatter_t)(char *buf, size_t buf_size,
  * @brief Global dispatch table containing formatters for all DTypes.
  *
  * @details
- * A `NUM_DTYPES`-sized array of @ref element_formatter_t function
- * pointers, indexed directly by @ref DType_ values (`0` ..
- * `NUM_DTYPES-1`). Populated at compile time via designated
+ * A @c NUM_DTYPES-sized array of @ref element_formatter_t function
+ * pointers, indexed directly by @ref DType_ values (@c 0 ..
+ * @c NUM_DTYPES-1). Populated at compile time via designated
  * initializers in @ref element_fmt.c.
  *
  * @see format_element()
@@ -62,7 +62,7 @@ extern element_formatter_t g_element_formatters[NUM_DTYPES];
  * the tensor's data type in @ref g_element_formatters and executes
  * it. This is the primary interface for layout renderers.
  *
- * @param[out] buf      Output string buffer. Must not be `nullptr`.
+ * @param[out] buf      Output string buffer. Must not be @c nullptr.
  * @param[in]  buf_size Buffer capacity in bytes.
  * @param[in]  ptr      Pointer to the element data.
  * @param[in]  ten      Parent tensor.

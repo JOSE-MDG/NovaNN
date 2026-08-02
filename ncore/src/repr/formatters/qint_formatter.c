@@ -8,9 +8,9 @@
  * real-value representation using the tensor's scale and zero-point
  * metadata.
  *
- * ## Dequantization Formula
+ * @section dequantization-formula Dequantization Formula
  *
- * `float_val = (raw - zero_point) * scale`
+ * @c "float_val = (raw - zero_point) * scale"
  *
  * When @ref ReprOptions::show_dequantized is enabled, the output
  * includes both the raw integer and the dequantized value for
