@@ -12,12 +12,12 @@
  * ensures correct data access for any valid stride pattern
  * supported by the NovaNN core.
  *
- * ## Architecture
+ * @section architecture Architecture
  *
- * - **Iterator-Driven**: Uses @ref iter_init() and @ref iter_advance()
+ * @li Iterator-Driven: Uses @ref iter_init() and @ref iter_advance()
  *   to handle row-major navigation regardless of physical data
  *   layout.
- * - **Recursive Formatting**: Mirrors the bracketed and indented
+ * @li Recursive Formatting: Mirrors the bracketed and indented
  *   structure of the dense renderer for visual consistency.
  *
  * @see layouts.h          Renderer interface declarations.

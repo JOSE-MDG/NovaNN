@@ -7,9 +7,9 @@
  * the NovaNN representation module. Each engine is specialized for a
  * specific tensor topology or size:
  *
- * - **Dense**: High-performance rendering for contiguous tensors.
- * - **Strided**: General-purpose rendering for non-contiguous views.
- * - **Summarized**: Edge-item truncation for tensors exceeding display
+ * @li @c Dense: High-performance rendering for contiguous tensors.
+ * @li @c Strided: General-purpose rendering for non-contiguous views.
+ * @li @c Summarized: Edge-item truncation for tensors exceeding display
  *   limits.
  *
  * All renderers operate on a @ref ReprContext and write their output
@@ -34,9 +34,9 @@
  * arithmetic where possible.
  *
  * @param[in]     ctx Pointer to the representation context. Must not
- *                    be `nullptr`.
+ *                    be @c nullptr.
  * @param[in,out] sb  Pointer to the StringBuilder. Must not be
- *                    `nullptr`.
+ *                    @c nullptr.
  */
 void dense_layout_render(const ReprContext *ctx, StringBuilder *sb);
 
@@ -49,9 +49,9 @@ void dense_layout_render(const ReprContext *ctx, StringBuilder *sb);
  * to safely navigate the strided layout.
  *
  * @param[in]     ctx Pointer to the representation context. Must not
- *                    be `nullptr`.
+ *                    be @c nullptr.
  * @param[in,out] sb  Pointer to the StringBuilder. Must not be
- *                    `nullptr`.
+ *                    @c nullptr.
  */
 void strided_layout_render(const ReprContext *ctx, StringBuilder *sb);
 
@@ -61,11 +61,11 @@ void strided_layout_render(const ReprContext *ctx, StringBuilder *sb);
  * @details
  * Prevents overwhelming output for large tensors by showing only a
  * fixed number of elements at each dimension's start and end,
- * replacing the middle with `"..."` ellipses.
+ * replacing the middle with @c "..." ellipses.
  *
  * @param[in]     ctx Pointer to the representation context. Must not
- *                    be `nullptr`.
+ *                    be @c nullptr.
  * @param[in,out] sb  Pointer to the StringBuilder. Must not be
- *                    `nullptr`.
+ *                    @c nullptr.
  */
 void summarized_layout_render(const ReprContext *ctx, StringBuilder *sb);

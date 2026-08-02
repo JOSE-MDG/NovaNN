@@ -11,13 +11,13 @@
  * The renderer is fully strided-aware, allowing it to correctly
  * summarize both contiguous and view tensors.
  *
- * ## Architecture
+ * @section architecture Architecture
  *
- * - **Recursive Range Rendering**: `render_range` decides for each
+ * @li Recursive Range Rendering: @c render_range decides for each
  *   dimension whether to show all elements or apply truncation.
- * - **Ellipsis Injection**: If a dimension is truncated, a central
- *   `"..."` marker is injected to represent omitted elements.
- * - **Strided Navigation**: Uses @ref compute_linear_byte_offset()
+ * @li Ellipsis Injection: If a dimension is truncated, a central
+ *   @c "..." marker is injected to represent omitted elements.
+ * @li Strided Navigation: Uses @ref compute_linear_byte_offset()
  *   to ensure sampled edge items are correctly resolved in memory.
  *
  * @see layouts.h          Renderer interface declarations.

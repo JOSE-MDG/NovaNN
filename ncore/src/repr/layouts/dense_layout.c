@@ -9,20 +9,20 @@
  * increments in the innermost loops, bypassing expensive
  * multidimensional offset calculations.
  *
- * ## Separators
+ * @section separators Separators
  *
- * - Last dimension: `", "` between elements.
- * - Second-to-last: `",\n"` + indentation between rows.
- * - Outer dimensions: `",\n\n"` + indentation between higher-
+ * @li Last dimension: @c ", " between elements.
+ * @li Second-to-last: @c ",\n" + indentation between rows.
+ * @li Outer dimensions: @c ",\n\n" + indentation between higher-
  *   dimensional slices.
  *
- * ## Architecture
+ * @section architecture Architecture
  *
- * - **Recursive Descent**: `render_dim` walks the tensor dimensions
- *   from outer (dim 0) to inner (`ndims-1`).
- * - **Fast-Path**: If @ref is_contiguous() returns `true`, a base
+ * @li Recursive Descent: @c render_dim walks the tensor dimensions
+ *   from outer (dim 0) to inner (@c ndims-1).
+ * @li Fast-Path: If @ref is_contiguous() returns @c true, a base
  *   pointer is propagated down the stack for direct data access.
- * - **Element Alignment**: Column widths from @ref ReprContext ensure
+ * @li Element Alignment: Column widths from @ref ReprContext ensure
  *   elements align vertically across rows.
  *
  * @see layouts.h        Renderer interface declarations.
@@ -91,7 +91,7 @@ static void append_elem(StringBuilder *sb, const ReprContext *ctx,
  *
  * @details
  * Walks through each dimension. If the tensor is contiguous, the
- * `base` pointer is used for linear access in the innermost loop.
+ * @c base pointer is used for linear access in the innermost loop.
  */
 static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
                        int indent, coords_t coords, const uint8 *base) {
