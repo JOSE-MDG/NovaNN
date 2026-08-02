@@ -44,13 +44,7 @@ include(Detect/threading/DetectOpenMP)
 
 #]=======================================================================]
 function(nova_configure_cpu_target TARGET)
-    # SIMD_FLAGS is populated by check_simd() with -mavx512f / -mfma / etc.
-    # (GNU-style flags). MSVC never runs that detection path: NovaNN's
-    # SIMD internals use [[{gnu,clang}::target(...)]], which cl.exe does not support,
-    # so MSVC builds always fall back to the scalar kernel implementations
-    # regardless of what the host CPU actually supports. Applying these
-    # flags under MSVC would either be silently ignored or misinterpreted.
-    if(SIMD_FLAGS AND NOT MSVC)
+    if(SIMD_FLAGS)
         target_compile_options(${TARGET} PRIVATE ${SIMD_FLAGS})
     endif()
 
@@ -59,12 +53,8 @@ function(nova_configure_cpu_target TARGET)
     endif()
 
     if(NOVA_HAS_OPENMP)
-        if(TARGET OpenMP::OpenMP_C)
-            target_link_libraries(${TARGET} PRIVATE OpenMP::OpenMP_C)
-        endif()
-
-        if(TARGET OpenMP::OpenMP_CXX)
-            target_link_libraries(${TARGET} PRIVATE OpenMP::OpenMP_CXX)
+        if(TARGET nova::openmp)
+            target_link_libraries(${TARGET} PRIVATE nova::openmp)
         endif()
 
         target_compile_definitions(${TARGET} PRIVATE NOVA_OPENMP=1)
