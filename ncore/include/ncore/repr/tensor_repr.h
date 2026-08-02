@@ -8,11 +8,11 @@
  * modes (normal vs. debug) and provides both heap-allocating
  * functions and convenience printing wrappers.
  *
- * All functions returning `char*` transfer ownership of the
+ * All functions returning @c char* transfer ownership of the
  * heap-allocated memory to the caller. The caller is responsible
- * for calling `free()` on the result to prevent memory leaks.
+ * for calling @c free() on the result to prevent memory leaks.
  *
- * ## Typical Usage
+ * @section typical-usage Typical Usage
  *
  * @code{.c}
  *   Tensor t = create_tensor(...);
@@ -48,14 +48,14 @@ extern "C" {
  *
  * @details
  * Renders the tensor's data values in a bracketed, multidimensional
- * format. In this mode, a `dtype` suffix is only appended if the
- * tensor's data type is not the library default (`Float32`).
+ * format. In this mode, a @c dtype suffix is only appended if the
+ * tensor's data type is not the library default (@c Float32).
  *
- * @param[in] ten Pointer to the tensor to render. May be `nullptr`
- *                (returns `nullptr`).
+ * @param[in] ten Pointer to the tensor to render. May be @c nullptr
+ *                (returns @c nullptr).
  *
  * @return Heap-allocated null-terminated string on success, or
- *         `nullptr` on failure. The caller must `free()` the result.
+ *         @c nullptr on failure. The caller must @c free() the result.
  */
 char *tensor_repr(const Tensor *ten);
 
@@ -65,13 +65,13 @@ char *tensor_repr(const Tensor *ten);
  * @details
  * Similar to @ref tensor_repr(), but appends a comprehensive metadata
  * footer containing the tensor's dtype, shape, device placement, and
- * autograd information (`requires_grad` or `grad_fn`).
+ * autograd information (@c requires_grad or @c grad_fn).
  *
- * @param[in] ten Pointer to the tensor to render. May be `nullptr`
- *                (returns `nullptr`).
+ * @param[in] ten Pointer to the tensor to render. May be @c nullptr
+ *                (returns @c nullptr).
  *
  * @return Heap-allocated null-terminated string on success, or
- *         `nullptr` on failure. The caller must `free()` the result.
+ *         @c nullptr on failure. The caller must @c free() the result.
  */
 char *tensor_repr_debug(const Tensor *ten);
 
@@ -84,14 +84,14 @@ char *tensor_repr_debug(const Tensor *ten);
  * customize thresholds, precision, scientific notation, and other
  * formatting parameters.
  *
- * @param[in]  ten  Pointer to the tensor to render. May be `nullptr`
- *                  (returns `nullptr`).
+ * @param[in]  ten  Pointer to the tensor to render. May be @c nullptr
+ *                  (returns @c nullptr).
  * @param[in]  opts Pointer to a @ref ReprOptions struct. If
- *                  `nullptr`, library defaults are used (equivalent
+ *                  @c nullptr, library defaults are used (equivalent
  *                  to @ref tensor_repr()).
  *
  * @return Heap-allocated null-terminated string on success, or
- *         `nullptr` on failure. The caller must `free()` the result.
+ *         @c nullptr on failure. The caller must @c free() the result.
  *
  * @see repr_default_options()
  */
@@ -103,10 +103,10 @@ char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts);
  *
  * @details
  * Convenience wrapper that internally calls @ref tensor_repr(),
- * writes the result to `stdout` followed by a newline, and
+ * writes the result to @c stdout followed by a newline, and
  * automatically frees the allocated memory.
  *
- * @param[in] ten Pointer to the tensor to print. May be `nullptr`
+ * @param[in] ten Pointer to the tensor to print. May be @c nullptr
  *                (no-op).
  */
 void tensor_print(const Tensor *ten);
@@ -117,10 +117,10 @@ void tensor_print(const Tensor *ten);
  *
  * @details
  * Convenience wrapper that internally calls @ref tensor_repr_debug(),
- * writes the result to `stdout` followed by a newline, and
+ * writes the result to @c stdout followed by a newline, and
  * automatically frees the allocated memory.
  *
- * @param[in] ten Pointer to the tensor to print. May be `nullptr`
+ * @param[in] ten Pointer to the tensor to print. May be @c nullptr
  *                (no-op).
  */
 void tensor_print_debug(const Tensor *ten);

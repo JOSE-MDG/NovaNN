@@ -8,8 +8,8 @@
  * representation call by @ref build_repr_context() and carries all
  * parameters needed for layout rendering and element formatting.
  *
- * By caching classification flags (`is_float`, `is_integer`) and
- * formatting decisions (`use_sci`, `element_width`), the context
+ * By caching classification flags (@c is_float, @c is_integer) and
+ * formatting decisions (@c use_sci, @c element_width), the context
  * eliminates redundant metadata queries and data scans during the
  * recursive rendering process.
  *
@@ -39,35 +39,35 @@ extern "C" {
  * the tensor's data (up to 1000 elements at each edge) to ensure
  * consistent column alignment and optimal numeric notation.
  *
- * ## Field Categories
+ * @section field-categories Field Categories
  *
- * - **Derived State**: Results of the data scan (`element_width`,
- *   `use_sci`).
- * - **Classification Shortcuts**: Precomputed boolean flags for
+ * @li Derived State: Results of the data scan (@c element_width,
+ *   @c use_sci).
+ * @li Classification Shortcuts: Precomputed boolean flags for
  *   dtype category dispatch.
- * - **Placement Info**: Device and allocation status for routing.
+ * @li Placement Info: Device and allocation status for routing.
  */
 typedef struct {
   const Tensor *tensor; ///< Pointer to the tensor being rendered.
   ReprOptions options;  ///< Snapshot of the original formatting options.
 
   /* ---- Derived from data scan ---- */
-  bool use_sci;            ///< Final decision on scientific notation (`%e`).
+  bool use_sci;            ///< Final decision on scientific notation (@c %e).
   int effective_precision; ///< Target number of decimal places for floats.
   size_t element_width;    ///< Maximum formatted width for column alignment.
-  bool is_summarized;      ///< `true` if tensor size exceeds threshold.
+  bool is_summarized;      ///< @c true if tensor size exceeds threshold.
   size_t sub_element_index; ///< Sub-element index within a packed storage unit.
 
   /* ---- DType Classification Shortcuts ---- */
-  bool is_float;     ///< `true` for floating-point types.
-  bool is_integer;   ///< `true` for signed/unsigned integer types.
-  bool is_quantized; ///< `true` for quantized integer types.
-  bool is_bool;      ///< `true` to treat UnSigned8 as boolean True/False.
-  bool is_scalar;    ///< `true` if the tensor rank (`ndims`) is zero.
+  bool is_float;     ///< @c true for floating-point types.
+  bool is_integer;   ///< @c true for signed/unsigned integer types.
+  bool is_quantized; ///< @c true for quantized integer types.
+  bool is_bool;      ///< @c true to treat UnSigned8 as boolean True/False.
+  bool is_scalar;    ///< @c true if the tensor rank (@c ndims) is zero.
 
   /* ---- Device & Allocation State ---- */
-  bool is_meta; ///< `true` if the tensor resides on `DEVICE_META`.
-  bool is_gpu;  ///< `true` if the tensor resides on `DEVICE_GPU`.
+  bool is_meta; ///< @c true if the tensor resides on @c DEVICE_META.
+  bool is_gpu;  ///< @c true if the tensor resides on @c DEVICE_GPU.
 } ReprContext;
 
 /**
@@ -85,8 +85,8 @@ typedef struct {
  * correctly column-aligned.
  *
  * @param[in]  ten  Pointer to the tensor to analyze. Must not be
- *                  `nullptr`.
- * @param[in]  opts Pointer to formatting options. If `nullptr`,
+ *                  @c nullptr.
+ * @param[in]  opts Pointer to formatting options. If @c nullptr,
  *                  defaults are used.
  *
  * @return A fully initialised @ref ReprContext structure.
