@@ -11,15 +11,15 @@
  * (https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf,
  * Section 5.3.3).
  *
- * Binary layout of a single lane, MSB to LSB: `s ee m`
- *  - 1 sign bit
- *  - 2 exponent bits (bias = 1)
- *  - 1 mantissa bit
+ * Binary layout of a single lane, MSB to LSB: @c s ee m
+ *  @li 1 sign bit
+ *  @li 2 exponent bits (bias = 1)
+ *  @li 1 mantissa bit
  *
  * The "fn" suffix denotes "finite": E2M1FN has no infinity or NaN encoding
  * at all — every one of the 16 possible 4-bit patterns maps to a finite
  * value. The representable magnitudes are exactly:
- * `{0, 0.5, 1, 1.5, 2, 3, 4, 6}`. Values that would overflow (including
+ * @c {0, 0.5, 1, 1.5, 2, 3, 4, 6}. Values that would overflow (including
  * +/-inf and NaN inputs, which have no lossless representation in this
  * format) saturate to the maximum finite magnitude (6.0).
  *
@@ -47,6 +47,7 @@
 
 #include <cstdlib>
 
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <ostream>
@@ -62,7 +63,7 @@
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
 #pragma warning(disable : 4244)
 #pragma warning(disable : 4267)
@@ -80,10 +81,10 @@ namespace ncore::dtypes {
  * format, stored in the low nibble of a byte (high nibble always zero).
  *
  * @details
- * Binary layout, MSB to LSB: `s ee m`
- *  - 1 sign bit
- *  - 2 exponent bits (bias = 1)
- *  - 1 mantissa bit
+ * Binary layout, MSB to LSB: @c s ee m
+ *  @li 1 sign bit
+ *  @li 2 exponent bits (bias = 1)
+ *  @li 1 mantissa bit
  *
  * This format has neither infinity nor NaN: all 16 bit patterns are finite.
  * The maximum finite magnitude is 6.0; @ref isnan and @ref isinf are kept
@@ -705,7 +706,7 @@ struct alignas(1) Float4_e2m1fn_x2 {
 
 /**
  * @brief Stream output operator for @ref Float4_e2m1fn_x2.
- * @details Prints both decoded lanes as an ordered pair `(val0, val1)`.
+ * @details Prints both decoded lanes as an ordered pair @c (val0, val1).
  * @param[in,out] out The output stream.
  * @param[in]     value The @ref Float4_e2m1fn_x2 value to write.
  * @return Reference to the output stream.
@@ -1133,7 +1134,7 @@ public:
 
 } // namespace std
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(pop)
 #endif
 

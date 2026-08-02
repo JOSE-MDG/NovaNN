@@ -35,13 +35,13 @@
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
 #pragma warning(disable : 4244)
 #pragma warning(disable : 4267)
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #include <intrin.h>
 #endif
 
@@ -130,13 +130,13 @@ struct alignas(2) Half {
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
   /**
-   * @brief Constructor from a native CUDA/HIP `__half` representation.
+   * @brief Constructor from a native CUDA/HIP @c __half representation.
    * @param[in] value The native __half value.
    */
   inline NCORE_HOST_DEVICE Half(const __half &value);
 
   /**
-   * @brief Implicit conversion operator to native CUDA/HIP `__half`.
+   * @brief Implicit conversion operator to native CUDA/HIP @c __half.
    * @return The native __half representation.
    */
   inline NCORE_HOST_DEVICE operator __half() const;
@@ -163,7 +163,7 @@ inline std::ostream &operator<<(std::ostream &out, const Half &value) {
 namespace detail {
 
 /**
- * @brief Reinterpret a `uint32_t` bit-pattern as a float.
+ * @brief Reinterpret a @c uint32_t bit-pattern as a float.
  * @param[in] w The 32-bit unsigned integer representing the bit pattern.
  * @return The float value corresponding to the bit pattern.
  */
@@ -178,7 +178,7 @@ NCORE_HOST_DEVICE inline float fp32_from_bits(uint32_t w) {
 }
 
 /**
- * @brief Reinterpret a float as its `uint32_t` bit-pattern.
+ * @brief Reinterpret a float as its @c uint32_t bit-pattern.
  * @param[in] f The single-precision float.
  * @return The 32-bit unsigned integer representing the float's bit pattern.
  */
@@ -328,7 +328,7 @@ inline uint16_t fp16_ieee_from_fp32_value(float f) {
   const float scale2inf = scale2infVal;
   const float scale2zero = scale2zeroVal;
 
-#if defined(_MSC_VER) && _MSC_VER == 1916
+#if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER == 1916
   float base = ((signbit(f) != 0 ? -f : f) * scale2inf) * scale2zero;
 #else
   float base = (fabsf(f) * scale2inf) * scale2zero;
@@ -474,7 +474,7 @@ inline NCORE_HOST_DEVICE Half::operator __half() const {
 // ============================================================
 #if (defined(__clang__) && defined(__CUDA__))
 /**
- * @brief Load a @ref Half value from global memory using the CUDA `__ldg`
+ * @brief Load a @ref Half value from global memory using the CUDA @c __ldg
  * intrinsic.
  * @param[in] ptr Pointer to global memory.
  * @return The loaded @ref Half value.
@@ -782,9 +782,8 @@ public:
       true; ///< Half has quiet NaN representation.
   static constexpr bool has_signaling_NaN =
       true; ///< Half has signaling NaN representation.
-  static constexpr auto has_denorm = numeric_limits<float>::has_denorm;
-  static constexpr auto has_denorm_loss =
-      numeric_limits<float>::has_denorm_loss;
+  static constexpr auto has_denorm = true;
+  static constexpr auto has_denorm_loss = false;
   static constexpr auto round_style = numeric_limits<float>::round_style;
   static constexpr bool is_iec559 = true; ///< Conforms to IEC 60559 (IEEE 754).
   static constexpr bool is_bounded = true; ///< Values are bounded.
@@ -871,7 +870,7 @@ public:
 
 } // namespace std
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(pop)
 #endif
 

@@ -35,7 +35,7 @@
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
 #pragma warning(disable : 4244)
 #pragma warning(disable : 4267)
@@ -56,10 +56,10 @@ namespace ncore::dtypes {
  * @brief Representation of a "brain" 16-bit floating-point number (BF16).
  *
  * @details
- * Binary layout, MSB to LSB: `s eeeeeeee mmmmmmm`
- *  - 1 sign bit
- *  - 8 exponent bits (same bias/range as IEEE 754 float32: bias = 127)
- *  - 7 mantissa bits
+ * Binary layout, MSB to LSB: @c s eeeeeeee mmmmmmm
+ *  @li 1 sign bit
+ *  @li 8 exponent bits (same bias/range as IEEE 754 float32: bias = 127)
+ *  @li 7 mantissa bits
  *
  * The struct is aligned to 2 bytes to match the storage size of a 16-bit
  * word. It contains a single data member representing the bitwise storage.
@@ -116,13 +116,13 @@ struct alignas(2) BFloat16 {
 
 #if defined(__CUDACC__) && !defined(NOVA_HAS_HIP)
   /**
-   * @brief Constructor from a native CUDA `__nv_bfloat16` representation.
+   * @brief Constructor from a native CUDA @c __nv_bfloat16 representation.
    * @param[in] value The native __nv_bfloat16 value.
    */
   inline NCORE_HOST_DEVICE BFloat16(const __nv_bfloat16 &value);
 
   /**
-   * @brief Implicit conversion operator to native CUDA `__nv_bfloat16`.
+   * @brief Implicit conversion operator to native CUDA @c __nv_bfloat16.
    * @return The native __nv_bfloat16 representation.
    */
   explicit inline NCORE_HOST_DEVICE operator __nv_bfloat16() const;
@@ -148,7 +148,7 @@ inline std::ostream &operator<<(std::ostream &out, const BFloat16 &value) {
 namespace detail {
 
 /**
- * @brief Reinterpret the top 16 bits of a `uint16_t` bf16 pattern as a
+ * @brief Reinterpret the top 16 bits of a @c uint16_t bf16 pattern as a
  * 32-bit float.
  * @details
  * Since BF16 shares its exponent width and bias with float32, conversion is
@@ -206,7 +206,7 @@ NCORE_HOST_DEVICE inline uint16_t bits_from_f32(float src) {
 NCORE_HOST_DEVICE inline uint16_t round_to_nearest_even(float src) {
 #if defined(NOVA_HAS_HIP) && defined(__HIPCC__)
   if (src != src) {
-#elif defined(_MSC_VER)
+#elif defined(_MSC_VER) && !defined(__clang__)
   if (isnan(src)) {
 #else
   if (std::isnan(src)) {
@@ -259,7 +259,7 @@ inline NCORE_HOST_DEVICE BFloat16::operator __nv_bfloat16() const {
 #if defined(__CUDACC__) || defined(__HIPCC__)
 /**
  * @brief Load a @ref BFloat16 value from global memory using the CUDA
- * `__ldg` intrinsic.
+ * @c __ldg intrinsic.
  * @param[in] ptr Pointer to global memory.
  * @return The loaded @ref BFloat16 value.
  */
@@ -577,7 +577,7 @@ inline NCORE_HOST_DEVICE BFloat16 operator/(int64_t a, BFloat16 b) {
  * @brief Greater-than comparison.
  * @details Explicitly overloaded (rather than relying solely on the implicit
  * float conversion) because @c std::max / @c std::min require an lvalue-ref
- * accepting `operator>`/`operator<` to resolve unambiguously once the
+ * accepting @c operator>/@c operator< to resolve unambiguously once the
  * bitwise operators above are in overload resolution scope.
  * @param[in] lhs The left-hand operand.
  * @param[in] rhs The right-hand operand.
@@ -726,7 +726,7 @@ public:
 
 } // namespace std
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(pop)
 #endif
 

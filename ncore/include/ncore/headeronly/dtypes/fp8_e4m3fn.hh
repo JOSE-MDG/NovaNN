@@ -36,7 +36,7 @@
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
 #pragma warning(disable : 4244)
 #pragma warning(disable : 4267)
@@ -49,10 +49,10 @@ namespace ncore::dtypes {
  * @brief Representation of an 8-bit floating-point number in E4M3FN format.
  *
  * @details
- * Binary layout, MSB to LSB: `s eeee mmm`
- *  - 1 sign bit
- *  - 4 exponent bits (bias = 7)
- *  - 3 mantissa bits
+ * Binary layout, MSB to LSB: @c s eeee mmm
+ *  @li 1 sign bit
+ *  @li 4 exponent bits (bias = 7)
+ *  @li 3 mantissa bits
  *
  * This format has no infinities: the maximum finite magnitude is 448, and
  * the bit pattern that would otherwise encode +/-inf instead saturates to
@@ -171,7 +171,7 @@ NCORE_HOST_DEVICE inline float fp8e4m3fn_to_fp32_value(uint8_t input) {
    * normalized mantissa (implicit leading 1 removed).
    *
    * This function is NCORE_HOST_DEVICE, so it is compiled for both the host
-   * and the CUDA/HIP device pass. `std::countl_zero` is only used on host:
+   * and the CUDA/HIP device pass. @c std::countl_zero is only used on host:
    * NovaNN's compiler floor (GCC 14+ / Clang 17+, see
    * CheckCompilerVersion.cmake — MSVC is rejected outright) guarantees a
    * real <bit> implementation there. On device, nvcc/hipcc are not
@@ -686,7 +686,7 @@ public:
 
 } // namespace std
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(pop)
 #endif
 

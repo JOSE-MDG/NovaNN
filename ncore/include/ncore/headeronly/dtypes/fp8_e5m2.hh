@@ -37,7 +37,7 @@
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
 #pragma warning(disable : 4244)
 #pragma warning(disable : 4267)
@@ -50,10 +50,10 @@ namespace ncore::dtypes {
  * @brief Representation of an 8-bit floating-point number in E5M2 format.
  *
  * @details
- * Binary layout, MSB to LSB: `s eeeee mm`
- *  - 1 sign bit
- *  - 5 exponent bits (bias = 15, same as FP16)
- *  - 2 mantissa bits
+ * Binary layout, MSB to LSB: @c s eeeee mm
+ *  @li 1 sign bit
+ *  @li 5 exponent bits (bias = 15, same as FP16)
+ *  @li 2 mantissa bits
  *
  * Unlike @ref Float8_e4m3fn, E5M2 has a conventional infinity encoding
  * (exponent all-ones, mantissa zero), matching the IEEE 754 convention.
@@ -617,7 +617,7 @@ public:
 
 } // namespace std
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(pop)
 #endif
 
