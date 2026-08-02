@@ -1,43 +1,30 @@
 /**
  * @file macros.h
- * @brief Core macros, constants, and SIMD lane-count definitions.
+ * @brief Foundational preprocessor macros and compile-time constants.
  *
  * @details
- * Foundational preprocessor definitions used throughout the entire
- * NovaNN codebase.  Every public and internal header includes this
- * file.
+ * Every public and internal header includes this file, so it must stay
+ * free of function definitions and external dependencies. It provides
+ * portability helpers (@c restrict, @c ALIGN, @c ATTR, @c INITIALIZE),
+ * compile-time constants (@c NOVA_MAX_DIMS, @c NUM_DTYPES, @c NUM_FLOATS,
+ * @c NUM_INTEGERS, @c NUM_ERRORS, @c NUM_BACKENDS), the
+ * @c NOVA_INTERNAL_ASSERT diagnostic, SIMD lane counts (@c NOVA_SIMD_*),
+ * terminal colour codes (@c NCORE_LOG_*), CUDA/HIP qualifiers
+ * (@c NCORE_HOST_DEVICE, @c NCORE_HOST, @c NCORE_DEVICE) and compiler
+ * detection macros (@c _GNUC_CLANG_, @c NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO).
  *
- * ## Contents
+ * Three design rules keep this header usable everywhere:
  *
- */
-// clang-format off
-/**
- * | Category            | Symbols                                            |
- * |---------------------|----------------------------------------------------|
- * | Portability         | `restrict`, `ALIGN`, `ATTR`                        |
- * | C23 attributes      | `[[gnu::packed]]`, `[[gnu::constructor]]`, …       |
- * | Limits              | `NOVA_MAX_DIMS`, `NUM_DTYPES`, `NUM_BACKENDS`, …   |
- * | Assertion           | `NOVA_INTERNAL_ASSERT`                             |
- * | SIMD lane counts    | `NOVA_SIMD_*_WITH_SSE`, `…_WITH_AVX_AVX2`, `…_WITH_AVX512F` |
- * | Terminal colours    | `NCORE_LOG_PREFIX`, `NCORE_LOG_BOLD`, …            |
- * | CUDA/HIP qualifiers | `NCORE_HOST_DEVICE`, `NCORE_HOST`, `NCORE_DEVICE`  |
- * | Sanitizer           | `NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO`                |
- */
-// clang-format on
-/**
- * ## Design rules
+ * @li No function definitions — purely preprocessor constants and macros.
+ * @li No dependencies — only standard C headers (@c stdio.h, @c stdlib.h,
+ *     @c stdalign.h).
+ * @li C and C++ compatible — @c restrict maps to @c __restrict__, and the
+ *     assertion macro uses @c fprintf(stderr, ...) in C and @c std::cerr
+ *     in C++.
  *
- * - **No function definitions** — This file is purely preprocessor
- *   constants and macros.
- * - **No dependencies** — Only standard C headers (`<stdio.h>`,
- *   `<stdlib.h>`, `<stdalign.h>`).
- * - **C and C++ compatible** — The `restrict` keyword and `fprintf()`
- *   function are mapped to `__restrict__` and `std::cerr <<` when
- *   compiling as C++.
- *
- * @see dtype.h   DType_ enum referenced by `NUM_DTYPES` etc.
+ * @see dtype.h   DType_ enum referenced by the @c NUM_DTYPES family.
  * @see simd.h    Runtime SIMD capability detection.
- * @see status.h  novaStatus_t enum referenced by `NUM_ERRORS`.
+ * @see status.h  novaError_t enum referenced by @c NUM_ERRORS.
  */
 
 #pragma once
@@ -52,13 +39,13 @@
 
 /**
  * @def restrict
- * @brief Portable `restrict` qualifier for C++ compatibility.
+ * @brief Portable @c restrict qualifier for C++ compatibility.
  *
  * @details
- * C99 `restrict` is not a keyword in C++.  When compiling as C++
- * (detected via `__cplusplus`), this maps `restrict` to the
- * compiler-specific `__restrict__` extension.  In C mode the
- * standard `restrict` is used unchanged.
+ * C99 @c restrict is not a keyword in C++.  When compiling as C++
+ * (detected via @c __cplusplus), this maps @c restrict to the
+ * compiler-specific @c __restrict__ extension.  In C mode the
+ * standard @c restrict is used unchanged.
  *
  * @see ALIGN(N)   Another portability macro.
  */
@@ -68,52 +55,61 @@
 
 /**
  * @def ALIGN(N)
- * @brief Align a type or variable to @p N bytes.
- *
- * @details
- * Expands to `__attribute__((aligned(N)))` on GCC/Clang and
- * `[[align(N)]]` on MSVC.  Used extensively to enforce cache-line
- * alignment (64 bytes) for tensor hot fields and SIMD-friendly data structures.
+ * @brief Align a type or variable to N bytes.
  *
  * @param N  Alignment boundary in bytes.  Must be a power of two.
- *
- * @code{.c}
- * struct ALIGN(64) Tensor { ... };   // cache-line aligned
- * @endcode
- *
- * @see ATTR  Attribute macro.
  */
-
-#ifdef _MSC_VER
-#define ALIGN(N) [[align(N)]]
-#elif defined(__clang__) || defined(__GNUC__)
 #define ALIGN(N) __attribute__((aligned(N)))
-#else
-#define ALIGN(N) __attribute__((aligned(N)))
-#endif
 
 /**
  * @def ATTR(mode)
  * @brief Apply a GCC/Clang attribute.
  *
  * @details
- * Expands to `[[gnu::mode]]` on GCC/Clang using C23 attribute syntax,
- * or`[[mode]]` on MSVC. Used for all compiler-specific attributes throughout
- * the codebase, including:
- * - `ATTR(packed)` on packed enums
- * - `ATTR(constructor)` on init functions
- * - `ATTR(format(printf, k, n))` for printf-style format checks
+ * Expands to @c [[gnu::mode]] on GCC/Clang using C23 attribute syntax,
+ * Used for all compiler-specific attributes throughout the codebase,
+ * including:
+ * @li @c INITIALIZE(f) for constructor-like init functions
+ * @li @c ATTR(format(printf, k, n)) for printf-style format checks
  *
  * @param mode  Attribute name, optionally with arguments
- *              (e.g. `packed`, `constructor`, `format(printf, 2, 3)`).
+ *              (e.g. @c packed, @c constructor, @c format(printf, 2, 3)).
  */
-#ifdef _MSC_VER
-#define ATTR(mode) [[mode]]
-#elif defined(__clang__) || defined(__GNUC__)
 #define ATTR(mode) [[gnu::mode]]
-#else
-#define ATTR(mode) __attribute__((mode))
-#endif
+
+/**
+ * @def INITIALIZE(f)
+ * @brief Register a function to run automatically at library initialisation
+ * time.
+ *
+ * @details
+ * On GCC/Clang, expands to @c ATTR(constructor) static inline void f(void),
+ * which causes the compiler to emit a @c .init_array entry that runs @p f
+ * at library initialisation time.
+ *
+ * @param f  Name of the @c static inline function to register.  The function
+ *           must take no arguments and return @c void.
+ *
+ * @note
+ * The function body must follow immediately after the macro invocation.
+ * Unlike a bare @c ATTR(constructor), the macro always defines the function
+ * as @c static inline, so it is not visible outside the translation unit.
+ *
+ * @par Example
+ * @code{.c}
+ * INITIALIZE(init_my_table) {
+ *   my_table[0] = "hello";
+ * }
+ * @endcode
+ *
+ * @warning
+ * The init-order of multiple @c INITIALIZE calls across translation units is
+ * not guaranteed.  Do not assume that @p f from file A runs before or
+ * after @p f from file B.
+ *
+ * @see ATTR
+ */
+#define INITIALIZE(f) ATTR(constructor) static inline void f(void)
 
 /**
  * @def NOVA_MAX_DIMS
@@ -121,7 +117,7 @@
  *
  * @details
  * Fixed at 64 — well beyond the typical 4–8 dimensions used in
- * deep learning.  Used to size the `shape_t` and `strides_t`
+ * deep learning.  Used to size the @c shape_t and @c strides_t
  * fixed arrays in @ref Tensor.
  *
  * @see shape_t   Fixed-size shape array.
@@ -146,16 +142,24 @@
 
 /**
  * @def NUM_ERRORS
- * @brief Total number of type errors
+ * @brief Total number of @ref novaError_t enumerators.
  *
+ * @details
+ * Counts @c novaSuccess plus every error code across all categories
+ * (parameters, memory, transfers, device/backend, OS, dtype/cast, GPU,
+ * internal and general). Use it to size arrays indexed by error code.
+ *
+ * @see novaError_t in status.h.
  */
-#define NUM_ERRORS 33
+#define NUM_ERRORS 34
 
 /**
  * @def NUM_PARALLEL_GROUPS
- * @brief Total number of parallel groups
- * that have implemented their own thread pool.
+ * @brief Number of parallel subsystems that implement their own thread
+ *        pool.
  *
+ * @details
+ * Used to size the registries of the parallel execution backends.
  */
 #define NUM_PARALLEL_GROUPS 3
 
@@ -163,13 +167,25 @@
  * @def NUM_FLOATS
  * @brief Number of floating-point data types (f32, f64, f16, bf16,
  *        fp8_e4m3fn, fp8_e5m2, fp4_e2m1fn_x2).
+ *
+ * @details
+ * Complements @ref NUM_INTEGERS: @c NUM_FLOATS + @c NUM_INTEGERS ==
+ * @c NUM_DTYPES (7 + 14 = 21).
  */
 #define NUM_FLOATS 7
 
 /**
  * @def NUM_INTEGERS
- * @brief Total number of integer data types (signed + unsigned,
- *        including quantized).
+ * @brief Number of integer data types (signed + unsigned, including
+ *        quantized).
+ *
+ * @details
+ * The quantized types are counted inside their signed and unsigned
+ * groups, not as a separate category. Satisfies @c NUM_INTEGERS ==
+ * @c NUM_SIGNED_INTEGERS + @c NUM_UNSIGNED_INTEGERS (7 + 7 = 14).
+ *
+ * @see NUM_SIGNED_INTEGERS
+ * @see NUM_UNSIGNED_INTEGERS
  */
 #define NUM_INTEGERS 14
 
@@ -189,7 +205,13 @@
 
 /**
  * @def NUM_QUANTIZED_INTEGERS
- * @brief Total number of quantized integer data types.
+ * @brief Number of quantized integer data types (qs8, qs16, qs32,
+ *        qu8, qu16, qu32).
+ *
+ * @details
+ * Satisfies @c NUM_QUANTIZED_INTEGERS ==
+ * @c NUM_QUANTIZED_SIGNED_INTEGERS + @c NUM_QUANTIZED_UNSIGNED_INTEGERS
+ * (3 + 3 = 6).
  */
 #define NUM_QUANTIZED_INTEGERS 6
 
@@ -224,8 +246,8 @@
  *
  * @details
  * If @p assertion evaluates to false, a formatted message is
- * written to `stderr` and the process exits with
- * `EXIT_FAILURE`.  Uses `__VA_OPT__` for clean expansion when
+ * written to @c stderr and the process exits with
+ * @c EXIT_FAILURE.  Uses @c __VA_OPT__ for clean expansion when
  * no variadic arguments are provided.
  *
  * This macro is for debugging aid — it guards
@@ -233,7 +255,7 @@
  * itself (e.g., null storage after a successful allocation).
  *
  * @param assertion  Boolean expression to test.
- * @param msg        `printf`-style format string for the error
+ * @param msg        @c printf-style format string for the error
  *                   message.
  * @param ...        Optional format arguments.
  *
@@ -243,7 +265,7 @@
  * @endcode
  *
  * @note The message should include a module tag in brackets
- *       (e.g., `[STORAGE]`, `[CUDA]`) for easy identification.
+ *       (e.g., @c [STORAGE], @c [CUDA]) for easy identification.
  */
 #ifdef __cplusplus
 #define NOVA_INTERNAL_ASSERT(assertion, msg, ...)                              \
@@ -271,12 +293,12 @@
  *
  * @details
  * These constants are used for:
- * - Loop unrolling and vectorisation factor selection.
- * - Buffer sizing for SIMD-aligned temporary storage.
- * - Compile-time assertions that tensor sizes are multiples of
+ * @li Loop unrolling and vectorisation factor selection.
+ * @li Buffer sizing for SIMD-aligned temporary storage.
+ * @li Compile-time assertions that tensor sizes are multiples of
  *   the vector width.
  *
- * The naming convention is `NOVA_SIMD_{TYPE}_WITH_{ISA}`.
+ * The naming convention is @c NOVA_SIMD_{TYPE}_WITH_{ISA}.
  */
 
 /** @name SIMD lane counts — SSE
@@ -342,17 +364,17 @@
  *        output.
  *
  * @details
- * Used by `print_*` functions in `device.c`, `alloc.c`, etc.
+ * Used by @c print_* functions in @c device.c, @c alloc.c, etc.
  * The colour palette is intentionally muted:
- * - **Green prefix** (`--`): status messages.
- * - **Cyan values**: highlighted data (device names, sizes).
- * - **Bold**: section headings or emphasis.
- * - **Reset**: restores default terminal colour.
+ * @li Green prefix (@c --): status messages.
+ * @li Cyan values: highlighted data (device names, sizes).
+ * @li Bold: section headings or emphasis.
+ * @li Reset: restores default terminal colour.
  */
 
 /**
  * @def NCORE_LOG_PREFIX
- * @brief Green `--` prefix for log messages.
+ * @brief Green @c -- prefix for log messages.
  *
  * @code{.c}
  * printf(NCORE_LOG_PREFIX " Detecting CUDA devices\n");
@@ -388,7 +410,7 @@
  * @brief Qualifier for functions callable from both host and device.
  *
  * @details
- * Expands to `__host__ __device__` when compiling with CUDA or
+ * Expands to @c __host__ @c __device__ when compiling with CUDA or
  * HIP, otherwise empty.
  */
 #define NCORE_HOST_DEVICE __host__ __device__
@@ -397,7 +419,7 @@
  * @brief Qualifier for host-only functions.
  *
  * @details
- * Expands to `__host__` when compiling with CUDA or HIP,
+ * Expands to @c __host__ when compiling with CUDA or HIP,
  * otherwise empty.
  */
 #define NCORE_HOST __host__
@@ -406,7 +428,7 @@
  * @brief Qualifier for device-only functions.
  *
  * @details
- * Expands to `__device__` when compiling with CUDA or HIP,
+ * Expands to @c __device__ when compiling with CUDA or HIP,
  * otherwise empty.
  */
 #define NCORE_DEVICE __device__
@@ -421,7 +443,7 @@
  * @brief Suppress UBSan float-divide-by-zero warnings.
  *
  * @details
- * Expands to `__attribute__((no_sanitize("float-divide-by-zero")))`
+ * Expands to @c [[{clang,gnu}::no_sanitize("float-divide-by-zero")]]
  * on Clang and GCC, otherwise empty.  Applied to division
  * operators in the dtype headers to suppress benign sanitizer
  * warnings on IEEE 754 division by zero (which yields +/-inf
@@ -442,11 +464,11 @@
  * @brief Compiler detection macro for GNU/Clang-compatible toolchains.
  *
  * @details
- * Defined to `1` when the compiler is GCC (`__GNUC__`) or Clang (`__clang__`).
+ * Defined to @c 1 when the compiler is GCC (@c __GNUC__) or Clang (@c __clang__).
  * This macro is primarily used to dispatch between compiler-native
- * half-precision types (`_Float16`, `__bf16`) and the project's portable
+ * half-precision types (@c _Float16, @c __bf16) and the project's portable
  * soft-float implementations
- * (`float16`, `bfloat16`).
+ * (@c float16, @c bfloat16).
  *
  * @note
  * This macro acts as a feature-test for compiler extensions that allow
