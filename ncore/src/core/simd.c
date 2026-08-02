@@ -12,15 +12,15 @@
  * kernel variants are safe to dispatch to on the current machine.
  *
  * The detected capabilities are cached in a thread-safe singleton pattern
- * using platform-specific threading primitives (C11 `call_once` on Linux,
- * Windows `InitOnceExecuteOnce` on `_WIN64`) to ensure the detection is
+ * using platform-specific threading primitives (C11 @c call_once on Linux,
+ * Windows @c InitOnceExecuteOnce on @c _WIN64) to ensure the detection is
  * performed only once, even when called from multiple threads.
  *
- * ## Platform Support
- * - **Windows (_WIN64)**: Uses __cpuid() and __cpuidex() from intrin.h;
- *   threading via `INIT_ONCE` + `InitOnceExecuteOnce` from `<windows.h>`.
- * - **Linux/Unix**: Uses __get_cpuid() and __cpuid_count() from cpuid.h;
- *   threading via C11 `once_flag` + `call_once` from `<threads.h>`.
+ * @section platform-support Platform Support
+ * @li Windows (_WIN64): Uses __cpuid() and __cpuidex() from intrin.h;
+ *   threading via @c INIT_ONCE + @c InitOnceExecuteOnce from @c <windows.h>.
+ * @li Linux/Unix: Uses __get_cpuid() and __cpuid_count() from cpuid.h;
+ *   threading via C11 @c once_flag + @c call_once from @c <threads.h>.
  *
  * @see simd.h Public interface and @ref SIMDCapabilities structure
  * @see get_simd_capabilities() Thread-safe singleton accessor
@@ -65,7 +65,7 @@ static SIMDCapabilities simd = {};
  * @details
  * Ensures @ref init_once() is called exactly once, even when
  * @ref get_simd_capabilities() is called concurrently from multiple threads.
- * Initialized to the C23 empty initializer `= {}`.
+ * Initialized to the C23 empty initializer @c = {}.
  *
  * @see init_once()
  * @see get_simd_capabilities()
@@ -109,8 +109,8 @@ static INIT_ONCE init_flag = INIT_ONCE_STATIC_INIT;
  *          the function returns early with caps zeroed.
  *
  * @note This function is platform-specific:
- *       - **Windows (_WIN64):** Uses __cpuid() and __cpuidex() from intrin.h
- *       - **Linux/Unix:** Uses __get_cpuid() and __cpuid_count() from cpuid.h
+ *       @li Windows (_WIN64): Uses __cpuid() and __cpuidex() from intrin.h
+ *       @li Linux/Unix: Uses __get_cpuid() and __cpuid_count() from cpuid.h
  *
  * @see get_simd_capabilities() for the public API.
  * @see SIMDCapabilities for the structure definition.
@@ -234,12 +234,12 @@ static inline void init_once(void) { detect_simd_capabilities(&simd); }
  * @brief Windows one-time initialization callback.
  *
  * @details
- * This function matches the `PINIT_ONCE_FN` signature required by
- * Windows `InitOnceExecuteOnce()`.  It delegates to
+ * This function matches the @c PINIT_ONCE_FN signature required by
+ * Windows @c InitOnceExecuteOnce().  It delegates to
  * @ref detect_simd_capabilities() to populate the global @ref simd
  * structure.
  *
- * @return Always `TRUE` (initialisation always succeeds).
+ * @return Always @c TRUE (initialisation always succeeds).
  *
  * @see get_simd_capabilities()
  * @see init_flag
@@ -267,7 +267,7 @@ static BOOL CALLBACK init_once_win(PINIT_ONCE once, PVOID param, PVOID *ctx) {
  *         and must not be freed by the caller.
  *
  * @note This function is thread-safe. The detection is performed at most
- *       once using C11 `call_once` on Linux or `InitOnceExecuteOnce` on
+ *       once using C11 @c call_once on Linux or @c InitOnceExecuteOnce on
  *       Windows.
  *
  * @par Example:
