@@ -9,26 +9,26 @@
  * warp size, thread limits, driver/runtime versions) and formats
  * them for human-readable output.
  *
- * The file is conditionally compiled behind `NOVA_HAS_CUDA` and
- * `__has_include(<cuda_runtime_api.h>)`.  When CUDA headers are
+ * The file is conditionally compiled behind @c NOVA_HAS_CUDA and
+ * @c __has_include(<cuda_runtime_api.h>).  When CUDA headers are
  * unavailable, stub functions returning error statuses are
  * provided.
  *
- * ## Caching
+ * @section caching Caching
  *
- * Device properties are queried once and cached in a `static`
+ * Device properties are queried once and cached in a @c static
  * local variable within @ref initCudaDeviceProperties.  Subsequent
  * calls to @ref getCudaDeviceProperties and @ref
  * printCudaDeviceInfo return the cached values without additional
  * CUDA runtime API calls.
  *
- * ## Internal Helpers
+ * @section internal-helpers Internal Helpers
  *
- * - @ref formatMemory — Converts byte counts to human-readable
+ * @li @ref formatMemory — Converts byte counts to human-readable
  *   strings (GiB / MiB / bytes).
- * - @ref formatCudaVersion — Converts the CUDA integer version
+ * @li @ref formatCudaVersion — Converts the CUDA integer version
  *   encoding to a "major.minor" string.
- * - @ref initCudaDeviceProperties — Performs the actual CUDA
+ * @li @ref initCudaDeviceProperties — Performs the actual CUDA
  *   runtime queries and populates the cached struct.
  *
  * @see DetectCudaDeviceInfo.hpp  Type and function declarations.
@@ -37,17 +37,19 @@
  */
 
 #include <iostream>
-#include <ncore/core/device.h>
-#include <ncore/core/status.h>
-#include <ncore/headeronly/macros.h>
 #include <sstream>
 #include <string>
 
+#include <ncore/core/device.h>
+#include <ncore/core/status.h>
+#include <ncore/headeronly/macros.h>
+
 #ifdef NOVA_HAS_CUDA
 #if __has_include(<cuda_runtime_api.h>)
+#include <cuda_runtime_api.h>
+
 #include "DetectCudaDevice.hpp"
 #include "DetectCudaDeviceInfo.hpp"
-#include <cuda_runtime_api.h>
 
 namespace {
 
@@ -56,9 +58,9 @@ namespace {
  *
  * @details
  * Converts @p bytes to the most appropriate unit:
- * - 8 GiB or more → "X.X GiB"
- * - 1 MiB or more → "X.X MiB"
- * - Otherwise → "N bytes"
+ * @li 8 GiB or more → "X.X GiB"
+ * @li 1 MiB or more → "X.X MiB"
+ * @li Otherwise → "N bytes"
  *
  * @param[in] bytes  The byte count to format.
  *
@@ -86,7 +88,7 @@ std::string formatMemory(size_t bytes) {
  * @brief Convert a CUDA integer version to a "major.minor" string.
  *
  * @details
- * CUDA encodes versions as `major * 1000 + minor * 10`.  This
+ * CUDA encodes versions as @c major * 1000 + minor * 10.  This
  * function extracts and formats the two components.
  *
  * @param[in] version  The CUDA integer version encoding.
@@ -103,16 +105,16 @@ std::string formatCudaVersion(int version) {
  * @brief Query the CUDA runtime and populate device properties.
  *
  * @details
- * Calls `cudaGetDeviceProperties`, `cudaDriverGetVersion`, and
- * `cudaRuntimeGetVersion` to fill a @ref cudaDetectedDeviceProps_t
- * struct.  The result is cached in a `static` local variable for
+ * Calls @c cudaGetDeviceProperties, @c cudaDriverGetVersion, and
+ * @c cudaRuntimeGetVersion to fill a @ref cudaDetectedDeviceProps_t
+ * struct.  The result is cached in a @c static local variable for
  * subsequent calls.
  *
  * If device detection has already been performed (via
  * @ref was_device_detection_done), uses the detected device index;
  * otherwise defaults to device 0.
  *
- * @param[out] status  Receives `novaSuccess` on success, or an
+ * @param[out] status  Receives @c novaSuccess on success, or an
  *                     error code with the CUDA error string on
  *                     failure.
  *
@@ -131,7 +133,7 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
       status->err = (err != cudaErrorInvalidValue) ? novaInvalidValue
                                                    : novaDeviceNotAvailable;
       status->message = cudaGetErrorString(err);
-      return {.isAvailable = false};
+      return {};
     }
 
     int driverVer = 0;
@@ -179,13 +181,13 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
  * @details
  * Queries device 0 properties via @ref initCudaDeviceProperties
  * and prints them using ANSI colour codes.  When @p verbose is
- * `false`, a concise two-line summary is printed.  When @p verbose
- * is `true`, a detailed multi-line block is printed.
+ * @c false, a concise two-line summary is printed.  When @p verbose
+ * is @c true, a detailed multi-line block is printed.
  *
- * @param[in] verbose  If `true`, print the full property block
+ * @param[in] verbose  If @c true, print the full property block
  *                     (name, compute capability, memory, SMs, warp
  *                     size, thread limits, driver/runtime versions).
- *                     If `false`, print a concise summary.
+ *                     If @c false, print a concise summary.
  *
  * @return @ref novaStatus_t with the result of the detection.
  *         On success, set to @ref novaSuccess.  On failure, set to
@@ -263,13 +265,13 @@ novaStatus_t printCudaDeviceInfo(bool verbose) {
  * calls return the cached value without additional CUDA runtime
  * API calls.
  *
- * @param[out] status  Receives `novaSuccess` on success, or an
+ * @param[out] status  Receives @c novaSuccess on success, or an
  *                     error code on failure.
  *
  * @return Cached device properties.  Check @ref isAvailable to
  *         determine whether the data is valid.
  *
- * @note Thread-safe.  The result is cached in a `static` local
+ * @note Thread-safe.  The result is cached in a @c static local
  *       variable initialised exactly once (C++11 guarantee).
  */
 cudaDetectedDeviceProps_t
