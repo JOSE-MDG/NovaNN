@@ -8,25 +8,25 @@
  * well as a generic cast function that dispatches to the appropriate
  * cast implementation based on source and target dtypes.
  *
- * ## Classification
+ * @section classification Classification
  *
- * The six classification functions (`is_floating`, `is_integer`,
- * etc.) each index into a precomputed `uint8_t` lookup table
- * (e.g., `floating[NUM_DTYPES][1]`) and cast the result to `bool`.
+ * The six classification functions (@c is_floating, @c is_integer,
+ * etc.) each index into a precomputed @c uint8_t lookup table
+ * (e.g., @c floating[NUM_DTYPES][1]) and cast the result to @c bool.
  * The tables are populated at compile time from the @ref DType_
  * enumeration.  This avoids switch statements and gives O(1)
  * classification for any dtype.
  *
- * ## Cast Dispatch
+ * @section cast-dispatch Cast Dispatch
  *
- * The `cast()` function resolves the correct element-wise
- * conversion via the `cast_dispatch` 2D array (indexed by
- * `[source_dtype][target_dtype]`) and calls the matching
- * `castFn` implementation.  The actual cast kernels are defined
- * in the `cast_dispatch_tables` and `cast_tables` translation
+ * The @c cast() function resolves the correct element-wise
+ * conversion via the @c cast_dispatch 2D array (indexed by
+ * @c [source_dtype][target_dtype]) and calls the matching
+ * @c castFn implementation.  The actual cast kernels are defined
+ * in the @c cast_dispatch_tables and @c cast_tables translation
  * units.
  *
- * ## Thread Safety
+ * @section thread-safety Thread Safety
  *
  * All functions are pure lookups or dispatch calls and are
  * thread-safe.  The classification tables and the cast dispatch
@@ -48,12 +48,12 @@
  * @brief Dispatch table for cast functions.
  *
  * @details
- * A `NUM_DTYPES × NUM_DTYPES` 2D array indexed by
- * `[source_dtype][target_dtype]`, containing function pointers to
+ * A @c NUM_DTYPES × NUM_DTYPES 2D array indexed by
+ * @c [source_dtype][target_dtype], containing function pointers to
  * the appropriate cast implementation.  Populated at compile time
  * from @ref cast_dispatch_tables.
  *
- * For example, `cast_dispatch[Float32][Signed32]` points to the
+ * For example, @c cast_dispatch[Float32][Signed32] points to the
  * function that converts float32 elements to int32 elements.
  *
  * @see cast()
@@ -65,16 +65,16 @@ extern CastFn cast_dispatch[NUM_DTYPES][NUM_DTYPES];
  * @brief Check whether a tensor's dtype is a floating-point type.
  *
  * @details
- * Indexes into the `floating` lookup table with `input->dtype`
- * as the row index.  The table entry is `1` for float types
- * (`Float32`, `Float64`, `Float16`, `BFloat16`) and `0` for all
+ * Indexes into the @c floating lookup table with @c input->dtype
+ * as the row index.  The table entry is @c 1 for float types
+ * (@c Float32, @c Float64, @c Float16, @c BFloat16) and @c 0 for all
  * others.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr` and must have a valid `dtype` field.
+ *                   @c nullptr and must have a valid @c dtype field.
  *
- * @return `true` if `input->dtype` is a floating-point type,
- *         `false` otherwise.
+ * @return @c true if @c input->dtype is a floating-point type,
+ *         @c false otherwise.
  *
  * @see is_integer()
  * @see is_signed_integer()
@@ -89,17 +89,17 @@ bool is_floating(const Tensor *restrict input) {
  *        (signed or unsigned, including quantized).
  *
  * @details
- * Indexes into the `integer` lookup table with `input->dtype` as
- * the row index.  Returns `true` for all integer and quantized
- * integer types (`Signed8`, `UnSigned8`, `QSigned8`,
- * `QUnSigned8`, `Signed32`, `UnSigned32`, `Signed64`,
- * `UnSigned64`).
+ * Indexes into the @c integer lookup table with @c input->dtype as
+ * the row index.  Returns @c true for all integer and quantized
+ * integer types (@c Signed8, @c UnSigned8, @c QSigned8,
+ * @c QUnSigned8, @c Signed32, @c UnSigned32, @c Signed64,
+ * @c UnSigned64).
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr` and must have a valid `dtype` field.
+ *                   @c nullptr and must have a valid @c dtype field.
  *
- * @return `true` if `input->dtype` is any integer type,
- *         `false` otherwise.
+ * @return @c true if @c input->dtype is any integer type,
+ *         @c false otherwise.
  *
  * @see is_floating()
  * @see is_signed_integer()
@@ -113,15 +113,15 @@ bool is_integer(const Tensor *restrict input) {
  * @brief Check whether a tensor's dtype is a signed integer type.
  *
  * @details
- * Indexes into the `signed_integer` lookup table with
- * `input->dtype` as the row index.  Returns `true` for
- * `Signed8`, `QSigned8`, `Signed32`, and `Signed64`.
+ * Indexes into the @c signed_integer lookup table with
+ * @c input->dtype as the row index.  Returns @c true for
+ * @c Signed8, @c QSigned8, @c Signed32, and @c Signed64.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr` and must have a valid `dtype` field.
+ *                   @c nullptr and must have a valid @c dtype field.
  *
- * @return `true` if `input->dtype` is a signed integer type
- *         (including quantized), `false` otherwise.
+ * @return @c true if @c input->dtype is a signed integer type
+ *         (including quantized), @c false otherwise.
  *
  * @see is_unsigned_integer()
  * @see is_quantized_signed_integer()
@@ -135,15 +135,15 @@ bool is_signed_integer(const Tensor *restrict input) {
  * @brief Check whether a tensor's dtype is an unsigned integer type.
  *
  * @details
- * Indexes into the `unsigned_integer` lookup table with
- * `input->dtype` as the row index.  Returns `true` for
- * `UnSigned8`, `QUnSigned8`, `UnSigned32`, and `UnSigned64`.
+ * Indexes into the @c unsigned_integer lookup table with
+ * @c input->dtype as the row index.  Returns @c true for
+ * @c UnSigned8, @c QUnSigned8, @c UnSigned32, and @c UnSigned64.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr` and must have a valid `dtype` field.
+ *                   @c nullptr and must have a valid @c dtype field.
  *
- * @return `true` if `input->dtype` is an unsigned integer type
- *         (including quantized), `false` otherwise.
+ * @return @c true if @c input->dtype is an unsigned integer type
+ *         (including quantized), @c false otherwise.
  *
  * @see is_signed_integer()
  * @see is_quantized_unsigned_integer()
@@ -158,14 +158,14 @@ bool is_unsigned_integer(const Tensor *restrict input) {
  *        integer type.
  *
  * @details
- * Indexes into the `quantized_signed_integer` lookup table with
- * `input->dtype` as the row index.  Returns `true` only for
- * `QSigned8`.
+ * Indexes into the @c quantized_signed_integer lookup table with
+ * @c input->dtype as the row index.  Returns @c true only for
+ * @c QSigned8.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr` and must have a valid `dtype` field.
+ *                   @c nullptr and must have a valid @c dtype field.
  *
- * @return `true` if `input->dtype` is `QSigned8`, `false`
+ * @return @c true if @c input->dtype is @c QSigned8, @c false
  *         otherwise.
  *
  * @see is_quantized_unsigned_integer()
@@ -181,14 +181,14 @@ bool is_quantized_signed_integer(const Tensor *restrict input) {
  *        integer type.
  *
  * @details
- * Indexes into the `quantized_unsigned_integer` lookup table with
- * `input->dtype` as the row index.  Returns `true` only for
- * `QUnSigned8`.
+ * Indexes into the @c quantized_unsigned_integer lookup table with
+ * @c input->dtype as the row index.  Returns @c true only for
+ * @c QUnSigned8.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
- *                   `nullptr` and must have a valid `dtype` field.
+ *                   @c nullptr and must have a valid @c dtype field.
  *
- * @return `true` if `input->dtype` is `QUnSigned8`, `false`
+ * @return @c true if @c input->dtype is @c QUnSigned8, @c false
  *         otherwise.
  *
  * @see is_quantized_signed_integer()
@@ -203,14 +203,14 @@ bool is_quantized_unsigned_integer(const Tensor *restrict input) {
  * @brief Check whether a given @ref DType_ can be quantized.
  *
  * @details
- * Indexes into the `quantizable_dtype` lookup table with @p dtype as
- * the index.  Returns `true` for `Float4E2M1fn`, `QSigned8`,
- * `QUnSigned8`, `QSigned16`, `QUnSigned16`, `QSigned32`, and
- * `QUnSigned32`.
+ * Indexes into the @c quantizable_dtype lookup table with @p dtype as
+ * the index.  Returns @c true for @c Float4E2M1fn, @c QSigned8,
+ * @c QUnSigned8, @c QSigned16, @c QUnSigned16, @c QSigned32, and
+ * @c QUnSigned32.
  *
  * @param[in] dtype  The data type to query.
  *
- * @return `true` if @p dtype is a quantizable type, `false` otherwise.
+ * @return @c true if @p dtype is a quantizable type, @c false otherwise.
  *
  * @see is_floating()
  * @see is_integer()
@@ -224,7 +224,7 @@ bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
  * @details
  * Dispatches through the @ref cast_dispatch table to select the
  * correct element-wise conversion kernel.  The source tensor's
- * `dtype` field determines the source type, and @p target_dtype
+ * @c dtype field determines the source type, and @p target_dtype
  * determines the destination type.
  *
  * The destination tensor must be pre-allocated with the target
@@ -232,16 +232,16 @@ bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
  * does not allocate memory — it only fills the data buffer of
  * @p dst.
  *
- * @param[in]  src           Source tensor.  Must not be `nullptr`,
- *                           must have `is_allocated_ == true`,
- *                           and a valid `storage` pointer.
+ * @param[in]  src           Source tensor.  Must not be @c nullptr,
+ *                           must have @c is_allocated_ == true,
+ *                           and a valid @c storage pointer.
  * @param[in]  target_dtype  Desired output @ref DType_.
  * @param[out] dst           Destination tensor (must be
  *                           pre-allocated with the target dtype).
- *                           Must not be `nullptr`.
+ *                           Must not be @c nullptr.
  *
  * @pre  @p dst must have been created via
- *       `create_unallocated_tensor()` with the correct shape and
+ *       @c create_unallocated_tensor() with the correct shape and
  *       the target dtype.
  * @pre  @p src must have a valid, allocated storage buffer.
  * @post On success, @p dst contains the type-converted copy of
@@ -262,9 +262,9 @@ void cast(const Tensor *restrict src, DType_ target_dtype,
  *
  * @details
  * Looks up the byte-width from the precomputed
- * `lookup_dtype_sizes` table, which is indexed by @ref DType_
- * values.  For example, `dtype_size(Float32)` returns `4` and
- * `dtype_size(Signed64)` returns `8`.
+ * @c lookup_dtype_sizes table, which is indexed by @ref DType_
+ * values.  For example, @c dtype_size(Float32) returns @c 4 and
+ * @c dtype_size(Signed64) returns @c 8.
  *
  * @param[in] dtype  The data type to query.  Should be a valid
  *                   @ref DType_ value.
