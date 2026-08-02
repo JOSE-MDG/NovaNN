@@ -21,8 +21,8 @@ pub mod reserve;
 pub mod resize;
 
 pub use cpp::{
-    DeviceBuffer, DeviceKind, DeviceMemcpyKind, DeviceStatus, deviceRelease, deviceReserve,
-    deviceResize, getDeviceBackend,
+    DeviceBuffer, DeviceKind, DeviceMemcpyKind, NovaError, NovaStatus, deviceRelease,
+    deviceReserve, deviceResize, getDeviceBackend,
 };
 pub use lifecycle::{release, retain};
 pub use query::{
