@@ -64,9 +64,11 @@ This module defines the following functions:
 
     _nova_configure_cuda_common(<target>)
 
-  Sets ``CUDA_STANDARD`` to 20, enables separable compilation for
-  non-OBJECT libraries, validates ``CMAKE_CUDA_ARCHITECTURES``
-  (minimum SM 75), and defines ``NOVA_HAS_CUDA=1``.
+  Sets ``CUDA_STANDARD`` to 20 and sets the ``CUDA_ARCHITECTURES``
+  target property from ``CMAKE_CUDA_ARCHITECTURES``.  Enables
+  separable compilation for non-OBJECT libraries.  Validates that
+  each SM in ``CMAKE_CUDA_ARCHITECTURES`` is at least SM 75.
+  Defines ``NOVA_HAS_CUDA=1``.
 
 #]=======================================================================]
 function(_nova_configure_cuda_common TARGET)
@@ -78,6 +80,7 @@ function(_nova_configure_cuda_common TARGET)
 
     set_target_properties(${TARGET} PROPERTIES
         CUDA_STANDARD 20
+        CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
     )
 
     get_target_property(_target_type ${TARGET} TYPE)
@@ -88,23 +91,17 @@ function(_nova_configure_cuda_common TARGET)
         )
     endif()
 
-    if(DEFINED CMAKE_CUDA_ARCHITECTURES)
-        foreach(SM IN LISTS CMAKE_CUDA_ARCHITECTURES)
-            if(SM MATCHES "^[0-9]+$")
-                if(SM LESS 75)
-                    message(FATAL_ERROR
-                        "CUDA SM ${SM} is not supported by NovaNN. "
-                        "Minimum is SM 75 (Turing). "
-                        "Remove SM ${SM} from CMAKE_CUDA_ARCHITECTURES."
-                    )
-                endif()
+    foreach(SM IN LISTS CMAKE_CUDA_ARCHITECTURES)
+        if(SM MATCHES "^[0-9]+$")
+            if(SM LESS 75)
+                message(FATAL_ERROR
+                    "CUDA SM ${SM} is not supported by NovaNN. "
+                    "Minimum is SM 75 (Turing). "
+                    "Remove SM ${SM} from CMAKE_CUDA_ARCHITECTURES."
+                )
             endif()
-        endforeach()
-    else()
-        set_target_properties(${TARGET} PROPERTIES
-            CUDA_ARCHITECTURES "${NOVA_CUDA_ARCHITECTURES}"
-        )
-    endif()
+        endif()
+    endforeach()
 endfunction()
 
 #[=======================================================================[.rst:
