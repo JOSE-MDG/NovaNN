@@ -15,10 +15,8 @@ is unreliable for AVX10 because the ISA defines no unique instruction
 mnemonic to test.
 
 .. note::
-  This snippet is only ever compiled and run via :command:`check_simd`,
-  which is a no-op under MSVC (see ``CheckInstructionSupport.cmake``).
-  There is therefore no MSVC/Windows branch here -- NovaNN never probes
-  AVX10 on MSVC builds.
+  This snippet is compiled and run via :command:`check_simd`, which
+  wraps ``-m`` flags with ``/clang:`` prefix when using clang-cl.
 
 Variables defined:
 
@@ -28,17 +26,29 @@ Variables defined:
 #]=======================================================================]
 
 check_simd(HAS_AVX10_1 "-mavx10.1" "-mavx10.1" "
+#ifdef _WIN32
+    #include <intrin.h>
+    static int cpuid_avx10(int *ebx_out) {
+        int regs[4];
+        __cpuidex(regs, 7, 0);
+        if (!(regs[3] & (1 << 19))) return 0;
+        __cpuidex(regs, 0x24, 0);
+        *ebx_out = regs[1];
+        return 1;
+    }
+#else
     #include <cpuid.h>
-
+    static int cpuid_avx10(int *ebx_out) {
+        unsigned int eax, ebx, ecx, edx;
+        if (!__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx)) return 0;
+        if (!(edx & (1U << 19))) return 0;
+        __cpuid_count(0x24, 0, eax, ebx, ecx, edx);
+        *ebx_out = (int)ebx;
+        return 1;
+    }
+#endif
     int main() {
-      unsigned int eax, ebx, ecx, edx;
-      if (__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx)) {
-        if (edx & (1U << 19)) {
-          unsigned int eax24, ebx24, ecx24, edx24;
-          __cpuid_count(0x24, 0, eax24, ebx24, ecx24, edx24);
-          return (ebx24 & 0xFFU) >= 1 ? 0 : 1;
-        }
-      }
-      return 1;
+        int ebx = 0;
+        return (cpuid_avx10(&ebx) && (ebx & 0xFF) >= 1) ? 0 : 1;
     }
 ")

@@ -13,10 +13,8 @@ already detected.  Detection uses CPUID leaf 0x24, subleaf 0, EBX[7:0]
 flag), same as ``DetectAVX10.1``.
 
 .. note::
-  This snippet is only ever compiled and run via :command:`check_simd`,
-  which is a no-op under MSVC (see ``CheckInstructionSupport.cmake``).
-  There is therefore no MSVC/Windows branch here -- NovaNN never probes
-  AVX10 on MSVC builds.
+  This snippet is compiled and run via :command:`check_simd`, which
+  wraps ``-m`` flags with ``/clang:`` prefix when using clang-cl.
 
 Variables defined:
 
@@ -28,20 +26,32 @@ Variables defined:
 
 if(HAS_AVX10_1)
   check_simd(HAS_AVX10_2 "-mavx10.2" "-mavx10.2" "
-        #include <cpuid.h>
-
-        int main() {
-          unsigned int eax, ebx, ecx, edx;
-          if (__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx)) {
-            if (edx & (1U << 19)) {
-              unsigned int eax24, ebx24, ecx24, edx24;
-              __cpuid_count(0x24, 0, eax24, ebx24, ecx24, edx24);
-              return (ebx24 & 0xFFU) >= 2 ? 0 : 1;
-            }
-          }
-          return 1;
-        }
-    ")
+#ifdef _WIN32
+    #include <intrin.h>
+    static int cpuid_avx10(int *ebx_out) {
+        int regs[4];
+        __cpuidex(regs, 7, 0);
+        if (!(regs[3] & (1 << 19))) return 0;
+        __cpuidex(regs, 0x24, 0);
+        *ebx_out = regs[1];
+        return 1;
+    }
+#else
+    #include <cpuid.h>
+    static int cpuid_avx10(int *ebx_out) {
+        unsigned int eax, ebx, ecx, edx;
+        if (!__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx)) return 0;
+        if (!(edx & (1U << 19))) return 0;
+        __cpuid_count(0x24, 0, eax, ebx, ecx, edx);
+        *ebx_out = (int)ebx;
+        return 1;
+    }
+#endif
+    int main() {
+        int ebx = 0;
+        return (cpuid_avx10(&ebx) && (ebx & 0xFF) >= 2) ? 0 : 1;
+    }
+  ")
 else()
   set(HAS_AVX10_2 0)
 endif()
