@@ -116,6 +116,24 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Symlink the active preset's compile_commands.json to the source root so
+# clangd picks it up automatically (clangd searches parent directories for
+# compile_commands.json).  Refreshed on every configure.  Skipped on Windows
+# where creating symlinks requires elevated privileges.
+if(NOT WIN32)
+    set(NOVA_CLANGD_DB "${CMAKE_SOURCE_DIR}/compile_commands.json")
+    if(IS_SYMLINK "${NOVA_CLANGD_DB}")
+        file(REMOVE "${NOVA_CLANGD_DB}")
+    endif()
+    if(NOT EXISTS "${NOVA_CLANGD_DB}")
+        file(CREATE_LINK
+            "${CMAKE_BINARY_DIR}/compile_commands.json"
+            "${NOVA_CLANGD_DB}"
+            SYMBOLIC
+        )
+    endif()
+endif()
+
 configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/config.h.in"
     "${CMAKE_BINARY_DIR}/config.h"
