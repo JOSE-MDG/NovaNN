@@ -22,6 +22,9 @@ htmlcov/
 build/
 docs/_build/
 
+# clangd compilation database symlink (generated at configure time)
+compile_commands.json
+
 # Compiled files
 *.so
 *.a
