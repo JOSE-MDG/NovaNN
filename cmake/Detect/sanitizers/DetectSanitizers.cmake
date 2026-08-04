@@ -31,6 +31,16 @@ When enabled, this module creates the following target:
 
      target_link_libraries(<target> PRIVATE nova::sanitizers)
 
+``nova::ubsan_runtime`` (alias for ``nova_ubsan_runtime``)
+  An ``INTERFACE`` library that injects the UBSan standalone runtime into
+  **shared libraries only**.  Clang links no UBSan runtime into shared
+  libraries, so they would fail their ``-Wl,--no-undefined`` link with
+  undefined ``__ubsan_handle_*`` references.  Executables must not link this
+  target: the injected runtime becomes a direct ``DT_NEEDED`` whose
+  constructor runs inside the dynamic loader at startup and deadlocks
+  re-entering its own ``sigaction`` interceptor before ``main``.  Executables
+  get the runtime from the compiler driver via ``-fsanitize=undefined``.
+
 Cache Variables
 ^^^^^^^^^^^^^^^
 
@@ -185,19 +195,27 @@ if(USE_UBSAN)
     )
   else()
     set(NOVA_HAS_UBSAN 1 CACHE INTERNAL "")
-    # Clang links no UBSan runtime into shared libraries; inject it. The
-    # --push-state,--no-as-needed pair keeps it on the line despite
-    # -Wl,--as-needed + LTO.
-    set(_nova_ubsan_runtime_link "")
+    # Clang links no UBSan runtime into shared libraries; inject it via a
+    # dedicated target that only shared libraries consume. Executables must
+    # NOT use it: the injected runtime becomes a direct DT_NEEDED whose
+    # constructor runs inside ld.so at startup and deadlocks re-entering its
+    # own sigaction interceptor before main. Executables rely on the compiler
+    # driver, which links the runtime correctly.
     set(_nova_san_arch "x86_64")
-    if(_nova_san_arch AND
-       EXISTS "${_nova_san_runtime_dir}/libclang_rt.ubsan_standalone-x86_64.so")
-      set(_nova_ubsan_runtime_link
+    if(NOT TARGET nova_ubsan_runtime AND
+       _nova_san_arch AND
+       EXISTS "${_nova_san_runtime_dir}/libclang_rt.ubsan_standalone-${_nova_san_arch}.so")
+      add_library(nova_ubsan_runtime INTERFACE)
+      add_library(nova::ubsan_runtime ALIAS nova_ubsan_runtime)
+      # The --push-state,--no-as-needed pair keeps it on the line despite
+      # -Wl,--as-needed + LTO.
+      target_link_options(nova_ubsan_runtime INTERFACE
         -Wl,--push-state,--no-as-needed
         "${_nova_san_runtime_dir}/libclang_rt.ubsan_standalone-${_nova_san_arch}.so"
         -Wl,--pop-state
+        ${_nova_san_rpath}
       )
-    elseif(_nova_san_runtime_dir)
+    elseif(NOT _nova_san_arch)
       message(WARNING
         "UBSan runtime libclang_rt.ubsan_standalone not found in "
         "'${_nova_san_runtime_dir}'. Shared library link may fail with "
@@ -208,7 +226,6 @@ if(USE_UBSAN)
       -fsanitize=undefined -fno-sanitize-recover=all)
     target_link_options(nova_sanitizers INTERFACE
       -fsanitize=undefined
-      ${_nova_ubsan_runtime_link}
       ${_nova_san_rpath}
     )
   endif()

@@ -227,6 +227,20 @@ function(nova_configure_build_flags TARGET)
   if(TARGET nova::sanitizers)
     target_link_libraries(${TARGET} PRIVATE nova::sanitizers)
   endif()
+
+  # Inject the UBSan runtime into shared libraries only. Executables must not
+  # inject it: the runtime's constructor then runs inside ld.so at startup
+  # and deadlocks re-entering its own sigaction interceptor before main.
+  # Executables get the runtime from the compiler driver via -fsanitize.
+  # Static and object libraries must not link it either: CMake propagates
+  # PRIVATE dependencies of static libraries to consumers ($<LINK_ONLY:...>),
+  # which would smuggle the runtime back into every executable downstream.
+  if(TARGET nova::ubsan_runtime)
+    get_target_property(_nova_san_target_type ${TARGET} TYPE)
+    if(_nova_san_target_type STREQUAL "SHARED_LIBRARY")
+      target_link_libraries(${TARGET} PRIVATE nova::ubsan_runtime)
+    endif()
+  endif()
 endfunction()
 
 #[=======================================================================[.rst:

@@ -14,19 +14,19 @@ This module sets the following cache variables:
 When LTO is available the module also sets
 ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` to ``ON`` globally.
 
-The module is idempotent: if ``NOVA_HAS_LTO`` is already defined the
-file returns immediately.  If ``USE_LTO`` is ``OFF`` the module sets
-``NOVA_HAS_LTO`` to ``0`` and returns without performing a detection
-check.
+The module is idempotent: it skips the detection when ``NOVA_HAS_LTO``
+already matches the requested ``USE_LTO`` state.  If ``USE_LTO`` is
+``OFF`` the module sets ``NOVA_HAS_LTO`` to ``0`` and returns without
+performing a detection check.
 
 #]=======================================================================]
 
-if(NOVA_HAS_LTO)
+if(NOT USE_LTO)
+    set(NOVA_HAS_LTO 0 CACHE INTERNAL "")
     return()
 endif()
 
-if(NOT USE_LTO)
-    set(NOVA_HAS_LTO 0 CACHE INTERNAL "")
+if(NOVA_HAS_LTO)
     return()
 endif()
 
