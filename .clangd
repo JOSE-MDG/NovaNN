@@ -7,7 +7,6 @@
 #   4. ncore/ C23 compilation (gcc -std=c23)
 
 CompileFlags:
-  CompilationDatabase: build
   Remove:
     - -forward-unknown-to-host-compiler
   Add:
