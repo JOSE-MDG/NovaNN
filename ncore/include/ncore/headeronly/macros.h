@@ -236,7 +236,7 @@
  * @details
  * Equals 7: CUDA, HIP, CPU, Meta, Miopen, OneDNN and Generic.
  *
- * @see Backend enum in backend.h.
+ * @see Backend_ enum in backend.h.
  */
 #define NUM_BACKENDS 7
 
@@ -464,8 +464,8 @@
  * @brief Compiler detection macro for GNU/Clang-compatible toolchains.
  *
  * @details
- * Defined to @c 1 when the compiler is GCC (@c __GNUC__) or Clang (@c __clang__).
- * This macro is primarily used to dispatch between compiler-native
+ * Defined to @c 1 when the compiler is GCC (@c __GNUC__) or Clang (@c
+ * __clang__). This macro is primarily used to dispatch between compiler-native
  * half-precision types (@c _Float16, @c __bf16) and the project's portable
  * soft-float implementations
  * (@c float16, @c bfloat16).

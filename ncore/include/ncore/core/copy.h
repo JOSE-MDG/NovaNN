@@ -97,7 +97,7 @@ typedef void (*CopyFn)(const Tensor *restrict src, Tensor *restrict dst,
  * @see CopyFn            Per-dtype copy function pointer type.
  * @see lookup_copy       Dispatch table selecting host vs device.
  * @see safe_allocator()  Storage allocator.
- * @see Device            Device placement enum.
+ * @see Device_            Device placement enum.
  * @see DType_            Data-type enum used for dispatch.
  */
 void deepcopy(const Tensor *restrict src, Tensor *restrict dst,

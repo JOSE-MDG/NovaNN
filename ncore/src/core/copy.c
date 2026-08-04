@@ -228,11 +228,11 @@ const CopyFn lookup_device_copy[NUM_DTYPES][1] = {
 
 /**
  * @var lookup_copy
- * @brief Top-level dispatch table mapping @ref Device to the
+ * @brief Top-level dispatch table mapping @ref Device_ to the
  *        appropriate per-dtype copy table.
  *
  * @details
- * A 2-element array indexed by @ref Device:
+ * A 2-element array indexed by @ref Device_:
  * @li @c lookup_copy[DEVICE_CPU] → @ref lookup_host_copy
  * @li @c lookup_copy[DEVICE_GPU] → @ref lookup_device_copy
  *
@@ -291,7 +291,7 @@ const CopyFn *lookup_copy[2] = {
  * @see CopyFn            Per-dtype copy function pointer type.
  * @see lookup_copy       Dispatch table selecting host vs device.
  * @see safe_allocator()  Storage allocator.
- * @see Device            Device placement enum.
+ * @see Device_            Device placement enum.
  * @see DType_            Data-type enum used for dispatch.
  */
 void deepcopy(const Tensor *restrict src, Tensor *restrict dst,

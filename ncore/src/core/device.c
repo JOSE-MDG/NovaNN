@@ -25,7 +25,7 @@
  * @section architecture Architecture
  *
  * The design follows a backend-agnostic dispatch pattern:
- * @li Application code calls @ref transfer_to() with abstract @c Device
+ * @li Application code calls @ref transfer_to() with abstract @c Device_
  *   values.
  * @li The dispatch table translates @c (src, dst) pairs into a
  *   @c TransferKind that the underlying runtime understands.
@@ -90,7 +90,7 @@
  * @see getDeviceBackend()  Runtime backend detection.
  */
 extern novaStatus_t deviceTransfer(const void *src, void *dst,
-                                    TransferKind kind, size_t bytes);
+                                   TransferKind kind, size_t bytes);
 
 #ifdef __linux__
 #include <threads.h>
@@ -304,7 +304,7 @@ static BOOL CALLBACK init_runtime_flags_lock(PINIT_ONCE once, PVOID param,
  *
  * @details
  * A 3×3 matrix indexed by @c [src][dst] where each index is a
- * @ref Device value (@c DEVICE_CPU=0, @c DEVICE_GPU=1,
+ * @ref Device_ value (@c DEVICE_CPU=0, @c DEVICE_GPU=1,
  * @c DEVICE_META=2).  Each entry is a @ref TransferKind value that
  * encodes the correct copy direction for the given @c (src, dst) pair.
  *
@@ -629,8 +629,8 @@ bool is_hip_available(void) {
  *                         transfer directions.
  * @see TransferKind       Enum encoding copy directions.
  */
-novaStatus_t transfer_to(Device src, Device dst, const void *src_buf,
-                          void *dst_buf, size_t bytes) {
+novaStatus_t transfer_to(Device_ src, Device_ dst, const void *src_buf,
+                         void *dst_buf, size_t bytes) {
   if (src == DEVICE_CPU && dst == DEVICE_CPU) {
     novaStatus_t status;
     status.err = novaTransferError;

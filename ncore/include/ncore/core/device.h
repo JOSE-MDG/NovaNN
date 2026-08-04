@@ -8,7 +8,7 @@
  * rest of the NovaNN codebase uses to interact with heterogeneous
  * compute devices.  It is the single include point for:
  *
- * @li Device enumeration: The @ref Device enum classifies where a
+ * @li Device enumeration: The @ref Device_ enum classifies where a
  *   tensor's backing storage lives (CPU, GPU, or META).
  * @li Backend identification: The @ref DeviceKind enum identifies
  *   which GPU runtime (CUDA, HIP, or none) is in use.
@@ -51,7 +51,7 @@
  * }
  * @endcode
  *
- * @see tensor.h      Tensor structure embedding a @ref Device field.
+ * @see tensor.h      Tensor structure embedding a @ref Device_ field.
  * @see ffi.hpp       C-callable device-memory copy wrapper used by
  *                    @ref transfer_to().
  * @see DetectCudaDevice.cpp CUDA-specific detection implementation.
@@ -71,13 +71,13 @@ extern "C" {
 #endif
 
 /**
- * @enum Device
+ * @enum Device_
  * @brief Target device for tensor data placement.
  *
  * @details
  * Determines where a tensor's backing storage is allocated and which
  * compute kernels can operate on it.  Every tensor in the NovaNN
- * framework carries a @ref Device field that specifies its memory
+ * framework carries a @ref Device_ field that specifies its memory
  * location.
  *
  * The three tiers form a strict hierarchy:
@@ -95,11 +95,11 @@ extern "C" {
  * @see DeviceKind     Identifies which GPU runtime is in use.
  * @see novaStatus_t   Result type for device memory operations.
  */
-typedef enum Device : uint8_t {
+typedef enum Device_ : uint8_t {
   DEVICE_CPU = 0, ///< Host memory; accessible by all CPU kernels.
   DEVICE_GPU = 1, ///< Accelerator memory; requires GPU-capable backend.
   DEVICE_META = 2 ///< Placeholder; no data buffer is allocated.
-} Device;
+} Device_;
 
 /**
  * @enum DeviceKind
@@ -118,7 +118,7 @@ typedef enum Device : uint8_t {
  * @note This enum uses a @c uint8_t underlying type (C23) to minimise its
  *       footprint in structs that are serialised or copied frequently.
  *
- * @see Device          Target device for tensor data placement.
+ * @see Device_          Target device for tensor data placement.
  * @see is_device_available()
  * @see is_cuda_available()
  * @see is_hip_available()
@@ -141,7 +141,7 @@ typedef enum DeviceKind : uint8_t {
  * underlying runtime.
  *
  * The dispatch table @ref transf_dispatch (in @ref device.c) maps
- * pairs of @c (src Device, dst Device) to a @c TransferKind value,
+ * pairs of @c (src Device_, dst Device_) to a @c TransferKind value,
  * which is then passed to the C-callable @c deviceTransfer() wrapper.
  *
  * @note This enum uses a @c uint8_t underlying type (C23) to minimise its
@@ -162,7 +162,7 @@ typedef enum TransferKind : uint8_t {
  * @brief Forward declaration of the Tensor type.
  *
  * @details
- * The Tensor struct is defined in @c tensor.h and carries a @ref Device
+ * The Tensor struct is defined in @c tensor.h and carries a @ref Device_
  * field indicating where its data resides.  This forward declaration
  * allows @ref TensorGrad (used for gradient tensors) to be defined
  * without pulling in the full tensor header.
@@ -314,7 +314,7 @@ bool is_hip_available(void);
  *                         transfer directions.
  * @see TransferKind       Enum encoding copy directions.
  */
-novaStatus_t transfer_to(Device src, Device dst, const void *src_buf,
+novaStatus_t transfer_to(Device_ src, Device_ dst, const void *src_buf,
                          void *dst_buf, size_t bytes);
 
 /**

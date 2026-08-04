@@ -116,7 +116,7 @@ typedef Node *BackwardNode;
  * Core data structure used throughout NovaNN.  Every tensor
  * carries:
  * @li Shape, strides, and total element count for layout.
- * @li A @ref DType_ and @ref Device for type and placement.
+ * @li A @ref DType_ and @ref Device_ for type and placement.
  * @li A reference-counted @ref TensorStorage for the backing buffer.
  * @li Optional gradient fields for autograd.
  * @li Quantisation parameters (scale, zero-point).
@@ -128,7 +128,7 @@ typedef Node *BackwardNode;
  *
  * @li Layout — @c shape, @c strides, @c ndims, @c size,
  *     @c item_size, @c offset
- * @li Type/Device — @c dtype, @c device
+ * @li Type/Device_ — @c dtype, @c device
  * @li Storage — @c storage, @c data, @c is_allocated_, @c is_pinned
  * @li Autograd — @c grad, @c grad_fn_, @c requires_grad_,
  *     @c retain_grad_, @c is_leaf_, @c is_view_
@@ -150,7 +150,7 @@ struct Tensor {
   size_t size;         ///< Total element count (product of shape).
   size_t logical_size; ///< Unpacked element count (individual values).
   DType_ dtype;        ///< Element data type (@ref DType_ enum).
-  Device device;       ///< Placement device (@ref Device enum).
+  Device_ device;      ///< Placement device (@ref Device_ enum).
   shape_t shape;       ///< Dimension sizes (up to @ref NOVA_MAX_DIMS).
   strides_t strides;   ///< Byte strides per dimension.
   TensorStorage
@@ -216,7 +216,7 @@ typedef Tensor *TensorGrad;
  * @see create_tensor_like()     Clone metadata from an existing tensor.
  * @see safe_allocator()         Underlying allocation.
  */
-Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
+Tensor create_tensor(const shape_t shape, DType_ dtype, Device_ device,
                      bool requires_grad, bool pin_memory, size_t ndims,
                      novaStatus_t *status);
 
@@ -251,7 +251,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
  * @see create_tensor()        N-dimensional variant.
  * @see is_scalar()            Query predicate.
  */
-Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad,
+Tensor create_scalar_tensor(DType_ dtype, Device_ device, bool requires_grad,
                             bool pin_memory, novaStatus_t *status);
 
 /**

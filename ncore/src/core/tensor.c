@@ -79,7 +79,7 @@
  * @see create_tensor_like()     Clone metadata from an existing tensor.
  * @see safe_allocator()         Underlying allocation.
  */
-Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
+Tensor create_tensor(const shape_t shape, DType_ dtype, Device_ device,
                      bool requires_grad, bool pin_memory, size_t ndims,
                      novaStatus_t *status) {
 
@@ -163,7 +163,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
  *
  * @return Initialised scalar @c Tensor with backing storage.
  *
- * @pre  Device must be one of @c DEVICE_CPU, @c DEVICE_GPU, or
+ * @pre  Device_ must be one of @c DEVICE_CPU, @c DEVICE_GPU, or
  *       @c DEVICE_META.
  * @pre  @p status must not be @c nullptr.
  * @post On success, @c is_allocated_ == true (unless META).
@@ -171,7 +171,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device device,
  * @see create_tensor()  N-dimensional variant.
  * @see is_scalar()      Query predicate.
  */
-Tensor create_scalar_tensor(DType_ dtype, Device device, bool requires_grad,
+Tensor create_scalar_tensor(DType_ dtype, Device_ device, bool requires_grad,
                             bool pin_memory, novaStatus_t *status) {
   Tensor tensor = {};
 

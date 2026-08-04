@@ -35,7 +35,7 @@
  *
  * @see alloc.h      Public API declarations.
  * @see storage.h    RustHandle and TensorStorage definitions.
- * @see device.h     Device enumeration.
+ * @see device.h     Device_ enumeration.
  * @see status.h     novaStatus_t error reporting.
  */
 
@@ -48,7 +48,7 @@
 #include <ncore/tensor.h>
 
 /**
- * @brief Translate a @ref Device enum to the C-string expected by
+ * @brief Translate a @ref Device_ enum to the C-string expected by
  *        the Rust FFI.
  *
  * @param[in] device  The device selection (CPU, GPU, or META).
@@ -56,7 +56,7 @@
  * @return @c "cpu" for @c DEVICE_CPU, @c "device" for @c DEVICE_GPU,
  *         or @c "none" as a fallback for META / unknown values.
  */
-static const char *map_device2string(Device device) {
+static const char *map_device2string(Device_ device) {
   switch (device) {
   case DEVICE_CPU:
     return "cpu";
@@ -115,7 +115,7 @@ static const char *map_device2string(Device device) {
  * @see get_data_from()       Resolve data pointer from handle.
  * @see TensorStorage         Storage descriptor struct.
  */
-novaStatus_t safe_allocator(size_t bytes, Device device, bool pin_memory,
+novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
                             RustHandle *handle, Tensor *ten,
                             bool create_storage) {
 

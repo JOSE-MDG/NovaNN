@@ -99,8 +99,8 @@ typedef struct {
  * @see create_unallocated_tensor()       Calls this function.
  */
 static inline TensorGrad
-create_unallocated_grad_tensor(const shape_t shape, DType_ dtype, Device device,
-                               bool pin_memory, size_t ndims,
+create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
+                               Device_ device, bool pin_memory, size_t ndims,
                                novaStatus_t *status);
 
 /**
@@ -116,7 +116,7 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype, Device device,
  * @see create_unallocated_scalar_grad_tensor()  Calls this function.
  */
 static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
-                                                      Device device,
+                                                      Device_ device,
                                                       bool requires_grad,
                                                       bool pin_memory,
                                                       novaStatus_t *status);
@@ -134,7 +134,7 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
  * @see create_unallocated_scalar_tensor()       Calls this function.
  */
 static inline TensorGrad
-create_unallocated_scalar_grad_tensor(DType_ dtype, Device device,
+create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
                                       bool pin_memory, novaStatus_t *status);
 
 /**
@@ -381,7 +381,7 @@ static inline void compute_coords_given_linear_byte_offset_(
  * @see create_unallocated_grad_tensor()   Heap-allocated gradient.
  */
 static inline Tensor create_unallocated_tensor(const shape_t shape,
-                                               DType_ dtype, Device device,
+                                               DType_ dtype, Device_ device,
                                                bool requires_grad,
                                                bool pin_memory, size_t ndims,
                                                novaStatus_t *status) {
@@ -453,8 +453,8 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
  * @see create_unallocated_scalar_grad_tensor()  Scalar variant.
  */
 static inline TensorGrad
-create_unallocated_grad_tensor(const shape_t shape, DType_ dtype, Device device,
-                               bool pin_memory, size_t ndims,
+create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
+                               Device_ device, bool pin_memory, size_t ndims,
                                novaStatus_t *status) {
   TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
   if (grad == nullptr) {
@@ -502,7 +502,7 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype, Device device,
  * @see create_scalar_tensor()                Allocated variant.
  */
 static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
-                                                      Device device,
+                                                      Device_ device,
                                                       bool requires_grad,
                                                       bool pin_memory,
                                                       novaStatus_t *status) {
@@ -570,7 +570,7 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
  * @see create_unallocated_grad_tensor()    N-dimensional variant.
  */
 static inline TensorGrad
-create_unallocated_scalar_grad_tensor(DType_ dtype, Device device,
+create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
                                       bool pin_memory, novaStatus_t *status) {
   TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
   if (grad == nullptr) {

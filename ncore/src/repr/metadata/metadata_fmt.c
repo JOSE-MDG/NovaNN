@@ -19,13 +19,13 @@
  * @section string-mapping String Mapping
  *
  * Uses precomputed string tables (@c g_dtype_string,
- * @c g_device_string) for @ref DType_ and @ref Device enumeration
+ * @c g_device_string) for @ref DType_ and @ref Device_ enumeration
  * values.
  *
  * @see metadata_fmt.h    Footer interface.
  * @see repr_options.h    Mode definitions.
  * @see dtype.h           DType_ enumeration.
- * @see device.h          Device enumeration.
+ * @see device.h          Device_ enumeration.
  */
 
 #include <stdio.h>
@@ -71,7 +71,7 @@ static const char *g_dtype_string[NUM_DTYPES] = {
 
 /**
  * @var g_device_string
- * @brief String table mapping @ref Device values to human-readable labels.
+ * @brief String table mapping @ref Device_ values to human-readable labels.
  *
  * @see device_string()
  */
@@ -94,14 +94,14 @@ static const char *dtype_string(DType_ d) {
 }
 
 /**
- * @brief Map a @ref Device value to its human-readable string.
+ * @brief Map a @ref Device_ value to its human-readable string.
  *
  * @param[in] d The device to look up.
  *
  * @return A static string literal, or @c "unknown" if the device is
  *         out of range.
  */
-static const char *device_string(Device d) {
+static const char *device_string(Device_ d) {
   if ((int)d >= 3) {
     return "unknown";
   }

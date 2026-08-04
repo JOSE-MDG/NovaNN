@@ -81,7 +81,7 @@ extern "C" {
  * @see get_data_from()       Resolve data pointer from handle.
  * @see TensorStorage         Storage descriptor struct.
  */
-novaStatus_t safe_allocator(size_t bytes, Device device, bool pin_memory,
+novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
                             RustHandle *handle, Tensor *ten,
                             bool create_storage);
 
