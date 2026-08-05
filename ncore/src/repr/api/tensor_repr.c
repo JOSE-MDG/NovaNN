@@ -96,8 +96,19 @@ static char *repr_internal(const Tensor *ten, const ReprOptions *opts) {
       const Tensor *t = ctx.tensor;
       char buf[128];
       const void *ptr = t->data.v;
-      format_element(buf, sizeof(buf), ptr, t, &ctx);
-      sb_append(&sb, buf);
+      /*
+       * Packed dtypes (e.g. Float4E2M1fn) store multiple sub-elements
+       * in one storage unit. Emit every lane, not just the first.
+       */
+      const size_t packing = dtype_packing_factor(t->dtype);
+      for (size_t i = 0; i < packing; i++) {
+        if (i > 0) {
+          sb_append(&sb, ", ");
+        }
+        ctx.sub_element_index = i;
+        format_element(buf, sizeof(buf), ptr, t, &ctx);
+        sb_append(&sb, buf);
+      }
     }
   } else if (ctx.is_meta) {
     sb_append(&sb, "...");
