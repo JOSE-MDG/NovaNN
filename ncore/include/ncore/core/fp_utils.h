@@ -36,6 +36,10 @@
 
 #include <ncore/core/dtype.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Convert a single-precision float to IEEE 754 half-precision (FP16).
  *
@@ -171,3 +175,7 @@ extern float4_e2m1fn_x2 fp4e2m1x2_from_floats(float lo, float hi);
  * @param[out] hi   Receives the decoded value of the high nibble.
  */
 extern void fp4e2m1x2_to_floats(float4_e2m1fn_x2 val, float *lo, float *hi);
+
+#ifdef __cplusplus
+}
+#endif
