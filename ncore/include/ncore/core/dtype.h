@@ -304,9 +304,9 @@ bool is_quantizable_dtype(DType_ dtype);
  * dtype and matching shape.
  *
  * @param[in]  src           Source tensor.  Must not be @c nullptr.
- * @param[in]  target_dtype  Desired output @ref DType_.
  * @param[out] dst           Destination tensor (must be
  *                           pre-allocated).  Must not be @c nullptr.
+ * @param[in]  target_dtype  Desired output @ref DType_.
  *
  * @pre  @p dst must have been created via
  *       @c create_unallocated_tensor() with the correct shape.
@@ -316,8 +316,8 @@ bool is_quantizable_dtype(DType_ dtype);
  * @see cast_dispatch
  * @see DType_
  */
-void cast(const Tensor *restrict src, DType_ target_dtype,
-          Tensor *restrict dst);
+void cast(const Tensor *restrict src, Tensor *restrict dst,
+          DType_ target_dtype);
 
 /**
  * @brief Return the size in bytes of a given @ref DType_.

@@ -235,10 +235,10 @@ bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
  * @param[in]  src           Source tensor.  Must not be @c nullptr,
  *                           must have @c is_allocated_ == true,
  *                           and a valid @c storage pointer.
- * @param[in]  target_dtype  Desired output @ref DType_.
  * @param[out] dst           Destination tensor (must be
  *                           pre-allocated with the target dtype).
  *                           Must not be @c nullptr.
+ * @param[in]  target_dtype  Desired output @ref DType_.
  *
  * @pre  @p dst must have been created via
  *       @c create_unallocated_tensor() with the correct shape and
@@ -251,8 +251,8 @@ bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
  *                     pairs to cast kernels.
  * @see DType_         Runtime data-type identifier.
  */
-void cast(const Tensor *restrict src, DType_ target_dtype,
-          Tensor *restrict dst) {
+void cast(const Tensor *restrict src, Tensor *restrict dst,
+          DType_ target_dtype) {
   CastFn func = cast_dispatch[src->dtype][target_dtype];
   func(src, dst);
 }
