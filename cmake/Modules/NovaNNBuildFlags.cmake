@@ -143,15 +143,14 @@ if(_nova_is_clang_cl)
     /clang:-fno-finite-math-only
     /GS            # buffer security check (clang-cl equivalent of -fstack-protector-strong)
   )
+  list(APPEND NOVA_RELEASE_FLAGS /clang:-march=x86-64-v2)
 else()
   set(NOVA_RELEASE_FLAGS
     -O3 -ffast-math -fno-finite-math-only
     -fstack-protector-strong
   )
 
-  if(NOT WIN32)
-    list(APPEND NOVA_RELEASE_FLAGS -mtune=generic -march=x86-64-v2)
-  endif()
+  list(APPEND NOVA_RELEASE_FLAGS -mtune=generic -march=x86-64-v2)
 endif()
 
 
