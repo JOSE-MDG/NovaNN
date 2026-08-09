@@ -173,7 +173,7 @@ C/C++ calls:  reserve() / retain() / release() / resize()
               └───────┬────────┘
                       │
               ┌───────▼──────────────────────────────────────────────────────────┐
-              │   rustcsrc      (C++ staticlib bridge)                           │
+              │   memorycsrc      (C++ staticlib bridge)                         │
               │   deviceReserve / deviceRelease / deviceResize / deviceTransfer  │
               │   → CUDA API or HIP API depending on detected backend            │
               └──────────────────────────────────────────────────────────────────┘
@@ -203,7 +203,7 @@ C/C++ calls:  reserve() / retain() / release() / resize()
 | `dtypes_obj` (`ncore::obj::dtypes`) | OBJECT | C++ reduced types |
 | `native` (`ncore::native`) | STATIC | Aggregates all backends (cpu, cuda, hip, kernels) |
 | `ncore_memory` (`ncore::memory`) | IMPORTED STATIC | Rust crate |
-| `rustcsrc` (`ncore::memory::csrc`) | STATIC | C++ bridge for GPU memory |
+| `memorycsrc` (`ncore::memory::csrc`) | STATIC | C++ bridge for GPU memory |
 
 ---
 
