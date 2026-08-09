@@ -75,7 +75,7 @@
  *        backend.
  *
  * @details
- * Defined in @c ncore/rust/csrc/ffi.cpp.  Dispatches to the correct
+ * Defined in @c ncore/memory/csrc/ffi.cpp.  Dispatches to the correct
  * backend (CUDA or HIP) based on the runtime-detected GPU kind.
  *
  * @param[in]  src   Pointer to the source buffer.

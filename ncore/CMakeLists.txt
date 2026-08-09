@@ -25,7 +25,7 @@ optional CUDA/HIP configuration.
 #]=======================================================================]
 
 add_subdirectory(native)
-add_subdirectory(rust)
+add_subdirectory(memory)
 
 # Create the core object library from C sources in the repr and core subdirectories.
 file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
