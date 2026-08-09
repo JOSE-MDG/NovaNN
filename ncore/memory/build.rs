@@ -1,6 +1,6 @@
 //! Build script for the NovaNN Rust crate.
 //!
-//! This script links the pre-compiled C++ static library (`rustcsrc`)
+//! This script links the pre-compiled C++ static library (`memorycsrc`)
 //! produced by CMake and configures conditional compilation flags.
 //!
 //! # Environment variables
@@ -8,7 +8,7 @@
 //! | Variable         | Required | Default     | Description                              |
 //! |------------------|----------|-------------|------------------------------------------|
 //! | `RUSTCSRC_DIR`   | yes      | —           | Path to the compiled C++ static library. |
-//! | `RUSTCSRC_NAME`  | no       | `rustcsrc`  | Name of the static library (without lib prefix). |
+//! | `RUSTCSRC_NAME`  | no       | `memorycsrc`  | Name of the static library (without lib prefix). |
 //!
 //! The script expects Cargo to be invoked through CMake so that
 //! `RUSTCSRC_DIR` is set correctly.
@@ -17,7 +17,7 @@ fn main() {
     let csrc_dir =
         std::env::var("RUSTCSRC_DIR").expect("RUSTCSRC_DIR not set - invoke cargo via CMake");
 
-    let csrc_name = std::env::var("RUSTCSRC_NAME").unwrap_or_else(|_| "rustcsrc".to_string());
+    let csrc_name = std::env::var("RUSTCSRC_NAME").unwrap_or_else(|_| "memorycsrc".to_string());
 
     // Link the pre-compiled C++ static library and its standard library runtime.
     println!("cargo:rustc-link-search=native={}", csrc_dir);

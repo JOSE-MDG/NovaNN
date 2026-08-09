@@ -22,7 +22,7 @@ Targets created:
 
 ``ncore_memory`` — alias ``ncore::memory``
   Imported static library wrapping the Cargo output.  Links against
-  ``ncore::memory::csrc`` (alias of ``rustcsrc``), ``Threads::Threads``,
+  ``ncore::memory::csrc`` (alias of ``memorycsrc``), ``Threads::Threads``,
   ``dl``, and ``m``.
 
 #]=======================================================================]
@@ -60,7 +60,7 @@ add_custom_target(memory_cargo
   "CUDA_DEVICE_MEMORY_DIR=${CUDA_DEVICE_MEMORY_DIR}"
   "HIP_DEVICE_MEMORY_DIR=${HIP_DEVICE_MEMORY_DIR}"
   "RUSTCSRC_DIR=$<TARGET_FILE_DIR:ncore::memory::csrc>"
-  "RUSTCSRC_NAME=rustcsrc"
+  "RUSTCSRC_NAME=memorycsrc"
   "NOVA_HAS_CUDA=${NOVA_HAS_CUDA}"
   "NOVA_HAS_HIP=${NOVA_HAS_HIP}"
   "CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
