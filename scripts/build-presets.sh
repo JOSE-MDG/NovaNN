@@ -1,4 +1,33 @@
 #!/usr/bin/env bash
+## @file build-presets.sh
+## @brief Configure CMake presets into build directories.
+##
+## @details
+## Reads every preset defined in CMakePresets.json (or a filtered subset)
+## and runs @c cmake --preset for each one, writing full output to
+## @c build/logs/@<preset@>.log.  The terminal shows a single summary
+## line per preset with a live progress spinner when stdout is a TTY.
+##
+## Without arguments the script configures **all** presets.
+## A single FILTER argument restricts the run to presets whose name starts
+## with that prefix (e.g. @c cpu, @c cuda) or matches an exact preset name.
+##
+## @par Usage
+## @code
+##   scripts/build-presets.sh [OPTIONS] [FILTER]
+## @endcode
+##
+## @par Options
+## @li @c -c, @c --continue — keep going after a preset fails.
+## @li @c -l, @c --list — print matching presets and exit.
+## @li @c -h, @c —help — show help and exit.
+##
+## @par Exit status
+## @li 0 — all presets configured.
+## @li 1 — at least one preset failed.
+## @li 2 — usage error.
+##
+## @see compile-presets.sh
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,11 +57,15 @@ CONTINUE_ON_ERROR=0
 LIST_ONLY=0
 FILTER=""
 
+## @brief Print a formatted error message and exit with status 1.
+## @param[in] ...  Message parts concatenated and printed to stderr.
 die() {
     printf '%sERROR:%s %s\n' "$C_RED" "$C_RESET" "$*" >&2
     exit 1
 }
 
+## @brief Print a usage error message and exit with status 2.
+## @param[in] ...  Message parts concatenated and printed to stderr.
 usage_error() {
     printf '%sUsage error:%s %s\n' "$C_RED" "$C_RESET" "$*" >&2
     printf 'Run %s--help%s for usage.\n' "$C_BOLD" "$C_RESET" >&2
@@ -41,6 +74,9 @@ usage_error() {
 
 trap 's=$?; printf "%s%s: line %d — %s%s\n" "$C_RED" "$0" "$LINENO" "$BASH_COMMAND" "$C_RESET" >&2; exit "$s"' ERR
 
+## @brief Format elapsed seconds into a human-readable string.
+## @param[in] s  Elapsed time in seconds.
+## @return Formatted string such as @c 5s or @c 2m 03s.
 fmt_elapsed() {
     local s="$1" m
     m=$((s / 60))
@@ -52,6 +88,18 @@ fmt_elapsed() {
     fi
 }
 
+## @brief Display a live progress spinner while a background process runs.
+##
+## Parses the build log for @c [current/total] progress markers and renders
+## a percentage bar with a braille or ASCII spinner.  Falls back to a simple
+## label when no progress fraction is found.  Automatically detects UTF-8
+## locale for braille characters.
+##
+## @param[in] pid      PID of the background process to monitor.
+## @param[in] logfile  Path to the log file the process writes to.
+## @param[in] label    Fallback label shown when no progress fraction is available.
+## @param[in] n        Current index (1-based) in the preset list.
+## @param[in] total    Total number of presets being processed.
 spinner() {
     set +e
     trap - ERR
@@ -116,6 +164,7 @@ spinner() {
     return 0
 }
 
+## @brief Print usage information to stdout and exit.
 usage() {
     cat <<EOF
 ${C_BOLD}Usage:${C_RESET} $0 [OPTIONS] [FILTER]
