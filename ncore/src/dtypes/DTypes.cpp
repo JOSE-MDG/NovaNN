@@ -29,23 +29,29 @@
  * @see fp4_e2m1fn_x2.hh FP4 E2M1FN pair-packed (4-bit, 1.2.1 layout).
  */
 
+#include <bit>
+#include <cmath>
+
+#include <cstdint>
 #include <ncore/core/dtype.h>
 #include <ncore/headeronly/macros.h>
 
+#include "BFloat16.hpp"
 #include "DTypes.hpp"
 #include "Float4_e2m1fn_x2.hpp"
 #include "Float8_e4m3fn.hpp"
 #include "Float8_e5m2.hpp"
+#include "Half.hpp"
+#include "ncore/headeronly/dtypes/half.hh"
 
 /**
  * @brief Convert a single-precision float to IEEE 754 half-precision (FP16).
  */
 float16 fp16_from_float(float val) {
-#ifdef _GNUC_CLANG_
+#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
   return static_cast<float16>(val);
 #else
-#include "Half.hpp"
-  return ncore::dtypes::detail::fp16_ieee_from_fp32_value(val)
+  return ncore::dtypes::detail::fp16_ieee_from_fp32_value(val);
 #endif
 }
 
@@ -54,11 +60,10 @@ float16 fp16_from_float(float val) {
  * float.
  */
 float fp16_to_float(float16 val) {
-#ifdef _GNUC_CLANG_
+#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
   return static_cast<float>(val);
 #else
-#include "Half.hpp"
-  return ncore::dtypes::detail::fp16_ieee_to_fp32_value(val)
+  return ncore::dtypes::detail::fp16_ieee_to_fp32_value(val);
 #endif
 }
 
@@ -66,11 +71,16 @@ float fp16_to_float(float16 val) {
  * @brief Convert a single-precision float to bfloat16 (Brain Float 16).
  */
 bfloat16 bf16_from_float(float val) {
-#ifdef _GNUC_CLANG_
+#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+  // Contract (fp_utils.h): NaN maps to the canonical bf16 NaN 0x7FC0.  The
+  // native __bf16 static_cast preserves the f32 NaN sign bit instead, so
+  // canonicalize explicitly to stay consistent with the BFloat16 structure.
+  if (std::isnan(val)) {
+    return std::bit_cast<bfloat16>(static_cast<uint16_t>(UINT16_C(0x7FC0)));
+  }
   return static_cast<bfloat16>(val);
 #else
-#include "BFloat16.hpp"
-  return ncore::dtypes::detail::bits_from_f32(val)
+  return ncore::dtypes::detail::bits_from_f32(val);
 #endif
 }
 
@@ -78,11 +88,10 @@ bfloat16 bf16_from_float(float val) {
  * @brief Convert a bfloat16 (Brain Float 16) value to single-precision float.
  */
 float bf16_to_float(bfloat16 val) {
-#ifdef _GNUC_CLANG_
+#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
   return static_cast<float>(val);
 #else
-#include "BFloat16.hpp"
-  return ncore::dtypes::detail::f32_from_bits(val)
+  return ncore::dtypes::detail::f32_from_bits(val);
 #endif
 }
 
@@ -131,4 +140,137 @@ void fp4e2m1x2_to_floats(float4_e2m1fn_x2 val, float *lo, float *hi) {
   const ncore::dtypes::Float4_e2m1fn_x2 packed(static_cast<uint8_t>(val));
   *lo = static_cast<float>(packed.low());
   *hi = static_cast<float>(packed.high());
+}
+
+/**
+ * @brief Convert an IEEE 754 half-precision (FP16) value to the bit pattern
+ *        of its single-precision float32 equivalent.
+ */
+uint32_t fp16_to_f32_bits(float16 val) {
+#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+  return ncore::dtypes::detail::fp16_ieee_to_fp32_bits(
+      std::bit_cast<uint16_t>(val));
+#else
+  return ncore::dtypes::detail::fp16_ieee_to_fp32_bits(val);
+#endif
+}
+
+/**
+ * @brief Convert the bit pattern of a single-precision float to an IEEE 754
+ *        half-precision (FP16) value.
+ */
+float16 fp16_from_f32_bits(uint32_t val) {
+#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+  return std::bit_cast<float16>(
+      ncore::dtypes::detail::fp16_ieee_from_fp32_value(
+          std::bit_cast<float>(val)));
+#else
+  return ncore::dtypes::detail::fp16_ieee_from_fp32_value(
+      std::bit_cast<float>(val));
+#endif
+}
+
+/**
+ * @brief Convert a bfloat16 (Brain Float 16) value to the bit pattern of its
+ *        single-precision float32 equivalent.
+ */
+uint32_t bf16_to_f32_bits(bfloat16 val) {
+#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+  return static_cast<uint32_t>(std::bit_cast<uint16_t>(val)) << 16;
+#else
+  return static_cast<uint32_t>(val) << 16;
+#endif
+}
+
+/**
+ * @brief Convert the bit pattern of a single-precision float to a bfloat16
+ *        (Brain Float 16) value.
+ */
+bfloat16 bf16_from_f32_bits(uint32_t val) {
+#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+  return std::bit_cast<bfloat16>(
+      ncore::dtypes::detail::round_to_nearest_even(std::bit_cast<float>(val)));
+#else
+  return ncore::dtypes::detail::round_to_nearest_even(
+      std::bit_cast<float>(val));
+#endif
+}
+
+/**
+ * @brief Convert an FP8 E5M2 value to the bit pattern of its
+ *        single-precision float32 equivalent.
+ */
+uint32_t fp8e5m2_to_f32_bits(float8_e5m2 val) {
+  return ncore::dtypes::detail::fp32_to_bits(
+      ncore::dtypes::detail::fp8e5m2_to_fp32_value(val));
+}
+
+/**
+ * @brief Convert the bit pattern of a single-precision float to an FP8 E5M2
+ *        value.
+ */
+float8_e5m2 fp8e5m2_from_f32_bits(uint32_t val) {
+  return ncore::dtypes::detail::fp8e5m2_from_fp32_value(
+      std::bit_cast<float>(val));
+}
+
+/**
+ * @brief Convert an FP8 E4M3FN value to the bit pattern of its
+ *        single-precision float32 equivalent.
+ */
+uint32_t fp8e4m3fn_to_f32_bits(float8_e4m3fn val) {
+  return ncore::dtypes::detail::fp32_to_bits(
+      ncore::dtypes::detail::fp8e4m3fn_to_fp32_value(val));
+}
+
+/**
+ * @brief Convert the bit pattern of a single-precision float to an FP8
+ *        E4M3FN value.
+ */
+float8_e4m3fn fp8e4m3fn_from_f32_bits(uint32_t val) {
+  return ncore::dtypes::detail::fp8e4m3fn_from_fp32_value(
+      std::bit_cast<float>(val));
+}
+
+/**
+ * @brief Decompose a pair-packed FP4 E2M1FN byte into its constituent
+ *        nibbles.
+ */
+fp4e2m1x2Result_t fp4e2m1x2_to_f32_bits(float4_e2m1fn_x2 val) {
+  fp4e2m1x2Result_t r;
+  r.lo = val & 0x0F;
+  r.hi = (val >> 4) & 0x0F;
+  r.val = static_cast<uint8_t>(r.hi) | static_cast<uint8_t>(r.lo);
+  return r;
+}
+
+/**
+ * @brief Reassemble a pair-packed FP4 E2M1FN byte from a decomposition
+ *        produced by @ref fp4e2m1x2_to_f32_bits.
+ */
+float4_e2m1fn_x2 fp4e2m1x2_from_f32_bits(const fp4e2m1x2Result_t *val) {
+  return val->val;
+}
+
+/**
+ * @brief Return the raw storage bits of an IEEE 754 half-precision (FP16)
+ *        value.
+ */
+uint16_t fp16_to_bits(float16 val) {
+#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+  return std::bit_cast<uint16_t>(val);
+#else
+  return val;
+#endif
+}
+
+/**
+ * @brief Return the raw storage bits of a bfloat16 (Brain Float 16) value.
+ */
+uint16_t bf16_to_bits(bfloat16 val) {
+#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+  return std::bit_cast<uint16_t>(val);
+#else
+  return val;
+#endif
 }
