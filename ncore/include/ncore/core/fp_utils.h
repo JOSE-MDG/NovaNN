@@ -206,8 +206,8 @@ typedef struct {
  *
  * The bit-level counterpart of @ref fp16_to_float: instead of returning a
  * @c float, the raw 32-bit pattern of the equivalent float32 value is
- * returned.  On GCC/Clang the conversion goes through the native @c _Float16
- * compiler type; otherwise it uses the software
+ * returned.  On GCC/Clang the conversion goes through the native @c
+ * _Float16 compiler type; otherwise it uses the software
  * @ref ncore::dtypes::detail::fp16_ieee_to_fp32_bits routine.
  *
  * @param[in] val  The FP16 value to convert.
