@@ -39,6 +39,8 @@
  * @see status.h     novaStatus_t error reporting.
  */
 
+#include <string.h>
+
 #include <ncore/core/alloc.h>
 #include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
@@ -158,6 +160,7 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
                           &storage_handle);
 
     if (status.err != novaSuccess) {
+      free(storage);
       return status;
     }
 
