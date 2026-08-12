@@ -34,6 +34,7 @@
 #include <ncore/core/dtype.h>
 
 #include "metadata_fmt.h"
+#include "ncore/tensor.h"
 
 /**
  * @var g_dtype_string
@@ -169,15 +170,19 @@ void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
   sb_append(sb, dtype_string(ten->dtype));
 
   sb_append(sb, ", shape=(");
-  if (ten->ndims == 0) {
+  if (is_scalar(ten)) {
     sb_append(sb, ")");
   } else {
-    for (size_t dim = 0; dim < ten->ndims; dim++) {
+    const size_t packing = dtype_packing_factor(ten->dtype);
+    for (size_t dim = 0; dim < ten->ndims; ++dim) {
       if (dim > 0) {
         sb_append(sb, ", ");
       }
       char buf[32];
-      snprintf(buf, sizeof(buf), "%zu", ten->shape[dim]);
+      const size_t dim_size = ten->shape[dim];
+      const size_t logical_size =
+          (dim == ten->ndims - 1) ? dim_size * packing : dim_size;
+      snprintf(buf, sizeof(buf), "%zu", logical_size);
       sb_append(sb, buf);
     }
     sb_append(sb, ")");
