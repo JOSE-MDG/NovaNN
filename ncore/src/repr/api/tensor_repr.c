@@ -257,6 +257,7 @@ char *tensor_repr_debug(const Tensor *ten) {
     rten.device = DEVICE_CPU;
     status = transf_tensor_from_device(ten, &rten);
     if (status.err != novaSuccess) {
+      collect(&rten);
       return nullptr;
     }
     rten.device = DEVICE_GPU;
