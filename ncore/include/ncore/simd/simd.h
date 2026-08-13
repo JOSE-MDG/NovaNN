@@ -10,15 +10,13 @@
  *
  * @section simd-support-tiers SIMD Support Tiers
  * The detection follows a hierarchical model:
- */
-/**
+ *
  * @li SSE4.2 — sse4_2_ — 128-bit — Basic vectorization
  * @li AVX — avx_ — 256-bit — Float ops
  * @li AVX2 — avx2_ — 256-bit — Integer SIMD
  * @li AVX-512 — avx512_* — 512-bit — High-throughput
  * @li AMX — amx_* — Tile — Matrix ops
- */
-/**
+ *
  * @section usage Usage
  * @code{.c}
  * const SIMDCapabilities *simd = get_simd_capabilities();
@@ -105,6 +103,10 @@ typedef struct {
   bool amx_int8_; ///< AMX INT8 tile support (int8 matrix multiply).
 } SIMDCapabilities;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Get CPU capabilities (thread-safe singleton accessor).
  *
@@ -136,3 +138,6 @@ typedef struct {
  * @see init_once()
  */
 const SIMDCapabilities *get_simd_capabilities();
+#ifdef __cplusplus
+}
+#endif
