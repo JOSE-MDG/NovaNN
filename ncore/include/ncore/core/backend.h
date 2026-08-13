@@ -76,7 +76,7 @@ extern "C" {
  * support and available hardware.
  *
  * The @c Generic backend serves as a portable fallback that uses scalar or
- * SIMD-optimised kernels and is always available.  The @c Meta backend
+ * kernels and is always available.  The @c Meta backend
  * performs no computation and exists solely for shape inference and graph
  * construction — it never allocates device memory or launches kernels.
  *
@@ -91,10 +91,10 @@ extern "C" {
 typedef enum Backend_ : uint8_t {
   CUDA,    ///< NVIDIA CUDA runtime (cuBLAS, cuDNN, custom kernels).
   HIP,     ///< AMD HIP/ROCm runtime (rocBLAS, MIOpen).
-  CPU,     ///< CPU-only execution with scalar or SIMD-optimised kernels.
+  CPU,     ///< CPU-only execution with SIMD-optimized kernels.
   Meta,    ///< No-op backend; used for shape inference only.
   Miopen,  ///< AMD MIOpen library for GPU-accelerated convolutions.
-  OneDNN,  ///< Intel oneDNN (MKL-DNN) for CPU/GPU fused operations.
+  OneDNN,  ///< Intel oneDNN (MKL-DNN) for CPU fused operations.
   Generic, ///< Portable fallback using generic kernels.
 } Backend_;
 
@@ -134,7 +134,7 @@ Backend_ *get_current_running_backend(void);
  * if it is available (as reported by @ref is_backend_available()), falling
  * back to another option otherwise.
  *
- * This function does not allocate resources or "activate" the backend in a
+ * This function does not allocate resources or activate the backend in a
  * hardware sense — it is a hint to the dispatcher about the caller's
  * preference.  The actual backend used for a given operation depends on
  * availability at dispatch time.
