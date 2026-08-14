@@ -81,6 +81,7 @@ function(_nova_configure_cuda_common TARGET)
     set_target_properties(${TARGET} PROPERTIES
         CUDA_STANDARD 20
         CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
+        CUDA_RUNTIME_LIBRARY Shared
     )
 
     get_target_property(_target_type ${TARGET} TYPE)
