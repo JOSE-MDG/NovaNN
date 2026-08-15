@@ -86,8 +86,8 @@
  * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
  *         success, or an appropriate error code on failure.
  *
- * @see deviceTransfer()  destination of the call.
- * @see getDeviceBackend()  Runtime backend detection.
+ * @see deviceTransfer()            C-callable memory transfer wrapper.
+ * @see get_detected_device_kind()  Runtime backend detection.
  */
 extern novaStatus_t deviceTransfer(const void *src, void *dst,
                                    TransferKind kind, size_t bytes);
@@ -320,7 +320,8 @@ static BOOL CALLBACK init_runtime_flags_lock(PINIT_ONCE once, PVOID param,
  *
  * All other entries remain @c 0 (zero-initialised).  Calling
  * @ref transfer_to() with an uninitialised pair (e.g.,
- * @c DEVICE_CPU → @c DEVICE_CPU) is undefined behaviour.
+ * @c DEVICE_CPU → @c DEVICE_CPU) is reported as
+ * @ref novaInvalidTransfDirection.
  *
  * @see init_transf_dispatch()
  * @see transfer_to()
@@ -396,11 +397,11 @@ INITIALIZE(init_transf_dispatch) {
  *       functions.  The cache write is protected by
  *       @ref runtime_flags_mtx.
  *
- * @see is_cuda_available()   Convenience wrapper for @c CUDA_DEVICE.
- * @see is_hip_available()    Convenience wrapper for @c HIP_DEVICE.
- * @see get_detected_device_kind()  Returns the cached backend.
+ * @see is_cuda_available()          Convenience wrapper for @c CUDA_DEVICE.
+ * @see is_hip_available()           Convenience wrapper for @c HIP_DEVICE.
+ * @see get_detected_device_kind()   Returns the cached backend.
  * @see was_device_detection_done()  Checks if detection ran.
- * @see DeviceKind            Enum identifying backends.
+ * @see DeviceKind                   Enum identifying backends.
  */
 bool is_device_available(DeviceKind kind, bool verbose) {
   if (device_detection_done && detected_device_kind != NULL_DEVICE) {
@@ -610,32 +611,32 @@ bool is_hip_available(void) {
  * @pre  Both @p src_buf and @p dst_buf must point to valid memory
  *       regions of at least @p bytes.
  * @pre  @p bytes must be greater than zero.
- * @pre  The @c (src, dst) pair must have a valid entry in
- *       @ref transf_dispatch (i.e., not a host-to-host or META pair).
+ * @pre  @p src and @p dst must be @c DEVICE_CPU or @c DEVICE_GPU.
+ *       Host-to-host pairs are rejected with
+ *       @ref novaInvalidTransfDirection instead of being transferred.
  * @post On success, @p dst_buf contains a copy of @p src_buf.
  * @post On failure, the source and destination buffers are unchanged.
  *
- * @warning If @p src and @p dst are both @c DEVICE_CPU, the dispatch
- *          table entry is @c 0 (uninitialised), which may cause
- *          undefined behaviour.  Use @c memcpy() for host-to-host
- *          copies.
+ * @note If @p src and @p dst are both @c DEVICE_CPU, the function
+ *       returns @ref novaInvalidTransfDirection.  Use @c memcpy() for
+ *       host-to-host copies.
  *
  * @note Thread-safe.  The dispatch table is read-only after
  *       initialisation, and @c deviceTransfer() is expected to be
  *       thread-safe.
  *
  * @see deviceTransfer()  Low-level C-callable copy wrapper.
- * @see transf_dispatch    Lookup table mapping device pairs to
- *                         transfer directions.
- * @see TransferKind       Enum encoding copy directions.
+ * @see transf_dispatch   Lookup table mapping device pairs to
+ *                        transfer directions.
+ * @see TransferKind      Enum encoding copy directions.
  */
 novaStatus_t transfer_to(Device_ src, Device_ dst, const void *src_buf,
                          void *dst_buf, size_t bytes) {
   if (src == DEVICE_CPU && dst == DEVICE_CPU) {
     novaStatus_t status;
-    status.err = novaTransferError;
+    status.err = novaInvalidTransfDirection;
     status.message = "Cannot transfer data between host and host; use "
-                     "deepcopy() or memcpy() instead\n";
+                     "memcpy() instead\n";
     return status;
   }
   TransferKind kind = transf_dispatch[src][dst];
@@ -766,11 +767,12 @@ DeviceKind get_detected_device_kind(void) { return detected_device_kind; }
  * @brief Check whether device detection has already been performed.
  *
  * @details
- * Returns @c true after the first detection call has completed.
- * Useful for guarding one-time initialisation that depends on the
- * detection result.
+ * Returns @c true only when the first detection call found a device
+ * (i.e., @ref device_detection_done is set).  A probe that finds no
+ * device leaves the flag unset.  Useful for guarding one-time
+ * initialisation that depends on a detected backend.
  *
- * @return @c true if detection has been performed at least once,
+ * @return @c true if a device was found by a detection call,
  *         @c false otherwise.
  *
  * @see get_detected_device_kind()
