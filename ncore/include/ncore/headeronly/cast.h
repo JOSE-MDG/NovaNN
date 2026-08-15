@@ -8,9 +8,9 @@
  * pipeline.  All manual edits will be overwritten on the next run.
  *
  * To change the output you must edit one of the upstream sources:
- * @li Template  : tools/codegen/templates/.../CastFuncs.h.jinja
- * @li Rules     : tools/codegen/rules/.../cast_funcs_rules.json
- * @li Generator : tools/codegen/scripts/.../gen_cast_funcs.py
+ * @li Template  : tools/codegen/templates/dtype_casting/CastFuncs.h.jinja
+ * @li Rules     : tools/codegen/rules/dtype_casting/cast_funcs_rules.json
+ * @li Generator : tools/codegen/scripts/dtype_casting/gen_cast_funcs.py
  *
  * @details
  * Header-only file that provides 210 inline cast functions, each
@@ -21,7 +21,7 @@
  *
  * Every cast function follows the same dispatch pattern:
  *
- * @code
+ * @code{.c}
  * tfP_to_Q(src, dst):
  *     if (AVX-512 available)  → lookup_tP_to_Q[0](src, dst)
  *     if (AVX2/F16C available)→ lookup_tP_to_Q[1](src, dst)
@@ -29,7 +29,7 @@
  *     fallback               → lookup_tP_to_Q[N](src, dst)
  * @endcode
  *
- * On non-GCC/Clang compilers , SIMD variants are not
+ * On non-GCC/Clang compilers, SIMD variants are not
  * available; the dispatch resolves directly to the scalar fallback.
  * This is controlled by the @c _GNUC_CLANG_ guard.
  *
@@ -363,6 +363,7 @@
 /** @} */
 
 /**
+ * @def DECL_CAST(from, to)
  * @brief Generate a forward declaration for a single cast function.
  *
  * @details
@@ -412,7 +413,7 @@ CAST_UINT_TO_SINT(DECL_CAST)
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void tfp4e2m1_to_fp8e4m3(const Tensor *restrict src,
@@ -422,7 +423,7 @@ static inline void tfp4e2m1_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to float8_e5m2.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void tfp4e2m1_to_fp8e5m2(const Tensor *restrict src,
@@ -432,7 +433,7 @@ static inline void tfp4e2m1_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to float16.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void tfp4e2m1_to_fp16(const Tensor *restrict src,
@@ -442,7 +443,7 @@ static inline void tfp4e2m1_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to bfloat16.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void tfp4e2m1_to_bf16(const Tensor *restrict src,
@@ -452,7 +453,7 @@ static inline void tfp4e2m1_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to float.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void tfp4e2m1_to_f32(const Tensor *restrict src,
@@ -462,7 +463,7 @@ static inline void tfp4e2m1_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to double.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void tfp4e2m1_to_f64(const Tensor *restrict src,
@@ -472,7 +473,7 @@ static inline void tfp4e2m1_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void tfp8e4m3_to_fp4e2m1(const Tensor *restrict src,
@@ -482,7 +483,7 @@ static inline void tfp8e4m3_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to float8_e5m2.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void tfp8e4m3_to_fp8e5m2(const Tensor *restrict src,
@@ -492,7 +493,7 @@ static inline void tfp8e4m3_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to float16.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void tfp8e4m3_to_fp16(const Tensor *restrict src,
@@ -502,7 +503,7 @@ static inline void tfp8e4m3_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to bfloat16.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void tfp8e4m3_to_bf16(const Tensor *restrict src,
@@ -512,7 +513,7 @@ static inline void tfp8e4m3_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to float.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void tfp8e4m3_to_f32(const Tensor *restrict src,
@@ -522,7 +523,7 @@ static inline void tfp8e4m3_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to double.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void tfp8e4m3_to_f64(const Tensor *restrict src,
@@ -532,7 +533,7 @@ static inline void tfp8e4m3_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void tfp8e5m2_to_fp4e2m1(const Tensor *restrict src,
@@ -542,7 +543,7 @@ static inline void tfp8e5m2_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void tfp8e5m2_to_fp8e4m3(const Tensor *restrict src,
@@ -552,7 +553,7 @@ static inline void tfp8e5m2_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to float16.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void tfp8e5m2_to_fp16(const Tensor *restrict src,
@@ -562,7 +563,7 @@ static inline void tfp8e5m2_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to bfloat16.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void tfp8e5m2_to_bf16(const Tensor *restrict src,
@@ -572,7 +573,7 @@ static inline void tfp8e5m2_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to float.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void tfp8e5m2_to_f32(const Tensor *restrict src,
@@ -582,7 +583,7 @@ static inline void tfp8e5m2_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to double.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void tfp8e5m2_to_f64(const Tensor *restrict src,
@@ -592,7 +593,7 @@ static inline void tfp8e5m2_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void tfp16_to_fp4e2m1(const Tensor *restrict src,
@@ -602,7 +603,7 @@ static inline void tfp16_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void tfp16_to_fp8e4m3(const Tensor *restrict src,
@@ -612,7 +613,7 @@ static inline void tfp16_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to float8_e5m2.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void tfp16_to_fp8e5m2(const Tensor *restrict src,
@@ -622,7 +623,7 @@ static inline void tfp16_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to float.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void tfp16_to_f32(const Tensor *restrict src,
@@ -644,7 +645,7 @@ static inline void tfp16_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to double.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void tfp16_to_f64(const Tensor *restrict src,
@@ -666,7 +667,7 @@ static inline void tfp16_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to bfloat16.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void tfp16_to_bf16(const Tensor *restrict src,
@@ -684,7 +685,7 @@ static inline void tfp16_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void tf32_to_fp4e2m1(const Tensor *restrict src,
@@ -694,7 +695,7 @@ static inline void tf32_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to float8_e4m3fn.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void tf32_to_fp8e4m3(const Tensor *restrict src,
@@ -704,7 +705,7 @@ static inline void tf32_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to float8_e5m2.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void tf32_to_fp8e5m2(const Tensor *restrict src,
@@ -714,7 +715,7 @@ static inline void tf32_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to float16.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void tf32_to_fp16(const Tensor *restrict src,
@@ -736,7 +737,7 @@ static inline void tf32_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to double.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void tf32_to_f64(const Tensor *restrict src,
@@ -762,7 +763,7 @@ static inline void tf32_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to bfloat16.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void tf32_to_bf16(const Tensor *restrict src,
@@ -781,7 +782,7 @@ static inline void tf32_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void tbf16_to_fp4e2m1(const Tensor *restrict src,
@@ -791,7 +792,7 @@ static inline void tbf16_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void tbf16_to_fp8e4m3(const Tensor *restrict src,
@@ -801,7 +802,7 @@ static inline void tbf16_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to float8_e5m2.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void tbf16_to_fp8e5m2(const Tensor *restrict src,
@@ -811,7 +812,7 @@ static inline void tbf16_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to float16.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void tbf16_to_fp16(const Tensor *restrict src,
@@ -829,7 +830,7 @@ static inline void tbf16_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to float.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void tbf16_to_f32(const Tensor *restrict src,
@@ -847,7 +848,7 @@ static inline void tbf16_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to double.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void tbf16_to_f64(const Tensor *restrict src,
@@ -865,7 +866,7 @@ static inline void tbf16_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void tf64_to_fp4e2m1(const Tensor *restrict src,
@@ -875,7 +876,7 @@ static inline void tf64_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to float8_e4m3fn.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void tf64_to_fp8e4m3(const Tensor *restrict src,
@@ -885,7 +886,7 @@ static inline void tf64_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to float8_e5m2.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void tf64_to_fp8e5m2(const Tensor *restrict src,
@@ -895,7 +896,7 @@ static inline void tf64_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to float16.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void tf64_to_fp16(const Tensor *restrict src,
@@ -913,7 +914,7 @@ static inline void tf64_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to float.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void tf64_to_f32(const Tensor *restrict src,
@@ -939,7 +940,7 @@ static inline void tf64_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to bfloat16.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void tf64_to_bf16(const Tensor *restrict src,
@@ -959,7 +960,7 @@ static inline void tf64_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to int8.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tfp4e2m1_to_s8(const Tensor *restrict src,
@@ -969,7 +970,7 @@ static inline void tfp4e2m1_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to int16.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tfp4e2m1_to_s16(const Tensor *restrict src,
@@ -979,7 +980,7 @@ static inline void tfp4e2m1_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to int32.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tfp4e2m1_to_s32(const Tensor *restrict src,
@@ -989,7 +990,7 @@ static inline void tfp4e2m1_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to int64.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tfp4e2m1_to_s64(const Tensor *restrict src,
@@ -999,7 +1000,7 @@ static inline void tfp4e2m1_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to int8.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tfp8e4m3_to_s8(const Tensor *restrict src,
@@ -1009,7 +1010,7 @@ static inline void tfp8e4m3_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to int16.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tfp8e4m3_to_s16(const Tensor *restrict src,
@@ -1019,7 +1020,7 @@ static inline void tfp8e4m3_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to int32.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tfp8e4m3_to_s32(const Tensor *restrict src,
@@ -1029,7 +1030,7 @@ static inline void tfp8e4m3_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to int64.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tfp8e4m3_to_s64(const Tensor *restrict src,
@@ -1039,7 +1040,7 @@ static inline void tfp8e4m3_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to int8.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tfp8e5m2_to_s8(const Tensor *restrict src,
@@ -1049,7 +1050,7 @@ static inline void tfp8e5m2_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to int16.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tfp8e5m2_to_s16(const Tensor *restrict src,
@@ -1059,7 +1060,7 @@ static inline void tfp8e5m2_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to int32.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tfp8e5m2_to_s32(const Tensor *restrict src,
@@ -1069,7 +1070,7 @@ static inline void tfp8e5m2_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to int64.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tfp8e5m2_to_s64(const Tensor *restrict src,
@@ -1079,7 +1080,7 @@ static inline void tfp8e5m2_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to int8.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tfp16_to_s8(const Tensor *restrict src,
@@ -1098,7 +1099,7 @@ static inline void tfp16_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to int16.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tfp16_to_s16(const Tensor *restrict src,
@@ -1108,7 +1109,7 @@ static inline void tfp16_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to int32.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tfp16_to_s32(const Tensor *restrict src,
@@ -1126,7 +1127,7 @@ static inline void tfp16_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to int64.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tfp16_to_s64(const Tensor *restrict src,
@@ -1144,7 +1145,7 @@ static inline void tfp16_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to int8.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tf32_to_s8(const Tensor *restrict src,
@@ -1166,7 +1167,7 @@ static inline void tf32_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to int16.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tf32_to_s16(const Tensor *restrict src,
@@ -1176,7 +1177,7 @@ static inline void tf32_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to int32.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tf32_to_s32(const Tensor *restrict src,
@@ -1202,7 +1203,7 @@ static inline void tf32_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to int64.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tf32_to_s64(const Tensor *restrict src,
@@ -1220,7 +1221,7 @@ static inline void tf32_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to int8.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tbf16_to_s8(const Tensor *restrict src,
@@ -1238,7 +1239,7 @@ static inline void tbf16_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to int16.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tbf16_to_s16(const Tensor *restrict src,
@@ -1248,7 +1249,7 @@ static inline void tbf16_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to int32.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tbf16_to_s32(const Tensor *restrict src,
@@ -1266,7 +1267,7 @@ static inline void tbf16_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to int64.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tbf16_to_s64(const Tensor *restrict src,
@@ -1285,7 +1286,7 @@ static inline void tbf16_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to int8.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tf64_to_s8(const Tensor *restrict src,
@@ -1303,7 +1304,7 @@ static inline void tf64_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to int16.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tf64_to_s16(const Tensor *restrict src,
@@ -1313,7 +1314,7 @@ static inline void tf64_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to int32.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tf64_to_s32(const Tensor *restrict src,
@@ -1339,7 +1340,7 @@ static inline void tf64_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to int64.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tf64_to_s64(const Tensor *restrict src,
@@ -1359,7 +1360,7 @@ static inline void tf64_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to uint8.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void tfp4e2m1_to_u8(const Tensor *restrict src,
@@ -1369,7 +1370,7 @@ static inline void tfp4e2m1_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to uint16.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void tfp4e2m1_to_u16(const Tensor *restrict src,
@@ -1379,7 +1380,7 @@ static inline void tfp4e2m1_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to uint32.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void tfp4e2m1_to_u32(const Tensor *restrict src,
@@ -1389,7 +1390,7 @@ static inline void tfp4e2m1_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to uint64.
- * @param[in] src Source tensor (fp4e2m1).
+ * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void tfp4e2m1_to_u64(const Tensor *restrict src,
@@ -1399,7 +1400,7 @@ static inline void tfp4e2m1_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to uint8.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void tfp8e4m3_to_u8(const Tensor *restrict src,
@@ -1409,7 +1410,7 @@ static inline void tfp8e4m3_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to uint16.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void tfp8e4m3_to_u16(const Tensor *restrict src,
@@ -1419,7 +1420,7 @@ static inline void tfp8e4m3_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to uint32.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void tfp8e4m3_to_u32(const Tensor *restrict src,
@@ -1429,7 +1430,7 @@ static inline void tfp8e4m3_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e4m3fn tensor to uint64.
- * @param[in] src Source tensor (fp8e4m3).
+ * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void tfp8e4m3_to_u64(const Tensor *restrict src,
@@ -1439,7 +1440,7 @@ static inline void tfp8e4m3_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to uint8.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void tfp8e5m2_to_u8(const Tensor *restrict src,
@@ -1449,7 +1450,7 @@ static inline void tfp8e5m2_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to uint16.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void tfp8e5m2_to_u16(const Tensor *restrict src,
@@ -1459,7 +1460,7 @@ static inline void tfp8e5m2_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to uint32.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void tfp8e5m2_to_u32(const Tensor *restrict src,
@@ -1469,7 +1470,7 @@ static inline void tfp8e5m2_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts float8_e5m2 tensor to uint64.
- * @param[in] src Source tensor (fp8e5m2).
+ * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void tfp8e5m2_to_u64(const Tensor *restrict src,
@@ -1479,7 +1480,7 @@ static inline void tfp8e5m2_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to uint8.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void tfp16_to_u8(const Tensor *restrict src,
@@ -1498,7 +1499,7 @@ static inline void tfp16_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to uint16.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void tfp16_to_u16(const Tensor *restrict src,
@@ -1508,7 +1509,7 @@ static inline void tfp16_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to uint32.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void tfp16_to_u32(const Tensor *restrict src,
@@ -1526,7 +1527,7 @@ static inline void tfp16_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts float16 tensor to uint64.
- * @param[in] src Source tensor (fp16).
+ * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void tfp16_to_u64(const Tensor *restrict src,
@@ -1544,7 +1545,7 @@ static inline void tfp16_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to uint8.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void tf32_to_u8(const Tensor *restrict src,
@@ -1566,7 +1567,7 @@ static inline void tf32_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to uint16.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void tf32_to_u16(const Tensor *restrict src,
@@ -1576,7 +1577,7 @@ static inline void tf32_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to uint32.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void tf32_to_u32(const Tensor *restrict src,
@@ -1594,7 +1595,7 @@ static inline void tf32_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts float tensor to uint64.
- * @param[in] src Source tensor (f32).
+ * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void tf32_to_u64(const Tensor *restrict src,
@@ -1612,7 +1613,7 @@ static inline void tf32_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to uint8.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void tbf16_to_u8(const Tensor *restrict src,
@@ -1630,7 +1631,7 @@ static inline void tbf16_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to uint16.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void tbf16_to_u16(const Tensor *restrict src,
@@ -1640,7 +1641,7 @@ static inline void tbf16_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to uint32.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void tbf16_to_u32(const Tensor *restrict src,
@@ -1658,7 +1659,7 @@ static inline void tbf16_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts bfloat16 tensor to uint64.
- * @param[in] src Source tensor (bf16).
+ * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void tbf16_to_u64(const Tensor *restrict src,
@@ -1677,7 +1678,7 @@ static inline void tbf16_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to uint8.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void tf64_to_u8(const Tensor *restrict src,
@@ -1695,7 +1696,7 @@ static inline void tf64_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to uint16.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void tf64_to_u16(const Tensor *restrict src,
@@ -1705,7 +1706,7 @@ static inline void tf64_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to uint32.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void tf64_to_u32(const Tensor *restrict src,
@@ -1723,7 +1724,7 @@ static inline void tf64_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts double tensor to uint64.
- * @param[in] src Source tensor (f64).
+ * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void tf64_to_u64(const Tensor *restrict src,
@@ -1743,7 +1744,7 @@ static inline void tf64_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void ts8_to_fp4e2m1(const Tensor *restrict src,
@@ -1753,7 +1754,7 @@ static inline void ts8_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void ts8_to_fp8e4m3(const Tensor *restrict src,
@@ -1763,7 +1764,7 @@ static inline void ts8_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to float8_e5m2.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void ts8_to_fp8e5m2(const Tensor *restrict src,
@@ -1773,7 +1774,7 @@ static inline void ts8_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to float16.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void ts8_to_fp16(const Tensor *restrict src,
@@ -1791,7 +1792,7 @@ static inline void ts8_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to bfloat16.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void ts8_to_bf16(const Tensor *restrict src,
@@ -1809,7 +1810,7 @@ static inline void ts8_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to float.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void ts8_to_f32(const Tensor *restrict src,
@@ -1831,7 +1832,7 @@ static inline void ts8_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to double.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void ts8_to_f64(const Tensor *restrict src,
@@ -1849,7 +1850,7 @@ static inline void ts8_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void ts16_to_fp4e2m1(const Tensor *restrict src,
@@ -1859,7 +1860,7 @@ static inline void ts16_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void ts16_to_fp8e4m3(const Tensor *restrict src,
@@ -1869,7 +1870,7 @@ static inline void ts16_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to float8_e5m2.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void ts16_to_fp8e5m2(const Tensor *restrict src,
@@ -1879,7 +1880,7 @@ static inline void ts16_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to float16.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void ts16_to_fp16(const Tensor *restrict src,
@@ -1889,7 +1890,7 @@ static inline void ts16_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to bfloat16.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void ts16_to_bf16(const Tensor *restrict src,
@@ -1899,7 +1900,7 @@ static inline void ts16_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to float.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void ts16_to_f32(const Tensor *restrict src,
@@ -1909,7 +1910,7 @@ static inline void ts16_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to double.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void ts16_to_f64(const Tensor *restrict src,
@@ -1919,7 +1920,7 @@ static inline void ts16_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void ts32_to_fp4e2m1(const Tensor *restrict src,
@@ -1929,7 +1930,7 @@ static inline void ts32_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void ts32_to_fp8e4m3(const Tensor *restrict src,
@@ -1939,7 +1940,7 @@ static inline void ts32_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to float8_e5m2.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void ts32_to_fp8e5m2(const Tensor *restrict src,
@@ -1949,7 +1950,7 @@ static inline void ts32_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to float16.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void ts32_to_fp16(const Tensor *restrict src,
@@ -1967,7 +1968,7 @@ static inline void ts32_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to bfloat16.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void ts32_to_bf16(const Tensor *restrict src,
@@ -1985,7 +1986,7 @@ static inline void ts32_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to float.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void ts32_to_f32(const Tensor *restrict src,
@@ -2011,7 +2012,7 @@ static inline void ts32_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to double.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void ts32_to_f64(const Tensor *restrict src,
@@ -2037,7 +2038,7 @@ static inline void ts32_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void ts64_to_fp4e2m1(const Tensor *restrict src,
@@ -2047,7 +2048,7 @@ static inline void ts64_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void ts64_to_fp8e4m3(const Tensor *restrict src,
@@ -2057,7 +2058,7 @@ static inline void ts64_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to float8_e5m2.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void ts64_to_fp8e5m2(const Tensor *restrict src,
@@ -2067,7 +2068,7 @@ static inline void ts64_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to float16.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void ts64_to_fp16(const Tensor *restrict src,
@@ -2085,7 +2086,7 @@ static inline void ts64_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to bfloat16.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void ts64_to_bf16(const Tensor *restrict src,
@@ -2104,7 +2105,7 @@ static inline void ts64_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to float.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void ts64_to_f32(const Tensor *restrict src,
@@ -2122,7 +2123,7 @@ static inline void ts64_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to double.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void ts64_to_f64(const Tensor *restrict src,
@@ -2142,7 +2143,7 @@ static inline void ts64_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to int16.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void ts8_to_s16(const Tensor *restrict src,
@@ -2152,7 +2153,7 @@ static inline void ts8_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to int32.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void ts8_to_s32(const Tensor *restrict src,
@@ -2178,7 +2179,7 @@ static inline void ts8_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to int64.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void ts8_to_s64(const Tensor *restrict src,
@@ -2204,7 +2205,7 @@ static inline void ts8_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to int8.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void ts16_to_s8(const Tensor *restrict src,
@@ -2214,7 +2215,7 @@ static inline void ts16_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to int32.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void ts16_to_s32(const Tensor *restrict src,
@@ -2224,7 +2225,7 @@ static inline void ts16_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to int64.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void ts16_to_s64(const Tensor *restrict src,
@@ -2234,7 +2235,7 @@ static inline void ts16_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to int8.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void ts32_to_s8(const Tensor *restrict src,
@@ -2252,7 +2253,7 @@ static inline void ts32_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to int16.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void ts32_to_s16(const Tensor *restrict src,
@@ -2262,7 +2263,7 @@ static inline void ts32_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to int64.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void ts32_to_s64(const Tensor *restrict src,
@@ -2288,7 +2289,7 @@ static inline void ts32_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to int8.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void ts64_to_s8(const Tensor *restrict src,
@@ -2306,7 +2307,7 @@ static inline void ts64_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to int16.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void ts64_to_s16(const Tensor *restrict src,
@@ -2316,7 +2317,7 @@ static inline void ts64_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to int32.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void ts64_to_s32(const Tensor *restrict src,
@@ -2336,7 +2337,7 @@ static inline void ts64_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to uint8.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void ts8_to_u8(const Tensor *restrict src, Tensor *restrict dst) {
@@ -2361,7 +2362,7 @@ static inline void ts8_to_u8(const Tensor *restrict src, Tensor *restrict dst) {
 
 /**
  * @brief Casts int8 tensor to uint16.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void ts8_to_u16(const Tensor *restrict src,
@@ -2371,7 +2372,7 @@ static inline void ts8_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to uint32.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void ts8_to_u32(const Tensor *restrict src,
@@ -2397,7 +2398,7 @@ static inline void ts8_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts int8 tensor to uint64.
- * @param[in] src Source tensor (s8).
+ * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void ts8_to_u64(const Tensor *restrict src,
@@ -2415,7 +2416,7 @@ static inline void ts8_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to uint8.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void ts16_to_u8(const Tensor *restrict src,
@@ -2425,7 +2426,7 @@ static inline void ts16_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to uint16.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void ts16_to_u16(const Tensor *restrict src,
@@ -2435,7 +2436,7 @@ static inline void ts16_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to uint32.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void ts16_to_u32(const Tensor *restrict src,
@@ -2445,7 +2446,7 @@ static inline void ts16_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts int16 tensor to uint64.
- * @param[in] src Source tensor (s16).
+ * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void ts16_to_u64(const Tensor *restrict src,
@@ -2455,7 +2456,7 @@ static inline void ts16_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to uint8.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void ts32_to_u8(const Tensor *restrict src,
@@ -2481,7 +2482,7 @@ static inline void ts32_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to uint16.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void ts32_to_u16(const Tensor *restrict src,
@@ -2491,7 +2492,7 @@ static inline void ts32_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to uint32.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void ts32_to_u32(const Tensor *restrict src,
@@ -2517,7 +2518,7 @@ static inline void ts32_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts int32 tensor to uint64.
- * @param[in] src Source tensor (s32).
+ * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void ts32_to_u64(const Tensor *restrict src,
@@ -2543,7 +2544,7 @@ static inline void ts32_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to uint8.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void ts64_to_u8(const Tensor *restrict src,
@@ -2561,7 +2562,7 @@ static inline void ts64_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to uint16.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void ts64_to_u16(const Tensor *restrict src,
@@ -2571,7 +2572,7 @@ static inline void ts64_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to uint32.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void ts64_to_u32(const Tensor *restrict src,
@@ -2589,7 +2590,7 @@ static inline void ts64_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts int64 tensor to uint64.
- * @param[in] src Source tensor (s64).
+ * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void ts64_to_u64(const Tensor *restrict src,
@@ -2617,7 +2618,7 @@ static inline void ts64_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void tu8_to_fp4e2m1(const Tensor *restrict src,
@@ -2627,7 +2628,7 @@ static inline void tu8_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void tu8_to_fp8e4m3(const Tensor *restrict src,
@@ -2637,7 +2638,7 @@ static inline void tu8_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to float8_e5m2.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void tu8_to_fp8e5m2(const Tensor *restrict src,
@@ -2647,7 +2648,7 @@ static inline void tu8_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to float16.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void tu8_to_fp16(const Tensor *restrict src,
@@ -2665,7 +2666,7 @@ static inline void tu8_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to bfloat16.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void tu8_to_bf16(const Tensor *restrict src,
@@ -2683,7 +2684,7 @@ static inline void tu8_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to float.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void tu8_to_f32(const Tensor *restrict src,
@@ -2705,7 +2706,7 @@ static inline void tu8_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to double.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void tu8_to_f64(const Tensor *restrict src,
@@ -2723,7 +2724,7 @@ static inline void tu8_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void tu16_to_fp4e2m1(const Tensor *restrict src,
@@ -2733,7 +2734,7 @@ static inline void tu16_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void tu16_to_fp8e4m3(const Tensor *restrict src,
@@ -2743,7 +2744,7 @@ static inline void tu16_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to float8_e5m2.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void tu16_to_fp8e5m2(const Tensor *restrict src,
@@ -2753,7 +2754,7 @@ static inline void tu16_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to float16.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void tu16_to_fp16(const Tensor *restrict src,
@@ -2763,7 +2764,7 @@ static inline void tu16_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to bfloat16.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void tu16_to_bf16(const Tensor *restrict src,
@@ -2773,7 +2774,7 @@ static inline void tu16_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to float.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void tu16_to_f32(const Tensor *restrict src,
@@ -2783,7 +2784,7 @@ static inline void tu16_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to double.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void tu16_to_f64(const Tensor *restrict src,
@@ -2793,7 +2794,7 @@ static inline void tu16_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void tu32_to_fp4e2m1(const Tensor *restrict src,
@@ -2803,7 +2804,7 @@ static inline void tu32_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void tu32_to_fp8e4m3(const Tensor *restrict src,
@@ -2813,7 +2814,7 @@ static inline void tu32_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to float8_e5m2.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void tu32_to_fp8e5m2(const Tensor *restrict src,
@@ -2823,7 +2824,7 @@ static inline void tu32_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to float16.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void tu32_to_fp16(const Tensor *restrict src,
@@ -2841,7 +2842,7 @@ static inline void tu32_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to bfloat16.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void tu32_to_bf16(const Tensor *restrict src,
@@ -2859,7 +2860,7 @@ static inline void tu32_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to float.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void tu32_to_f32(const Tensor *restrict src,
@@ -2877,7 +2878,7 @@ static inline void tu32_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to double.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void tu32_to_f64(const Tensor *restrict src,
@@ -2895,7 +2896,7 @@ static inline void tu32_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to float4_e2m1fn_x2.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (fp4e2m1).
  */
 static inline void tu64_to_fp4e2m1(const Tensor *restrict src,
@@ -2905,7 +2906,7 @@ static inline void tu64_to_fp4e2m1(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to float8_e4m3fn.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (fp8e4m3).
  */
 static inline void tu64_to_fp8e4m3(const Tensor *restrict src,
@@ -2915,7 +2916,7 @@ static inline void tu64_to_fp8e4m3(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to float8_e5m2.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (fp8e5m2).
  */
 static inline void tu64_to_fp8e5m2(const Tensor *restrict src,
@@ -2925,7 +2926,7 @@ static inline void tu64_to_fp8e5m2(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to float16.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (fp16).
  */
 static inline void tu64_to_fp16(const Tensor *restrict src,
@@ -2943,7 +2944,7 @@ static inline void tu64_to_fp16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to bfloat16.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (bf16).
  */
 static inline void tu64_to_bf16(const Tensor *restrict src,
@@ -2962,7 +2963,7 @@ static inline void tu64_to_bf16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to float.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (f32).
  */
 static inline void tu64_to_f32(const Tensor *restrict src,
@@ -2980,7 +2981,7 @@ static inline void tu64_to_f32(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to double.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (f64).
  */
 static inline void tu64_to_f64(const Tensor *restrict src,
@@ -3000,7 +3001,7 @@ static inline void tu64_to_f64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to int8.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tu8_to_s8(const Tensor *restrict src, Tensor *restrict dst) {
@@ -3025,7 +3026,7 @@ static inline void tu8_to_s8(const Tensor *restrict src, Tensor *restrict dst) {
 
 /**
  * @brief Casts uint8 tensor to int16.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tu8_to_s16(const Tensor *restrict src,
@@ -3035,7 +3036,7 @@ static inline void tu8_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to int32.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tu8_to_s32(const Tensor *restrict src,
@@ -3061,7 +3062,7 @@ static inline void tu8_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to int64.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tu8_to_s64(const Tensor *restrict src,
@@ -3087,7 +3088,7 @@ static inline void tu8_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to int8.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tu16_to_s8(const Tensor *restrict src,
@@ -3097,7 +3098,7 @@ static inline void tu16_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to int16.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tu16_to_s16(const Tensor *restrict src,
@@ -3107,7 +3108,7 @@ static inline void tu16_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to int32.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tu16_to_s32(const Tensor *restrict src,
@@ -3117,7 +3118,7 @@ static inline void tu16_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to int64.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tu16_to_s64(const Tensor *restrict src,
@@ -3127,7 +3128,7 @@ static inline void tu16_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to int8.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tu32_to_s8(const Tensor *restrict src,
@@ -3145,7 +3146,7 @@ static inline void tu32_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to int16.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tu32_to_s16(const Tensor *restrict src,
@@ -3155,7 +3156,7 @@ static inline void tu32_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to int32.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tu32_to_s32(const Tensor *restrict src,
@@ -3181,7 +3182,7 @@ static inline void tu32_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to int64.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tu32_to_s64(const Tensor *restrict src,
@@ -3207,7 +3208,7 @@ static inline void tu32_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to int8.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (s8).
  */
 static inline void tu64_to_s8(const Tensor *restrict src,
@@ -3225,7 +3226,7 @@ static inline void tu64_to_s8(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to int16.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (s16).
  */
 static inline void tu64_to_s16(const Tensor *restrict src,
@@ -3235,7 +3236,7 @@ static inline void tu64_to_s16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to int32.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (s32).
  */
 static inline void tu64_to_s32(const Tensor *restrict src,
@@ -3253,7 +3254,7 @@ static inline void tu64_to_s32(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to int64.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (s64).
  */
 static inline void tu64_to_s64(const Tensor *restrict src,
@@ -3281,7 +3282,7 @@ static inline void tu64_to_s64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to uint16.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void tu8_to_u16(const Tensor *restrict src,
@@ -3291,7 +3292,7 @@ static inline void tu8_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to uint32.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void tu8_to_u32(const Tensor *restrict src,
@@ -3313,7 +3314,7 @@ static inline void tu8_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts uint8 tensor to uint64.
- * @param[in] src Source tensor (u8).
+ * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void tu8_to_u64(const Tensor *restrict src,
@@ -3339,7 +3340,7 @@ static inline void tu8_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to uint8.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void tu16_to_u8(const Tensor *restrict src,
@@ -3349,7 +3350,7 @@ static inline void tu16_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to uint32.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void tu16_to_u32(const Tensor *restrict src,
@@ -3359,7 +3360,7 @@ static inline void tu16_to_u32(const Tensor *restrict src,
 
 /**
  * @brief Casts uint16 tensor to uint64.
- * @param[in] src Source tensor (u16).
+ * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void tu16_to_u64(const Tensor *restrict src,
@@ -3369,7 +3370,7 @@ static inline void tu16_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to uint8.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void tu32_to_u8(const Tensor *restrict src,
@@ -3387,7 +3388,7 @@ static inline void tu32_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to uint16.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void tu32_to_u16(const Tensor *restrict src,
@@ -3397,7 +3398,7 @@ static inline void tu32_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint32 tensor to uint64.
- * @param[in] src Source tensor (u32).
+ * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (u64).
  */
 static inline void tu32_to_u64(const Tensor *restrict src,
@@ -3423,7 +3424,7 @@ static inline void tu32_to_u64(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to uint8.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (u8).
  */
 static inline void tu64_to_u8(const Tensor *restrict src,
@@ -3441,7 +3442,7 @@ static inline void tu64_to_u8(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to uint16.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (u16).
  */
 static inline void tu64_to_u16(const Tensor *restrict src,
@@ -3451,7 +3452,7 @@ static inline void tu64_to_u16(const Tensor *restrict src,
 
 /**
  * @brief Casts uint64 tensor to uint32.
- * @param[in] src Source tensor (u64).
+ * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (u32).
  */
 static inline void tu64_to_u32(const Tensor *restrict src,
