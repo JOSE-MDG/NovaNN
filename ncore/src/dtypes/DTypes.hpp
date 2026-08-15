@@ -51,54 +51,86 @@ struct fp4e2m1x2Result_t {
 
 /**
  * @brief Convert a single-precision float to IEEE 754 half-precision (FP16).
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The FP16 representation of @p val.
  */
 float16 fp16_from_float(float val);
 
 /**
  * @brief Convert an IEEE 754 half-precision (FP16) value to single-precision
  * float.
+ *
+ * @param[in] val  The FP16 value to convert.
+ * @return The single-precision float equivalent of @p val.
  */
 float fp16_to_float(float16 val);
 
 /**
  * @brief Convert a single-precision float to bfloat16 (Brain Float 16).
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The bfloat16 representation of @p val.
  */
 bfloat16 bf16_from_float(float val);
 
 /**
  * @brief Convert a bfloat16 (Brain Float 16) value to single-precision float.
+ *
+ * @param[in] val  The bfloat16 value to convert.
+ * @return The single-precision float equivalent of @p val.
  */
 float bf16_to_float(bfloat16 val);
 
 /**
  * @brief Convert a single-precision float to FP8 E5M2 format.
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The FP8 E5M2 representation of @p val.
  */
 float8_e5m2 fp8e5m2_from_float(float val);
 
 /**
  * @brief Convert an FP8 E5M2 value to single-precision float.
+ *
+ * @param[in] val  The FP8 E5M2 value to convert.
+ * @return The single-precision float equivalent of @p val.
  */
 float fp8e5m2_to_float(float8_e5m2 val);
 
 /**
  * @brief Convert a single-precision float to FP8 E4M3FN format.
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The FP8 E4M3FN representation of @p val.
  */
 float8_e4m3fn fp8e4m3fn_from_float(float val);
 
 /**
  * @brief Convert an FP8 E4M3FN value to single-precision float.
+ *
+ * @param[in] val  The FP8 E4M3FN value to convert.
+ * @return The single-precision float equivalent of @p val.
  */
 float fp8e4m3fn_to_float(float8_e4m3fn val);
 
 /**
  * @brief Pack two single-precision floats into a single FP4 E2M1FN pair-packed
  * byte.
+ *
+ * @param[in] lo  The low-lane float value to pack.
+ * @param[in] hi  The high-lane float value to pack.
+ * @return The pair-packed FP4 byte.
  */
 float4_e2m1fn_x2 fp4e2m1x2_from_floats(float lo, float hi);
 
 /**
  * @brief Unpack a single FP4 E2M1FN pair-packed byte into two single-precision
  * floats.
+ *
+ * @param[in]  val  The pair-packed FP4 byte to unpack.
+ * @param[out] lo   Receives the low-lane float value.
+ * @param[out] hi   Receives the high-lane float value.
  */
 void fp4e2m1x2_to_floats(float4_e2m1fn_x2 val, float *lo, float *hi);
 
@@ -222,9 +254,9 @@ uint32_t fp8e4m3fn_to_f32_bits(float8_e4m3fn val);
  *        E4M3FN value.
  *
  * The bit-level counterpart of @ref fp8e4m3fn_from_float.  E4M3FN is a
- * finite-only format: out-of-range values (including +/-inf and NaN inputs)
- * saturate to the maximum finite magnitude (448.0, pattern 0x7E); NaN is
- * mapped to the canonical E4M3FN NaN pattern (0x7F).
+ * finite-only format: NaN maps to the canonical NaN pattern (0x7F); other
+ * out-of-range values (including +/-inf) saturate to the maximum finite
+ * magnitude (448.0, pattern 0x7E).
  *
  * @param[in] val  The IEEE 754 float32 bit pattern to convert.
  * @return The FP8 E4M3FN representation of the value described by @p val.

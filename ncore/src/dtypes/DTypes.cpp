@@ -46,6 +46,9 @@
 
 /**
  * @brief Convert a single-precision float to IEEE 754 half-precision (FP16).
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The FP16 representation of @p val.
  */
 float16 fp16_from_float(float val) {
 #if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
@@ -58,6 +61,9 @@ float16 fp16_from_float(float val) {
 /**
  * @brief Convert an IEEE 754 half-precision (FP16) value to single-precision
  * float.
+ *
+ * @param[in] val  The FP16 value to convert.
+ * @return The single-precision float equivalent of @p val.
  */
 float fp16_to_float(float16 val) {
 #if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
@@ -69,6 +75,9 @@ float fp16_to_float(float16 val) {
 
 /**
  * @brief Convert a single-precision float to bfloat16 (Brain Float 16).
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The bfloat16 representation of @p val.
  */
 bfloat16 bf16_from_float(float val) {
 #if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
@@ -86,6 +95,9 @@ bfloat16 bf16_from_float(float val) {
 
 /**
  * @brief Convert a bfloat16 (Brain Float 16) value to single-precision float.
+ *
+ * @param[in] val  The bfloat16 value to convert.
+ * @return The single-precision float equivalent of @p val.
  */
 float bf16_to_float(bfloat16 val) {
 #if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
@@ -97,6 +109,9 @@ float bf16_to_float(bfloat16 val) {
 
 /**
  * @brief Convert a single-precision float to FP8 E5M2 format.
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The FP8 E5M2 representation of @p val.
  */
 float8_e5m2 fp8e5m2_from_float(float val) {
   return ncore::dtypes::detail::fp8e5m2_from_fp32_value(val);
@@ -104,6 +119,9 @@ float8_e5m2 fp8e5m2_from_float(float val) {
 
 /**
  * @brief Convert an FP8 E5M2 value to single-precision float.
+ *
+ * @param[in] val  The FP8 E5M2 value to convert.
+ * @return The single-precision float equivalent of @p val.
  */
 float fp8e5m2_to_float(float8_e5m2 val) {
   return ncore::dtypes::detail::fp8e5m2_to_fp32_value(val);
@@ -111,6 +129,9 @@ float fp8e5m2_to_float(float8_e5m2 val) {
 
 /**
  * @brief Convert a single-precision float to FP8 E4M3FN format.
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The FP8 E4M3FN representation of @p val.
  */
 float8_e4m3fn fp8e4m3fn_from_float(float val) {
   return ncore::dtypes::detail::fp8e4m3fn_from_fp32_value(val);
@@ -118,6 +139,9 @@ float8_e4m3fn fp8e4m3fn_from_float(float val) {
 
 /**
  * @brief Convert an FP8 E4M3FN value to single-precision float.
+ *
+ * @param[in] val  The FP8 E4M3FN value to convert.
+ * @return The single-precision float equivalent of @p val.
  */
 float fp8e4m3fn_to_float(float8_e4m3fn val) {
   return ncore::dtypes::detail::fp8e4m3fn_to_fp32_value(val);
@@ -126,6 +150,10 @@ float fp8e4m3fn_to_float(float8_e4m3fn val) {
 /**
  * @brief Pack two single-precision floats into a single FP4 E2M1FN pair-packed
  * byte.
+ *
+ * @param[in] lo  The low-lane float value to pack.
+ * @param[in] hi  The high-lane float value to pack.
+ * @return The pair-packed FP4 byte.
  */
 float4_e2m1fn_x2 fp4e2m1x2_from_floats(float lo, float hi) {
   const ncore::dtypes::Float4_e2m1fn_x2 packed(lo, hi);
@@ -135,6 +163,10 @@ float4_e2m1fn_x2 fp4e2m1x2_from_floats(float lo, float hi) {
 /**
  * @brief Unpack a single FP4 E2M1FN pair-packed byte into two single-precision
  * floats.
+ *
+ * @param[in]  val  The pair-packed FP4 byte to unpack.
+ * @param[out] lo   Receives the low-lane float value.
+ * @param[out] hi   Receives the high-lane float value.
  */
 void fp4e2m1x2_to_floats(float4_e2m1fn_x2 val, float *lo, float *hi) {
   const ncore::dtypes::Float4_e2m1fn_x2 packed(static_cast<uint8_t>(val));
@@ -145,6 +177,9 @@ void fp4e2m1x2_to_floats(float4_e2m1fn_x2 val, float *lo, float *hi) {
 /**
  * @brief Convert an IEEE 754 half-precision (FP16) value to the bit pattern
  *        of its single-precision float32 equivalent.
+ *
+ * @param[in] val  The FP16 value to convert.
+ * @return The IEEE 754 float32 bit pattern of @p val.
  */
 uint32_t fp16_to_f32_bits(float16 val) {
 #if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
@@ -158,6 +193,9 @@ uint32_t fp16_to_f32_bits(float16 val) {
 /**
  * @brief Convert the bit pattern of a single-precision float to an IEEE 754
  *        half-precision (FP16) value.
+ *
+ * @param[in] val  The IEEE 754 float32 bit pattern to convert.
+ * @return The FP16 representation of the value described by @p val.
  */
 float16 fp16_from_f32_bits(uint32_t val) {
 #if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
@@ -173,6 +211,9 @@ float16 fp16_from_f32_bits(uint32_t val) {
 /**
  * @brief Convert a bfloat16 (Brain Float 16) value to the bit pattern of its
  *        single-precision float32 equivalent.
+ *
+ * @param[in] val  The bfloat16 value to convert.
+ * @return The float32 bit pattern of @p val (low 16 bits are zero).
  */
 uint32_t bf16_to_f32_bits(bfloat16 val) {
 #if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
@@ -185,6 +226,9 @@ uint32_t bf16_to_f32_bits(bfloat16 val) {
 /**
  * @brief Convert the bit pattern of a single-precision float to a bfloat16
  *        (Brain Float 16) value.
+ *
+ * @param[in] val  The IEEE 754 float32 bit pattern to convert.
+ * @return The bfloat16 representation of the value described by @p val.
  */
 bfloat16 bf16_from_f32_bits(uint32_t val) {
 #if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
@@ -199,6 +243,9 @@ bfloat16 bf16_from_f32_bits(uint32_t val) {
 /**
  * @brief Convert an FP8 E5M2 value to the bit pattern of its
  *        single-precision float32 equivalent.
+ *
+ * @param[in] val  The FP8 E5M2 value to convert.
+ * @return The float32 bit pattern of @p val.
  */
 uint32_t fp8e5m2_to_f32_bits(float8_e5m2 val) {
   return ncore::dtypes::detail::fp32_to_bits(
@@ -208,6 +255,9 @@ uint32_t fp8e5m2_to_f32_bits(float8_e5m2 val) {
 /**
  * @brief Convert the bit pattern of a single-precision float to an FP8 E5M2
  *        value.
+ *
+ * @param[in] val  The IEEE 754 float32 bit pattern to convert.
+ * @return The FP8 E5M2 representation of the value described by @p val.
  */
 float8_e5m2 fp8e5m2_from_f32_bits(uint32_t val) {
   return ncore::dtypes::detail::fp8e5m2_from_fp32_value(
@@ -217,6 +267,9 @@ float8_e5m2 fp8e5m2_from_f32_bits(uint32_t val) {
 /**
  * @brief Convert an FP8 E4M3FN value to the bit pattern of its
  *        single-precision float32 equivalent.
+ *
+ * @param[in] val  The FP8 E4M3FN value to convert.
+ * @return The float32 bit pattern of @p val.
  */
 uint32_t fp8e4m3fn_to_f32_bits(float8_e4m3fn val) {
   return ncore::dtypes::detail::fp32_to_bits(
@@ -226,6 +279,9 @@ uint32_t fp8e4m3fn_to_f32_bits(float8_e4m3fn val) {
 /**
  * @brief Convert the bit pattern of a single-precision float to an FP8
  *        E4M3FN value.
+ *
+ * @param[in] val  The IEEE 754 float32 bit pattern to convert.
+ * @return The FP8 E4M3FN representation of the value described by @p val.
  */
 float8_e4m3fn fp8e4m3fn_from_f32_bits(uint32_t val) {
   return ncore::dtypes::detail::fp8e4m3fn_from_fp32_value(
@@ -235,6 +291,9 @@ float8_e4m3fn fp8e4m3fn_from_f32_bits(uint32_t val) {
 /**
  * @brief Decompose a pair-packed FP4 E2M1FN byte into its constituent
  *        nibbles.
+ *
+ * @param[in] val  The pair-packed FP4 byte to decompose.
+ * @return The decomposed nibbles together with the original byte.
  */
 fp4e2m1x2Result_t fp4e2m1x2_to_f32_bits(float4_e2m1fn_x2 val) {
   fp4e2m1x2Result_t r;
@@ -247,6 +306,9 @@ fp4e2m1x2Result_t fp4e2m1x2_to_f32_bits(float4_e2m1fn_x2 val) {
 /**
  * @brief Reassemble a pair-packed FP4 E2M1FN byte from a decomposition
  *        produced by @ref fp4e2m1x2_to_f32_bits.
+ *
+ * @param[in] val  The decomposition to reassemble.  Must not be null.
+ * @return The original pair-packed FP4 byte.
  */
 float4_e2m1fn_x2 fp4e2m1x2_from_f32_bits(const fp4e2m1x2Result_t *val) {
   return val->val;
@@ -255,6 +317,9 @@ float4_e2m1fn_x2 fp4e2m1x2_from_f32_bits(const fp4e2m1x2Result_t *val) {
 /**
  * @brief Return the raw storage bits of an IEEE 754 half-precision (FP16)
  *        value.
+ *
+ * @param[in] val  The FP16 value to inspect.
+ * @return The raw 16-bit storage pattern of @p val.
  */
 uint16_t fp16_to_bits(float16 val) {
 #if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
@@ -266,6 +331,9 @@ uint16_t fp16_to_bits(float16 val) {
 
 /**
  * @brief Return the raw storage bits of a bfloat16 (Brain Float 16) value.
+ *
+ * @param[in] val  The bfloat16 value to inspect.
+ * @return The raw 16-bit storage pattern of @p val.
  */
 uint16_t bf16_to_bits(bfloat16 val) {
 #if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
