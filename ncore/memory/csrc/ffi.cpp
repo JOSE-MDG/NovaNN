@@ -65,16 +65,15 @@ namespace {
  *
  * @param[in]  bytes  Requested allocation size.
  * @param[in]  pinned Whether to allocate page-locked memory.
- * @param[in]  align  Alignment in bytes.
  * @param[out] dbuf   Device buffer descriptor to populate.
  * @param[out] status  Status to populate on error.
  */
 template <typename BufKind, auto funcKind, auto DeviceKind>
 constexpr void deviceReserveDispatch(std::size_t bytes, bool pinned,
-                                     std::size_t align, deviceBuffer_t *dbuf,
+                                     deviceBuffer_t *dbuf,
                                      novaStatus_t *status) {
   auto buf = std::make_unique<BufKind>();
-  novaStatus_t dstatus = funcKind(bytes, align, pinned, buf.get());
+  novaStatus_t dstatus = funcKind(bytes, pinned, buf.get());
 
   status->err = dstatus.err;
   status->message = dstatus.message;
@@ -119,28 +118,27 @@ mapCTransferKind2DeviceMemcpyKind(TransferKind kind) noexcept {
  * backend types based on @p kind.  Compile-time gated via
  * @c NOVA_HAS_CUDA / @c NOVA_HAS_HIP.
  *
- * @param[in]  bytes  Requested allocation size.
- * @param[out] out    Buffer descriptor to populate.
- * @param[in]  pinned Whether to allocate page-locked memory.
- * @param[in]  align  Alignment in bytes.
- * @param[in]  kind   Target backend (CUDA or HIP).
+ * @param[in]  bytes   Requested allocation size.
+ * @param[out] out_buf Buffer descriptor to populate.
+ * @param[in]  pinned  Whether to allocate page-locked memory.
+ * @param[in]  kind    Target backend (CUDA or HIP).
  *
  * @return Status with @c err == novaSuccess on success.
  *
  * @pre  @p bytes > 0.
- * @post On success, @p out->deviceBufPtr owns a backend
+ * @post On success, @p out_buf->deviceBufPtr owns a backend
  *       descriptor.
  *
  * @see deviceRelease()  Frees the buffer.
  * @see deviceResize()   Resizes the buffer.
  */
 novaStatus_t deviceReserve(std::size_t bytes, deviceBuffer_t *out_buf,
-                           bool pinned, std::size_t align, deviceKind_t kind) {
+                           bool pinned, deviceKind_t kind) {
   novaStatus_t status = {};
   if (kind == deviceKind_t::DeviceCUDA) {
 #ifdef NOVA_HAS_CUDA
     deviceReserveDispatch<cudaBuffer_t, cudaReserve, deviceKind_t::DeviceCUDA>(
-        bytes, pinned, align, out_buf, &status);
+        bytes, pinned, out_buf, &status);
 #else
     status.err = novaBackendNotCompiled;
     status.message = "CUDA support is not available in this build\n";
@@ -148,7 +146,7 @@ novaStatus_t deviceReserve(std::size_t bytes, deviceBuffer_t *out_buf,
   } else if (kind == deviceKind_t::DeviceHIP) {
 #ifdef NOVA_HAS_HIP
     deviceReserveDispatch<hipBuffer_t, hipReserve, deviceKind_t::DeviceHIP>(
-        bytes, pinned, align, out_buf, &status);
+        bytes, pinned, out_buf, &status);
 #else
     status.err = novaBackendNotCompiled;
     status.message = "HIP support is not available in this build\n";
@@ -221,7 +219,6 @@ novaStatus_t deviceRelease(deviceBuffer_t *buf) {
  *
  * @param[in,out] buf       Buffer descriptor to resize.
  * @param[in]     new_bytes New size in bytes.
- * @param[in]     align     Alignment in bytes.
  *
  * @return Status with @c err == novaSuccess on success.
  *
@@ -234,13 +231,12 @@ novaStatus_t deviceRelease(deviceBuffer_t *buf) {
  * @see deviceReserve()  Initial allocation.
  * @see deviceRelease()  Explicit deallocation.
  */
-novaStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes,
-                          std::size_t align) {
+novaStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes) {
   novaStatus_t status = {};
   if (buf->deviceKind == deviceKind_t::DeviceCUDA) {
 #ifdef NOVA_HAS_CUDA
     auto *backendBuf = static_cast<cudaBuffer_t *>(buf->deviceBufPtr);
-    novaStatus_t cstatus = cudaResize(backendBuf, new_bytes, align);
+    novaStatus_t cstatus = cudaResize(backendBuf, new_bytes);
     status.err = cstatus.err;
     status.message = cstatus.message;
     if (status.err == novaSuccess) {
@@ -254,7 +250,7 @@ novaStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes,
   } else if (buf->deviceKind == deviceKind_t::DeviceHIP) {
 #ifdef NOVA_HAS_HIP
     auto *backendBuf = static_cast<hipBuffer_t *>(buf->deviceBufPtr);
-    novaStatus_t hstatus = hipResize(backendBuf, new_bytes, align);
+    novaStatus_t hstatus = hipResize(backendBuf, new_bytes);
     status.err = hstatus.err;
     status.message = hstatus.message;
     if (status.err == novaSuccess) {
@@ -282,7 +278,7 @@ novaStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes,
  *
  * @param[in]  src       Source pointer.
  * @param[out] dst       Destination pointer.
- * @param[in]  kind      Copy direction (@ref DeviceMemcpyKind).
+ * @param[in]  kind      Copy direction (@ref TransferKind).
  * @param[in]  bytes     Number of bytes to copy.
  *
  * @return @ref novaStatus_t with @c err == novaSuccess on success.

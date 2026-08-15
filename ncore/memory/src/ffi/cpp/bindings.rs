@@ -129,7 +129,6 @@ unsafe extern "C" {
         bytes: usize,
         out_buf: *mut DeviceBuffer,
         pinned: bool,
-        align: usize,
         kind: DeviceKind,
     ) -> NovaStatus;
 
@@ -143,20 +142,16 @@ unsafe extern "C" {
 
     /// Reallocate a device or pinned-host buffer, preserving content.
     ///
-    /// Allocates a new buffer of `new_bytes` (rounded up to `align`),
-    /// copies the minimum of the old and new sizes, frees the old buffer,
-    /// and updates [`DeviceBuffer::ptr`] and [`DeviceBuffer::bytes`]
-    /// in-place on success.
+    /// Allocates a new buffer of `new_bytes`, copies the minimum of the
+    /// old and new sizes, frees the old buffer, and updates
+    /// [`DeviceBuffer::ptr`] and [`DeviceBuffer::bytes`] in-place on
+    /// success.
     ///
     /// # Safety
     ///
     /// `buf` must be non-null, point to a buffer previously returned by
     /// [`deviceReserve`], and must not have been freed already.
-    pub unsafe fn deviceResize(
-        buf: *mut DeviceBuffer,
-        new_bytes: usize,
-        align: usize,
-    ) -> NovaStatus;
+    pub unsafe fn deviceResize(buf: *mut DeviceBuffer, new_bytes: usize) -> NovaStatus;
 
     /// Query the active GPU compute backend.
     ///

@@ -37,7 +37,7 @@
  * (@c cudaBuffer_t* or @c hipBuffer_t*) that is allocated by
  * @ref deviceReserve and freed by @ref deviceRelease.
  *
- * The @ref device_kind member defaults to @ref deviceKind_t::DeviceNull.
+ * The @ref deviceKind member defaults to @ref deviceKind_t::DeviceNull.
  * It is set to the correct backend by @ref deviceReserve during
  * allocation; callers must not assume a backend before that point.
  *
@@ -77,24 +77,23 @@ extern "C" {
  * @p kind.  The allocated buffer is described by @p out_buf,
  * which takes ownership of the backend-specific descriptor.
  *
- * @param[in]  bytes  Requested allocation size in bytes.
- * @param[out] out    Receives the buffer descriptor on success.
- * @param[in]  pinned If @c true, allocate page-locked host memory.
- * @param[in]  align  Alignment in bytes (default 512).
- * @param[in]  kind   Target backend (CUDA or HIP).
+ * @param[in]  bytes   Requested allocation size in bytes.
+ * @param[out] out_buf Receives the buffer descriptor on success.
+ * @param[in]  pinned  If @c true, allocate page-locked host memory.
+ * @param[in]  kind    Target backend (CUDA or HIP).
  *
  * @return @ref novaStatus_t with @c err = novaSuccess on success.
  *
  * @pre  @p bytes must be greater than zero.
- * @pre  @p out must point to a valid @ref deviceBuffer_t.
- * @post On success, @p out->deviceBufPtr owns a backend
+ * @pre  @p out_buf must point to a valid @ref deviceBuffer_t.
+ * @post On success, @p out_buf->deviceBufPtr owns a backend
  *       descriptor that must be freed via @ref deviceRelease.
  *
  * @see deviceRelease()  Frees the buffer allocated here.
  * @see deviceResize()   Resizes an existing buffer.
  */
 novaStatus_t deviceReserve(std::size_t bytes, deviceBuffer_t *out_buf,
-                           bool pinned = false, std::size_t align = 512,
+                           bool pinned = false,
                            deviceKind_t kind = deviceKind_t::DeviceCUDA);
 
 /**
@@ -128,7 +127,6 @@ novaStatus_t deviceRelease(deviceBuffer_t *buf);
  * @param[in,out] buf       Pointer to the buffer descriptor to
  *                          resize.
  * @param[in]     new_bytes New size in bytes.
- * @param[in]     align     Required alignment in bytes.
  *
  * @return @ref novaStatus_t with @c err = novaSuccess on success.
  *
@@ -144,8 +142,7 @@ novaStatus_t deviceRelease(deviceBuffer_t *buf);
  * @see deviceReserve()  Initial allocation.
  * @see deviceRelease()  Explicit deallocation.
  */
-novaStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes,
-                          std::size_t align);
+novaStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes);
 /**
  * @brief Perform a memory transfer between the host and a GPU
  *        device.
