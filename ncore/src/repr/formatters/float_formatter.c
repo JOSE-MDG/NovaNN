@@ -26,6 +26,14 @@
 
 /**
  * @brief Convert a floating-point value into a character buffer.
+ *
+ * @param[out] buf      Target string buffer. Must not be @c nullptr.
+ * @param[in]  buf_size Capacity of @p buf in bytes.
+ * @param[in]  val      The numeric value to format.
+ * @param[in]  ctx      Active representation context. Must not be
+ *                      @c nullptr.
+ *
+ * @return Number of characters written (excluding the null-terminator).
  */
 int float_format_value(char *buf, size_t buf_size, double val,
                        const ReprContext *ctx) {

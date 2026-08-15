@@ -44,6 +44,15 @@
 
 /**
  * @brief Format a Float32 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_float32(char *buf, size_t cap, const void *ptr,
                               const Tensor *ten, const ReprContext *ctx) {
@@ -53,6 +62,15 @@ static inline int fmt_float32(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a Float64 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_float64(char *buf, size_t cap, const void *ptr,
                               const Tensor *ten, const ReprContext *ctx) {
@@ -62,6 +80,15 @@ static inline int fmt_float64(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a Float16 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_float16(char *buf, size_t cap, const void *ptr,
                               const Tensor *ten, const ReprContext *ctx) {
@@ -76,6 +103,15 @@ static inline int fmt_float16(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a BFloat16 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_bfloat16(char *buf, size_t cap, const void *ptr,
                                const Tensor *ten, const ReprContext *ctx) {
@@ -90,6 +126,15 @@ static inline int fmt_bfloat16(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a Float8 E4M3FN element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_float8_e4m3fn(char *buf, size_t cap, const void *ptr,
                                     const Tensor *ten, const ReprContext *ctx) {
@@ -101,6 +146,15 @@ static inline int fmt_float8_e4m3fn(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a Float8 E5M2 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_float8_e5m2(char *buf, size_t cap, const void *ptr,
                                   const Tensor *ten, const ReprContext *ctx) {
@@ -112,6 +166,15 @@ static inline int fmt_float8_e5m2(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a single Float4 E2M1FN element from a packed pair.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the packed byte in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_float4_e2m1fn(char *buf, size_t cap, const void *ptr,
                                     const Tensor *ten, const ReprContext *ctx) {
@@ -133,6 +196,16 @@ static inline int fmt_float4_e2m1fn(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a Signed8 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context
+ *                      (unused by this handler).
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_signed8(char *buf, size_t cap, const void *ptr,
                               const Tensor *ten, const ReprContext *ctx) {
@@ -143,6 +216,16 @@ static inline int fmt_signed8(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a Signed16 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context
+ *                      (unused by this handler).
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_signed16(char *buf, size_t cap, const void *ptr,
                                const Tensor *ten, const ReprContext *ctx) {
@@ -153,6 +236,16 @@ static inline int fmt_signed16(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a Signed32 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context
+ *                      (unused by this handler).
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_signed32(char *buf, size_t cap, const void *ptr,
                                const Tensor *ten, const ReprContext *ctx) {
@@ -163,6 +256,16 @@ static inline int fmt_signed32(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a Signed64 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context
+ *                      (unused by this handler).
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_signed64(char *buf, size_t cap, const void *ptr,
                                const Tensor *ten, const ReprContext *ctx) {
@@ -177,6 +280,15 @@ static inline int fmt_signed64(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format an UnSigned8 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_unsigned8(char *buf, size_t cap, const void *ptr,
                                 const Tensor *ten, const ReprContext *ctx) {
@@ -187,6 +299,16 @@ static inline int fmt_unsigned8(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format an UnSigned16 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context
+ *                      (unused by this handler).
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_unsigned16(char *buf, size_t cap, const void *ptr,
                                  const Tensor *ten, const ReprContext *ctx) {
@@ -197,6 +319,16 @@ static inline int fmt_unsigned16(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format an UnSigned32 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context
+ *                      (unused by this handler).
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_unsigned32(char *buf, size_t cap, const void *ptr,
                                  const Tensor *ten, const ReprContext *ctx) {
@@ -207,6 +339,16 @@ static inline int fmt_unsigned32(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format an UnSigned64 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (unused by this
+ *                      handler).
+ * @param[in]  ctx      Pointer to the current representation context
+ *                      (unused by this handler).
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_unsigned64(char *buf, size_t cap, const void *ptr,
                                  const Tensor *ten, const ReprContext *ctx) {
@@ -221,6 +363,15 @@ static inline int fmt_unsigned64(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a QSigned8 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (for scale and
+ *                      zero-point metadata).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_qsigned8(char *buf, size_t cap, const void *ptr,
                                const Tensor *ten, const ReprContext *ctx) {
@@ -230,6 +381,15 @@ static inline int fmt_qsigned8(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a QUnSigned8 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (for scale and
+ *                      zero-point metadata).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_qunsigned8(char *buf, size_t cap, const void *ptr,
                                  const Tensor *ten, const ReprContext *ctx) {
@@ -239,6 +399,15 @@ static inline int fmt_qunsigned8(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a QSigned16 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (for scale and
+ *                      zero-point metadata).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_qsigned16(char *buf, size_t cap, const void *ptr,
                                 const Tensor *ten, const ReprContext *ctx) {
@@ -248,6 +417,15 @@ static inline int fmt_qsigned16(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a QUnSigned16 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (for scale and
+ *                      zero-point metadata).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_qunsigned16(char *buf, size_t cap, const void *ptr,
                                   const Tensor *ten, const ReprContext *ctx) {
@@ -257,6 +435,15 @@ static inline int fmt_qunsigned16(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a QSigned32 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (for scale and
+ *                      zero-point metadata).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_qsigned32(char *buf, size_t cap, const void *ptr,
                                 const Tensor *ten, const ReprContext *ctx) {
@@ -266,6 +453,15 @@ static inline int fmt_qsigned32(char *buf, size_t cap, const void *ptr,
 
 /**
  * @brief Format a QUnSigned32 element.
+ *
+ * @param[out] buf      Output buffer where the string will be written.
+ * @param[in]  buf_size Capacity of the output buffer in bytes.
+ * @param[in]  ptr      Pointer to the element in tensor memory.
+ * @param[in]  ten      Pointer to the parent tensor (for scale and
+ *                      zero-point metadata).
+ * @param[in]  ctx      Pointer to the current representation context.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 static inline int fmt_qunsigned32(char *buf, size_t cap, const void *ptr,
                                   const Tensor *ten, const ReprContext *ctx) {
