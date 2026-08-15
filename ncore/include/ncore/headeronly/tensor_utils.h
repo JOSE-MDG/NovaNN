@@ -209,11 +209,61 @@ static inline void compute_tensor_strides_(Tensor *ten, size_t ndims,
  */
 static inline void compute_tensor_size_(Tensor *ten, const shape_t shape) {
   size_t size = 1;
-  for (size_t dim = 0; dim < ten->ndims; dim++) {
+  for (size_t dim = 0; dim < ten->ndims; ++dim) {
     size *= shape[dim];
   }
   ten->size = size;
   ten->logical_size = size * dtype_packing_factor(ten->dtype);
+}
+
+/**
+ * @brief Convert a logical shape to storage units for packed dtypes.
+ *
+ * @details
+ * Packed dtypes (e.g. @c Float4E2M1fn) store @c packing logical
+ * elements in a single storage unit along the innermost dimension.
+ * The physical layout — @c shape, @c strides, @c size, and the
+ * allocated byte count — is expressed in storage units, so the
+ * logical last dimension is divided by the dtype's packing factor.
+ *
+ * The output shape is the caller-provided shape verbatim when the
+ * dtype is not packed (@c packing == 1).
+ *
+ * @param[out] storage  Receives the storage-unit shape.
+ * @param[in]  shape    Logical dimension sizes (first @c ndims
+ *                      entries).
+ * @param[in]  dtype    Element data type (@ref DType_).
+ * @param[in]  ndims    Number of dimensions.
+ * @param[out] status   Receives the operation result.  Set to
+ *                      @ref novaInvalidShape when the last dimension
+ *                      is not divisible by the packing factor.
+ *
+ * @pre  @p storage and @p status must not be @c nullptr.
+ * @post On error @p storage is modified: it holds a verbatim copy of
+ *       the logical @p shape, because the packing-divisibility check
+ *       runs after the copy.  The caller must check @p status before
+ *       using it.
+ *
+ * @see dtype_packing_factor()  Packing factor lookup.
+ */
+static inline void storage_shape_(shape_t storage, const shape_t shape,
+                                  DType_ dtype, size_t ndims,
+                                  novaStatus_t *status) {
+  if (ndims == 0) {
+    return;
+  }
+  const size_t packing = dtype_packing_factor(dtype);
+  memcpy(storage, shape, ndims * sizeof(size_t));
+  if (packing > 1) {
+    if (storage[ndims - 1] % packing != 0) {
+      status->err = novaInvalidShape;
+      status->message =
+          "The last dimension must be a multiple of the dtype packing "
+          "factor\n";
+      return;
+    }
+    storage[ndims - 1] /= packing;
+  }
 }
 
 /**
@@ -264,7 +314,7 @@ static inline void compute_grad_tensor_strides_(TensorGrad grad, size_t ndims,
 static inline void compute_grad_tensor_size_(TensorGrad grad,
                                              const shape_t shape) {
   size_t size = 1;
-  for (size_t dim = 0; dim < grad->ndims; dim++) {
+  for (size_t dim = 0; dim < grad->ndims; ++dim) {
     size *= shape[dim];
   }
   grad->size = size;
@@ -302,7 +352,7 @@ static inline size_t compute_linear_byte_offset(const coords_t coords,
                                                 size_t ndims,
                                                 const strides_t strides) {
   size_t offset = 0;
-  for (size_t dim = 0; dim < ndims; dim++) {
+  for (size_t dim = 0; dim < ndims; ++dim) {
     offset += coords[dim] * strides[dim];
   }
   return offset;
@@ -338,7 +388,7 @@ static inline size_t compute_linear_byte_offset(const coords_t coords,
  */
 static inline void compute_coords_given_linear_byte_offset_(
     size_t offset, size_t ndims, coords_t coords, const strides_t strides) {
-  for (size_t dim = 0; dim < ndims; dim++) {
+  for (size_t dim = 0; dim < ndims; ++dim) {
     coords[dim] = (offset / strides[dim]);
     offset %= strides[dim];
   }
@@ -376,7 +426,7 @@ static inline void compute_coords_given_linear_byte_offset_(
  *       @c data.data == @c nullptr.
  * @post @c shape, @c strides, @c size, and @c item_size are valid.
  *
- * @see create_tensor()                   Allocated variant.
+ * @see create_tensor()                    Allocated variant.
  * @see create_unallocated_scalar_tensor() Scalar variant.
  * @see create_unallocated_grad_tensor()   Heap-allocated gradient.
  */
@@ -386,7 +436,12 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
                                                bool pin_memory, size_t ndims,
                                                novaStatus_t *status) {
   Tensor tensor = {};
-  memcpy(tensor.shape, shape, ndims * sizeof(size_t));
+  shape_t storage_shape = {};
+  storage_shape_(storage_shape, shape, dtype, ndims, status);
+  if (status->err != novaSuccess) {
+    return tensor;
+  }
+  memcpy(tensor.shape, storage_shape, ndims * sizeof(size_t));
   tensor.dtype = dtype;
   tensor.device = device;
   tensor.ndims = ndims;
@@ -397,15 +452,15 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
   tensor.requires_grad_ = requires_grad;
   tensor.retain_grad_ = false;
   tensor.grad_fn_ = nullptr;
-  tensor.scale_ = 1.0F;
+  tensor.scale_ = 1.0f;
   tensor.zero_point_ = 0;
   tensor.storage = nullptr;
   tensor.data.data = nullptr;
   tensor.is_allocated_ = false;
   tensor.version_ = 0;
-  tensor.is_pinned = pin_memory;
-  compute_tensor_size_(&tensor, shape);
-  compute_tensor_strides_(&tensor, ndims, shape, tensor.item_size);
+  tensor.is_pinned_ = pin_memory;
+  compute_tensor_size_(&tensor, storage_shape);
+  compute_tensor_strides_(&tensor, ndims, storage_shape, tensor.item_size);
 
   if (requires_grad) {
     tensor.grad = create_unallocated_grad_tensor(shape, dtype, device,
@@ -510,7 +565,7 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
   tensor.shape[0] = 0;
   tensor.strides[0] = 0;
   tensor.size = 1;
-  tensor.logical_size = 1;
+  tensor.logical_size = dtype_packing_factor(dtype);
   tensor.ndims = 0;
   tensor.dtype = dtype;
   tensor.device = device;
@@ -521,13 +576,13 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
   tensor.requires_grad_ = requires_grad;
   tensor.retain_grad_ = false;
   tensor.grad_fn_ = nullptr;
-  tensor.scale_ = 1.0F;
+  tensor.scale_ = 1.0f;
   tensor.zero_point_ = 0;
   tensor.storage = nullptr;
   tensor.data.data = nullptr;
   tensor.is_allocated_ = false;
   tensor.version_ = 0;
-  tensor.is_pinned = pin_memory;
+  tensor.is_pinned_ = pin_memory;
 
   if (requires_grad) {
     tensor.grad = create_unallocated_scalar_grad_tensor(dtype, device,
@@ -716,7 +771,7 @@ static inline CollapsedView collapse(const Tensor *restrict ten) {
   }
 
   cv.ndims = (size_t)out_idx + 1;
-  for (size_t i = 0; i < cv.ndims; i++) {
+  for (size_t i = 0; i < cv.ndims; ++i) {
     cv.shape[i] = tmp_shape[cv.ndims - 1 - i];
     cv.strides[i] = tmp_strides[cv.ndims - 1 - i];
   }
