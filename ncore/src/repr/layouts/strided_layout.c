@@ -52,6 +52,12 @@ static void pad_and_append(StringBuilder *sb, const char *val, int len,
 
 /**
  * @brief Format and append an element at a specific byte offset.
+ *
+ * @param[in,out] sb       Output StringBuilder.
+ * @param[in]     ctx      Representation context.
+ * @param[in]     ten      Tensor being rendered.
+ * @param[in]     byte_off Byte offset of the element within the
+ *                         tensor's data buffer.
  */
 static void append_elem_at(StringBuilder *sb, const ReprContext *ctx,
                            const Tensor *ten, size_t byte_off) {
@@ -67,6 +73,12 @@ static void append_elem_at(StringBuilder *sb, const ReprContext *ctx,
 
 /**
  * @brief Recursively render dimensions using strided offsets.
+ *
+ * @param[in,out] sb     Output StringBuilder.
+ * @param[in]     ctx    Representation context.
+ * @param[in]     dim    Current dimension index (0 .. @c ndims-1).
+ * @param[in]     indent Indentation level for the current row.
+ * @param[in,out] it     Tensor iterator tracking the current position.
  */
 static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
                        int indent, TensorIterator *it) {
@@ -112,6 +124,11 @@ static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
 
 /**
  * @brief Render a view tensor using strided iteration.
+ *
+ * @param[in]     ctx Pointer to the representation context. Must not
+ *                    be @c nullptr.
+ * @param[in,out] sb  Pointer to the StringBuilder. Must not be
+ *                    @c nullptr.
  */
 void strided_layout_render(const ReprContext *ctx, StringBuilder *sb) {
   TensorIterator it;

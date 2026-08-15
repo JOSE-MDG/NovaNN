@@ -65,6 +65,11 @@ static void pad_and_append(StringBuilder *sb, const char *val, int len,
 
 /**
  * @brief Format and append a single element.
+ *
+ * @param[in,out] sb   Output StringBuilder.
+ * @param[in]     ctx  Representation context.
+ * @param[in]     ten  Tensor being rendered.
+ * @param[in]     ptr  Pointer to the element data.
  */
 static void append_elem(StringBuilder *sb, const ReprContext *ctx,
                         const Tensor *ten, const void *ptr) {
@@ -79,11 +84,19 @@ static void append_elem(StringBuilder *sb, const ReprContext *ctx,
 
 /**
  * @brief Append the truncation marker to the builder.
+ *
+ * @param[in,out] sb Output StringBuilder.
  */
 static void append_ellipsis(StringBuilder *sb) { sb_append(sb, "..."); }
 
 /**
  * @brief Recursively render a range of elements for a dimension.
+ *
+ * @param[in,out] sb     Output StringBuilder.
+ * @param[in]     ctx    Representation context.
+ * @param[in]     dim    Current dimension index (0 .. @c ndims-1).
+ * @param[in]     indent Indentation level for the current row.
+ * @param[in]     coords Current coordinate vector.
  */
 static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
                          int indent, coords_t coords) {
@@ -178,6 +191,11 @@ static void render_range(StringBuilder *sb, const ReprContext *ctx, size_t dim,
 
 /**
  * @brief Render a tensor with edge-item truncation.
+ *
+ * @param[in]     ctx Pointer to the representation context. Must not
+ *                    be @c nullptr.
+ * @param[in,out] sb  Pointer to the StringBuilder. Must not be
+ *                    @c nullptr.
  */
 void summarized_layout_render(const ReprContext *ctx, StringBuilder *sb) {
   coords_t coords = {};
