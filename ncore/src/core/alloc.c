@@ -127,7 +127,10 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
     status.message = nova_get_error_msg(status.err, nullptr);
     return status;
   }
-  const size_t align = (device == DEVICE_GPU) ? 512 : 64;
+
+  const size_t align =
+      (int)on_device(ten) ? 0 : 64; /** @note The alignment just applied for
+               Host tensors, which the default is set to 64 bytes */
 
   if (!create_storage) {
     status = safe_reserve(bytes, map_device2string(device), pin_memory, align,
