@@ -51,11 +51,11 @@
  * }
  * @endcode
  *
- * @see tensor.h      Tensor structure embedding a @ref Device_ field.
- * @see ffi.hpp       C-callable device-memory copy wrapper used by
- *                    @ref transfer_to().
- * @see DetectCudaDevice.cpp CUDA-specific detection implementation.
- * @see DetectHipDevice.cpp  HIP-specific detection implementation.
+ * @see tensor.h              Tensor structure embedding a @ref Device_ field.
+ * @see ffi.hpp               C-callable device-memory copy wrapper used by
+ *                           @ref transfer_to().
+ * @see DetectCudaDevice.cpp  CUDA-specific detection implementation.
+ * @see DetectHipDevice.cpp   HIP-specific detection implementation.
  */
 
 #pragma once
@@ -118,7 +118,7 @@ typedef enum Device_ : uint8_t {
  * @note This enum uses a @c uint8_t underlying type (C23) to minimise its
  *       footprint in structs that are serialised or copied frequently.
  *
- * @see Device_          Target device for tensor data placement.
+ * @see Device_ Target device for tensor data placement.
  * @see is_device_available()
  * @see is_cuda_available()
  * @see is_hip_available()
@@ -193,12 +193,13 @@ typedef Tensor *TensorGrad;
  *
  * @section one-shot-caching One-shot caching
  *
- * The first call to this function performs the actual runtime probe
- * and caches the result.  Subsequent calls — regardless of the
- * requested @p kind — return immediately from the cache without
- * touching the runtime API.  This design assumes a single GPU
- * vendor per process (CUDA _or_ HIP, never both), which is the
- * standard constraint in deep-learning workloads.
+ * The first call to this function performs the actual runtime probe.
+ * Only a successful probe is cached: subsequent calls for the same
+ * detected backend return immediately from the cache without
+ * touching the runtime API, while calls for a different @p kind — or
+ * any call after a failed probe — perform a fresh probe.  This design
+ * assumes a single GPU vendor per process (CUDA _or_ HIP, never
+ * both).
  *
  * @param[in] kind     Requested backend kind.  Must be a valid
  *                     @ref DeviceKind value.
@@ -213,11 +214,11 @@ typedef Tensor *TensorGrad;
  *       functions.  The cached result is protected by a mutex and
  *       a @c call_once/@c InitOnceExecuteOnce initialisation guard.
  *
- * @see is_cuda_available()   Convenience wrapper for @c CUDA_DEVICE.
- * @see is_hip_available()    Convenience wrapper for @c HIP_DEVICE.
- * @see get_detected_device_kind()  Returns the cached backend.
+ * @see is_cuda_available()          Convenience wrapper for @c CUDA_DEVICE.
+ * @see is_hip_available()           Convenience wrapper for @c HIP_DEVICE.
+ * @see get_detected_device_kind()   Returns the cached backend.
  * @see was_device_detection_done()  Checks if detection ran.
- * @see DeviceKind            Enum identifying backends.
+ * @see DeviceKind                   Enum identifying backends.
  */
 bool is_device_available(DeviceKind kind, bool verbose);
 
@@ -300,16 +301,15 @@ bool is_hip_available(void);
  * @post On success, @p dst_buf contains a copy of @p src_buf.
  * @post On failure, the source and destination buffers are unchanged.
  *
- * @warning If @p src and @p dst are both @c DEVICE_CPU, the dispatch
- *          table entry is @c 0 (zero-initialised but invalid), which
- *          may cause undefined behaviour.  Use @c memcpy() or
- *          @ref deepcopy() for host-to-host copies.
+ * @note If @p src and @p dst are both @c DEVICE_CPU, the transfer is
+ *       rejected with @ref novaInvalidTransfDirection.  Use
+ *       @c memcpy() or @ref deepcopy() for host-to-host copies.
  *
  * @note Thread-safe.  The dispatch table is read-only after
  *       initialisation, and @c deviceTransfer() is expected to be
  *       thread-safe.
  *
- * @see deviceTransfer()  Low-level C-callable copy wrapper.
+ * @see deviceTransfer()   Low-level C-callable copy wrapper.
  * @see transf_dispatch    Lookup table mapping device pairs to
  *                         transfer directions.
  * @see TransferKind       Enum encoding copy directions.
