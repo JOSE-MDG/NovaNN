@@ -3,7 +3,7 @@
 //! Exports [`resize`] so that C code can change the size of an
 //! allocated memory block while preserving its contents.
 
-use crate::ffi::reserve::LAST_ERROR;
+use crate::ffi::query::set_last_error;
 use crate::handle::RustHandle;
 use crate::ops::resize::resize_op;
 
@@ -21,14 +21,13 @@ use crate::ops::resize::resize_op;
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn resize(handle: *mut RustHandle, new_size: usize) -> bool {
     if handle.is_null() {
-        LAST_ERROR.with(|cell| *cell.borrow_mut() = Some("[RUST] resize: null handle".into()));
+        set_last_error("resize: null handle");
         return false;
     }
     match resize_op(unsafe { &mut *handle }, new_size) {
         Ok(()) => true,
         Err(e) => {
-            let msg = format!("resize: {e}");
-            LAST_ERROR.with(|cell| *cell.borrow_mut() = Some(msg));
+            set_last_error(format!("resize: {e}"));
             false
         }
     }

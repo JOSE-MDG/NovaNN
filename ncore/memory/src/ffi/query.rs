@@ -8,7 +8,62 @@ use crate::handle::RustHandle;
 use crate::ops::query::{
     get_align_op, get_data_op, is_device_memory_op, is_pinned_op, is_valid_op,
 };
-use std::ffi::c_void;
+use std::cell::RefCell;
+use std::ffi::{CString, c_char, c_int, c_void};
+
+thread_local! {
+    /// Thread-local storage for the most recent allocation error message.
+    static LAST_ERROR: RefCell<Option<CString>> = const { RefCell::new(None) };
+}
+
+/// Stores the most recent allocation failure message for the current thread.
+///
+/// The message is converted to a NUL-terminated [`CString`] so that
+/// [`get_last_reserve_error`] can hand a safe `*const c_char` to C code.
+/// Messages produced by [`crate::error::StorageError`] never contain
+/// interior NUL bytes; the fallback only guards against future regressions.
+pub(crate) fn set_last_error(msg: impl Into<String>) {
+    let cmsg = CString::new(msg.into()).unwrap_or_else(|_| {
+        CString::new("storage error message contained an interior NUL byte")
+            .expect("static fallback is NUL-free")
+    });
+    LAST_ERROR.with(|cell| *cell.borrow_mut() = Some(cmsg));
+}
+
+/// Returns the last allocation error message, or a null pointer if the last
+/// reserve or resize call succeeded.
+///
+/// The returned pointer is valid until the next `reserve()` or `resize()`
+/// call on the same thread.
+///
+/// # Safety
+///
+/// The returned pointer must not be freed or modified by the caller.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_last_reserve_error() -> *const c_char {
+    LAST_ERROR.with(|cell| {
+        let borrow = cell.borrow();
+        match borrow.as_ref() {
+            Some(msg) => msg.as_ptr() as *const c_char,
+            None => std::ptr::null(),
+        }
+    })
+}
+
+/// Returns the length of the last error message, or 0 if none.
+///
+/// Useful for callers that want to pre-allocate a buffer or log the
+/// length before copying. The length excludes the NUL terminator.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_last_reserve_error_len() -> c_int {
+    LAST_ERROR.with(|cell| {
+        let borrow = cell.borrow();
+        match borrow.as_ref() {
+            Some(msg) => msg.as_bytes().len() as c_int,
+            None => 0,
+        }
+    })
+}
 
 /// Returns a pointer to the data for the given handle.
 ///

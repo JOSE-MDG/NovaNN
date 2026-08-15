@@ -5,49 +5,10 @@
 //! On failure, the error message is stored in a thread-local buffer and
 //! can be retrieved via [`get_last_reserve_error`].
 
+use crate::ffi::query::set_last_error;
 use crate::handle::RustHandle;
 use crate::ops::reserve::reserve_op;
-use std::cell::RefCell;
-use std::ffi::{CStr, c_char, c_int};
-
-thread_local! {
-    pub(crate) static LAST_ERROR: RefCell<Option<String>> = const { RefCell::new(None) };
-}
-
-/// Returns the last error message from [`reserve`], or a null pointer if
-/// the last call succeeded.
-///
-/// The returned pointer is valid until the next call to [`reserve`] on
-/// the same thread.
-///
-/// # Safety
-///
-/// The returned pointer must not be freed or modified by the caller.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_last_reserve_error() -> *const c_char {
-    LAST_ERROR.with(|cell| {
-        let borrow = cell.borrow();
-        match borrow.as_ref() {
-            Some(msg) => msg.as_ptr() as *const c_char,
-            None => std::ptr::null(),
-        }
-    })
-}
-
-/// Returns the length of the last error message, or 0 if none.
-///
-/// Useful for callers that want to pre-allocate a buffer or log the
-/// length before copying.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_last_reserve_error_len() -> c_int {
-    LAST_ERROR.with(|cell| {
-        let borrow = cell.borrow();
-        match borrow.as_ref() {
-            Some(msg) => msg.len() as c_int,
-            None => 0,
-        }
-    })
-}
+use std::ffi::{CStr, c_char};
 
 /// Allocates storage on the specified device.
 ///
@@ -83,8 +44,7 @@ pub unsafe extern "C" fn reserve(
         match unsafe { CStr::from_ptr(device) }.to_str() {
             Ok(s) => s,
             Err(e) => {
-                let msg = format!("reserve: invalid device string: {e}");
-                LAST_ERROR.with(|cell| *cell.borrow_mut() = Some(msg));
+                set_last_error(format!("reserve: invalid device string: {e}"));
                 return RustHandle::invalid();
             }
         }
@@ -92,8 +52,7 @@ pub unsafe extern "C" fn reserve(
     match reserve_op(size, dev, pin_memory, align) {
         Ok(handle) => handle,
         Err(e) => {
-            let msg = format!("[RUST] reserve: {e}");
-            LAST_ERROR.with(|cell| *cell.borrow_mut() = Some(msg));
+            set_last_error(format!("reserve: {e}"));
             RustHandle::invalid()
         }
     }
