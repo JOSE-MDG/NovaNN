@@ -5,6 +5,12 @@
     "license": "MIT",
     "dependencies": [
         "onednn",
-        "gtest"
+        "gtest",
+        {
+            "name": "openblas",
+            "features": [
+                "openmp"
+            ]
+        }
     ]
 }
