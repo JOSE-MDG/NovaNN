@@ -126,7 +126,7 @@ extern "C" {
  *                     bounds or the table entry is nullptr.  May be nullptr.
  * @return A constant string containing the error message. If the code
  *         is not recognized and @p fallback is non-nullptr, returns
- *         @p fallback.  Otherwise returns "Unknown error".
+ *         @p fallback.  Otherwise returns Unknown error.
  *
  * @see novaError_t
  */
