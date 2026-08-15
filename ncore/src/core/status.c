@@ -8,8 +8,8 @@
  * dispatch table defined in @ref status_dispatch_tables.c to provide
  * O(1) retrieval time.
  *
- * @see status.h Public interface and @ref novaError_t definition.
- * @see status_dispatch_tables.c Global message table definition.
+ * @see status.h                     Public interface and @ref novaError_t definition.
+ * @see status_dispatch_tables.c     Global message table definition.
  */
 
 #include <ncore/core/status.h>
