@@ -24,8 +24,6 @@ enum Allocation {
         /// Backend-specific buffer descriptor that must be passed to
         /// [`deviceRelease`] when the storage is freed.
         device_buf: DeviceBuffer,
-        /// Alignment requested at allocation time.
-        alignment: usize,
     },
 }
 
@@ -96,7 +94,6 @@ impl RustStorage {
     /// # Arguments
     ///
     /// * `size`       - Number of bytes to allocate. Must be non-zero.
-    /// * `alignment`  - Required alignment (passed to the C++ backend).
     /// * `pin_memory` - If `true`, allocate page-locked host memory.
     ///
     /// # Errors
@@ -104,11 +101,7 @@ impl RustStorage {
     /// Returns [`StorageError::InvalidSize`] when `size` is zero, or
     /// [`StorageError::DeviceError`] with the C++ status message when the
     /// backend operation fails.
-    pub fn allocate_device(
-        size: usize,
-        alignment: usize,
-        pin_memory: bool,
-    ) -> Result<Self, StorageError> {
+    pub fn allocate_device(size: usize, pin_memory: bool) -> Result<Self, StorageError> {
         if size == 0 {
             return Err(StorageError::InvalidSize);
         }
@@ -124,7 +117,7 @@ impl RustStorage {
         let kind = unsafe { getDeviceBackend() };
 
         // SAFETY: device_buf is a valid, writable stack allocation.
-        let status = unsafe { deviceReserve(size, &mut device_buf, pin_memory, alignment, kind) };
+        let status = unsafe { deviceReserve(size, &mut device_buf, pin_memory, kind) };
 
         if status.err != NovaError::Success {
             let msg = if status.message.is_null() {
@@ -143,10 +136,7 @@ impl RustStorage {
 
         Ok(Self {
             ptr: device_buf.ptr as *mut u8,
-            alloc: Allocation::Gpu {
-                device_buf,
-                alignment,
-            },
+            alloc: Allocation::Gpu { device_buf },
             size_bytes: bytes,
             ref_count: 1,
         })
@@ -188,14 +178,10 @@ impl RustStorage {
                 self.size_bytes = new_size;
                 Ok(())
             }
-            Allocation::Gpu {
-                device_buf,
-                alignment,
-            } => {
+            Allocation::Gpu { device_buf } => {
                 // SAFETY: device_buf was returned by a previous
                 // deviceReserve call and has not been freed yet.
-                let status =
-                    unsafe { deviceResize(device_buf as *mut DeviceBuffer, new_size, *alignment) };
+                let status = unsafe { deviceResize(device_buf as *mut DeviceBuffer, new_size) };
 
                 if status.err != NovaError::Success {
                     let msg = if status.message.is_null() {
@@ -238,7 +224,13 @@ impl RustStorage {
     pub fn align(&self) -> usize {
         match &self.alloc {
             Allocation::Cpu { layout } => layout.align(),
-            Allocation::Gpu { alignment, .. } => *alignment,
+            Allocation::Gpu { device_buf } => {
+                if device_buf.is_pinned {
+                    64
+                } else {
+                    512
+                }
+            }
         }
     }
 

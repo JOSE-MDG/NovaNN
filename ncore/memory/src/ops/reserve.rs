@@ -38,10 +38,10 @@ pub fn reserve_op(
     align: usize,
 ) -> Result<RustHandle, StorageError> {
     let storage = match device {
-        "cpu" if pin_memory => RustStorage::allocate_device(size, align, true)?,
+        "cpu" if pin_memory => RustStorage::allocate_device(size, pin_memory)?,
         "cpu" => RustStorage::allocate(size, align)?,
         "device" if pin_memory => return Err(StorageError::PinnedMemoryOnDevice),
-        "device" => RustStorage::allocate_device(size, align, false)?,
+        "device" => RustStorage::allocate_device(size, false)?,
         _ => return Err(StorageError::InvalidDevice),
     };
 
