@@ -67,7 +67,8 @@ extern CastFn cast_dispatch[NUM_DTYPES][NUM_DTYPES];
  * @details
  * Indexes into the @c floating lookup table with @c input->dtype
  * as the row index.  The table entry is @c 1 for float types
- * (@c Float32, @c Float64, @c Float16, @c BFloat16) and @c 0 for all
+ * (@c Float32, @c Float64, @c Float16, @c BFloat16,
+ * @c Float8E4M3fn, @c Float8E5M2, @c Float4E2M1fn) and @c 0 for all
  * others.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
@@ -91,9 +92,10 @@ bool is_floating(const Tensor *restrict input) {
  * @details
  * Indexes into the @c integer lookup table with @c input->dtype as
  * the row index.  Returns @c true for all integer and quantized
- * integer types (@c Signed8, @c UnSigned8, @c QSigned8,
- * @c QUnSigned8, @c Signed32, @c UnSigned32, @c Signed64,
- * @c UnSigned64).
+ * integer types (@c Signed8, @c Signed16, @c Signed32, @c Signed64,
+ * @c UnSigned8, @c UnSigned16, @c UnSigned32, @c UnSigned64,
+ * @c QSigned8, @c QSigned16, @c QSigned32, @c QUnSigned8,
+ * @c QUnSigned16, @c QUnSigned32).
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr and must have a valid @c dtype field.
@@ -271,7 +273,7 @@ void cast(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @return Size of one element of @p dtype in bytes.
  *
- * @see DType_         Data-type enumeration.
+ * @see DType_              Data-type enumeration.
  * @see lookup_dtype_sizes  Underlying lookup table.
  */
 size_t dtype_size(DType_ dtype) { return lookup_dtype_sizes[dtype]; }
