@@ -30,14 +30,14 @@
  *
  * The classification functions in @ref dtype.c (e.g.,
  * @c is_floating()) index into these tables with @c input->dtype as
- * the row index and cast the @c uint8_t result to @c bool.
+ * the row index and read the @c bool entry at column 0.
  *
  * @note These tables are @c const and read-only after process
  *       startup.  They are safe to access from any thread.
  *
- * @see dtype.h       DType_ enumeration and classification API.
- * @see dtype.c       Classification function implementations.
- * @see dtype_tables.c  Table definitions (storage).
+ * @see dtype.h        DType_ enumeration and classification API.
+ * @see dtype.c        Classification function implementations.
+ * @see dtype_tables.c Table definitions (storage).
  */
 
 #pragma once
