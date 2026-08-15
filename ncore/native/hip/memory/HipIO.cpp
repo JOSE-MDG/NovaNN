@@ -13,7 +13,7 @@
  * unavailable, a stub function returning an error status is
  * provided.
  *
- * A @c __HIP_PLATFORM_AMD__ macro is defined when neither AMD not
+ * A @c __HIP_PLATFORM_AMD__ macro is defined when neither AMD nor
  * NVIDIA platform macros are set, ensuring clangd and clang-tidy
  * can parse the HIP headers correctly.
  *
@@ -47,6 +47,8 @@
 #endif
 #include <hip/hip_runtime_api.h>
 
+#include "../DetectHipDevice.hpp"
+#include "HipAllocator.hpp"
 #include "HipIO.hpp"
 
 namespace {
@@ -67,9 +69,6 @@ namespace {
  * @param[in] err  The HIP error to map.
  *
  * @return @ref novaStatus_t with the mapped error and message.
- *
- * @post  On success, @c status.err == novaSuccess.
- * @post  On failure, @c status.err != novaSuccess.
  */
 novaStatus_t mapError(hipError_t err) {
   novaStatus_t status = {};
@@ -92,6 +91,26 @@ novaStatus_t mapError(hipError_t err) {
   }
   status.message = nova_get_error_msg(status.err, nullptr);
   return status;
+}
+
+/**
+ * @brief Query whether the active HIP device supports memory pools.
+ *
+ * @details
+ * Uses @c getHipDeviceId() to query the
+ * @c hipDeviceAttributeMemoryPoolsSupported attribute.  This is
+ * safe because HIP device detection is performed before any memory
+ * is allocated on the device.
+ *
+ * @return @c true if memory pools are supported, @c false otherwise.
+ */
+bool supportMemoryPool() {
+  static int supported = 0;
+
+  const hipError_t err = hipDeviceGetAttribute(
+      &supported, hipDeviceAttributeMemoryPoolsSupported, getHipDeviceId());
+
+  return err == hipSuccess && static_cast<bool>(supported);
 }
 
 /**
@@ -136,11 +155,15 @@ hipMemcpyKind mapMemcpyKind(DeviceMemcpyKind kind) {
  * overhead of create/destroy per transfer and eliminates the
  * risk of use-after-free in concurrent scenarios.
  *
- * The @c static local variable is initialised exactly once, even
- * under concurrent access (C++11 guarantee).  The
- * @c hipStreamCreate call is serialised by the C++ runtime.
+ * The @c static local variable holds the stream handle and is
+ * zero-initialised before first use, but stream creation itself is
+ * not synchronised: concurrent first calls from multiple threads can
+ * race on the @c stream == nullptr check and each invoke
+ * @c hipStreamCreate.  Callers that require a strictly once-created
+ * stream must serialise the first call externally.
  *
- * @param[in,out] status an error status
+ * @param[out] status  Receives an error status if stream creation
+ *                     fails.  Unchanged on success.
  *
  * @return The singleton @c hipStream_t.
  */
@@ -209,16 +232,24 @@ novaStatus_t hipTransfer(std::size_t bytes, DeviceMemcpyKind kind,
     return status;
   }
 
-  const hipError_t err =
-      hipMemcpyAsync(dst, src, bytes, mapMemcpyKind(kind), stream);
+  if (supportMemoryPool()) {
+    const hipError_t err =
+        hipMemcpyAsync(dst, src, bytes, mapMemcpyKind(kind), stream);
 
-  if (err != hipSuccess) {
-    return mapError(err);
-  }
+    if (err != hipSuccess) {
+      return mapError(err);
+    }
 
-  const hipError_t syncErr = hipStreamSynchronize(stream);
-  if (syncErr != hipSuccess) {
-    return mapError(syncErr);
+    const hipError_t syncErr = hipStreamSynchronize(stream);
+    if (syncErr != hipSuccess) {
+      return mapError(syncErr);
+    }
+  } else {
+    const hipError_t err = hipMemcpy(dst, src, bytes, mapMemcpyKind(kind));
+
+    if (err != hipSuccess) {
+      return mapError(err);
+    }
   }
 
   return HIP_OK;

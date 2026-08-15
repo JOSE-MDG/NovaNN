@@ -45,7 +45,6 @@
 
 #include <ncore/core/status.h>
 
-#include "HipAllocator.hpp"
 #include "ffi.hpp"
 
 /**
