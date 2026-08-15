@@ -17,7 +17,7 @@
  * this file only writes to the @c status_msg_dispatch array (no other
  * globals depend on it), there are no inter-file ordering constraints.
  *
- * @see status_msg_dispatch The message lookup array.
+ * @see status_msg_dispatch  The message lookup array.
  * @see novaError_t          The error code enumeration.
  */
 
