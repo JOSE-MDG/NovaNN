@@ -95,7 +95,37 @@ enum class Status {
 - There must be **no blank lines** between the comment and the entity it documents for the attachment to hold.
 - For **files**, the doc block must contain an explicit `@file` command OR must be the first doc block in the file (depending on config).
 
-### 1.5 Style Decision Matrix
+### 1.5 Markdown Is Forbidden in Doxygen Comments
+
+Doxygen comments must use Doxygen's native markup. Markdown syntax
+(`**bold**`, `` `code` ``, `-`/`1.` lists, `[text](url)`, `#` headers, `---`)
+must never appear inside a doc block — it renders inconsistently and defeats
+the purpose of the native commands. (This document itself uses Markdown for
+its own tables and prose; the prohibition applies to comments written for
+Doxygen.)
+
+| Markdown (forbidden) | Doxygen command (use instead) |
+|---|---|
+| `` `code` `` (backticks) | `@c code` — inline code font |
+| `` `param` `` in prose | `@p param` — parameter reference (code font) |
+| `` `symbol` `` (types, functions, macros, files) | `@ref symbol` — clickable cross-reference |
+| `**bold**` | `@b word` |
+| `*italic*` | `@e word` (or `@a word` for parameter names) |
+| `- item` / `* item` (bullets) | `@li item` |
+| `1. item` (numbered lists) | `@li 1. item` (keep the number manually) |
+| `# Header` / `## Header` (file docs, pages) | `@section <id> Header` |
+| `**Header**:` (titled paragraph in an entity doc) | `@par Header` |
+| `[text](url)` (external links) | Bare URL — Doxygen auto-links it |
+| `[text](@ref sym)` (internal links) | `@ref sym` directly |
+| `> quote` | `@par` / `@note` / `@attention` / `@warning` |
+| `---` (horizontal rule) | `@par` or a blank line starting a new paragraph |
+| ``` ``` ``` (code fences) | `@code{.lang}` / `@endcode` |
+
+The public headers in `ncore/include/ncore/` are the project's reference
+implementation of these rules: they use `@li` for every list, `@c`/`@p`/`@ref`
+for every inline code reference, and `@section` for structure.
+
+### 1.6 Style Decision Matrix
 
 ```
 Documenting a function, class, struct, typedef, namespace → /** ... */
@@ -438,9 +468,9 @@ Every `.h` / `.hpp` / `.cpp` file that exposes documented entities **must** have
  * @namespace gfx
  * @brief Graphics subsystem — all rendering-related types live here.
  *
- * The `gfx` namespace wraps the entire rendering backend. Code outside
- * the rendering subsystem should interact exclusively through the interfaces
- * declared here, never through internal implementation headers.
+ * The @c gfx namespace wraps the entire rendering backend.  Code outside
+ * the rendering subsystem should interact exclusively through the
+ * interfaces declared here, never through internal implementation headers.
  */
 namespace gfx {
 ```
@@ -455,25 +485,29 @@ Use `@brief` for the elevator-pitch summary. Put everything a user needs to unde
  * @brief Manages the state machine for issuing GPU draw calls.
  *
  * RenderPipeline encapsulates a compiled shader pipeline, a descriptor set
- * layout, and the associated render pass. It is the central object users
+ * layout, and the associated render pass.  It is the central object users
  * interact with to submit geometry for rendering.
  *
- * **Ownership**: RenderPipeline owns its Vulkan handles. Copying is deleted;
- * move is supported and leaves the source in a valid but empty state.
+ * @par Ownership
+ * RenderPipeline owns its Vulkan handles.  Copying is deleted; move is
+ * supported and leaves the source in a valid but empty state.
  *
- * **Thread safety**: A single RenderPipeline instance must not be used
- * concurrently from multiple threads. Create one per thread or synchronize
- * externally.
+ * @par Thread safety
+ * A single RenderPipeline instance must not be used concurrently from
+ * multiple threads.  Create one per thread or synchronise externally.
  *
- * **Lifecycle**:
- * 1. Construct with a `Device&` reference and a `PipelineDesc`.
- * 2. Call `bind()` inside a render pass.
- * 3. Issue `draw*()` calls.
- * 4. Destroy (or let it go out of scope) — handles are freed automatically.
+ * @par Lifecycle
+ * @li 1. Construct with a @c Device& reference and a @c PipelineDesc.
+ * @li 2. Call @c bind() inside a render pass.
+ * @li 3. Issue @c draw*() calls.
+ * @li 4. Destroy (or let it go out of scope) — handles are freed
+ *        automatically.
  *
- * @tparam VertexT Vertex layout type. Must satisfy the `VertexLayout` concept.
+ * @tparam VertexT Vertex layout type.  Must satisfy the @c VertexLayout
+ *                 concept.
  *
- * @invariant `device_` is always a valid, live reference as long as `this` exists.
+ * @invariant @c device_ is always a valid, live reference as long as
+ *            @c this exists.
  *
  * @see gfx::Device
  * @see gfx::PipelineDesc
@@ -499,7 +533,7 @@ struct PipelineDesc {
     const char*   fragShaderPath;  ///< Absolute path to the compiled SPIR-V fragment shader.
     VkRenderPass  renderPass;      ///< The render pass this pipeline will execute in.
     VkExtent2D    viewport;        ///< Viewport dimensions in pixels.
-    uint32_t      subpass = 0;     ///< [optional] Subpass index within `renderPass`. Default: 0.
+    uint32_t      subpass = 0;     ///< [optional] Subpass index within @c renderPass. Default: 0.
     bool          depthTest = true;///< [optional] Enable depth testing. Default: true.
     bool          wireframe = false;///< [optional] Render in wireframe mode. Default: false.
 };
@@ -514,8 +548,8 @@ Document the enum type itself and each value. Trailing `///<` is preferred for v
  * @enum BlendMode
  * @brief Controls how fragment colours are blended with the framebuffer.
  *
- * @note The `ADDITIVE` and `MULTIPLY` modes require the render pass
- * attachment to have `VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT` set.
+ * @note The @c ADDITIVE and @c MULTIPLY modes require the render pass
+ *       attachment to have @c VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT set.
  */
 enum class BlendMode : uint8_t {
     OPAQUE   = 0, ///< No blending. Fragment colour replaces the destination.
@@ -533,42 +567,46 @@ A fully documented function specifies brief, details, every parameter with direc
 /**
  * @brief Allocates and binds a vertex buffer for the given mesh data.
  *
- * Creates a device-local `VkBuffer`, stages the data through a temporary host-
- * visible buffer, and issues the copy command. The staging buffer is destroyed
- * immediately after the copy fence signals.
+ * Creates a device-local @c VkBuffer, stages the data through a temporary
+ * host-visible buffer, and issues the copy command.  The staging buffer is
+ * destroyed immediately after the copy fence signals.
  *
- * The caller retains ownership of `vertices`; this function copies the data
- * and does not hold a reference after returning.
+ * The caller retains ownership of @p vertices; this function copies the
+ * data and does not hold a reference after returning.
  *
- * @tparam VertexT  Vertex layout type matching the pipeline's template argument.
+ * @tparam VertexT  Vertex layout type matching the pipeline's template
+ *                  argument.
  *
- * @param[in]  vertices   Pointer to the vertex array. Must not be null.
- * @param[in]  count      Number of vertices in `vertices`. Must be > 0.
+ * @param[in]  vertices   Pointer to the vertex array.  Must not be null.
+ * @param[in]  count      Number of vertices in @p vertices.  Must be > 0.
  * @param[out] bufferOut  Receives the created buffer handle on success.
  *                        Unchanged on failure.
- * @param[in]  usage      Additional `VkBufferUsageFlags` to OR with the
- *                        mandatory `VK_BUFFER_USAGE_VERTEX_BUFFER_BIT`.
+ * @param[in]  usage      Additional @c VkBufferUsageFlags to OR with the
+ *                        mandatory @c VK_BUFFER_USAGE_VERTEX_BUFFER_BIT.
  *                        Pass 0 for the default.
  *
- * @return `VK_SUCCESS` on success, or a Vulkan result code on failure.
+ * @return @c VK_SUCCESS on success, or a Vulkan result code on failure.
  *
- * @retval VK_SUCCESS               Buffer created and data uploaded.
- * @retval VK_ERROR_OUT_OF_DEVICE_MEMORY  Not enough VRAM to allocate the buffer.
- * @retval VK_ERROR_INITIALIZATION_FAILED Device lost during transfer.
+ * @retval VK_SUCCESS                         Buffer created and data uploaded.
+ * @retval VK_ERROR_OUT_OF_DEVICE_MEMORY      Not enough VRAM to allocate the buffer.
+ * @retval VK_ERROR_INITIALIZATION_FAILED     Device lost during transfer.
  *
- * @throws std::invalid_argument  If `vertices` is null or `count` is zero.
+ * @throws std::invalid_argument  If @p vertices is null or @p count is zero.
  *
- * @pre  The `Device` associated with this pipeline must be in a valid state.
- * @pre  `count * sizeof(VertexT)` must not exceed `VkPhysicalDeviceLimits::maxStorageBufferRange`.
- * @post On `VK_SUCCESS`, `*bufferOut` holds a valid, device-local buffer containing `count` vertices.
+ * @pre  The @c Device associated with this pipeline must be in a valid state.
+ * @pre  @c count * sizeof(VertexT) must not exceed
+ *       @c VkPhysicalDeviceLimits::maxStorageBufferRange.
+ * @post On @c VK_SUCCESS, @c *bufferOut holds a valid, device-local buffer
+ *       containing @p count vertices.
  * @post On failure, the pipeline's internal state is unchanged.
  *
- * @note The function submits a one-time command buffer on the transfer queue
- *       and blocks until the copy is complete. For large meshes, prefer
- *       the async variant `uploadVertexBufferAsync()`.
+ * @note The function submits a one-time command buffer on the transfer
+ *       queue and blocks until the copy is complete.  For large meshes,
+ *       prefer the async variant @ref uploadVertexBufferAsync().
  *
- * @warning Calling this function from a render pass (between `vkCmdBeginRenderPass`
- *          and `vkCmdEndRenderPass`) results in undefined behaviour.
+ * @warning Calling this function from a render pass (between
+ *          @c vkCmdBeginRenderPass and @c vkCmdEndRenderPass) results in
+ *          undefined behaviour.
  *
  * @see uploadVertexBufferAsync()
  * @see destroyBuffer()
@@ -587,25 +625,27 @@ VkResult RenderPipeline<VertexT>::uploadVertexBuffer(
 
 ```cpp
 /**
- * @brief Draws `count` instances of the bound geometry.
+ * @brief Draws @p count instances of the bound geometry.
  *
- * Issues a `vkCmdDraw` call. Must be called inside an active render pass
+ * Issues a @c vkCmdDraw call.  Must be called inside an active render pass
  * with this pipeline bound.
  *
- * @param[in] count     Number of instances to draw. Must be >= 1.
- * @param[in] firstVertex  Index of the first vertex in the bound vertex buffer.
+ * @param[in] count        Number of instances to draw.  Must be >= 1.
+ * @param[in] firstVertex  Index of the first vertex in the bound vertex
+ *                         buffer.
  */
 void draw(uint32_t count, uint32_t firstVertex = 0);
 
 /**
  * @overload
  *
- * Draws using an index buffer previously bound via `bindIndexBuffer()`.
- * Issues a `vkCmdDrawIndexed` call.
+ * Draws using an index buffer previously bound via
+ * @ref bindIndexBuffer().  Issues a @c vkCmdDrawIndexed call.
  *
  * @param[in] indexCount   Number of indices to draw.
  * @param[in] firstIndex   Offset into the bound index buffer.
- * @param[in] vertexOffset Added to each index value before fetching a vertex.
+ * @param[in] vertexOffset Added to each index value before fetching a
+ *                         vertex.
  */
 void draw(uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset);
 ```
@@ -616,26 +656,29 @@ void draw(uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset);
 /**
  * @brief Constructs and compiles a RenderPipeline from the given description.
  *
- * Compiles shader modules, creates the `VkPipeline`, and allocates descriptor
- * sets. This is a potentially expensive operation — do it at load time, not
- * per frame.
+ * Compiles shader modules, creates the @c VkPipeline, and allocates
+ * descriptor sets.  This is a potentially expensive operation — do it at
+ * load time, not per frame.
  *
- * @param[in] device  Live device reference. Must outlive this pipeline.
- * @param[in] desc    Complete pipeline description. All fields must be valid.
+ * @param[in] device  Live device reference.  Must outlive this pipeline.
+ * @param[in] desc    Complete pipeline description.  All fields must be
+ *                    valid.
  *
- * @throws gfx::ShaderCompileError  If a shader path is invalid or the SPIR-V is malformed.
+ * @throws gfx::ShaderCompileError  If a shader path is invalid or the
+ *                                  SPIR-V is malformed.
  * @throws gfx::DeviceLostError     If the Vulkan device is in a lost state.
  *
- * @note The `device` reference is stored internally. Ensure the device is not
- *       destroyed before this pipeline.
+ * @note The @p device reference is stored internally.  Ensure the device
+ *       is not destroyed before this pipeline.
  */
 explicit RenderPipeline(Device& device, const PipelineDesc& desc);
 
 /**
  * @brief Destroys the pipeline and releases all Vulkan resources.
  *
- * Waits for any in-flight work referencing this pipeline to complete before
- * destroying handles. Safe to call even if construction threw an exception.
+ * Waits for any in-flight work referencing this pipeline to complete
+ * before destroying handles.  Safe to call even if construction threw an
+ * exception.
  */
 ~RenderPipeline() noexcept;
 ```
@@ -650,17 +693,17 @@ explicit RenderPipeline(Device& device, const PipelineDesc& desc);
 
 /**
  * @def CLAMP(val, lo, hi)
- * @brief Clamps `val` to the closed interval [`lo`, `hi`].
+ * @brief Clamps @p val to the closed interval [@p lo, @p hi].
  *
- * Each argument is evaluated once. Arguments must be of a type that supports
- * `<` comparison. Behaviour is undefined if `lo > hi`.
+ * Each argument is evaluated once.  Arguments must be of a type that
+ * supports @c < comparison.  Behaviour is undefined if @p lo > @p hi.
  *
  * @param val  The value to clamp.
  * @param lo   Inclusive lower bound.
  * @param hi   Inclusive upper bound.
  *
- * @warning This is a macro, not a function. Avoid passing expressions with
- *          side effects (e.g., `CLAMP(i++, 0, 10)`).
+ * @warning This is a macro, not a function.  Avoid passing expressions
+ *          with side effects (e.g., @c CLAMP(i++, 0, 10)).
  */
 #define CLAMP(val, lo, hi) ((val) < (lo) ? (lo) : ((val) > (hi) ? (hi) : (val)))
 ```
@@ -672,8 +715,9 @@ explicit RenderPipeline(Device& device, const PipelineDesc& desc);
  * @typedef VertexIndex
  * @brief 32-bit unsigned integer used as an index into vertex buffers.
  *
- * Use this alias throughout the rendering subsystem rather than `uint32_t`
- * directly so that changing the index size only requires updating this typedef.
+ * Use this alias throughout the rendering subsystem rather than
+ * @c uint32_t directly so that changing the index size only requires
+ * updating this typedef.
  */
 using VertexIndex = uint32_t;
 
@@ -681,7 +725,8 @@ using VertexIndex = uint32_t;
  * @typedef DrawCallback
  * @brief Function signature for per-frame draw submission callbacks.
  *
- * @param cmd   Command buffer to record into. Guaranteed valid for the frame duration.
+ * @param cmd   Command buffer to record into.  Guaranteed valid for the
+ *              frame duration.
  * @param dt    Delta time since the previous frame, in seconds.
  */
 using DrawCallback = std::function<void(VkCommandBuffer cmd, float dt)>;
@@ -694,8 +739,9 @@ using DrawCallback = std::function<void(VkCommandBuffer cmd, float dt)>;
  * @var g_maxFramesInFlight
  * @brief Maximum number of frames the CPU may be ahead of the GPU.
  *
- * Increasing this value reduces CPU stalls but increases latency and memory usage.
- * Valid range: 1–3. Modifying this after device initialization is undefined behaviour.
+ * Increasing this value reduces CPU stalls but increases latency and
+ * memory usage.  Valid range: 1–3.  Modifying this after device
+ * initialisation is undefined behaviour.
  */
 extern uint32_t g_maxFramesInFlight;
 ```
@@ -711,9 +757,11 @@ extern uint32_t g_maxFramesInFlight;
  * @tparam Capacity Fixed capacity in number of elements. Must be a power of two.
  *
  * @note Only safe for exactly one producer thread and one consumer thread.
- *       For multi-producer or multi-consumer use, add external synchronisation.
+ *       For multi-producer or multi-consumer use, add external
+ *       synchronisation.
  *
- * @invariant `head_` and `tail_` are always valid indices modulo `Capacity`.
+ * @invariant @c head_ and @c tail_ are always valid indices modulo
+ *            @c Capacity.
  */
 template <typename T, std::size_t Capacity>
     requires std::is_trivially_copyable_v<T> && (Capacity > 0) && ((Capacity & (Capacity - 1)) == 0)
@@ -777,9 +825,10 @@ void destroyBuffer(VkBuffer& buffer);
  * @brief Initializes the memory allocator.
  *
  * @internal
- * The allocator uses a two-level buddy system with a minimum block size of 64 bytes.
- * Pool sizes are determined at startup based on available VRAM reported by
- * `vkGetPhysicalDeviceMemoryProperties`. This detail is not part of the public API.
+ * The allocator uses a two-level buddy system with a minimum block size of
+ * 64 bytes.  Pool sizes are determined at startup based on available VRAM
+ * reported by @c vkGetPhysicalDeviceMemoryProperties.  This detail is not
+ * part of the public API.
  * @endinternal
  *
  * @param device  Vulkan logical device.
@@ -828,7 +877,7 @@ void sortDrawCalls();
  * Present --> [*] : window closed
  * @enduml
  *
- * @return `true` if the frame was presented, `false` if the swap chain
+ * @return @c true if the frame was presented, @c false if the swap chain
  *         needs to be rebuilt (window resize or minimise).
  */
 bool presentFrame();
@@ -863,8 +912,8 @@ public:
  *
  * @section intro Introduction
  *
- * Welcome to the API reference for **MyEngine**. This documentation covers
- * the complete public API as of version 3.0.
+ * Welcome to the API reference for @b MyEngine.  This documentation
+ * covers the complete public API as of version 3.0.
  *
  * @section quickstart Quick Start
  *
@@ -878,13 +927,13 @@ public:
  *
  * @section modules Modules
  *
- * - @ref gfx_core — Pipeline and resource management
- * - @ref gfx_ui   — UI rendering primitives
+ * @li @ref gfx_core — Pipeline and resource management
+ * @li @ref gfx_ui   — UI rendering primitives
  *
  * @section links See Also
  *
- * - [GitHub Repository](https://github.com/example/myengine)
- * - [Changelog](@ref changelog)
+ * @li https://github.com/example/myengine
+ * @li @ref changelog
  */
 ```
 
@@ -947,7 +996,7 @@ struct Dog {
  * @public @memberof Dog
  * @param[in]  self     The Dog instance.
  * @param[in]  itemName Name of the item to fetch.
- * @return `true` if the dog retrieved the item.
+ * @return @c true if the dog retrieved the item.
  */
 bool Dog_fetch(Dog* self, const char* itemName);
 ```
