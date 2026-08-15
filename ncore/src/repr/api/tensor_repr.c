@@ -161,8 +161,10 @@ char *tensor_repr(const Tensor *ten) {
   bool swapped = false;
   memcpy(&rten, ten, sizeof(Tensor));
 
-  if (ten->device == DEVICE_GPU &&
-      is_device_memory_handle(&ten->storage->handle)) {
+  if (ten->device == DEVICE_GPU) {
+    if (!is_device_memory_handle(&ten->storage->handle)) {
+      return nullptr;
+    }
     swapped = true;
     rten.storage = nullptr;
     rten.data.data = nullptr;
@@ -234,8 +236,10 @@ char *tensor_repr_debug(const Tensor *ten) {
   bool swapped = false;
   memcpy(&rten, ten, sizeof(Tensor));
 
-  if (ten->device == DEVICE_GPU &&
-      is_device_memory_handle(&ten->storage->handle)) {
+  if (ten->device == DEVICE_GPU) {
+    if (!is_device_memory_handle(&ten->storage->handle)) {
+      return nullptr;
+    }
     swapped = true;
     rten.storage = nullptr;
     rten.data.data = nullptr;
@@ -312,8 +316,10 @@ char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts) {
   bool swapped = false;
   memcpy(&rten, ten, sizeof(Tensor));
 
-  if (ten->device == DEVICE_GPU &&
-      is_device_memory_handle(&ten->storage->handle)) {
+  if (ten->device == DEVICE_GPU) {
+    if (!is_device_memory_handle(&ten->storage->handle)) {
+      return nullptr;
+    }
     swapped = true;
     rten.storage = nullptr;
     rten.data.data = nullptr;
