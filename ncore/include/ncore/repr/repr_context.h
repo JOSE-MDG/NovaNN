@@ -34,7 +34,7 @@ extern "C" {
  * @brief Carries all derived state needed by layout and formatter layers.
  *
  * @details
- * The context is the "single source of truth" during the
+ * The context is the single source of truth during the
  * representation pipeline. It is populated by scanning a sample of
  * the tensor's data (up to 1000 elements at each edge) to ensure
  * consistent column alignment and optimal numeric notation.
@@ -52,18 +52,18 @@ typedef struct {
   ReprOptions options;  ///< Snapshot of the original formatting options.
 
   /* ---- Derived from data scan ---- */
-  bool use_sci;            ///< Final decision on scientific notation (@c %e).
-  int effective_precision; ///< Target number of decimal places for floats.
-  size_t element_width;    ///< Maximum formatted width for column alignment.
-  bool is_summarized;      ///< @c true if tensor size exceeds threshold.
+  bool use_sci;             ///< Final decision on scientific notation (@c %e).
+  int effective_precision;  ///< Target number of decimal places for floats.
+  size_t element_width;     ///< Maximum formatted width for column alignment.
+  bool is_summarized;       ///< true if tensor size exceeds threshold.
   size_t sub_element_index; ///< Sub-element index within a packed storage unit.
 
   /* ---- DType Classification Shortcuts ---- */
-  bool is_float;     ///< @c true for floating-point types.
-  bool is_integer;   ///< @c true for signed/unsigned integer types.
-  bool is_quantized; ///< @c true for quantized integer types.
-  bool is_bool;      ///< @c true to treat UnSigned8 as boolean True/False.
-  bool is_scalar;    ///< @c true if the tensor rank (@c ndims) is zero.
+  bool is_float;     ///< true for floating-point types.
+  bool is_integer;   ///< true for signed/unsigned integer types.
+  bool is_quantized; ///< true for quantized integer types.
+  bool is_bool;      ///< true to treat UnSigned8 as boolean True/False.
+  bool is_scalar;    ///< true if the tensor rank (@c ndims) is zero.
 
   /* ---- Device & Allocation State ---- */
   bool is_meta; ///< @c true if the tensor resides on @c DEVICE_META.
