@@ -3,15 +3,16 @@
  * @brief CUDA memory allocation types and operations.
  *
  * @details
- * Declares the @ref cudaBuffer_t descriptor, the @ref and the
- * three core allocation functions ( @ref cudaReserve, @ref cudaRelease, @ref
- * cudaResize) that manage CUDA device and pinned-host memory.
+ * Declares the @ref cudaBuffer_t descriptor, the @ref CUDA_OK
+ * sentinel, and the three core allocation functions
+ * (@ref cudaReserve, @ref cudaRelease, @ref cudaResize) that manage
+ * CUDA device and pinned-host memory.
  *
  * @section memory-types Memory Types
  *
  * This module handles two kinds of CUDA memory:
  * @li Device memory — allocated via @c cudaMallocAsync on a
- *   temporary stream or @c cudaMalloc if MemroyPools is not supported,
+ *   temporary stream or @c cudaMalloc if MemoryPools is not supported,
  *   suitable for GPU kernel access.
  * @li Pinned (page-locked) host memory — allocated via
  *   @c cudaMallocHost, suitable for fast host-device transfers
@@ -73,11 +74,7 @@ const inline novaStatus_t CUDA_OK{
  * creates a temporary stream, calls @c cudaMallocAsync,
  * synchronises, and destroys the stream.
  *
- * If @p align is greater than 1, the allocated size is rounded
- * up to the nearest multiple of @p align.
- *
  * @param[in]  bytes  Requested allocation size in bytes.
- * @param[in]  align  Required alignment in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
  * @param[out] out    Receives the buffer descriptor on success.
  *
@@ -87,14 +84,12 @@ const inline novaStatus_t CUDA_OK{
  * @pre  @p bytes must be greater than zero.
  * @pre  @p out must not be null.
  * @post On success, @p out->ptr points to a valid CUDA memory
- *       region of at least @p bytes (aligned to @p align if
- *       applicable).
+ *       region of at least @p bytes.
  *
  * @see cudaRelease()  Frees a buffer allocated by this function.
  * @see cudaResize()   Resizes an existing buffer.
  */
-novaStatus_t cudaReserve(std::size_t bytes, std::size_t align, bool pinned,
-                         cudaBuffer_t *out);
+novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out);
 
 /**
  * @brief Free a CUDA memory buffer previously allocated by
@@ -137,7 +132,6 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf);
  * @param[in,out] buf       Pointer to the buffer descriptor to
  *                          resize.  Must not be null.
  * @param[in]     new_bytes New size in bytes.
- * @param[in]     align     Required alignment in bytes.
  *
  * @return @ref CUDA_OK on success, or an error status.
  *
@@ -153,5 +147,4 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf);
  * @see cudaReserve()  Initial allocation.
  * @see cudaRelease()  Explicit deallocation.
  */
-novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes,
-                        std::size_t align);
+novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes);

@@ -16,21 +16,21 @@
  * @section architecture Architecture
  *
  * Internal helpers (within anonymous namespace):
- * @li @ref mapError — maps any @c cudaError_t to an integer code.
- * @li @ref alignUp — rounds a byte count up to a multiple.
+ * @li @ref mapError — maps any @c cudaError_t to a @ref novaError_t.
  * @li @ref streamCreate — creates a temporary CUDA stream.
- * @li @ref stream_sync — blocks until stream work completes.
+ * @li @ref streamSync — blocks until stream work completes.
  * @li @ref streamDestroy — destroys a CUDA stream.
  *
  * @section error-mapping Error Mapping
  *
  * All CUDA errors are mapped via @ref mapError:
- * @li @c cudaSuccess → 0
- * @li @c cudaErrorInvalidValue → 1
- * @li @c cudaErrorMemoryAllocation → 2
- * @li @c cudaErrorNotSupported → 3
- * @li @c cudaErrorInvalidResourceHandle → 4
- * @li All others → -1
+ * @li @c cudaSuccess → @ref novaSuccess
+ * @li @c cudaErrorInvalidValue → @ref novaInvalidValue
+ * @li @c cudaErrorMemoryAllocation → @ref novaOutOfMemory
+ * @li @c cudaErrorNotSupported → @ref novaNotImplemented
+ * @li @c cudaErrorExternalDevice → @ref novaExternalDeviceError
+ * @li @c cudaErrorInvalidResourceHandle → @ref novaInvalidResourceHandle
+ * @li Any other error → @ref novaNotImplemented
  *
  * @see CudaAllocator.hpp  Type declarations and function signatures.
  * @see CudaIO.cpp         CUDA data transfer implementation.
@@ -49,6 +49,20 @@
 
 namespace {
 
+/**
+ * @brief Map a CUDA error code to a @ref novaError_t.
+ *
+ * @details
+ * Converts @c cudaError_t values into the project-standard
+ * @ref novaError_t enumeration.  Covers errors from allocation
+ * (@c cudaMallocAsync, @c cudaMallocHost), deallocation
+ * (@c cudaFreeAsync, @c cudaFreeHost), stream operations, and
+ * memcpy.
+ *
+ * @param[in] err  The CUDA error to map.
+ *
+ * @return The corresponding Nova error category.
+ */
 novaError_t mapError(cudaError_t err) {
   switch (err) {
   case cudaSuccess:
@@ -68,34 +82,26 @@ novaError_t mapError(cudaError_t err) {
   }
 }
 
+/**
+ * @brief Query whether the active CUDA device supports memory pools.
+ *
+ * @details
+ * Uses @c getCudaDeviceId() to query the
+ * @c cudaDevAttrMemoryPoolsSupported attribute.  This is safe
+ * because CUDA device detection is performed before any memory is
+ * allocated on the device; if detection failed, the internal
+ * implementations saved the result under lock, ensuring that
+ * @c getCudaDeviceId() always returns a valid value.
+ *
+ * @return @c true if memory pools are supported, @c false otherwise.
+ */
 bool supportMemoryPool() {
   static int supported = 0;
 
-  /* Use getCudaDeviceId() is safe becuase the cuda device detection was
-   * performed before to allocate memory on the device. If device detection
-   * fail, internal implementations save the result locking the access and
-   * ensuring that getCudaDeviceId() always returns a valid value   */
   cudaError_t err = cudaDeviceGetAttribute(
       &supported, cudaDevAttrMemoryPoolsSupported, getCudaDeviceId());
 
   return err != cudaSuccess ? false : bool(supported);
-}
-
-/**
- * @brief Round @p bytes up to the nearest multiple of @p align.
- *
- * @details
- * Uses bitwise AND to round up efficiently.  Requires @p align
- * to be a power of two.
- *
- * @param[in] bytes  The value to align.
- * @param[in] align  The alignment (must be a power of two).
- *
- * @return The smallest value >= @p bytes that is a multiple of
- *         @p align.
- */
-constexpr std::size_t alignUp(std::size_t bytes, std::size_t align) noexcept {
-  return (bytes + (align - 1)) & ~(align - 1);
 }
 
 /**
@@ -163,7 +169,6 @@ bool streamDestroy(cudaStream_t stream, novaStatus_t *status) {
  * synchronises, and destroys the stream.
  *
  * @param[in]  bytes  Requested size in bytes.
- * @param[in]  align  Alignment in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
  * @param[out] out    Receives the buffer descriptor on success.
  *
@@ -173,14 +178,12 @@ bool streamDestroy(cudaStream_t stream, novaStatus_t *status) {
  * @pre  @p out must not be null.
  * @post On success, @p out->ptr points to valid CUDA memory.
  */
-novaStatus_t cudaReserve(std::size_t bytes, std::size_t align, bool pinned,
-                         cudaBuffer_t *out) {
+novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out) {
   novaStatus_t status = {};
-  const std::size_t allocBytes = (align > 1) ? alignUp(bytes, align) : bytes;
   void *ptr = nullptr;
 
   if (pinned) {
-    const cudaError_t err = cudaMallocHost(&ptr, allocBytes);
+    const cudaError_t err = cudaMallocHost(&ptr, bytes);
     if (err != cudaSuccess) {
       status.err = mapError(err);
       status.message = nova_get_error_msg(status.err, nullptr);
@@ -193,7 +196,7 @@ novaStatus_t cudaReserve(std::size_t bytes, std::size_t align, bool pinned,
         return status;
       }
 
-      const cudaError_t err = cudaMallocAsync(&ptr, allocBytes, stream);
+      const cudaError_t err = cudaMallocAsync(&ptr, bytes, stream);
       if (err != cudaSuccess) {
         cudaStreamDestroy(stream);
         status.err = mapError(err);
@@ -211,7 +214,7 @@ novaStatus_t cudaReserve(std::size_t bytes, std::size_t align, bool pinned,
     } else {
       /* If deivce do not support MemoryPools fallback to cudaMallo.  Normally,
        * it shouldn't reach this part of the code  */
-      const cudaError_t err = cudaMalloc(&ptr, allocBytes);
+      const cudaError_t err = cudaMalloc(&ptr, bytes);
       if (err != cudaSuccess) {
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
@@ -220,7 +223,7 @@ novaStatus_t cudaReserve(std::size_t bytes, std::size_t align, bool pinned,
     }
   }
   out->ptr = ptr;
-  out->bytes = allocBytes;
+  out->bytes = bytes;
   out->isPinned = pinned;
   return CUDA_OK;
 }
@@ -304,7 +307,6 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf) {
  *
  * @param[in,out] buf       Buffer descriptor to resize.
  * @param[in]     new_bytes New size in bytes.
- * @param[in]     align     Alignment in bytes.
  *
  * @return @ref CUDA_OK on success, or an error status.
  *
@@ -312,8 +314,7 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf) {
  *
  * @warning On failure the original buffer may be freed.
  */
-novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes,
-                        std::size_t align) {
+novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes) {
   if (buf == nullptr || buf->ptr == nullptr) {
     return novaStatus_t{.err = novaInvalidPointer,
                         .message =
@@ -321,14 +322,11 @@ novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes,
   }
 
   novaStatus_t status = {};
-  const std::size_t allocBytes =
-      (align > 1) ? alignUp(new_bytes, align) : new_bytes;
-  const std::size_t copyBytes =
-      buf->bytes < allocBytes ? buf->bytes : allocBytes;
+  const std::size_t copyBytes = buf->bytes < new_bytes ? buf->bytes : new_bytes;
   void *newPtr = nullptr;
 
   if (buf->isPinned) {
-    const cudaError_t err = cudaMallocHost(&newPtr, allocBytes);
+    const cudaError_t err = cudaMallocHost(&newPtr, new_bytes);
     if (err != cudaSuccess) {
       status.err = mapError(err);
       status.message = nova_get_error_msg(status.err, nullptr);
@@ -351,7 +349,7 @@ novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes,
         return status;
       }
 
-      cudaError_t err = cudaMallocAsync(&newPtr, allocBytes, stream);
+      cudaError_t err = cudaMallocAsync(&newPtr, new_bytes, stream);
       if (err != cudaSuccess) {
         if (!streamDestroy(stream, &status)) {
           return status;
@@ -413,7 +411,7 @@ novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes,
         return status;
       }
     } else {
-      cudaError_t err = cudaMalloc(&newPtr, allocBytes);
+      cudaError_t err = cudaMalloc(&newPtr, new_bytes);
       if (err != cudaSuccess) {
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
@@ -439,14 +437,14 @@ novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes,
   }
 
   buf->ptr = newPtr;
-  buf->bytes = allocBytes;
+  buf->bytes = new_bytes;
   return CUDA_OK;
 }
 
 #else // !__has_include(<cuda_runtime_api.h>)
 
 /** @brief Stub: CUDA runtime headers not available. */
-novaStatus_t cudaReserve(std::size_t, std::size_t, bool, cudaBuffer_t *) {
+novaStatus_t cudaReserve(std::size_t, bool, cudaBuffer_t *) {
   return novaStatus_t{.err = novaBackendNotCompiled,
                       .message =
                           nova_get_error_msg(novaBackendNotCompiled, nullptr)};
@@ -460,7 +458,7 @@ novaStatus_t cudaRelease(cudaBuffer_t *) {
 }
 
 /** @brief Stub: CUDA runtime headers not available. */
-novaStatus_t cudaResize(cudaBuffer_t *, std::size_t, std::size_t) {
+novaStatus_t cudaResize(cudaBuffer_t *, std::size_t) {
   return novaStatus_t{.err = novaBackendNotCompiled,
                       .message =
                           nova_get_error_msg(novaBackendNotCompiled, nullptr)};
