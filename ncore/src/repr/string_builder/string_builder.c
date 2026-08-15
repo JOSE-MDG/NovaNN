@@ -34,6 +34,14 @@
 
 /**
  * @brief Initialise a StringBuilder with a specific starting capacity.
+ *
+ * @details
+ * Allocates an initial heap buffer.  On allocation failure, the
+ * builder enters @ref SbErrOom state and all subsequent append
+ * operations become no-ops.
+ *
+ * @param[out] sb          Pointer to an uninitialised StringBuilder.
+ * @param[in]  initial_cap Initial allocation size in bytes.
  */
 void sb_init(StringBuilder *sb, size_t initial_cap) {
   sb->buf = (char *)malloc(initial_cap);
@@ -57,6 +65,9 @@ void sb_init(StringBuilder *sb, size_t initial_cap) {
  * Applies the geometric growth strategy (2x). If allocation fails,
  * sets @ref SbErrOom on the builder's status and leaves the buffer
  * unchanged to prevent memory leaks.
+ *
+ * @param[in,out] sb      Pointer to the StringBuilder.
+ * @param[in]     needed  Minimum required capacity in bytes.
  */
 static void sb_grow(StringBuilder *sb, size_t needed) {
   size_t new_cap = (sb->cap == 0) ? 256 : sb->cap;
@@ -80,11 +91,24 @@ static void sb_grow(StringBuilder *sb, size_t needed) {
 
 /**
  * @brief Retrieve the current error status of the builder.
+ *
+ * @param[in] sb Pointer to the StringBuilder.
+ *
+ * @return The current @ref SBStatus code.
  */
 SBStatus sb_get_status(const StringBuilder *sb) { return sb->status; }
 
 /**
  * @brief Append a null-terminated string to the builder.
+ *
+ * @details
+ * Automatically grows the internal buffer if necessary.  If the
+ * builder is in an error state or memory allocation fails, the
+ * operation is silently ignored.
+ *
+ * @param[in,out] sb  Pointer to the StringBuilder.
+ * @param[in]     str Null-terminated string to append.  May be
+ *                    @c nullptr (no-op).
  */
 void sb_append(StringBuilder *sb, const char *str) {
   if (sb->status != SbOk || str == nullptr || sb->buf == nullptr) {
@@ -107,6 +131,9 @@ void sb_append(StringBuilder *sb, const char *str) {
  * @details
  * Uses a two-phase measurement and allocation strategy to ensure
  * formatting safety and memory efficiency.
+ *
+ * @param[in,out] sb  Pointer to the StringBuilder.
+ * @param[in]     fmt @c printf-compatible format string.
  */
 void sb_appendf(StringBuilder *sb, const char *fmt, ...) {
   if (sb->status != SbOk) {
@@ -135,6 +162,9 @@ void sb_appendf(StringBuilder *sb, const char *fmt, ...) {
 
 /**
  * @brief Append a single character.
+ *
+ * @param[in,out] sb Pointer to the StringBuilder.
+ * @param[in]     c  The character to append.
  */
 void sb_append_char(StringBuilder *sb, char c) {
   if (sb->status != SbOk) {
@@ -152,6 +182,10 @@ void sb_append_char(StringBuilder *sb, char c) {
 
 /**
  * @brief Append a character repeated N times.
+ *
+ * @param[in,out] sb Pointer to the StringBuilder.
+ * @param[in]     c  The character to repeat.
+ * @param[in]     n  Number of repetitions.
  */
 void sb_append_repeated(StringBuilder *sb, char c, size_t n) {
   if (sb->status != SbOk || n == 0) {
@@ -175,6 +209,8 @@ void sb_append_repeated(StringBuilder *sb, char c, size_t n) {
  * If the builder is in an error state, the internal buffer is freed
  * and @c nullptr is returned.
  *
+ * @param[in,out] sb Pointer to the StringBuilder.
+ *
  * @return Ownership of the heap-allocated string, or @c nullptr on
  *         error.
  */
@@ -195,6 +231,8 @@ char *sb_build(StringBuilder *sb) {
 
 /**
  * @brief Deallocate the builder's internal memory.
+ *
+ * @param[in,out] sb Pointer to the StringBuilder.
  */
 void sb_free(StringBuilder *sb) {
   free(sb->buf);
