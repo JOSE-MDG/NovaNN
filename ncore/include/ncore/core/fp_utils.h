@@ -194,11 +194,7 @@ extern void fp4e2m1x2_to_floats(float4_e2m1fn_x2 val, float *lo, float *hi);
  * respectively; @c val reproduces the original pair-packed byte as
  * @c (hi << 4) | lo.
  */
-typedef struct {
-  uint32_t lo;
-  uint32_t hi;
-  float4_e2m1fn_x2 val;
-} fp4e2m1x2Result_t;
+struct fp4e2m1x2Result_t;
 
 /**
  * @brief Convert an IEEE 754 half-precision (FP16) value to the bit pattern
