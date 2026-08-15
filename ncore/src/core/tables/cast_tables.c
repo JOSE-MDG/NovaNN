@@ -7,9 +7,9 @@
  * pipeline.  All manual edits will be overwritten on the next run.
  *
  * To change the output you must edit one of the upstream sources:
- * @li Template  : tools/codegen/templates/.../CastTables.jinja
- * @li Rules     : tools/codegen/rules/.../cast_tables_rules.json
- * @li Generator : tools/codegen/scripts/.../gen_cast_tables.py
+ * @li Template  : tools/codegen/templates/dtype_casting/CastTables.jinja
+ * @li Rules     : tools/codegen/rules/dtype_casting/cast_tables_rules.json
+ * @li Generator : tools/codegen/scripts/dtype_casting/gen_cast_tables.py
  *
  * @brief Dispatch tables for CPU dtype casting.
  *
