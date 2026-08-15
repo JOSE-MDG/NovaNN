@@ -65,7 +65,7 @@ typedef void (*CopyFn)(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @li 1. All metadata fields (@c shape, @c strides, @c item_size, @c size,
  *    @c ndims, @c dtype, @c device, @c scale_, @c zero_point_,
- *    @c is_pinned, gradient flags) are copied element-by-element.
+ *    @c is_pinned_, gradient flags) are copied element-by-element.
  *    Fields @c is_view_, @c grad_fn_, and @c offset are set to fixed
  *    values (@c false, @c nullptr, @c 0 respectively).
  * @li 2. If @c src->storage is non-nullptr, a new @ref TensorStorage is
