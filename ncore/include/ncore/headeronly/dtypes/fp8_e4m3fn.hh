@@ -602,34 +602,46 @@ template <> class numeric_limits<ncore::dtypes::Float8_e4m3fn> {
   using Float8_e4m3fn = ncore::dtypes::Float8_e4m3fn;
 
 public:
-  static constexpr bool is_specialized = true;
-  static constexpr bool is_signed = true;
-  static constexpr bool is_integer = false;
-  static constexpr bool is_exact = false;
+  static constexpr bool is_specialized = true; ///< E4M3FN has numeric limits.
+  static constexpr bool is_signed = true;      ///< E4M3FN is signed.
+  static constexpr bool is_integer = false;    ///< E4M3FN is floating-point.
+  static constexpr bool is_exact =
+      false; ///< E4M3FN representation is not exact.
   static constexpr bool has_infinity =
       false; ///< E4M3FN has no infinity representation.
-  static constexpr bool has_quiet_NaN = true;
-  static constexpr bool has_signaling_NaN = false;
-  static constexpr auto has_denorm = true;
-  static constexpr auto has_denorm_loss = true;
-  static constexpr auto round_style = numeric_limits<float>::round_style;
-  static constexpr bool is_iec559 = false;
-  static constexpr bool is_bounded = true;
-  static constexpr bool is_modulo = false;
-  static constexpr int digits = 4;
-  static constexpr int digits10 = 0;
-  static constexpr int max_digits10 = 3;
-  static constexpr int radix = 2;
-  static constexpr int min_exponent = -5;
-  static constexpr int min_exponent10 = -1;
-  static constexpr int max_exponent = 8;
-  static constexpr int max_exponent10 = 2;
-  static constexpr auto traps = numeric_limits<float>::traps;
-  static constexpr auto tinyness_before = false;
+  static constexpr bool has_quiet_NaN =
+      true; ///< E4M3FN has quiet NaN representation.
+  static constexpr bool has_signaling_NaN =
+      false; ///< E4M3FN has no signaling NaN representation.
+  static constexpr auto has_denorm = true; ///< E4M3FN supports subnormals.
+  static constexpr auto has_denorm_loss =
+      true; ///< Denormalization loss is detected.
+  static constexpr auto round_style =
+      numeric_limits<float>::round_style; ///< Inherits float32 rounding style.
+  static constexpr bool is_iec559 =
+      false; ///< Does not conform to IEC 60559 (IEEE 754).
+  static constexpr bool is_bounded = true; ///< Values are bounded.
+  static constexpr bool is_modulo =
+      false;                       ///< E4M3FN arithmetic does not modulo wrap.
+  static constexpr int digits = 4; ///< Mantissa bits + 1 implicit bit.
+  static constexpr int digits10 =
+      0; ///< No decimal digit is reliably preserved.
+  static constexpr int max_digits10 =
+      3; ///< Decimal digits required to uniquely represent values.
+  static constexpr int radix = 2; ///< Base of the exponent.
+  static constexpr int min_exponent =
+      -5; ///< Minimum negative power of 2 for a normal value.
+  static constexpr int min_exponent10 = -1; ///< Minimum negative power of 10.
+  static constexpr int max_exponent = 8;    ///< Maximum positive power of 2.
+  static constexpr int max_exponent10 = 2;  ///< Maximum positive power of 10.
+  static constexpr auto traps =
+      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
+  static constexpr auto tinyness_before =
+      false; ///< Tinyness is not tested before rounding.
 
   /**
    * @brief Smallest positive normalized value.
-   * @details 0x08 → 2**(-6).
+   * @details 0x08 → @f$2^{-6}@f$.
    */
   static constexpr Float8_e4m3fn min() {
     return {0x08, Float8_e4m3fn::from_bits()};
@@ -653,7 +665,7 @@ public:
 
   /**
    * @brief Machine epsilon.
-   * @details 0x20 → 2**(-3).
+   * @details 0x20 → @f$2^{-3}@f$.
    */
   static constexpr Float8_e4m3fn epsilon() {
     return {0x20, Float8_e4m3fn::from_bits()};
@@ -677,7 +689,7 @@ public:
 
   /**
    * @brief Smallest positive subnormal value.
-   * @details 0x01 → 2**(-9).
+   * @details 0x01 → @f$2^{-9}@f$.
    */
   static constexpr Float8_e4m3fn denorm_min() {
     return {0x01, Float8_e4m3fn::from_bits()};

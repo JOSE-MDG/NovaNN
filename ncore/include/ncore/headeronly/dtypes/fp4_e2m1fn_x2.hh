@@ -16,7 +16,7 @@
  *  @li 2 exponent bits (bias = 1)
  *  @li 1 mantissa bit
  *
- * The "fn" suffix denotes "finite": E2M1FN has no infinity or NaN encoding
+ * The @c fn suffix denotes @c finite: E2M1FN has no infinity or NaN encoding
  * at all — every one of the 16 possible 4-bit patterns maps to a finite
  * value. The representable magnitudes are exactly:
  * @c {0, 0.5, 1, 1.5, 2, 3, 4, 6}. Values that would overflow (including
@@ -40,7 +40,8 @@
  * scalar to both lanes, matching common SIMD-lane semantics.
  *
  * @see half.hh          Shared fp32_from_bits/fp32_to_bits bit-cast helpers.
- * @see fp8_e4m3fn.hh    Sibling "fn" (finite, no-inf) reduced-precision format.
+ * @see fp8_e4m3fn.hh    Sibling @c fn (finite, no-inf) reduced-precision
+ * format.
  */
 
 #pragma once
@@ -178,7 +179,7 @@ namespace detail {
  * @details
  * With only 8 possible finite magnitudes, a direct lookup table is the
  * simplest and most auditable implementation — there is no meaningful
- * "bit-trick" formula to derive for a magnitude space this small, unlike
+ * bit-trick formula to derive for a magnitude space this small, unlike
  * the wider FP8 formats.
  * @param[in] nibble The 4-bit E2M1FN bit pattern (only the low nibble is
  * read; any bits above bit 3 are ignored).
@@ -549,31 +550,43 @@ template <> class numeric_limits<ncore::dtypes::Float4_e2m1fn> {
   using Float4_e2m1fn = ncore::dtypes::Float4_e2m1fn;
 
 public:
-  static constexpr bool is_specialized = true;
-  static constexpr bool is_signed = true;
-  static constexpr bool is_integer = false;
-  static constexpr bool is_exact = false;
+  static constexpr bool is_specialized = true; ///< E2M1FN has numeric limits.
+  static constexpr bool is_signed = true;      ///< E2M1FN is signed.
+  static constexpr bool is_integer = false;    ///< E2M1FN is floating-point.
+  static constexpr bool is_exact =
+      false; ///< E2M1FN representation is not exact.
   static constexpr bool has_infinity =
       false; ///< E2M1FN has no infinity representation.
   static constexpr bool has_quiet_NaN =
       false; ///< E2M1FN has no NaN representation.
-  static constexpr bool has_signaling_NaN = false;
+  static constexpr bool has_signaling_NaN =
+      false; ///< E2M1FN has no signaling NaN representation.
   static constexpr auto has_denorm = true; ///< 0.5 is a subnormal value.
-  static constexpr auto has_denorm_loss = true;
-  static constexpr auto round_style = numeric_limits<float>::round_style;
-  static constexpr bool is_iec559 = false;
-  static constexpr bool is_bounded = true;
-  static constexpr bool is_modulo = false;
+  static constexpr auto has_denorm_loss =
+      true; ///< Denormalization loss is detected.
+  static constexpr auto round_style =
+      numeric_limits<float>::round_style; ///< Inherits float32 rounding style.
+  static constexpr bool is_iec559 =
+      false; ///< Does not conform to IEC 60559 (IEEE 754).
+  static constexpr bool is_bounded = true; ///< Values are bounded.
+  static constexpr bool is_modulo =
+      false;                       ///< E2M1FN arithmetic does not modulo wrap.
   static constexpr int digits = 2; ///< 1 mantissa bit + 1 implicit bit.
-  static constexpr int digits10 = 0;
-  static constexpr int max_digits10 = 2;
-  static constexpr int radix = 2;
-  static constexpr int min_exponent = 0; ///< Smallest normal: 1.0 = 2**0.
-  static constexpr int min_exponent10 = 0;
-  static constexpr int max_exponent = 3; ///< Largest normal: 4.0 = 2**2.
-  static constexpr int max_exponent10 = 0;
-  static constexpr auto traps = numeric_limits<float>::traps;
-  static constexpr auto tinyness_before = false;
+  static constexpr int digits10 =
+      0; ///< No decimal digit is reliably preserved.
+  static constexpr int max_digits10 =
+      2; ///< Decimal digits required to uniquely represent values.
+  static constexpr int radix = 2; ///< Base of the exponent.
+  static constexpr int min_exponent =
+      0; ///< Smallest normal: 1.0 = @f$2^{0}@f$.
+  static constexpr int min_exponent10 = 0; ///< Minimum negative power of 10.
+  static constexpr int max_exponent =
+      3; ///< Largest normal: 6.0 (@f$1.5 \times 2^{2}@f$).
+  static constexpr int max_exponent10 = 0; ///< Maximum positive power of 10.
+  static constexpr auto traps =
+      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
+  static constexpr auto tinyness_before =
+      false; ///< Tinyness is not tested before rounding.
 
   /**
    * @brief Smallest positive normalized value.
@@ -602,7 +615,7 @@ public:
   /**
    * @brief Machine epsilon.
    * @details 0b0011 → 1.5; the gap between 1.0 and the next representable
-   * value is itself 0.5, i.e. 2**(-1).
+   * value is itself 0.5, i.e. @f$2^{-1}@f$.
    */
   static constexpr Float4_e2m1fn epsilon() {
     return {0b0011, Float4_e2m1fn::from_bits()};
@@ -1082,29 +1095,51 @@ template <> class numeric_limits<ncore::dtypes::Float4_e2m1fn_x2> {
   using lane_limits = numeric_limits<Float4_e2m1fn>;
 
 public:
-  static constexpr bool is_specialized = true;
-  static constexpr bool is_signed = true;
-  static constexpr bool is_integer = false;
-  static constexpr bool is_exact = false;
-  static constexpr bool has_infinity = false;
-  static constexpr bool has_quiet_NaN = false;
-  static constexpr bool has_signaling_NaN = false;
-  static constexpr auto has_denorm = lane_limits::has_denorm;
-  static constexpr auto has_denorm_loss = lane_limits::has_denorm_loss;
-  static constexpr auto round_style = lane_limits::round_style;
-  static constexpr bool is_iec559 = false;
-  static constexpr bool is_bounded = true;
-  static constexpr bool is_modulo = false;
-  static constexpr int digits = lane_limits::digits;
-  static constexpr int digits10 = lane_limits::digits10;
-  static constexpr int max_digits10 = lane_limits::max_digits10;
-  static constexpr int radix = lane_limits::radix;
-  static constexpr int min_exponent = lane_limits::min_exponent;
-  static constexpr int min_exponent10 = lane_limits::min_exponent10;
-  static constexpr int max_exponent = lane_limits::max_exponent;
-  static constexpr int max_exponent10 = lane_limits::max_exponent10;
-  static constexpr auto traps = lane_limits::traps;
-  static constexpr auto tinyness_before = lane_limits::tinyness_before;
+  static constexpr bool is_specialized = true; ///< E2M1FN has numeric limits.
+  static constexpr bool is_signed = true;      ///< E2M1FN is signed.
+  static constexpr bool is_integer = false;    ///< E2M1FN is floating-point.
+  static constexpr bool is_exact =
+      false; ///< E2M1FN representation is not exact.
+  static constexpr bool has_infinity =
+      false; ///< E2M1FN has no infinity representation.
+  static constexpr bool has_quiet_NaN =
+      false; ///< E2M1FN has no NaN representation.
+  static constexpr bool has_signaling_NaN =
+      false; ///< E2M1FN has no signaling NaN representation.
+  static constexpr auto has_denorm =
+      lane_limits::has_denorm; ///< Both lanes support subnormals.
+  static constexpr auto has_denorm_loss =
+      lane_limits::has_denorm_loss; ///< Both lanes detect denormalization loss.
+  static constexpr auto round_style =
+      lane_limits::round_style; ///< Both lanes inherit float32 rounding style.
+  static constexpr bool is_iec559 =
+      false; ///< Does not conform to IEC 60559 (IEEE 754).
+  static constexpr bool is_bounded = true; ///< Values are bounded.
+  static constexpr bool is_modulo =
+      false; ///< E2M1FN arithmetic does not modulo wrap.
+  static constexpr int digits =
+      lane_limits::digits; ///< 1 mantissa bit + 1 implicit bit per lane.
+  static constexpr int digits10 =
+      lane_limits::digits10; ///< No decimal digit is reliably preserved.
+  static constexpr int max_digits10 =
+      lane_limits::max_digits10; ///< Decimal digits required to uniquely
+                                 ///< represent values.
+  static constexpr int radix = lane_limits::radix; ///< Base of the exponent.
+  static constexpr int min_exponent =
+      lane_limits::min_exponent; ///< Smallest normal: 1.0 = @f$2^{0}@f$ per
+                                 ///< lane.
+  static constexpr int min_exponent10 =
+      lane_limits::min_exponent10; ///< Minimum negative power of 10.
+  static constexpr int max_exponent =
+      lane_limits::max_exponent; ///< Largest normal: 6.0 (@f$1.5 \times
+                                 ///< 2^{2}@f$).
+  static constexpr int max_exponent10 =
+      lane_limits::max_exponent10; ///< Maximum positive power of 10.
+  static constexpr auto traps =
+      lane_limits::traps; ///< Both lanes inherit float32 trap behaviour.
+  static constexpr auto tinyness_before =
+      lane_limits::tinyness_before; ///< Both lanes: tinyness is not tested
+                                    ///< before rounding.
 
   /// @brief Both lanes set to the smallest positive normalized value.
   static constexpr Float4_e2m1fn_x2 min() {

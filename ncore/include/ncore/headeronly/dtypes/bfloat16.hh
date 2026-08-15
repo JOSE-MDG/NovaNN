@@ -53,7 +53,7 @@ namespace ncore::dtypes {
 
 /**
  * @struct BFloat16
- * @brief Representation of a "brain" 16-bit floating-point number (BF16).
+ * @brief Representation of a brain 16-bit floating-point number (BF16).
  *
  * @details
  * Binary layout, MSB to LSB: @c s eeeeeeee mmmmmmm
@@ -122,7 +122,7 @@ struct alignas(2) BFloat16 {
   inline NCORE_HOST_DEVICE BFloat16(const __nv_bfloat16 &value);
 
   /**
-   * @brief Implicit conversion operator to native CUDA @c __nv_bfloat16.
+   * @brief Explicit conversion operator to native CUDA @c __nv_bfloat16.
    * @return The native __nv_bfloat16 representation.
    */
   explicit inline NCORE_HOST_DEVICE operator __nv_bfloat16() const;
@@ -624,10 +624,13 @@ public:
       true; ///< BFloat16 has quiet NaN representation.
   static constexpr bool has_signaling_NaN =
       true; ///< BFloat16 has signaling NaN representation.
-  static constexpr auto has_denorm = numeric_limits<float>::has_denorm;
+  static constexpr auto has_denorm =
+      numeric_limits<float>::has_denorm; ///< BFloat16 supports subnormals.
   static constexpr auto has_denorm_loss =
-      numeric_limits<float>::has_denorm_loss;
-  static constexpr auto round_style = numeric_limits<float>::round_style;
+      numeric_limits<float>::has_denorm_loss; ///< No denormalization loss is
+                                              ///< detected.
+  static constexpr auto round_style =
+      numeric_limits<float>::round_style; ///< Inherits float32 rounding style.
   static constexpr bool is_iec559 =
       false; ///< Truncated mantissa breaks strict IEC 60559 conformance.
   static constexpr bool is_bounded = true; ///< Values are bounded.
@@ -643,13 +646,15 @@ public:
   static constexpr int min_exponent10 = -37; ///< Minimum negative power of 10.
   static constexpr int max_exponent = 128;   ///< Maximum positive power of 2.
   static constexpr int max_exponent10 = 38;  ///< Maximum positive power of 10.
-  static constexpr auto traps = numeric_limits<float>::traps;
+  static constexpr auto traps =
+      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
   static constexpr auto tinyness_before =
-      numeric_limits<float>::tinyness_before;
+      numeric_limits<float>::tinyness_before; ///< Inherits float32
+                                              ///< tinyness-before semantics.
 
   /**
    * @brief Smallest positive normalized value.
-   * @details 0x0080 → 2**(-126).
+   * @details 0x0080 → @f$2^{-126}@f$.
    * @return Smallest normalized value.
    */
   static constexpr BFloat16 min() { return {0x0080, BFloat16::from_bits()}; }
@@ -670,7 +675,7 @@ public:
 
   /**
    * @brief Machine epsilon.
-   * @details 0x3C00 → 2**(-7).
+   * @details 0x3C00 → @f$2^{-7}@f$.
    * @return Machine epsilon.
    */
   static constexpr BFloat16 epsilon() {
@@ -716,7 +721,7 @@ public:
 
   /**
    * @brief Smallest positive subnormal value.
-   * @details 0x0001 → 2**(-133).
+   * @details 0x0001 → @f$2^{-133}@f$.
    * @return Subnormal minimum.
    */
   static constexpr BFloat16 denorm_min() {

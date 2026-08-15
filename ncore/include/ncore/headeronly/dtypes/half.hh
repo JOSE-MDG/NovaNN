@@ -782,9 +782,11 @@ public:
       true; ///< Half has quiet NaN representation.
   static constexpr bool has_signaling_NaN =
       true; ///< Half has signaling NaN representation.
-  static constexpr auto has_denorm = true;
-  static constexpr auto has_denorm_loss = false;
-  static constexpr auto round_style = numeric_limits<float>::round_style;
+  static constexpr auto has_denorm = true; ///< Half supports subnormals.
+  static constexpr auto has_denorm_loss =
+      false; ///< No denormalization loss is detected.
+  static constexpr auto round_style =
+      numeric_limits<float>::round_style; ///< Inherits float32 rounding style.
   static constexpr bool is_iec559 = true; ///< Conforms to IEC 60559 (IEEE 754).
   static constexpr bool is_bounded = true; ///< Values are bounded.
   static constexpr bool is_modulo =
@@ -800,13 +802,15 @@ public:
   static constexpr int min_exponent10 = -4; ///< Minimum negative power of 10.
   static constexpr int max_exponent = 16;   ///< Maximum positive power of 2.
   static constexpr int max_exponent10 = 4;  ///< Maximum positive power of 10.
-  static constexpr auto traps = numeric_limits<float>::traps;
+  static constexpr auto traps =
+      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
   static constexpr auto tinyness_before =
-      numeric_limits<float>::tinyness_before;
+      numeric_limits<float>::tinyness_before; ///< Inherits float32
+                                              ///< tinyness-before semantics.
 
   /**
    * @brief Smallest positive normalized value.
-   * @details 0x0400 → 2**(-14) ≈ 6.10e-5.
+   * @details 0x0400 → @f$2^{-14}@f$ ≈ 6.10e-5.
    * @return Smallest normalized value.
    */
   static constexpr Half min() { return {0x0400, Half::from_bits()}; }
@@ -827,7 +831,7 @@ public:
 
   /**
    * @brief Machine epsilon.
-   * @details 0x1400 → 2**(-10) ≈ 9.77e-4.
+   * @details 0x1400 → @f$2^{-10}@f$ ≈ 9.77e-4.
    * @return Machine epsilon.
    */
   static constexpr Half epsilon() { return {0x1400, Half::from_bits()}; }
@@ -862,7 +866,7 @@ public:
 
   /**
    * @brief Smallest positive subnormal value.
-   * @details 0x0001 → 2**(-24) ≈ 5.96e-8.
+   * @details 0x0001 → @f$2^{-24}@f$ ≈ 5.96e-8.
    * @return Subnormal minimum.
    */
   static constexpr Half denorm_min() { return {0x0001, Half::from_bits()}; }

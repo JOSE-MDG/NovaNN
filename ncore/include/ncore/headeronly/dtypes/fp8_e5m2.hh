@@ -527,34 +527,46 @@ template <> class numeric_limits<ncore::dtypes::Float8_e5m2> {
   using Float8_e5m2 = ncore::dtypes::Float8_e5m2;
 
 public:
-  static constexpr bool is_specialized = true;
-  static constexpr bool is_signed = true;
-  static constexpr bool is_integer = false;
-  static constexpr bool is_exact = false;
-  static constexpr bool has_infinity = true;
-  static constexpr bool has_quiet_NaN = true;
-  static constexpr bool has_signaling_NaN = false;
-  static constexpr auto has_denorm = true;
-  static constexpr auto has_denorm_loss = true;
-  static constexpr auto round_style = numeric_limits<float>::round_style;
-  static constexpr bool is_iec559 = false;
-  static constexpr bool is_bounded = true;
-  static constexpr bool is_modulo = false;
-  static constexpr int digits = 3;
-  static constexpr int digits10 = 0;
-  static constexpr int max_digits10 = 2;
-  static constexpr int radix = 2;
-  static constexpr int min_exponent = -13;
-  static constexpr int min_exponent10 = -4;
-  static constexpr int max_exponent = 16;
-  static constexpr int max_exponent10 = 4;
-  static constexpr auto traps = numeric_limits<float>::traps;
+  static constexpr bool is_specialized = true; ///< E5M2 has numeric limits.
+  static constexpr bool is_signed = true;      ///< E5M2 is signed.
+  static constexpr bool is_integer = false;    ///< E5M2 is floating-point.
+  static constexpr bool is_exact = false; ///< E5M2 representation is not exact.
+  static constexpr bool has_infinity =
+      true; ///< E5M2 has infinity representation.
+  static constexpr bool has_quiet_NaN =
+      true; ///< E5M2 has quiet NaN representation.
+  static constexpr bool has_signaling_NaN =
+      false; ///< E5M2 has no signaling NaN representation.
+  static constexpr auto has_denorm = true; ///< E5M2 supports subnormals.
+  static constexpr auto has_denorm_loss =
+      true; ///< Denormalization loss is detected.
+  static constexpr auto round_style =
+      numeric_limits<float>::round_style; ///< Inherits float32 rounding style.
+  static constexpr bool is_iec559 =
+      false; ///< Does not conform to IEC 60559 (IEEE 754).
+  static constexpr bool is_bounded = true; ///< Values are bounded.
+  static constexpr bool is_modulo =
+      false;                       ///< E5M2 arithmetic does not modulo wrap.
+  static constexpr int digits = 3; ///< Mantissa bits + 1 implicit bit.
+  static constexpr int digits10 =
+      0; ///< No decimal digit is reliably preserved.
+  static constexpr int max_digits10 =
+      2; ///< Decimal digits required to uniquely represent values.
+  static constexpr int radix = 2; ///< Base of the exponent.
+  static constexpr int min_exponent =
+      -13; ///< Minimum negative power of 2 for a normal value.
+  static constexpr int min_exponent10 = -4; ///< Minimum negative power of 10.
+  static constexpr int max_exponent = 16;   ///< Maximum positive power of 2.
+  static constexpr int max_exponent10 = 4;  ///< Maximum positive power of 10.
+  static constexpr auto traps =
+      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
   static constexpr auto tinyness_before =
-      numeric_limits<float>::tinyness_before;
+      numeric_limits<float>::tinyness_before; ///< Inherits float32
+                                              ///< tinyness-before semantics.
 
   /**
    * @brief Smallest positive normalized value.
-   * @details 0x04 → 2**(-14).
+   * @details 0x04 → @f$2^{-14}@f$.
    */
   static constexpr Float8_e5m2 min() { return {0x4, Float8_e5m2::from_bits()}; }
 
@@ -576,7 +588,7 @@ public:
 
   /**
    * @brief Machine epsilon.
-   * @details 0x34 → 2**(-2).
+   * @details 0x34 → @f$2^{-2}@f$.
    */
   static constexpr Float8_e5m2 epsilon() {
     return {0x34, Float8_e5m2::from_bits()};
@@ -608,7 +620,7 @@ public:
 
   /**
    * @brief Smallest positive subnormal value.
-   * @details 0x01 → 2**(-16).
+   * @details 0x01 → @f$2^{-16}@f$.
    */
   static constexpr Float8_e5m2 denorm_min() {
     return {0x01, Float8_e5m2::from_bits()};
