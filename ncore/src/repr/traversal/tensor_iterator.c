@@ -33,6 +33,9 @@
 
 /**
  * @brief Initialise a new iterator to the first element of a tensor.
+ *
+ * @param[out] it  Pointer to the iterator to initialise.
+ * @param[in]  ten Pointer to the tensor to traverse.
  */
 void iter_init(TensorIterator *it, const Tensor *ten) {
   it->tensor = ten;
@@ -48,6 +51,8 @@ void iter_init(TensorIterator *it, const Tensor *ten) {
  * Increments the internal coordinate vector and checks for
  * termination. If the end of the tensor is reached, the @c done flag
  * is set.
+ *
+ * @param[in,out] it Pointer to the active iterator.
  */
 void iter_advance(TensorIterator *it) {
   if (it->done) {
@@ -63,6 +68,10 @@ void iter_advance(TensorIterator *it) {
 
 /**
  * @brief Compute the current element's memory offset.
+ *
+ * @param[in] it Pointer to the active iterator.
+ *
+ * @return Byte offset from the tensor's base data pointer.
  */
 size_t iter_byte_offset(const TensorIterator *it) {
   size_t off = compute_linear_byte_offset(it->coords, it->tensor->ndims,
@@ -72,5 +81,9 @@ size_t iter_byte_offset(const TensorIterator *it) {
 
 /**
  * @brief Check if the iteration has been completed.
+ *
+ * @param[in] it Pointer to the iterator.
+ *
+ * @return @c true if all logical elements have been visited.
  */
 bool iter_done(const TensorIterator *it) { return it->done; }
