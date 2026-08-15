@@ -25,10 +25,12 @@
  * @section error-mapping Error Mapping
  *
  * All CUDA errors are mapped to a @ref novaStatus_t via a single
- * @ref mapError function that covers @c cudaSuccess (code 0),
- * @c cudaErrorInvalidValue (code 1), @c cudaErrorInvalidMemcpyDirection
- * (code 2), @c cudaErrorInvalidResourceHandle (code 3), and all
- * others (code -1).
+ * @ref mapError function: @c cudaSuccess maps to @ref novaSuccess,
+ * @c cudaErrorInvalidValue to @ref novaInvalidValue,
+ * @c cudaErrorExternalDevice to @ref novaExternalDeviceError,
+ * @c cudaErrorInvalidMemcpyDirection to @ref novaInvalidTransfDirection,
+ * @c cudaErrorInvalidResourceHandle to @ref novaInvalidResourceHandle,
+ * and every other error to @ref novaNotImplemented.
  *
  * @see CudaIO.hpp        Function declaration.
  * @see CudaAllocator.cpp CUDA memory allocation implementation.
@@ -41,6 +43,8 @@
 #if __has_include(<cuda_runtime_api.h>)
 #include <cuda_runtime_api.h>
 
+#include "../DetectCudaDevice.hpp"
+#include "CudaAllocator.hpp"
 #include "CudaIO.hpp"
 namespace {
 
@@ -51,18 +55,21 @@ namespace {
  * Converts @c cudaError_t codes returned by @c cudaMemcpyAsync
  * and @c cudaStreamSynchronize into the project-standard
  * @ref novaStatus_t format.  Each error code is mapped to a
- * unique integer for programmatic handling, and the human-readable
- * error string is obtained via @c cudaGetErrorString.
+ * unique @ref novaError_t category, and the human-readable
+ * error string is selected from the Nova status table via
+ * @ref nova_get_error_msg.
  *
- * The mapped codes are: @c cudaSuccess → 0,
- * @c cudaErrorInvalidValue → 1, @c cudaErrorInvalidMemcpyDirection
- * → 2, @c cudaErrorInvalidResourceHandle → 3, everything else
- * → -1.
+ * The mapped codes are: @c cudaSuccess → @ref novaSuccess,
+ * @c cudaErrorInvalidValue → @ref novaInvalidValue,
+ * @c cudaErrorExternalDevice → @ref novaExternalDeviceError,
+ * @c cudaErrorInvalidMemcpyDirection → @ref novaInvalidTransfDirection,
+ * @c cudaErrorInvalidResourceHandle → @ref novaInvalidResourceHandle,
+ * and every other error → @ref novaNotImplemented.
  *
  * @param[in] err  The CUDA error to map.
  *
- * @return @ref novaStatus_t with the mapped code and message.
- *        the error string from @c cudaGetErrorString.
+ * @return @ref novaStatus_t with the mapped @ref novaError_t code and
+ *         the message string obtained from @ref nova_get_error_msg.
  */
 novaStatus_t mapError(cudaError_t err) {
   novaStatus_t status = {};
@@ -92,6 +99,28 @@ novaStatus_t mapError(cudaError_t err) {
     status.message = nova_get_error_msg(status.err, nullptr);
     return status;
   }
+}
+
+/**
+ * @brief Query whether the active CUDA device supports memory pools.
+ *
+ * @details
+ * Uses @c getCudaDeviceId() to query the
+ * @c cudaDevAttrMemoryPoolsSupported attribute.  This is safe
+ * because CUDA device detection is performed before any memory is
+ * allocated on the device; if detection failed, the internal
+ * implementations saved the result under lock, ensuring that
+ * @c getCudaDeviceId() always returns a valid value.
+ *
+ * @return @c true if memory pools are supported, @c false otherwise.
+ */
+bool supportMemoryPool() {
+  static int supported = 0;
+
+  cudaError_t err = cudaDeviceGetAttribute(
+      &supported, cudaDevAttrMemoryPoolsSupported, getCudaDeviceId());
+
+  return err != cudaSuccess ? false : bool(supported);
 }
 
 /**
@@ -136,9 +165,15 @@ cudaMemcpyKind mapMemcpyKind(DeviceMemcpyKind kind) {
  * overhead of create/destroy per transfer and eliminates the
  * risk of use-after-free in concurrent scenarios.
  *
- * The @c static local variable is initialised exactly once, even
- * under concurrent access (C++11 guarantee).  The
- * @c cudaStreamCreate call is serialised by the C++ runtime.
+ * The @c static local variable holds the stream handle and is
+ * zero-initialised before first use, but stream creation itself is
+ * not synchronised: concurrent first calls from multiple threads can
+ * race on the @c stream == nullptr check and each invoke
+ * @c cudaStreamCreate.  Callers that require a strictly once-created
+ * stream must serialise the first call externally.
+ *
+ * @param[out] status  Receives an error status if stream creation
+ *                     fails.  Unchanged on success.
  *
  * @return The singleton @c cudaStream_t.
  */
@@ -194,16 +229,24 @@ novaStatus_t cudaTransfer(std::size_t bytes, DeviceMemcpyKind kind,
     return status;
   }
 
-  const cudaError_t err =
-      cudaMemcpyAsync(dst, src, bytes, mapMemcpyKind(kind), stream);
+  if (supportMemoryPool()) {
+    const cudaError_t err =
+        cudaMemcpyAsync(dst, src, bytes, mapMemcpyKind(kind), stream);
 
-  if (err != cudaSuccess) {
-    return mapError(err);
-  }
+    if (err != cudaSuccess) {
+      return mapError(err);
+    }
 
-  const cudaError_t syncErr = cudaStreamSynchronize(stream);
-  if (syncErr != cudaSuccess) {
-    return mapError(syncErr);
+    const cudaError_t syncErr = cudaStreamSynchronize(stream);
+    if (syncErr != cudaSuccess) {
+      return mapError(syncErr);
+    }
+  } else {
+    const cudaError_t err = cudaMemcpy(dst, src, bytes, mapMemcpyKind(kind));
+
+    if (err != cudaSuccess) {
+      return mapError(err);
+    }
   }
 
   return CUDA_OK;

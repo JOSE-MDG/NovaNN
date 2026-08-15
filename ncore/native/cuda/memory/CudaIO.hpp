@@ -45,7 +45,6 @@
 
 #include <ncore/core/status.h>
 
-#include "CudaAllocator.hpp"
 #include "ffi.hpp"
 
 /**
@@ -65,7 +64,7 @@
  *
  * @subsection execution-flow Execution Flow
  *
- * @li 1. Obtain the singleton stream via @ref get_stream.
+ * @li 1. Obtain the singleton stream via @ref getStream.
  * @li 2. Call @c cudaMemcpyAsync(dst, src, bytes, kind, stream).
  * @li 3. If step 2 fails, return mapped error status.
  * @li 4. Call @c cudaStreamSynchronize(stream) to block until the
@@ -79,7 +78,7 @@
  * @param[out] dst       Destination pointer (host or device memory).
  *
  * @return @ref CUDA_OK on success, or a @ref novaStatus_t with
- *         a novaSuccess error and a descriptive message.
+ *         a non-zero error code and a descriptive message.
  *
  * @pre  @p bytes must be greater than zero.
  * @pre  @p src must point to a valid memory region of at least
