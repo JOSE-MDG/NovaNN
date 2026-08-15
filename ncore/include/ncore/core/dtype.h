@@ -38,8 +38,8 @@
 extern "C" {
 #endif
 
-struct Tensor;
-typedef struct Tensor Tensor;
+struct Tensor;                ///< Forward declaration of the Tensor struct.
+typedef struct Tensor Tensor; ///< Type alias for the Tensor struct.
 
 /** @brief 32-bit IEEE 754 single-precision float. */
 typedef float float32;
@@ -68,7 +68,7 @@ typedef uint8_t float8_e4m3fn;
 typedef uint8_t float8_e5m2;
 
 /** @brief Floating Point 4-bit (FP4 E2M1FN packed-pair native
-   implementation). */
+ * implementation). */
 typedef uint8_t float4_e2m1fn_x2;
 
 /** @brief Signed 8-bit two's-complement integer. */
@@ -334,18 +334,6 @@ void cast(const Tensor *restrict src, Tensor *restrict dst,
  */
 size_t dtype_size(DType_ dtype);
 
-/**
- * @brief Return the packing factor of a given @ref DType_.
- *
- * @details
- * For most types the packing factor is 1 (one logical element per
- * storage unit).  For packed types like @ref Float4E2M1fn the factor
- * is 2, because each storage byte holds two logical elements.
- *
- * @param[in] dtype  The data type to query.
- *
- * @return Number of logical elements packed into one storage unit.
- */
 /**
  * @brief Return the packing factor of a given @ref DType_.
  *
