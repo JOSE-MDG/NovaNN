@@ -112,6 +112,9 @@ static const char *device_string(Device_ d) {
 /**
  * @brief Append the metadata suffix and close the outer tensor
  *        representation.
+ *
+ * @param[in]     ctx Representation context driving the footer output.
+ * @param[in,out] sb  Output StringBuilder receiving the suffix.
  */
 void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
   const Tensor *ten = ctx->tensor;
