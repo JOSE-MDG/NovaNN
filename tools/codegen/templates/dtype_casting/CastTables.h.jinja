@@ -7,9 +7,9 @@
  * pipeline.  All manual edits will be overwritten on the next run.
  *
  * To change the output you must edit one of the upstream sources:
- * @li Template  : tools/codegen/templates/.../CastTables.h.jinja
- * @li Rules     : tools/codegen/rules/.../cast_tables_rules.json
- * @li Generator : tools/codegen/scripts/.../gen_cast_tables.py
+ * @li Template  : tools/codegen/templates/dtype_casting/CastTables.h.jinja
+ * @li Rules     : tools/codegen/rules/dtype_casting/cast_tables_rules.json
+ * @li Generator : tools/codegen/scripts/dtype_casting/gen_cast_tables.py
  *
  * @brief Tensor element-wise type cast dispatch tables.
  *
@@ -26,7 +26,7 @@
 
 /**
  * @brief Cast function pointer type.
- * @param[in] src Source tensor (read-only)
+ * @param[in]  src Source tensor (read-only)
  * @param[out] dst Destination tensor (write-only, must be same size as src)
  */
 typedef void (*CastFn)(const Tensor *restrict, Tensor *restrict);

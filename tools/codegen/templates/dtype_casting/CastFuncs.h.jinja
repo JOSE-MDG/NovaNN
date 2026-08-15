@@ -8,9 +8,9 @@
  * pipeline.  All manual edits will be overwritten on the next run.
  *
  * To change the output you must edit one of the upstream sources:
- * @li Template  : tools/codegen/templates/.../CastFuncs.h.jinja
- * @li Rules     : tools/codegen/rules/.../cast_funcs_rules.json
- * @li Generator : tools/codegen/scripts/.../gen_cast_funcs.py
+ * @li Template  : tools/codegen/templates/dtype_casting/CastFuncs.h.jinja
+ * @li Rules     : tools/codegen/rules/dtype_casting/cast_funcs_rules.json
+ * @li Generator : tools/codegen/scripts/dtype_casting/gen_cast_funcs.py
  *
  * @details
  * Header-only file that provides 210 inline cast functions, each
@@ -21,7 +21,7 @@
  *
  * Every cast function follows the same dispatch pattern:
  *
- * @code
+ * @code{.c}
  * tfP_to_Q(src, dst):
  *     if (AVX-512 available)  → lookup_tP_to_Q[0](src, dst)
  *     if (AVX2/F16C available)→ lookup_tP_to_Q[1](src, dst)
@@ -29,7 +29,7 @@
  *     fallback               → lookup_tP_to_Q[N](src, dst)
  * @endcode
  *
- * On non-GCC/Clang compilers , SIMD variants are not
+ * On non-GCC/Clang compilers, SIMD variants are not
  * available; the dispatch resolves directly to the scalar fallback.
  * This is controlled by the @c _GNUC_CLANG_ guard.
  *
@@ -363,6 +363,7 @@
 /** @} */
 
 /**
+ * @def DECL_CAST(from, to)
  * @brief Generate a forward declaration for a single cast function.
  *
  * @details
@@ -439,7 +440,7 @@ CAST_UINT_TO_SINT(DECL_CAST)
 
 /**
  * @brief Casts {{ c_type(src_abbr) }} tensor to {{ c_type(dst_abbr) }}.
- * @param[in] src Source tensor ({{ src_abbr }}).
+ * @param[in]  src Source tensor ({{ src_abbr }}).
  * @param[out] dst Destination tensor ({{ dst_abbr }}).
  */
 static inline void {{ entry.name }}({{ rules.rules.funcs.arguments }}) {

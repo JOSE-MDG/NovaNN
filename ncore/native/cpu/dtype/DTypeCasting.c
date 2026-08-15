@@ -7,9 +7,9 @@
  * pipeline.  All manual edits will be overwritten on the next run.
  *
  * To change the output you must edit one of the upstream sources:
- * @li Template  : tools/codegen/templates/.../DTypeCasting.jinja
- * @li Rules     : tools/codegen/rules/.../dtype_casting_rules.json
- * @li Generator : tools/codegen/scripts/.../gen_dtype_casting.py
+ * @li Template  : tools/codegen/templates/dtype_casting/DTypeCasting.jinja
+ * @li Rules     : tools/codegen/rules/dtype_casting/dtype_casting_rules.json
+ * @li Generator : tools/codegen/scripts/dtype_casting/gen_dtype_casting.py
  *
  * @brief Scalar type-cast kernels (fallback) and SIMD-accelerated
  *        variants (SSE4.2, AVX/AVX2, AVX-512F and its extensions
@@ -88,8 +88,9 @@
  * @param size     Total number of elements in the tensor.
  * @param d        Pointer to the destination element array.
  * @param s        Pointer to the source element array.
- * @param srctype  C type of the source elements (must support direct comparison
- *                 with dmin/dmax without precision loss).
+ * @param srctype  C type of the source elements; must be a signed or
+ *                 unsigned integer of at most 32 bits, since values are
+ *                 compared through an @c int64 intermediate.
  * @param dsttype  C type to use for the element-wise cast after clamping.
  * @param dmin     Minimum representable value of dsttype, as a srctype
  * constant.
@@ -4507,8 +4508,8 @@ tbf16_to_s64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   size_t size = src->size;
   const bfloat16 *s = src->data.bf16;
   int64 *d = dst->data.s64;
-  const __m256 vmin = _mm256_set1_ps(-9187343239835811840.0f);
-  const __m256 vmax = _mm256_set1_ps(9187343239835811840.0f);
+  const __m256 vmin = _mm256_set1_ps(-9223372036854775808.0f);
+  const __m256 vmax = _mm256_set1_ps(9223371487098961920.0f);
   const __m256 vzerof = _mm256_setzero_ps();
   for (; i < n; i += step) {
     __m128bh v_raw;
@@ -4522,8 +4523,8 @@ tbf16_to_s64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   }
   if (rem > 0) {
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float, int64,
-                                    -9187343239835811840, 9187343239835811840,
-                                    0)
+                                    (-__INT64_C(9223372036854775807) - 1),
+                                    __INT64_C(9223371487098961920), 0)
   }
 }
 
@@ -4602,7 +4603,7 @@ tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   const bfloat16 *s = src->data.bf16;
   uint32 *d = dst->data.u32;
   const __m512 vmin = _mm512_setzero_ps();
-  const __m512 vmax = _mm512_set1_ps(4278190080.0f);
+  const __m512 vmax = _mm512_set1_ps(4294967040.0f);
   const __m512 vzerof = _mm512_setzero_ps();
   for (; i < n; i += step) {
     __m256bh v_raw;
@@ -4616,7 +4617,7 @@ tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   }
   if (rem > 0) {
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float, uint32, 0,
-                                    __UINT32_C(4278190080), 0)
+                                    __UINT32_C(4294967040), 0)
   }
 }
 
@@ -4637,7 +4638,7 @@ tbf16_to_u64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   size_t size = src->size;
   const bfloat16 *s = src->data.bf16;
   uint64 *d = dst->data.u64;
-  const __m256 vmax = _mm256_set1_ps(18374686479671623680.0f);
+  const __m256 vmax = _mm256_set1_ps(18446742974197923840.0f);
   const __m256 vmin = _mm256_setzero_ps();
   const __m256 vzerof = _mm256_setzero_ps();
   for (; i < n; i += step) {
@@ -4652,7 +4653,7 @@ tbf16_to_u64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst) {
   }
   if (rem > 0) {
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float, uint64, 0,
-                                    __UINT64_C(18374686479671623680), 0)
+                                    __UINT64_C(18446742974197923840), 0)
   }
 }
 
@@ -4752,7 +4753,8 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
     __m256i s01 = _mm256_packs_epi32(i0, i1);
     __m256i s23 = _mm256_packs_epi32(i2, i3);
     __m256i r = _mm256_packs_epi16(s01, s23);
-    r = _mm256_permute4x64_epi64(r, 0xD8);
+    const __m256i perm = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
+    r = _mm256_permutevar8x32_epi32(r, perm);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
   if (rem > 0) {
@@ -4879,7 +4881,7 @@ tf32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   size_t size = src->size;
   const float *s = src->data.f32;
   int64 *d = dst->data.s64;
-  const __m256 vmin = _mm256_set1_ps(-9223371487098961920.0f);
+  const __m256 vmin = _mm256_set1_ps(-9223372036854775808.0f);
   const __m256 vmax = _mm256_set1_ps(9223371487098961920.0f);
   const __m256 vzerof = _mm256_setzero_ps();
   for (; i < n; i += step) {
@@ -4892,7 +4894,7 @@ tf32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   }
   if (rem > 0) {
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity, int64,
-                                    __INT64_C(-9223371487098961920),
+                                    (-__INT64_C(9223372036854775807) - 1),
                                     __INT64_C(9223371487098961920), 0)
   }
 }
@@ -4993,7 +4995,8 @@ tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
     __m256i s01 = _mm256_packus_epi32(i0, i1);
     __m256i s23 = _mm256_packus_epi32(i2, i3);
     __m256i r = _mm256_packus_epi16(s01, s23);
-    r = _mm256_permute4x64_epi64(r, 0xD8);
+    const __m256i perm = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
+    r = _mm256_permutevar8x32_epi32(r, perm);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
   if (rem > 0) {
@@ -7222,6 +7225,8 @@ ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
     __m256i s01 = _mm256_packs_epi32(v0, v1);
     __m256i s23 = _mm256_packs_epi32(v2, v3);
     __m256i r = _mm256_packus_epi16(s01, s23);
+    const __m256i perm = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
+    r = _mm256_permutevar8x32_epi32(r, perm);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
   if (rem > 0) {
