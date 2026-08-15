@@ -31,11 +31,11 @@ extern "C" {
  * the appropriate backend kernel (CUDA or HIP) based on the detected
  * device.
  *
- * @param[in]  src  Source tensor.  Must have a supported dtype and be
- *                  allocated on the active compute device.
- * @param[in,out] dst  Destination tensor.  Must have the target dtype,
- *                     matching shape, and be allocated on the same
- *                     device as @p src.
+ * @param[in]      src  Source tensor.  Must have a supported dtype and be
+ *                      allocated on the active compute device.
+ * @param[in,out]  dst  Destination tensor.  Must have the target dtype,
+ *                      matching shape, and be allocated on the same
+ *                      device as @p src.
  *
  * @return @ref novaSuccess on success, or an error status describing
  *         the failure.
