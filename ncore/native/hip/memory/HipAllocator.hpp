@@ -70,11 +70,7 @@ const inline novaStatus_t HIP_OK{
  * creates a temporary stream, calls @c hipMallocAsync,
  * synchronises, and destroys the stream.
  *
- * If @p align is greater than 1, the allocated size is rounded
- * up to the nearest multiple of @p align.
- *
  * @param[in]  bytes  Requested allocation size in bytes.
- * @param[in]  align  Required alignment in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
  * @param[out] out    Receives the buffer descriptor on success.
  *
@@ -84,14 +80,12 @@ const inline novaStatus_t HIP_OK{
  * @pre  @p bytes must be greater than zero.
  * @pre  @p out must not be null.
  * @post On success, @p out->ptr points to a valid HIP memory
- *       region of at least @p bytes (aligned to @p align if
- *       applicable).
+ *       region of at least @p bytes.
  *
  * @see hipRelease()  Frees a buffer allocated by this function.
  * @see hipResize()   Resizes an existing buffer.
  */
-novaStatus_t hipReserve(std::size_t bytes, std::size_t align, bool pinned,
-                        hipBuffer_t *out);
+novaStatus_t hipReserve(std::size_t bytes, bool pinned, hipBuffer_t *out);
 
 /**
  * @brief Free a HIP memory buffer previously allocated by
@@ -134,7 +128,6 @@ novaStatus_t hipRelease(hipBuffer_t *buf);
  * @param[in,out] buf       Pointer to the buffer descriptor to
  *                          resize.  Must not be null.
  * @param[in]     new_bytes New size in bytes.
- * @param[in]     align     Required alignment in bytes.
  *
  * @return @ref HIP_OK on success, or an error status.
  *
@@ -150,5 +143,4 @@ novaStatus_t hipRelease(hipBuffer_t *buf);
  * @see hipReserve()  Initial allocation.
  * @see hipRelease()  Explicit deallocation.
  */
-novaStatus_t hipResize(hipBuffer_t *buf, std::size_t new_bytes,
-                       std::size_t align);
+novaStatus_t hipResize(hipBuffer_t *buf, std::size_t new_bytes);
