@@ -12,10 +12,11 @@
  * @see status.h     novaStatus_t error reporting.
  */
 
+#include <string.h>
+
 #include <ncore/core/status.h>
 #include <ncore/core/storage.h>
 #include <ncore/tensor.h>
-#include <string.h>
 
 /**
  * @brief Allocate a buffer with structured error handling.
