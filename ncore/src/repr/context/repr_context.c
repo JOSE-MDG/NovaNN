@@ -91,6 +91,13 @@ static inline double get_double_value(const Tensor *ten, size_t idx) {
 
 /**
  * @brief Build a ReprContext from a tensor and options.
+ *
+ * @param[in]  ten  Pointer to the tensor to analyze. Must not be
+ *                  @c nullptr.
+ * @param[in]  opts Pointer to formatting options. If @c nullptr,
+ *                  defaults are used.
+ *
+ * @return A fully initialised @ref ReprContext structure.
  */
 ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   ReprContext ctx = {};
