@@ -144,20 +144,20 @@ typedef struct {
  * @details
  * Routes the allocation request to the Rust FFI allocator, which
  * supports:
- * @li CPU host RAM (@c "cpu") — standard @c malloc-style allocation.
- * @li Pinned host memory (@c "cpu" + @c pin_memory=true) —
+ * @li CPU host RAM (@c cpu) — standard @c malloc-style allocation.
+ * @li Pinned host memory (@c cpu + @c pin_memory=true) —
  *   page-locked memory for efficient GPU ↔ CPU transfers.
- * @li GPU device VRAM (@c "device") — allocated through the active
+ * @li GPU device VRAM (@c device) — allocated through the active
  *   CUDA or HIP backend.
  *
  * On failure, the error message is stored in thread-local storage
  * and can be retrieved via @c get_last_reserve_error().
  *
  * @param[in]  size       Requested size in bytes.  Must be > 0.
- * @param[in]  device     Target device: @c "cpu" or @c "device".
- * @param[in]  pin_memory If @c true and @p device is @c "cpu",
+ * @param[in]  device     Target device: @c cpu or @c device.
+ * @param[in]  pin_memory If @c true and @p device is @c cpu,
  *                        allocate page-locked host memory.  Must be
- *                        @c false when @p device is @c "device".
+ *                        @c false when @p device is @c device.
  * @param[in]  align      Required alignment in bytes (must be a
  *                        power of two).
  *
@@ -165,7 +165,7 @@ typedef struct {
  *         @c id == 0 on failure.
  *
  * @pre  @c size must be > 0.
- * @pre  @c device must be @c "cpu" or @c "device".
+ * @pre  @c device must be @c cpu or @c device.
  * @pre  @c align must be a power of two.
  * @post On success, the returned handle has @c id != 0 and the
  *       caller owns one reference.
@@ -191,8 +191,8 @@ RustHandle reserve(size_t size, const char *device, bool pin_memory,
  * retrieved from @ref get_last_reserve_error().
  *
  * @param[in]  bytes      Requested size in bytes.  Must be > 0.
- * @param[in]  device     Target device: @c "cpu" or @c "device".
- * @param[in]  pin_memory If @c true and @p device is @c "cpu",
+ * @param[in]  device     Target device: @c cpu or @c device.
+ * @param[in]  pin_memory If @c true and @p device is @c cpu,
  *                        allocate page-locked host memory.
  * @param[in]  align      Required alignment in bytes (power of two).
  * @param[out] handle     Pointer to receive the allocated handle.
@@ -364,7 +364,7 @@ size_t get_align_from(RustHandle *handle);
  *
  * @details
  * Returns @c true for:
- * @li GPU device VRAM allocations (@c device == "device").
+ * @li GPU device VRAM allocations (@c device == device).
  * @li Pinned host allocations (@c pin_memory == true), because they
  *   are allocated through the active GPU backend and are
  *   managed by it.
