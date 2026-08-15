@@ -22,8 +22,8 @@
  * @li Linux/Unix: Uses __get_cpuid() and __cpuid_count() from cpuid.h;
  *   threading via C11 @c once_flag + @c call_once from @c <threads.h>.
  *
- * @see simd.h Public interface and @ref SIMDCapabilities structure
- * @see get_simd_capabilities() Thread-safe singleton accessor
+ * @see simd.h                     Public interface and @ref SIMDCapabilities structure.
+ * @see get_simd_capabilities()    Thread-safe singleton accessor.
  */
 
 #ifdef __linux__
@@ -92,28 +92,30 @@ static INIT_ONCE init_flag = INIT_ONCE_STATIC_INIT;
  *
  * @details
  * Queries the relevant CPUID leaves to detect available SIMD features and
- * populates the provided @ref SIMDCapabilities structure. The function
- * clears the structure before detection and sets each flag based on CPU
- * support; individual leaves and bit positions are documented inline
- * alongside the fields they populate.
+ * populates the provided @ref SIMDCapabilities structure.  Individual
+ * leaves and bit positions are documented inline alongside the fields
+ * they populate.
  *
  * @param[in,out] caps Pointer to the SIMDCapabilities structure to populate.
- *                  All fields are zeroed before detection.
+ *                  Must be zero-initialised by the caller, since fields
+ *                  are only written when their CPUID leaf is available.
  *
  * @pre caps must point to a valid SIMDCapabilities structure.
  * @post All capability flags in caps are set to true/false based on
  *       CPU support. The amx_ and vnni_ composite flags are computed
  *       from their constituent features.
  *
- * @warning On non-Windows platforms, if CPUID leaf 1 is not supported,
- *          the function returns early with caps zeroed.
+ * @note On non-Windows platforms, if CPUID leaf 1 is not supported,
+ *       the function returns early leaving caps untouched.  Callers
+ *       should zero-initialise the structure (e.g., @c = @c {})
+ *       beforehand.
  *
  * @note This function is platform-specific:
  *       @li Windows (_WIN64): Uses __cpuid() and __cpuidex() from intrin.h
  *       @li Linux/Unix: Uses __get_cpuid() and __cpuid_count() from cpuid.h
  *
- * @see get_simd_capabilities() for the public API.
- * @see SIMDCapabilities for the structure definition.
+ * @see get_simd_capabilities()  Public API accessor.
+ * @see SIMDCapabilities         Structure definition.
  */
 static inline void detect_simd_capabilities(SIMDCapabilities *restrict caps) {
 
@@ -238,6 +240,10 @@ static inline void init_once(void) { detect_simd_capabilities(&simd); }
  * Windows @c InitOnceExecuteOnce().  It delegates to
  * @ref detect_simd_capabilities() to populate the global @ref simd
  * structure.
+ *
+ * @param[in] once   Pointer to the one-time initialisation structure.
+ * @param[in] param  Optional callback data (unused).
+ * @param[in] ctx    Optional callback context (unused).
  *
  * @return Always @c TRUE (initialisation always succeeds).
  *
