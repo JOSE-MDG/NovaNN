@@ -105,8 +105,8 @@ static inline void copy_host_buffer(const Tensor *restrict src,
  *                     transfer failure, set to the error code
  *                     returned by @ref transfer_to().
  *
- * @pre  A compute device (CUDA or HIP) must have been detected and
- *       initialised via @ref nova_initialize_device().
+ * @pre  A compute device (CUDA or HIP) must have been detected via
+ *       @ref is_device_available().
  * @pre  Both @p src and @p dst must have non-null, allocated storage
  *       on the active device.
  * @pre  @c dst->storage->size_bytes >= @c src->storage->size_bytes.
@@ -120,7 +120,7 @@ static inline void copy_host_buffer(const Tensor *restrict src,
 static inline void copy_device_buffer(const Tensor *restrict src,
                                       Tensor *restrict dst,
                                       novaStatus_t *status) {
-  if (get_detected_device_kind() != NULL_DEVICE) {
+  if (get_detected_device_kind() == NULL_DEVICE) {
 
     status->err = novaDeviceNotAvailable;
     status->message = "Can not copy bytes in an invalid device.\n Please check "
@@ -144,7 +144,7 @@ static inline void copy_device_buffer(const Tensor *restrict src,
  * quantized variants).  Used by @ref deepcopy() when
  * @c src->device == DEVICE_CPU.
  */
-const CopyFn lookup_host_copy[NUM_DTYPES][1] = {
+static const CopyFn lookup_host_copy[NUM_DTYPES][1] = {
     /* Low-precision floats */
     [Float4E2M1fn] = {copy_host_buffer},
     [Float8E4M3fn] = {copy_host_buffer},
@@ -191,7 +191,7 @@ const CopyFn lookup_host_copy[NUM_DTYPES][1] = {
  * integer, and quantized variants).  Used by @ref deepcopy() when
  * @c src->device == DEVICE_GPU.
  */
-const CopyFn lookup_device_copy[NUM_DTYPES][1] = {
+static const CopyFn lookup_device_copy[NUM_DTYPES][1] = {
     /* Low-precision floats */
     [Float4E2M1fn] = {copy_device_buffer},
     [Float8E4M3fn] = {copy_device_buffer},
@@ -239,7 +239,7 @@ const CopyFn lookup_device_copy[NUM_DTYPES][1] = {
  * Used by @ref deepcopy() as @c lookup_copy[src->device][src->dtype]
  * to resolve the correct @ref CopyFn in a single array lookup.
  */
-const CopyFn *lookup_copy[2] = {
+static const CopyFn *lookup_copy[2] = {
     [DEVICE_CPU] = (CopyFn *)lookup_host_copy,
     [DEVICE_GPU] = (CopyFn *)lookup_device_copy,
 };
@@ -259,7 +259,7 @@ const CopyFn *lookup_copy[2] = {
  *
  * @li 1. All metadata fields (@c shape, @c strides, @c item_size, @c size,
  *    @c ndims, @c dtype, @c device, @c scale_, @c zero_point_,
- *    @c is_pinned, gradient flags, etc) are copied element-by-element.
+ *    @c is_pinned_, gradient flags, etc) are copied element-by-element.
  *    Fields @c is_view_, @c grad_fn_, and @c offset are set to fixed
  *    values (@c false, @c nullptr, @c 0 respectively).
  * @li 2. If @c src->storage is non-nullptr, a new @ref TensorStorage is
@@ -285,13 +285,13 @@ const CopyFn *lookup_copy[2] = {
  *       be > 0.
  * @post On success, @p dst is a complete independent copy of
  *       @p src, including gradient history.
- * @post On failure, @p status contains the error code and @p dst
- *       is left in a valid but unmodified state.
+ * @post On failure, @p status contains the error code and @p dst is
+ *       collected (freed) by this function and must not be used.
  *
  * @see CopyFn            Per-dtype copy function pointer type.
  * @see lookup_copy       Dispatch table selecting host vs device.
  * @see safe_allocator()  Storage allocator.
- * @see Device_            Device placement enum.
+ * @see Device_           Device placement enum.
  * @see DType_            Data-type enum used for dispatch.
  */
 void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
@@ -335,7 +335,7 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
   dst->retain_grad_ = src->retain_grad_;
   dst->is_leaf_ = true;
   dst->is_view_ = false;
-  dst->is_pinned = src->is_pinned;
+  dst->is_pinned_ = src->is_pinned_;
   dst->grad_fn_ = nullptr;
   dst->offset = 0;
   dst->version_ = 0;
@@ -343,7 +343,7 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
   if (src->storage != nullptr) {
 
     *status = safe_allocator(src->storage->size_bytes, src->device,
-                             src->is_pinned, nullptr, dst, true);
+                             src->is_pinned_, nullptr, dst, true);
 
     if (status->err != novaSuccess) {
       return;
@@ -360,11 +360,11 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
     auto new_grad =
         (int)is_scalar(src->grad)
             ? create_unallocated_scalar_grad_tensor(
-                  src->grad->dtype, src->grad->device, src->grad->is_pinned,
+                  src->grad->dtype, src->grad->device, src->grad->is_pinned_,
                   status)
             : create_unallocated_grad_tensor(
                   src->grad->shape, src->grad->dtype, src->grad->device,
-                  src->grad->is_pinned, src->grad->ndims, status);
+                  src->grad->is_pinned_, src->grad->ndims, status);
 
     if (status->err != novaSuccess) {
       collect(dst);
