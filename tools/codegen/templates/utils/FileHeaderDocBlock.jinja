@@ -1,0 +1,29 @@
+{#-
+  Emits the shared "Naming convention" and "Type abbreviations" section
+  of the generated file-header doc block, used by the DTypeCasting and
+  DTypeCasting.h templates.  Emitted verbatim with the ` * ` prefix, so
+  callers must place the macro call on its own line inside the
+  `/** ... */` block.  Keeping this section in one place prevents drift
+  between the generated .c and .h file headers.
+
+  @return  The doc-block lines (with leading ` * `) describing the
+           naming convention and dtype abbreviations used in the
+           generated identifiers.
+-#}
+{%- macro file_header_info() -%}
+{{- " * Naming convention:" }}
+ *   @c t<src>_to_<dst>_<isa>()  – SIMD variant
+ *   @c t<src>_to_<dst>_scalar() – portable fallback
+ *   @c lookup_t<src>_to_<dst>[] – dispatch table (in @ref cast_tables.c)
+ *
+ * Type abbreviations used in identifiers:
+ *   @c f32       = float            (single-precision)
+ *   @c f64       = double           (double-precision)
+ *   @c fp16      = float16          (IEEE 754 half-precision)
+ *   @c bf16      = bfloat16         (Brain Float 16)
+ *   @c fp8e4m3   = float8_e4m3fn    (FP8 E4M3FN 8-bit)
+ *   @c fp8e5m2   = float8_e5m2      (FP8 E5M2 8-bit)
+ *   @c fp4e2m1   = float4_e2m1fn_x2 (FP4 pair-packed 4-bit)
+ *   @c s8/s16/s32/s64 = int8 / int16 / int32 / int64
+ *   @c u8/u16/u32/u64 = uint8 / uint16 / uint32 / uint64
+{%- endmacro -%}
