@@ -13,11 +13,15 @@ Project Options
 
 ``USE_CUDA``
   Enable NVIDIA CUDA support.  Default: ``OFF``.  Cannot be combined
-  with ``USE_HIP``.
+  with ``USE_HIP``.  When ``ON``, also enables the ``cuda`` vcpkg
+  manifest feature, so the ``cuda`` helper port is installed and
+  verified during the vcpkg install step.
 
 ``USE_HIP``
   Enable AMD HIP/ROCm support.  Default: ``OFF``.  Cannot be combined
-  with ``USE_CUDA``.  Not available on Windows.
+  with ``USE_CUDA``.  Not available on Windows.  When ``ON``, also
+  enables the ``rocm`` vcpkg manifest feature, so the ``rocm`` helper
+  port is installed and verified during the vcpkg install step.
 
 ``USE_LTO``
   Enable Link-Time Optimization.  Default: ``ON``.
@@ -52,12 +56,25 @@ Subdirectories
 object libraries.
 
 #]=======================================================================]
+option(USE_CUDA "Compile with NVIDIA CUDA support" OFF)
+option(USE_HIP "Compile with AMD HIP/ROCm support" OFF)
+
+# Map the GPU backend options to vcpkg manifest features.  This must happen
+# before project(): the vcpkg toolchain file is loaded during project() and
+# reads VCPKG_MANIFEST_FEATURES at that point.  With this mapping the cuda
+# and rocm helper ports are only installed and verified (vcpkg install time)
+# when the corresponding backend is enabled.
+if(USE_CUDA)
+    list(APPEND VCPKG_MANIFEST_FEATURES cuda)
+endif()
+if(USE_HIP)
+    list(APPEND VCPKG_MANIFEST_FEATURES rocm)
+endif()
+
 project(NovaNN VERSION 5.0.0 LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-option(USE_CUDA "Compile with NVIDIA CUDA support" OFF)
-option(USE_HIP "Compile with AMD HIP/ROCm support" OFF)
 option(USE_LTO "Enable Link-Time Optimization" ON)
 option(USE_ASAN "Enable AddressSanitizer" OFF)
 option(USE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
