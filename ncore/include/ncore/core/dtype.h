@@ -12,7 +12,8 @@
  *   type at run time, used for dispatch tables and tensor metadata.
  * @li Classification functions — @c is_floating(), @c is_integer(),
  *   etc. that test a tensor's dtype against category lookup tables.
- * @li Cast and size utilities — @c cast() for type conversion and
+ * @li Cast and size utilities — @c cast() for type conversion,
+ *   @c get_dispatched_cast_func() for resolving cast kernels, and
  *   @c dtype_size() for byte-width queries.
  *
  * @section type-alias-convention Type Alias Convention
@@ -112,6 +113,13 @@ typedef int64_t int64;
 
 /** @brief Unsigned 64-bit integer. */
 typedef uint64_t uint64;
+
+/**
+ * @brief Cast function pointer type.
+ * @param[in]  src Source tensor (read-only)
+ * @param[out] dst Destination tensor (write-only, must be same size as src)
+ */
+typedef void (*CastFn)(const Tensor *restrict, Tensor *restrict);
 
 /**
  * @enum DType_
@@ -318,6 +326,30 @@ bool is_quantizable_dtype(DType_ dtype);
  */
 void cast(const Tensor *restrict src, Tensor *restrict dst,
           DType_ target_dtype);
+
+/**
+ * @brief Return the @ref CastFn function pointer registered for a
+ *        (source, target) dtype pair.
+ *
+ * @details
+ * Looks up @c cast_dispatch[src_dtype][target_dtype] and returns
+ * the element-wise conversion kernel stored at that position,
+ * without executing it.  The result is @c nullptr for the
+ * identity cast (same dtype) and for unsupported pairs, so the
+ * caller must check the pointer before invoking it.
+ *
+ * @param[in] src_dtype    Source data type.
+ * @param[in] target_dtype Destination data type.
+ *
+ * @return The @ref CastFn function pointer stored at
+ *         @c cast_dispatch[src_dtype][target_dtype], or
+ *         @c nullptr if the cast is the identity or not
+ *         supported.
+ *
+ * @see cast()
+ * @see CastFn
+ */
+CastFn get_dispatched_cast_func(DType_ src_dtype, DType_ target_dtype);
 
 /**
  * @brief Return the size in bytes of a given @ref DType_.

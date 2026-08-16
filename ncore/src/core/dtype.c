@@ -260,6 +260,38 @@ void cast(const Tensor *restrict src, Tensor *restrict dst,
 }
 
 /**
+ * @brief Return the @ref CastFn function pointer registered for a
+ *        (source, target) dtype pair.
+ *
+ * @details
+ * Indexes into the @ref cast_dispatch table with @p src_dtype as
+ * the row index and @p target_dtype as the column index, and
+ * returns the element-wise conversion kernel stored at that
+ * position, without executing it.
+ *
+ * Unlike @ref cast(), which calls the resolved kernel directly
+ * with no null check, this function lets the caller validate a
+ * pair up front.  The table is populated at load time and
+ * read-only afterwards, so the lookup is O(1).
+ *
+ * @param[in] src_dtype    Source data type.
+ * @param[in] target_dtype Destination data type.
+ *
+ * @return The @ref CastFn function pointer stored at
+ *         @c cast_dispatch[src_dtype][target_dtype], or
+ *         @c nullptr if the cast is the identity or not
+ *         supported.
+ *
+ * @see cast()         Executes the resolved kernel.
+ * @see cast_dispatch  Underlying dispatch table.
+ * @see CastFn         Function pointer type.
+ */
+CastFn get_dispatched_cast_func(DType_ src_dtype, DType_ target_dtype) {
+  CastFn fn = cast_dispatch[src_dtype][target_dtype];
+  return fn;
+}
+
+/**
  * @brief Return the size in bytes of a given @ref DType_.
  *
  * @details
