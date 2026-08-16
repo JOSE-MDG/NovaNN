@@ -11,7 +11,20 @@
       "features": [
         "openmp"
       ]
+    }
+  ],
+  "features": {
+    "cuda": {
+      "description": "NVIDIA CUDA backend",
+      "dependencies": [
+        "cuda"
+      ]
     },
-    "cuda"
-  ]
+    "rocm": {
+      "description": "AMD HIP/ROCm backend",
+      "dependencies": [
+        "rocm"
+      ]
+    }
+  }
 }
