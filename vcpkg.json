@@ -1,16 +1,17 @@
 {
-    "name": "novann",
-    "version": "5.0.0",
-    "description": "High Performance Deep Learning Framework",
-    "license": "MIT",
-    "dependencies": [
-        "onednn",
-        "gtest",
-        {
-            "name": "openblas",
-            "features": [
-                "openmp"
-            ]
-        }
-    ]
+  "name": "novann",
+  "version": "5.0.0",
+  "description": "High Performance Deep Learning Framework",
+  "license": "MIT",
+  "dependencies": [
+    "gtest",
+    "onednn",
+    {
+      "name": "openblas",
+      "features": [
+        "openmp"
+      ]
+    },
+    "cuda"
+  ]
 }
