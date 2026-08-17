@@ -153,6 +153,13 @@ if(USE_ASAN)
         "/WHOLEARCHIVE:${_nova_asan_thunk}"
         "/INCLUDE:__asan_seh_interceptor"
       )
+      # Expose the runtime DLL path so downstream functions can deploy it
+      # alongside test executables (clang-cl cannot find it at runtime
+      # without being in the same directory or in PATH).
+      set(NOVA_ASAN_RUNTIME_DLL
+        "${_nova_san_resource_dir}/lib/windows/clang_rt.asan_dynamic-x86_64.dll"
+        CACHE FILEPATH "Path to the ASan runtime DLL" FORCE
+      )
     else()
       message(WARNING
         "clang_rt.asan_dynamic-x86_64.lib or "
@@ -168,6 +175,7 @@ if(USE_ASAN)
     target_compile_definitions(nova_sanitizers INTERFACE
       _DISABLE_STL_ANNOTATION
     )
+    set(NOVA_HAS_ASAN 1 CACHE INTERNAL "")
   else()
     set(NOVA_HAS_ASAN 1 CACHE INTERNAL "")
     target_compile_options(nova_sanitizers INTERFACE
