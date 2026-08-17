@@ -11,7 +11,7 @@
 ##
 ## Presets without a configured build directory are skipped with a warning.
 ## The build configuration (Release/Debug) is derived from the preset name
-## by default (@c *-debug → Debug, everything else → Release) but can be
+## by default (@c *-debug* → Debug, everything else → Release) but can be
 ## overridden with @c -C.
 ##
 ## @par Usage
@@ -184,7 +184,7 @@ ${C_BOLD}Arguments:${C_RESET}
 ${C_BOLD}Options:${C_RESET}
   -C, --config MODE     Build configuration: Release or Debug.
                         Default: derived from the preset name
-                        (*-debug → Debug, everything else → Release).
+                        (*-debug* → Debug, everything else → Release).
   -j, --jobs N          Run the build with N parallel jobs.
   -c, --continue        Keep going after a preset fails.
   -l, --list            Print the matching presets and exit.
@@ -306,7 +306,7 @@ for i in "${!PRESETS[@]}"; do
     config="$CONFIG"
     if [[ -z "$config" ]]; then
         case "$preset" in
-            *-debug) config="Debug" ;;
+            *-debug*) config="Debug" ;;
             *) config="Release" ;;
         esac
     fi
