@@ -11,6 +11,13 @@
       "features": [
         "openmp"
       ]
+    },
+    {
+      "name": "openblas",
+      "features": [
+        "threads"
+      ],
+      "platform": "windows"
     }
   ],
   "features": {
