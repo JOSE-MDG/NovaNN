@@ -624,11 +624,12 @@ public:
       true; ///< BFloat16 has quiet NaN representation.
   static constexpr bool has_signaling_NaN =
       true; ///< BFloat16 has signaling NaN representation.
-  static constexpr auto has_denorm =
-      numeric_limits<float>::has_denorm; ///< BFloat16 supports subnormals.
-  static constexpr auto has_denorm_loss =
-      numeric_limits<float>::has_denorm_loss; ///< No denormalization loss is
-                                              ///< detected.
+#if __cplusplus < 202302L
+  static constexpr float_denorm_style has_denorm =
+      denorm_present; ///< BFloat16 supports subnormals.
+  static constexpr bool has_denorm_loss =
+      false; ///< No denormalization loss is detected.
+#endif
   static constexpr auto round_style =
       numeric_limits<float>::round_style; ///< Inherits float32 rounding style.
   static constexpr bool is_iec559 =
