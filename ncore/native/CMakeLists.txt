@@ -116,3 +116,7 @@ endif()
 target_include_directories(native
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
 )
+
+if(TARGET nova::compiler_rt_builtins)
+    target_link_libraries(native INTERFACE nova::compiler_rt_builtins)
+endif()
