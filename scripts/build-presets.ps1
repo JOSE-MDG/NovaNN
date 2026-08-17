@@ -47,9 +47,9 @@ $ErrorActionPreference = 'Stop'
 # Paths
 # ---------------------------------------------------------------------------
 
-$ScriptDir   = $PSScriptRoot
+$ScriptDir = $PSScriptRoot
 $ProjectRoot = Split-Path -Parent $ScriptDir
-$ScriptName  = Split-Path -Leaf $PSCommandPath
+$ScriptName = Split-Path -Leaf $PSCommandPath
 Set-Location -Path $ProjectRoot
 
 # ---------------------------------------------------------------------------
@@ -59,14 +59,14 @@ Set-Location -Path $ProjectRoot
 $IsTTY = -not [Console]::IsOutputRedirected
 
 if ($IsTTY -and -not $env:NO_COLOR -and $env:TERM -ne 'dumb') {
-    $ESC     = [char]27
+    $ESC = [char]27
     $C_RESET = "$ESC[0m"
-    $C_BOLD  = "$ESC[1m"
-    $C_DIM   = "$ESC[2m"
-    $C_RED   = "$ESC[31m"
+    $C_BOLD = "$ESC[1m"
+    $C_DIM = "$ESC[2m"
+    $C_RED = "$ESC[31m"
     $C_GREEN = "$ESC[32m"
-    $C_YELLOW= "$ESC[33m"
-    $C_CYAN  = "$ESC[36m"
+    $C_YELLOW = "$ESC[33m"
+    $C_CYAN = "$ESC[36m"
 }
 else {
     $C_RESET = ''; $C_BOLD = ''; $C_DIM = ''; $C_RED = ''
@@ -76,10 +76,10 @@ else {
 $C_CLEAR = ''
 if ($IsTTY) { $C_CLEAR = "$([char]13)$([char]27)[K" }
 
-$LogDir            = 'build/logs'
-$ContinueOnError   = $false
-$ListOnly          = $false
-$FilterArg         = $null
+$LogDir = 'build/logs'
+$ContinueOnError = $false
+$ListOnly = $false
+$FilterArg = $null
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -129,12 +129,12 @@ function Show-Spinner {
     if (-not $locale) { $locale = $env:LANG }
 
     if ($locale -and $locale -match '(?i)utf-?8') {
-        $frames  = @('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏')
+        $frames = @('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏')
         $barFull = '█'
         $barEmpty = '░'
     }
     else {
-        $frames  = @('|', '/', '-', '\')
+        $frames = @('|', '/', '-', '\')
         $barFull = '#'
         $barEmpty = '-'
     }
@@ -153,9 +153,9 @@ function Show-Spinner {
             $tail = Get-Content -LiteralPath $LogFile -Tail 60 -ErrorAction SilentlyContinue
             if ($tail) {
                 $joined = $tail -join "`n"
-                $matches = [regex]::Matches($joined, '\[(\d+)/(\d+)\]([^\r\n]*)')
-                if ($matches.Count -gt 0) {
-                    $last = $matches[$matches.Count - 1]
+                $regexMatches = [regex]::Matches($joined, '\[(\d+)/(\d+)\]([^\r\n]*)')
+                if ($regexMatches.Count -gt 0) {
+                    $last = $regexMatches[$regexMatches.Count - 1]
                     $num = [int]$last.Groups[1].Value
                     $denom = [int]$last.Groups[2].Value
                     if ($denom -gt 0) {
@@ -175,12 +175,12 @@ function Show-Spinner {
             $bar = ($barFull * $filled) + ($barEmpty * (20 - $filled))
             $pctStr = $pct.ToString().PadLeft(3)
             $line = "`r  $($frames[$i]) $($C_CYAN)$($pctStr)%$($C_RESET) " +
-                    "$($C_CYAN)[$($bar)]$($C_RESET) $($C_DIM)$($target)$($C_RESET) " +
-                    "· $($C_DIM)[$($N)/$($Total)]$($C_RESET) · $($C_DIM)$(Format-Elapsed $elapsed)$($C_RESET)"
+            "$($C_CYAN)[$($bar)]$($C_RESET) $($C_DIM)$($target)$($C_RESET) " +
+            "· $($C_DIM)[$($N)/$($Total)]$($C_RESET) · $($C_DIM)$(Format-Elapsed $elapsed)$($C_RESET)"
         }
         else {
             $line = "`r  $($frames[$i]) $($C_BOLD)$($Label)$($C_RESET) " +
-                    "· $($C_DIM)[$($N)/$($Total)]$($C_RESET) · $($C_DIM)$(Format-Elapsed $elapsed)$($C_RESET)"
+            "· $($C_DIM)[$($N)/$($Total)]$($C_RESET) · $($C_DIM)$(Format-Elapsed $elapsed)$($C_RESET)"
         }
 
         Write-Host -NoNewline $line
@@ -288,6 +288,7 @@ Write-Host "$($C_BOLD)NovaNN — configure presets$($C_RESET)"
 Write-Host "$($C_DIM)$($TotalCount) preset(s) → build/<preset>  ·  full logs: $($LogDir)$($C_RESET)"
 
 $Failed = 0
+$Skipped = 0
 
 # ---------------------------------------------------------------------------
 # Main loop
@@ -303,6 +304,20 @@ for ($idx = 0; $idx -lt $Presets.Count; $idx++) {
     Write-Host "  $($C_BOLD)[$($nStr)/$($TotalCount)]$($C_RESET) $($C_CYAN)▸ $($preset)$($C_RESET)"
 
     $start = Get-Date
+
+    if ($IsWindows -and $preset -like 'cuda-*') {
+        if (-not $env:CUDA_HOST_COMPILER) {
+            Write-Host "$($C_CLEAR)  $($C_YELLOW)⏭ skipped$($C_RESET)  CUDA_HOST_COMPILER not set"
+            $Skipped++
+            if (-not $ContinueOnError) {
+                Write-Host ''
+                Write-Host "$($C_RED)Aborting: CUDA_HOST_COMPILER must be exported before configuring CUDA presets on Windows.$($C_RESET)"
+                Write-Host "$($C_DIM)  Example: `$env:CUDA_HOST_COMPILER='C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe'$($C_RESET)"
+                exit 1
+            }
+            continue
+        }
+    }
 
     if ($IsTTY) {
         $job = Start-Job -ScriptBlock {
@@ -346,10 +361,17 @@ for ($idx = 0; $idx -lt $Presets.Count; $idx++) {
 }
 
 Write-Host ''
-if ($Failed -eq 0) {
-    Write-Host "$($C_GREEN)✔ All $($TotalCount) preset(s) configured successfully.$($C_RESET)"
+if ($Failed -gt 0) {
+    Write-Host "$($C_RED)✘ $($Failed) failed, $($TotalCount - $Failed - $Skipped) configured, $($Skipped) skipped — see $($LogDir)/$($C_RESET)"
+    exit 1
+}
+elseif ($Skipped -gt 0 -and ($TotalCount - $Skipped) -eq 0) {
+    Write-Host "$($C_YELLOW)⚠ nothing configured — $($Skipped) preset(s) skipped (CUDA_HOST_COMPILER not set)$($C_RESET)"
+    exit 1
+}
+elseif ($Skipped -gt 0) {
+    Write-Host "$($C_GREEN)✔ $($TotalCount - $Skipped) configured, $($Skipped) skipped (CUDA_HOST_COMPILER not set)$($C_RESET)"
 }
 else {
-    Write-Host "$($C_RED)✘ $($Failed) of $($TotalCount) preset(s) failed — see $($LogDir)/$($C_RESET)"
-    exit 1
+    Write-Host "$($C_GREEN)✔ All $($TotalCount) preset(s) configured successfully.$($C_RESET)"
 }
