@@ -80,8 +80,6 @@ set_target_properties(ncore_memory PROPERTIES
 )
 add_dependencies(ncore_memory memory_cargo)
 
-target_link_libraries(ncore_memory INTERFACE
-  $<$<NOT:$<PLATFORM_ID:Windows>>:Threads::Threads>
-  $<$<NOT:$<PLATFORM_ID:Windows>>:${CMAKE_DL_LIBS}>
-  $<$<NOT:$<PLATFORM_ID:Windows>>:m>
-)
+if(WIN32)
+  target_link_libraries(ncore_memory INTERFACE ws2_32 ntdll userenv bcrypt)
+endif()
