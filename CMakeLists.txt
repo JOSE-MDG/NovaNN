@@ -186,21 +186,6 @@ if(WIN32)
         COMMENT "Generating exports.def from objects + static libs"
     )
     target_link_options(nova PRIVATE /DEF:${NOVA_DEF})
-
-    # clang-cl depends of compiler-rt builtins (e.g: __truncdfbf2 for bfloat16)
-    if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-        execute_process(
-            COMMAND ${CMAKE_C_COMPILER} -print-resource-dir
-            OUTPUT_VARIABLE CLANG_RESOURCE_DIR
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        set(CLANG_RT_BUILTINS "${CLANG_RESOURCE_DIR}/lib/windows/clang_rt.builtins-x86_64.lib")
-        if(EXISTS "${CLANG_RT_BUILTINS}")
-            target_link_libraries(nova PRIVATE "${CLANG_RT_BUILTINS}")
-        else()
-            message(WARNING "compiler-rt builtins not found at ${CLANG_RT_BUILTINS}")
-        endif()
-    endif()
 endif()
 
 # `--whole-archive` / `/WHOLEARCHIVE` ensure every object in the static libs
