@@ -12,7 +12,7 @@
 
     Presets without a configured build directory are skipped with a
     warning. The build configuration (Release/Debug) is derived from the
-    preset name by default (*-debug -> Debug, everything else -> Release)
+    preset name by default (*-debug* -> Debug, everything else -> Release)
     but can be overridden with -Config.
 
 .PARAMETER Filters
@@ -166,9 +166,9 @@ function Show-Spinner {
             $tail = Get-Content -LiteralPath $LogFile -Tail 60 -ErrorAction SilentlyContinue
             if ($tail) {
                 $joined = $tail -join "`n"
-                $matches = [regex]::Matches($joined, '\[(\d+)/(\d+)\]([^\r\n]*)')
-                if ($matches.Count -gt 0) {
-                    $last = $matches[$matches.Count - 1]
+                $regexMatches = [regex]::Matches($joined, '\[(\d+)/(\d+)\]([^\r\n]*)')
+                if ($regexMatches.Count -gt 0) {
+                    $last = $regexMatches[$regexMatches.Count - 1]
                     $num = [int]$last.Groups[1].Value
                     $denom = [int]$last.Groups[2].Value
                     if ($denom -gt 0) {
@@ -216,7 +216,7 @@ $($C_BOLD)Arguments:$($C_RESET)
 $($C_BOLD)Options:$($C_RESET)
   -C, --config MODE      Build configuration: Release or Debug.
                         Default: derived from the preset name
-                        (*-debug → Debug, everything else → Release).
+                        (*-debug* → Debug, everything else → Release).
   -j, --jobs N           Run the build with N parallel jobs.
   -c, --continue         Keep going after a preset fails.
   -l, --list             Print the matching presets and exit.
@@ -353,7 +353,7 @@ for ($idx = 0; $idx -lt $Presets.Count; $idx++) {
 
     $presetConfig = $Config
     if (-not $presetConfig) {
-        if ($preset -like '*-debug') {
+        if ($preset -like '*-debug*') {
             $presetConfig = 'Debug'
         }
         else {
