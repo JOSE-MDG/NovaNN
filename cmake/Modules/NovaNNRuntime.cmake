@@ -37,6 +37,7 @@ prints the candidate paths one per line without generating anything.
 include(Detect/simd/DetectSIMD)
 include(Modules/NovaNNCPU)
 include(Modules/NovaNNBuildFlags)
+include(Modules/NovaNNHandleCompilerRT)
 
 if(BUILD_TESTING)
     include(Detect/testing/DetectGTest)
@@ -106,6 +107,10 @@ if(NOVA_HAS_OPENMP)
     message(STATUS "  OpenMP          : Enabled")
 else()
     message(STATUS "  OpenMP          : Disabled")
+endif()
+
+if(NOVA_HAS_COMPILER_RT_BUILTINS)
+    message(STATUS "  compiler-rt     : Enabled")
 endif()
 
 if(USE_CUDA)
