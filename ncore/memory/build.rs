@@ -7,15 +7,24 @@
 //!
 //! | Variable         | Required | Default     | Description                              |
 //! |------------------|----------|-------------|------------------------------------------|
-//! | `RUSTCSRC_DIR`   | yes      | —           | Path to the compiled C++ static library. |
+//! | `RUSTCSRC_DIR`   | no       | —           | Path to the compiled C++ static library. |
 //! | `RUSTCSRC_NAME`  | no       | `memorycsrc`  | Name of the static library (without lib prefix). |
 //!
-//! The script expects Cargo to be invoked through CMake so that
-//! `RUSTCSRC_DIR` is set correctly.
+//! When `RUSTCSRC_DIR` is set, the script emits the native link search path,
+//! static library, and C++ runtime dependencies required by the CMake build.
+//! When it is absent, the Rust crate can still be checked independently; the
+//! native link configuration is expected to be supplied by CMake.
 
 fn main() {
-    let csrc_dir =
-        std::env::var("RUSTCSRC_DIR").expect("RUSTCSRC_DIR not set - invoke cargo via CMake");
+    let csrc_dir = match std::env::var("RUSTCSRC_DIR") {
+        Ok(path) => path,
+        Err(_) => {
+            println!(
+                "cargo:warning=RUSTCSRC_DIR is not set; native linking is configured by CMake"
+            );
+            return;
+        }
+    };
 
     let csrc_name = std::env::var("RUSTCSRC_NAME").unwrap_or_else(|_| "memorycsrc".to_string());
 
