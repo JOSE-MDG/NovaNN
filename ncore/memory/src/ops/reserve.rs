@@ -3,6 +3,10 @@
 //! Allocates a new [`RustStorage`] block (CPU RAM or GPU VRAM / pinned host),
 //! assigns it a unique ID, inserts it into the global registry, and returns
 //! a [`RustHandle`] that the caller can use to reference it.
+//!
+//! This layer does not cross an ABI boundary. It returns the native Rust
+//! [`Result`] so the FFI wrapper can convert failures into [`crate::NovaStatus`]
+//! values without losing context.
 
 use crate::error::StorageError;
 use crate::handle::RustHandle;
@@ -31,6 +35,10 @@ use crate::storage::RustStorage;
 /// # Returns
 ///
 /// A valid [`RustHandle`] on success.
+///
+/// The handle owns one reference to the newly inserted registry entry. Its
+/// cached size is taken from the actual storage object, while its alignment
+/// field records the alignment supplied by the caller.
 pub fn reserve_op(
     size: usize,
     device: &str,
