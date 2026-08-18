@@ -1,9 +1,16 @@
 //! Low-level memory allocation and management.
 //!
 //! Supports both CPU (system allocator) and GPU (C++ FFI) memory backends.
-//! GPU allocations are tracked through an internal [`Allocation`] enum so that
-//! [`Drop`] dispatches to the correct deallocation path.
+//! GPU allocations are tracked through an internal `Allocation` enum so that
+//! explicit deallocation and [`Drop`] dispatch to the correct backend path.
+//!
+//! A [`RustStorage`] begins with one reference. The registry owns the storage
+//! object while its reference count is non-zero. Normal lifecycle code calls
+//! [`RustStorage::deallocate`] explicitly on the final release so backend
+//! failures can be returned to the caller; [`Drop`] is retained as a final
+//! cleanup path for unwinding and registry teardown.
 
+use crate::counter::AtomicRefCounter;
 use crate::error::StorageError;
 use crate::ffi::cpp::{
     DeviceBuffer, DeviceKind, NovaError, deviceRelease, deviceReserve, deviceResize,
@@ -12,14 +19,19 @@ use crate::ffi::cpp::{
 use std::alloc::{Layout, alloc, dealloc, realloc};
 use std::ffi::CStr;
 
-/// Describes how a storage block was allocated.
+/// Describes the allocator responsible for a storage block.
+///
+/// The variant is immutable for the lifetime of a storage object. It allows
+/// resize and deallocation to dispatch to the same allocator that performed
+/// the original allocation.
 enum Allocation {
-    /// Memory allocated through the system allocator (`std::alloc`).
+    /// Memory allocated through the platform allocator in `std::alloc`.
     Cpu {
         /// Memory layout used for allocation / deallocation.
         layout: Layout,
     },
-    /// Memory allocated on a GPU device (or pinned host) through the C++ FFI.
+    /// Memory allocated on a GPU device or as pinned host memory through the
+    /// C++ FFI bridge.
     Gpu {
         /// Backend-specific buffer descriptor that must be passed to
         /// [`deviceRelease`] when the storage is freed.
@@ -31,7 +43,14 @@ enum Allocation {
 ///
 /// Instances are created through [`RustStorage::allocate`] (CPU host memory)
 /// or [`RustStorage::allocate_device`] (GPU device or pinned host memory) and
-/// are automatically freed when dropped.
+/// are explicitly deallocated on final release and also cleaned up when
+/// dropped as a fallback.
+///
+/// # Thread safety
+///
+/// `RustStorage` is only accessed through the mutex in [`crate::manager`].
+/// The `Send` and `Sync` implementations therefore rely on exclusive access
+/// being enforced by the registry.
 pub struct RustStorage {
     /// Pointer to the allocated memory (host or device).
     ptr: *mut u8,
@@ -39,8 +58,9 @@ pub struct RustStorage {
     alloc: Allocation,
     /// Size of the allocated memory in bytes.
     pub size_bytes: usize,
-    /// Reference count for memory management.
-    pub ref_count: usize,
+    /// Atomically tracked number of live owners represented by handles in the
+    /// native core. Use [`AtomicRefCounter::get`] to read the value.
+    pub ref_count: AtomicRefCounter,
 }
 
 // SAFETY: exclusive access is always enforced by the Mutex in StorageManager.
@@ -54,6 +74,12 @@ impl RustStorage {
     ///
     /// * `size`  - Number of bytes to allocate. Must be non-zero.
     /// * `align` - Required memory alignment. Must be a power of two.
+    ///
+    /// # Ownership
+    ///
+    /// The returned storage starts with a reference count of one. The caller
+    /// is responsible for eventually calling [`Self::deallocate`] or allowing
+    /// the value to be dropped.
     ///
     /// # Errors
     ///
@@ -80,7 +106,7 @@ impl RustStorage {
             ptr,
             alloc: Allocation::Cpu { layout },
             size_bytes: size,
-            ref_count: 1,
+            ref_count: AtomicRefCounter::new(1),
         })
     }
 
@@ -95,6 +121,12 @@ impl RustStorage {
     ///
     /// * `size`       - Number of bytes to allocate. Must be non-zero.
     /// * `pin_memory` - If `true`, allocate page-locked host memory.
+    ///
+    /// # Ownership
+    ///
+    /// The returned storage starts with a reference count of one. Device
+    /// buffers remain owned by the C++ backend until [`Self::deallocate`]
+    /// succeeds.
     ///
     /// # Errors
     ///
@@ -123,12 +155,15 @@ impl RustStorage {
             let msg = if status.message.is_null() {
                 "Device operation failed with no error message".into()
             } else {
-                // SAFETY: message points to a static C string literal.
+                // SAFETY: message points to a valid C string owned by the bridge.
                 unsafe { CStr::from_ptr(status.message) }
                     .to_string_lossy()
                     .into_owned()
             };
-            return Err(StorageError::DeviceError(msg));
+            return Err(StorageError::DeviceError {
+                code: status.err,
+                message: format!("Device allocation failed: {msg}"),
+            });
         }
 
         // Get bytes before device_buf move
@@ -138,7 +173,7 @@ impl RustStorage {
             ptr: device_buf.ptr as *mut u8,
             alloc: Allocation::Gpu { device_buf },
             size_bytes: bytes,
-            ref_count: 1,
+            ref_count: AtomicRefCounter::new(1),
         })
     }
 
@@ -187,12 +222,15 @@ impl RustStorage {
                     let msg = if status.message.is_null() {
                         "Device operation failed with no error message".into()
                     } else {
-                        // SAFETY: message points to a static C string literal.
+                        // SAFETY: message points to a valid C string owned by the bridge.
                         unsafe { CStr::from_ptr(status.message) }
                             .to_string_lossy()
                             .into_owned()
                     };
-                    return Err(StorageError::DeviceError(msg));
+                    return Err(StorageError::DeviceError {
+                        code: status.err,
+                        message: format!("Device resize failed: {msg}"),
+                    });
                 }
 
                 self.ptr = device_buf.ptr as *mut u8;
@@ -202,25 +240,91 @@ impl RustStorage {
         }
     }
 
-    /// Increments the reference count.
-    pub fn increment_ref(&mut self) {
-        self.ref_count += 1;
-    }
-
-    /// Decrements the reference count.
+    /// Increments the reference count by one.
     ///
-    /// Returns `true` when ref_count hits zero — caller must free the storage.
-    pub fn decrement_ref(&mut self) -> bool {
-        self.ref_count = self.ref_count.saturating_sub(1);
-        self.ref_count == 0
+    /// # Errors
+    ///
+    /// Returns [`StorageError::ReferenceCountOverflow`] if the count is
+    /// already at `usize::MAX`.
+    pub fn increment_ref(&self) -> Result<(), StorageError> {
+        self.ref_count
+            .try_increase()
+            .map(|_| ())
+            .ok_or(StorageError::ReferenceCountOverflow)
     }
 
-    /// Returns a raw pointer to the allocated data.
+    /// Decrements the reference count by one.
+    ///
+    /// Returns `true` when the count reaches zero. The caller must then call
+    /// [`Self::deallocate`] before removing the storage from the registry.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError::InvalidHandle`] if the count is already zero.
+    pub fn decrement_ref(&self) -> Result<bool, StorageError> {
+        let previous = self
+            .ref_count
+            .try_decrease()
+            .ok_or(StorageError::InvalidHandle)?;
+        Ok(previous == 1)
+    }
+
+    /// Releases the underlying allocation and reports backend failures.
+    ///
+    /// This operation is idempotent after a successful deallocation: a null
+    /// data pointer returns `Ok(())`. On a device release failure, the pointer
+    /// and backend descriptor remain available for the caller's recovery or
+    /// retry policy.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError::DeviceError`] when the C++ backend cannot free
+    /// a device or pinned-host allocation.
+    pub fn deallocate(&mut self) -> Result<(), StorageError> {
+        if self.ptr.is_null() {
+            return Ok(());
+        }
+
+        match &mut self.alloc {
+            Allocation::Cpu { layout } => {
+                // SAFETY: ptr was allocated with `layout` via std::alloc.
+                unsafe { dealloc(self.ptr, *layout) };
+                self.ptr = std::ptr::null_mut();
+                Ok(())
+            }
+            Allocation::Gpu { device_buf } => {
+                // SAFETY: device_buf was returned by a previous
+                // deviceReserve call and has not been freed yet.
+                let status = unsafe { deviceRelease(device_buf as *mut DeviceBuffer) };
+                if status.err != NovaError::Success {
+                    let msg = if status.message.is_null() {
+                        "The device backend did not provide a failure description".to_string()
+                    } else {
+                        // SAFETY: the C++ bridge returns a valid NUL-terminated message.
+                        unsafe { CStr::from_ptr(status.message) }
+                            .to_string_lossy()
+                            .into_owned()
+                    };
+                    return Err(StorageError::DeviceError {
+                        code: status.err,
+                        message: format!("Device release failed: {msg}"),
+                    });
+                }
+                self.ptr = std::ptr::null_mut();
+                Ok(())
+            }
+        }
+    }
+
+    /// Returns the raw pointer to the allocated data.
+    ///
+    /// The pointer is valid only while the storage remains allocated and must
+    /// not be used after [`Self::deallocate`] succeeds.
     pub fn data_ptr(&self) -> *mut u8 {
         self.ptr
     }
 
-    /// Returns the memory alignment.
+    /// Returns the alignment associated with the allocation.
     pub fn align(&self) -> usize {
         match &self.alloc {
             Allocation::Cpu { layout } => layout.align(),
@@ -234,7 +338,10 @@ impl RustStorage {
         }
     }
 
-    /// Returns `true` if the storage was allocated on a GPU device.
+    /// Returns `true` if the storage uses the C++ device-memory backend.
+    ///
+    /// This is also `true` for pinned host allocations because they are
+    /// allocated and released by the active GPU backend.
     pub fn is_device_memory(&self) -> bool {
         matches!(self.alloc, Allocation::Gpu { .. })
     }
@@ -251,36 +358,8 @@ impl RustStorage {
 
 impl Drop for RustStorage {
     fn drop(&mut self) {
-        if self.ptr.is_null() {
-            return;
+        if let Err(error) = self.deallocate() {
+            eprintln!("RustStorage cleanup failed: {error}");
         }
-
-        match &mut self.alloc {
-            Allocation::Cpu { layout } => {
-                // SAFETY: ptr was allocated with `layout` via std::alloc.
-                unsafe { dealloc(self.ptr, *layout) };
-            }
-            Allocation::Gpu { device_buf, .. } => {
-                // SAFETY: device_buf was returned by a previous
-                // deviceReserve call and has not been freed yet.
-                let status = unsafe { deviceRelease(device_buf as *mut DeviceBuffer) };
-                if status.err != NovaError::Success {
-                    let msg = if status.message.is_null() {
-                        "Device operation failed with no error message".to_string()
-                    } else {
-                        // SAFETY: message points to a static C string literal.
-                        unsafe { CStr::from_ptr(status.message) }
-                            .to_string_lossy()
-                            .into_owned()
-                    };
-                    eprintln!(
-                        "RustStorage::drop: deviceRelease failed (code={}): {msg}",
-                        status.err as i32
-                    );
-                }
-            }
-        }
-
-        self.ptr = std::ptr::null_mut();
     }
 }
