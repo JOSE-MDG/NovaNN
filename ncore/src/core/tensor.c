@@ -19,7 +19,8 @@
  *   GPU tensors; for @c DEVICE_META tensors it is never invoked and
  *   storage is left @c nullptr.
  * @li Views increment the Rust reference count via @c retain() and decrement
- *   it when @c collect() is called on the view — no double-free is possible.
+ *   it when @c collect() is called on the view. A failed release leaves the
+ *   storage attached so cleanup can be retried.
  * @li @c collect() is safe to call with @c nullptr (no-op).
  *
  * @see tensor.h   Public API declarations and struct documentation.
@@ -305,7 +306,8 @@ Tensor create_tensor_like(const Tensor *ten, novaStatus_t *status) {
  *
  * @details
  * @li 1. Shallow-copy the source @c Tensor into @c dst.
- * @li 2. Increment the Rust reference count via @c retain().
+ * @li 2. Increment the Rust reference count via @c retain(), propagating
+ *    any status error through @p status.
  * @li 3. Overwrite @c ndims and @c shape with the new values (skipped for
  *    scalar sources).
  * @li 4. Recompute @c strides for the new shape via
@@ -345,8 +347,13 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
 
   Tensor dst = *src;
 
-  // Increase rust reference counter
-  retain(&dst.storage->handle);
+  // Increase the Rust reference counter.
+  novaStatus_t retain_status = retain(&dst.storage->handle);
+  if (retain_status.err != novaSuccess) {
+    *status = retain_status;
+    memset(&dst, 0, sizeof(Tensor));
+    return dst;
+  }
 
   // Copy tensor metadata
   dst.ndims = new_ndims;
@@ -508,9 +515,10 @@ void move_tensor(Tensor *restrict dst, Tensor *restrict src) {
  * @li 1. If @c ten is @c nullptr, returns immediately (no-op).
  * @li 2. If @c ten->storage is non-nullptr, calls @c release() to
  *    decrement the Rust reference count.
- * @li 3. If @c release() returns @c true (count reached zero), frees
- *    the @c TensorStorage with @c free() and nullifies @c storage,
- *    @c data, and @c is_allocated_.
+ * @li 3. If @c release() succeeds and returns @c true (count reached zero),
+ *    frees the @c TensorStorage with @c free() and nullifies @c storage,
+ *    @c data, and @c is_allocated_. On release failure, storage remains
+ *    attached for a later cleanup attempt.
  * @li 4. If @c ten->grad is non-nullptr, recursively calls @c collect()
  *    on the gradient, then frees the gradient @c Tensor with
  *    @c free() and nullifies @c grad.
@@ -534,8 +542,9 @@ void collect(Tensor *ten) {
   }
 
   if (ten->storage != nullptr) {
-    bool should_free = release(&ten->storage->handle);
-    if (should_free) {
+    novaStatus_t release_status = {};
+    bool should_free = release(&ten->storage->handle, &release_status);
+    if (release_status.err == novaSuccess && should_free) {
       free(ten->storage);
       ten->storage = nullptr;
       ten->data.data = nullptr;
