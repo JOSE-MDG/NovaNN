@@ -38,7 +38,7 @@ extern "C" {
  *        storage.
  *
  * @details
- * Delegates to @ref safe_reserve() through the Rust FFI to obtain a
+ * Delegates to @ref reserve() through the Rust FFI to obtain a
  * @ref RustHandle.  Alignment is selected automatically: 512 bytes
  * for GPU, 64 bytes otherwise.
  *
@@ -67,7 +67,7 @@ extern "C" {
  * @retval novaInvalidPointer  @p ten is @c nullptr when @p create_storage is
  *                             @c true, or @p ten is already allocated.
  * @retval novaSuccess         META device or successful allocation.
- * @retval ...                 Forwarded from @ref safe_reserve().
+ * @retval ...                 Forwarded from @ref reserve().
  *
  * @pre  @p bytes must be greater than zero.
  * @pre  Exactly one of @p handle or @p ten must be non-nullptr,
@@ -77,7 +77,7 @@ extern "C" {
  *       as allocated and its @c storage, @c data, and @c is_allocated_
  *       fields are populated.
  *
- * @see safe_reserve()        Low-level Rust FFI allocation.
+ * @see reserve()             Rust-backed allocation.
  * @see get_data_from()       Resolve data pointer from handle.
  * @see TensorStorage         Storage descriptor struct.
  */
