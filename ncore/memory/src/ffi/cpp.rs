@@ -2,11 +2,12 @@
 //!
 //! | Path                       | Contents                                         |
 //! |----------------------------|--------------------------------------------------|
-//! | [`bindings`]               | `extern "C"` declarations, type mirrors           |
+//! | [`bindings`]               | `extern "C"` declarations                        |
+//! | [`crate::status`]          | `NovaStatus`/`NovaError` type mirrors            |
 
 pub mod bindings;
-
+pub use crate::status::{NovaError, NovaStatus};
 pub use bindings::{
-    DeviceBuffer, DeviceKind, DeviceMemcpyKind, NovaError, NovaStatus, deviceRelease,
-    deviceReserve, deviceResize, getDeviceBackend,
+    DeviceBuffer, DeviceKind, DeviceMemcpyKind, deviceRelease, deviceReserve, deviceResize,
+    getDeviceBackend,
 };

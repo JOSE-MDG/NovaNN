@@ -4,8 +4,13 @@
 //! Mirrors the types and `extern "C"` functions declared in
 //! `csrc/ffi.hpp` so that Rust code can call into the C++ GPU
 //! backend dispatch layer.
+//!
+//! These declarations are ABI contracts, not safe Rust abstractions. The
+//! functions return [`NovaStatus`] instead of throwing, and the caller must
+//! satisfy the pointer and ownership requirements documented on each
+//! declaration.
 
-use std::ffi::c_char;
+use crate::status::NovaStatus;
 use std::ffi::c_void;
 
 /// GPU compute backend identifier.
@@ -14,8 +19,11 @@ use std::ffi::c_void;
 #[repr(i8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceKind {
+    /// NVIDIA CUDA backend.
     CUDA = 0,
+    /// AMD ROCm HIP backend.
     HIP = 1,
+    /// No supported GPU backend is available.
     Null = 2,
 }
 
@@ -25,8 +33,11 @@ pub enum DeviceKind {
 #[repr(i8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceMemcpyKind {
+    /// Copy from host memory to device memory.
     HostToDevice = 1,
+    /// Copy from device memory to host memory.
     DeviceToHost = 2,
+    /// Copy between device allocations.
     DeviceToDevice = 3,
 }
 
@@ -36,95 +47,31 @@ pub enum DeviceMemcpyKind {
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct DeviceBuffer {
+    /// Data pointer returned by the active backend.
     pub ptr: *mut c_void,
+    /// Usable allocation size in bytes.
     pub bytes: usize,
+    /// Whether the allocation is page-locked host memory.
     pub is_pinned: bool,
+    /// Backend responsible for the allocation.
     pub device_kind: DeviceKind,
+    /// Opaque backend descriptor owned by the C++ bridge.
     pub device_buf_ptr: *mut c_void,
 }
 
-/// Error codes returned by the NovaNN runtime.
-///
-/// Values match `novaError_t` in `core/status.h`.  The enumerators are
-/// organised into logical groups (Parameters, Memory, Transfers, etc.)
-/// to aid in categorisation and debugging.
-#[repr(i8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NovaError {
-    Success = 0,
-
-    /* Invalid parameters */
-    InvalidValue = 1,
-    InvalidTensor = 2,
-    InvalidPointer = 3,
-    InvalidDtype = 4,
-    InvalidDevice = 5,
-    InvalidNdims = 6,
-    InvalidAlignment = 7,
-    InvalidShape = 8,
-    InvalidIndex = 9,
-    InvalidNumThreads = 10,
-
-    /* Memory */
-    BufferOverflow = 11,
-    OutOfMemory = 12,
-    ReserveError = 13,
-    ReleaseError = 14,
-    ResizeError = 15,
-
-    /* Data transfer */
-    TransferError = 16,
-    TransferH2DError = 17,
-    TransferD2HError = 18,
-    InvalidTransfDirection = 19,
-
-    /* Device / Backend */
-    DeviceNotAvailable = 20,
-    DeviceNotInitialized = 21,
-    ExternalDeviceError = 22,
-    BackendNotCompiled = 23,
-    BackendNotSupported = 24,
-
-    /* OS/Platform */
-    OsPlatformNotSupported = 25,
-
-    /* Dtype/Cast */
-    DtypeNotSupported = 26,
-    CastNotSupported = 27,
-    ShapeMismatch = 28,
-
-    /* GPU-specific */
-    InvalidResourceHandle = 29,
-    KernelLaunchError = 30,
-
-    /* Internal */
-    NotImplemented = 31,
-    InternalError = 32,
-
-    /* General */
-    RuntimeError = 33,
-}
-
-/// Container for an error code and an optional detailed message.
-///
-/// Values match `novaStatus_t` in `core/status.h`.  Used in
-/// high-level APIs where additional context about the failure is
-/// required.
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
-pub struct NovaStatus {
-    pub err: NovaError,
-    pub message: *const c_char,
-}
-
 unsafe extern "C" {
-    /// Allocate a device or pinned-host buffer through the active backend.
+    /// Allocates a device or pinned-host buffer through the active backend.
+    ///
+    /// On success, `out_buf` receives a backend descriptor owned by the
+    /// caller and it must eventually be passed to [`deviceRelease`]. On
+    /// failure, the returned status contains the backend error and the output
+    /// descriptor is reset by the C++ bridge.
     ///
     /// # Safety
     ///
     /// `out_buf` must be non-null and point to a valid, writable
-    /// [`DeviceBuffer`]. The caller is responsible for eventually freeing
-    /// the buffer with [`deviceRelease`].
+    /// [`DeviceBuffer`]. `bytes` must be non-zero. The caller is responsible
+    /// for eventually freeing a successful allocation with [`deviceRelease`].
     pub unsafe fn deviceReserve(
         bytes: usize,
         out_buf: *mut DeviceBuffer,
@@ -132,15 +79,16 @@ unsafe extern "C" {
         kind: DeviceKind,
     ) -> NovaStatus;
 
-    /// Free a buffer previously allocated with [`deviceReserve`].
+    /// Frees a buffer previously allocated with [`deviceReserve`].
     ///
     /// # Safety
     ///
     /// `buf` must be non-null, point to a buffer previously returned by
-    /// [`deviceReserve`], and must not have been freed already.
+    /// [`deviceReserve`], and must not have been freed already. The descriptor
+    /// is zeroed only when the release succeeds.
     pub unsafe fn deviceRelease(buf: *mut DeviceBuffer) -> NovaStatus;
 
-    /// Reallocate a device or pinned-host buffer, preserving content.
+    /// Resizes a device or pinned-host buffer while preserving content.
     ///
     /// Allocates a new buffer of `new_bytes`, copies the minimum of the
     /// old and new sizes, frees the old buffer, and updates
@@ -150,14 +98,16 @@ unsafe extern "C" {
     /// # Safety
     ///
     /// `buf` must be non-null, point to a buffer previously returned by
-    /// [`deviceReserve`], and must not have been freed already.
+    /// [`deviceReserve`], and must not have been freed already. `new_bytes`
+    /// must be non-zero.
     pub unsafe fn deviceResize(buf: *mut DeviceBuffer, new_bytes: usize) -> NovaStatus;
 
-    /// Query the active GPU compute backend.
+    /// Queries the active GPU compute backend.
     ///
     /// Returns [`DeviceKind::CUDA`], [`DeviceKind::HIP`], or
     /// [`DeviceKind::Null`] according to runtime detection.
     ///
-    /// Corresponds to `getDeviceBackend()` in `admin.hpp`.
+    /// The result is selected by runtime probing and is used by the device
+    /// allocation and transfer dispatch paths.
     pub unsafe fn getDeviceBackend() -> DeviceKind;
 }
