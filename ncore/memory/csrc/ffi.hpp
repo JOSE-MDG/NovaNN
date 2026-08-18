@@ -88,6 +88,8 @@ extern "C" {
  * @pre  @p out_buf must point to a valid @ref deviceBuffer_t.
  * @post On success, @p out_buf->deviceBufPtr owns a backend
  *       descriptor that must be freed via @ref deviceRelease.
+ * @post On failure, @p out_buf is reset and no ownership is transferred
+ *       to the caller.
  *
  * @see deviceRelease()  Frees the buffer allocated here.
  * @see deviceResize()   Resizes an existing buffer.
@@ -111,6 +113,8 @@ novaStatus_t deviceReserve(std::size_t bytes, deviceBuffer_t *out_buf,
  * @pre  @p buf must point to a valid @ref deviceBuffer_t whose
  *       @ref deviceBufPtr was returned by @ref deviceReserve.
  * @post On success, @p buf is zeroed.
+ * @post On failure, @p buf remains available for the caller's error-handling
+ *       policy and is not treated as successfully released.
  *
  * @see deviceReserve()  Allocates the buffer freed here.
  */
@@ -135,9 +139,9 @@ novaStatus_t deviceRelease(deviceBuffer_t *buf);
  * @post On success, @p buf->ptr and @p buf->bytes reflect the
  *       new allocation.
  *
- * @warning On failure the original buffer may be in an
- *          inconsistent state.  Do not use it after a failed
- *          resize without checking.
+ * @warning A backend-specific failure may leave the original buffer in an
+ *          unusable or backend-defined state. Do not issue another operation
+ *          on it until the backend's status contract has been evaluated.
  *
  * @see deviceReserve()  Initial allocation.
  * @see deviceRelease()  Explicit deallocation.
