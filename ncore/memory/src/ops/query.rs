@@ -5,6 +5,10 @@
 //! [`is_valid_op`] checks whether a handle is currently registered,
 //! [`get_align_op`] reports the allocation alignment, and
 //! [`is_device_memory_op`] / [`is_pinned_op`] expose backend placement flags.
+//!
+//! Query results are snapshots. A caller must retain the storage while using
+//! a returned raw pointer or metadata value; another thread may release the
+//! final reference immediately after the query returns.
 
 use crate::error::StorageError;
 use crate::handle::RustHandle;
@@ -25,6 +29,9 @@ pub fn get_data_op(handle: &RustHandle) -> Result<*mut u8, StorageError> {
 
 /// Returns `true` if the handle is both structurally valid
 /// (non-zero ID) and currently registered in the storage manager.
+///
+/// This function is a convenience predicate and intentionally collapses
+/// registry errors to `false`.
 pub fn is_valid_op(handle: &RustHandle) -> bool {
     handle.is_valid() && StorageManager::contains(handle.id)
 }
