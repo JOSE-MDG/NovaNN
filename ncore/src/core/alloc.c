@@ -13,7 +13,7 @@
  * @p create_storage:
  *
  * @li Raw handle mode (@p create_storage == @c false):
- *    Allocates memory via @ref safe_reserve() and returns the
+ *    Allocates memory via @ref reserve() and returns the
  *    @ref RustHandle through @p handle.  The caller owns the handle
  *    and must manage its lifetime.
  *
@@ -74,7 +74,7 @@ static const char *map_device2string(Device_ device) {
  *        storage.
  *
  * @details
- * Delegates to @ref safe_reserve() through the Rust FFI to obtain a
+ * Delegates to @ref reserve() through the Rust FFI to obtain a
  * @ref RustHandle.  Alignment is selected automatically: 512 bytes
  * for GPU, 64 bytes otherwise.
  *
@@ -103,7 +103,7 @@ static const char *map_device2string(Device_ device) {
  * @retval novaInvalidPointer  @p ten is @c nullptr when @p create_storage is
  *                             @c true, or @p ten is already allocated.
  * @retval novaSuccess         META device or successful allocation.
- * @retval ...                 Forwarded from @ref safe_reserve().
+ * @retval ...                 Forwarded from @ref reserve().
  *
  * @pre  @p bytes must be greater than zero.
  * @pre  Exactly one of @p handle or @p ten must be non-nullptr,
@@ -113,7 +113,7 @@ static const char *map_device2string(Device_ device) {
  *       as allocated and its @c storage, @c data, and @c is_allocated_
  *       fields are populated.
  *
- * @see safe_reserve()        Low-level Rust FFI allocation.
+ * @see reserve()             Rust-backed allocation.
  * @see get_data_from()       Resolve data pointer from handle.
  * @see TensorStorage         Storage descriptor struct.
  */
@@ -133,8 +133,8 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
                Host tensors, which the default is set to 64 bytes */
 
   if (!create_storage) {
-    status = safe_reserve(bytes, map_device2string(device), pin_memory, align,
-                          handle);
+    *handle = reserve(bytes, map_device2string(device), pin_memory, align,
+                      &status);
     return status;
   } else {
     if (ten == nullptr || (is_allocated(ten))) {
@@ -159,8 +159,8 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
     }
 
     RustHandle storage_handle = {};
-    status = safe_reserve(bytes, map_device2string(device), pin_memory, align,
-                          &storage_handle);
+    storage_handle = reserve(bytes, map_device2string(device), pin_memory,
+                             align, &status);
 
     if (status.err != novaSuccess) {
       free(storage);
