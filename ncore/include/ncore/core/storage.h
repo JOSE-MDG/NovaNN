@@ -21,21 +21,20 @@
  * @section memory-lifecycle Memory Lifecycle
  *
  * @code
- * allocate:  reserve()  → RustHandle { id, size, align }
- *            safe_reserve() → same, but returns novaStatus_t
+ * allocate:  reserve()  → RustHandle { id, size, align } + novaStatus_t
  * share:     retain()   → increment refcount
- * free:      release()  → decrement refcount; free when zero
- * resize:    resize()   → may relocate the buffer
- *            safe_resize() → same, but returns novaStatus_t
+ * free:      release()  → decrement refcount; free when zero + novaStatus_t
+ * resize:    resize()   → may relocate the buffer + novaStatus_t
  * query:     get_data_from() → CPU-visible pointer
  * @endcode
  *
  * @section thread-safety Thread Safety
  *
- * All functions in this header are thread-safe.  The Rust allocator
- * handles concurrent access internally.  Error messages returned by
- * @c get_last_reserve_error() are thread-local and valid only until
- * the next @c reserve() call on the same thread.
+ * All functions in this header are thread-safe with respect to the Rust
+ * storage registry.  Handles themselves remain caller-owned values and must
+ * not be concurrently mutated by multiple threads without external
+ * synchronisation. Detailed status messages are valid until the next storage
+ * operation on the same thread.
  *
  * @see dtype.h       DType_ enumeration used by data_ptr members.
  * @see tensor.h      Tensor struct embedding a TensorStorage.
@@ -122,9 +121,10 @@ typedef union {
  *
  * @section validity Validity
  *
- * A handle is valid when @c id != 0.  Use @c is_valid_handle() to
- * check.  Invalid handles must not be passed to any function except
- * @c is_valid_handle() itself.
+ * A handle is structurally valid when @c id != 0.  Use
+ * @c is_valid_handle() to check whether that ID is also registered. Query
+ * functions tolerate null or invalid handles by returning their documented
+ * sentinel values; lifecycle and resize functions require a live handle.
  *
  * @see reserve()        Creates a RustHandle.
  * @see retain()         Increments the reference count.
@@ -133,7 +133,7 @@ typedef union {
  * @see TensorStorage    Embeds a RustHandle as its @c handle field.
  */
 typedef struct {
-  int64_t id;        ///< Unique identifier for the allocation.
+  uint64_t id;       ///< Unique identifier for the allocation.
   size_t size_bytes; ///< Usable size of the allocation in bytes.
   size_t align; ///< Alignment constraint (e.g., 64 for cache-line alignment).
 } RustHandle;
@@ -142,71 +142,42 @@ typedef struct {
  * @brief Allocate a buffer on the specified memory device.
  *
  * @details
- * Routes the allocation request to the Rust FFI allocator, which
- * supports:
+ * Routes the allocation request to the Rust allocator, which supports:
  * @li CPU host RAM (@c cpu) — standard @c malloc-style allocation.
  * @li Pinned host memory (@c cpu + @c pin_memory=true) —
  *   page-locked memory for efficient GPU ↔ CPU transfers.
  * @li GPU device VRAM (@c device) — allocated through the active
  *   CUDA or HIP backend.
  *
- * On failure, the error message is stored in thread-local storage
- * and can be retrieved via @c get_last_reserve_error().
+ * On failure, @p status receives the error code and detailed message.
  *
  * @param[in]  size       Requested size in bytes.  Must be > 0.
  * @param[in]  device     Target device: @c cpu or @c device.
+ *                         A null pointer selects @c cpu.
  * @param[in]  pin_memory If @c true and @p device is @c cpu,
  *                        allocate page-locked host memory.  Must be
  *                        @c false when @p device is @c device.
  * @param[in]  align      Required alignment in bytes (must be a
  *                        power of two).
+ * @param[out] status     Receives the operation result. Must not be
+ *                        @c nullptr.
  *
  * @return A valid @ref RustHandle on success, or a handle with
  *         @c id == 0 on failure.
  *
  * @pre  @c size must be > 0.
- * @pre  @c device must be @c cpu or @c device.
+ * @pre  If non-null, @c device must be @c cpu or @c device.
  * @pre  @c align must be a power of two.
  * @post On success, the returned handle has @c id != 0 and the
  *       caller owns one reference.
- * @post On failure, @c get_last_reserve_error() returns a
- *       non-nullptr error message.
+ * @post @p status describes the result of the operation.
  *
  * @see retain()           Increments the reference count.
  * @see release()          Decrements the reference count.
- * @see get_last_reserve_error()  Retrieves the failure reason.
  * @see TensorStorage      Embeds the returned handle.
  */
 RustHandle reserve(size_t size, const char *device, bool pin_memory,
-                   size_t align);
-
-/**
- * @brief Allocate a buffer with structured error handling.
- *
- * @details
- * Wraps @ref reserve() and returns a @ref novaStatus_t instead of
- * requiring the caller to validate the handle.  On success, the
- * handle is written to @p handle with @c id != 0.  On failure, the
- * error code is set to @ref novaReserveError and the message is
- * retrieved from @ref get_last_reserve_error().
- *
- * @param[in]  bytes      Requested size in bytes.  Must be > 0.
- * @param[in]  device     Target device: @c cpu or @c device.
- * @param[in]  pin_memory If @c true and @p device is @c cpu,
- *                        allocate page-locked host memory.
- * @param[in]  align      Required alignment in bytes (power of two).
- * @param[out] handle     Pointer to receive the allocated handle.
- *
- * @return @ref novaStatus_t with @c novaSuccess on success.
- *
- * @retval novaReserveError  The underlying @ref reserve() call failed.
- * @retval novaSuccess       Allocation succeeded.
- *
- * @see reserve()         Low-level allocation without status.
- * @see safe_resize()     Resize with structured error handling.
- */
-novaStatus_t safe_reserve(size_t bytes, const char *device, bool pin_memory,
-                          size_t align, RustHandle *handle);
+                   size_t align, novaStatus_t *status);
 
 /**
  * @brief Increment the reference count of a Rust allocation.
@@ -219,45 +190,49 @@ novaStatus_t safe_reserve(size_t bytes, const char *device, bool pin_memory,
  *                        Must not be @c nullptr.
  *
  * @pre  @p handle must point to a valid RustHandle (@c id != 0).
- * @post The reference count is incremented by one.
+ * @post On success, the allocation reference count is incremented by one.
+ * @return @ref novaStatus_t describing the operation.
  *
  * @see release()   Decrements the reference count.
  * @see reserve()   Creates a handle with an initial count of one.
  */
-void retain(RustHandle *handle);
+novaStatus_t retain(RustHandle *handle);
 
 /**
  * @brief Decrement the reference count; free memory when it reaches zero.
  *
  * @details
  * Releases one owner reference.  If the count reaches zero, the
- * underlying Rust allocation is freed and the handle is invalidated
- * (@c id set to @c 0).
+ * underlying Rust allocation is explicitly freed before the handle is
+ * invalidated (@c id set to @c 0).
  *
  * @param[in,out] handle  Pointer to the @ref RustHandle to release.
  *                        Must not be @c nullptr.
+ * @param[out] status     Receives the operation result. Must not be
+ *                        @c nullptr.
  *
  * @pre  @p handle must point to a valid RustHandle (@c id != 0).
- * @post The reference count is decremented by one.
- * @post If the count reaches zero, @c handle->id is set to @c 0 and
+ * @post On success, the reference count is decremented by one.
+ * @post On successful final release, @c handle->id is set to @c 0 and
  *       the underlying memory is freed.
+ * @post On failure, the handle remains valid and the reference ownership is
+ *       retained so the caller can report or retry the operation.
  *
  * @return @c true if the underlying memory was freed (count reached
- *         zero), @c false if it is still alive.
+ *         zero), @c false if it is still alive or an error occurred.
  *
  * @see retain()    Increments the reference count.
  * @see is_valid_handle()  Check if the handle is still valid.
  */
-bool release(RustHandle *handle);
+bool release(RustHandle *handle, novaStatus_t *status);
 
 /**
  * @brief Resize an existing allocation (may relocate).
  *
  * @details
- * Attempts to grow or shrink the allocation in place.  If the
- * allocator cannot expand the buffer, a new region is allocated,
- * the data is copied, and the old region is freed.  The handle's
- * @c id, @c size_bytes, and @c align fields are updated accordingly.
+ * Attempts to grow or shrink the allocation while preserving existing data.
+ * The active allocator may relocate the buffer. The handle's cached
+ * @c size_bytes field is updated after a successful resize.
  *
  * @param[in,out] handle   Pointer to the @ref RustHandle to resize.
  *                         Must not be @c nullptr.
@@ -265,48 +240,26 @@ bool release(RustHandle *handle);
  *
  * @pre  @p handle must point to a valid RustHandle (@c id != 0).
  * @pre  @c new_size must be > 0.
- * @post On success, @c handle->size_bytes == new_size (or larger).
- * @post On failure, the allocation is unchanged.
+ * @post On success, @c handle->size_bytes == @p new_size.
+ * @post On ordinary validation or allocation failure, the handle cache is
+ *       unchanged. A backend-specific failure must be treated according to
+ *       its returned status and message.
  *
- * @return @c true on success, @c false on out-of-memory.
+ * @return @ref novaStatus_t describing success or failure.
  *
  * @see reserve()   Creates a new allocation.
  * @see release()   Frees the allocation.
  */
-bool resize(RustHandle *handle, size_t new_size);
-
-/**
- * @brief Resize an allocation with structured error handling.
- *
- * @details
- * Wraps @ref resize() and returns a @ref novaStatus_t.  On success,
- * the handle is updated with the new size.  On failure, the error
- * code is set to @ref novaResizeError or @ref novaOutOfMemory and
- * the message is retrieved from @ref get_last_reserve_error().
- *
- * @param[in,out] handle  Pointer to the @ref RustHandle to resize.
- *                         Must not be @c nullptr.
- * @param[in]     new_size New size in bytes.  Must be > 0.
- *
- * @return @ref novaStatus_t with @c novaSuccess on success.
- *
- * @retval novaOutOfMemory   The allocator could not grow the buffer.
- * @retval novaResizeError   The resized handle failed validation.
- * @retval novaSuccess       Resize succeeded.
- *
- * @see resize()        Low-level resize without status.
- * @see safe_reserve()  Allocation with structured error handling.
- */
-novaStatus_t safe_resize(RustHandle *handle, size_t new_size);
+novaStatus_t resize(RustHandle *handle, size_t new_size);
 /**
  * @brief Obtain the CPU-visible address of a Rust allocation.
  *
  * @details
- * For CPU and pinned-host allocations, this returns the direct
- * pointer to the data buffer.  For GPU device allocations, this
- * returns a staging pointer that is valid for host-side reads
- * (the actual device pointer is accessed through the CUDA/HIP
- * backend).
+ * For CPU and pinned-host allocations, this returns a pointer that is
+ * directly accessible by the host. For GPU device allocations, the returned
+ * pointer has the device accessibility guarantees provided by the active
+ * CUDA or HIP backend and must not be dereferenced by host code as if it were
+ * CPU memory.
  *
  * @param[in] handle  Pointer to a valid @ref RustHandle.
  *                    Must not be @c nullptr.
@@ -325,9 +278,9 @@ void *get_data_from(RustHandle *handle);
  * @brief Check whether a RustHandle refers to a live allocation.
  *
  * @details
- * A handle is valid when its @c id field is non-zero.  This is the
- * case after a successful @c reserve() and before the final
- * @c release() that frees the memory.
+ * A handle is valid when its @c id field is non-zero and the ID remains in
+ * the Rust registry. This is the case after a successful @c reserve() and
+ * before the final successful @c release() that frees the memory.
  *
  * @param[in] handle  Pointer to the @ref RustHandle to validate.
  *                    May be @c nullptr (returns @c false).
@@ -399,40 +352,6 @@ bool is_device_memory_handle(RustHandle *handle);
 bool is_pinned_handle(RustHandle *handle);
 
 /**
- * @brief Retrieve the last error message from a failed reserve() call.
- *
- * @details
- * Returns a pointer to a thread-local string describing the most
- * recent @c reserve() error on the current thread.  The pointer is
- * valid until the next call to @c reserve() on the same thread.
- *
- * This function is intended for diagnostic output and assertion
- * messages.  Do not cache the returned pointer across calls.
- *
- * @return Null-terminated error string, or @c nullptr if the last
- *         @c reserve() succeeded (or was never called).
- *
- * @see reserve()              The function whose errors are reported.
- * @see get_last_reserve_error_len()  Length of the error string.
- */
-const char *get_last_reserve_error(void);
-
-/**
- * @brief Return the length of the last reserve() error message.
- *
- * @details
- * Returns the length (excluding the null terminator) of the string
- * returned by @c get_last_reserve_error().  Returns @c 0 if there is
- * no error message.
- *
- * @return Length in bytes, or @c 0 on success / no error.
- *
- * @see get_last_reserve_error()  The error string itself.
- * @see reserve()                 The function whose errors are reported.
- */
-int get_last_reserve_error_len(void);
-
-/**
  * @struct TensorStorage
  * @brief Complete tensor storage descriptor.
  *
@@ -455,7 +374,7 @@ int get_last_reserve_error_len(void);
  * @section lifecycle Lifecycle
  *
  * @li 1. Created by @c safe_allocator() (in @ref alloc.h)
- *    which calls @c reserve() via @c safe_reserve().
+ *    which calls @c reserve() with status propagation.
  * @li 2. Shared via @c retain() when a view references the same data.
  * @li 3. Freed via @c release() when the last reference is dropped.
  *
