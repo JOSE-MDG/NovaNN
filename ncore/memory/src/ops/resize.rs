@@ -2,6 +2,9 @@
 //!
 //! Changes the size of an allocated memory block while preserving
 //! its existing contents (up to the minimum of the old and new size).
+//!
+//! The handle cache is updated only after the underlying storage operation
+//! reports success.
 
 use crate::error::StorageError;
 use crate::handle::RustHandle;
@@ -21,7 +24,9 @@ use crate::manager::StorageManager;
 ///
 /// Returns [`StorageError::InvalidHandle`] if the handle is not in
 /// the registry, [`StorageError::InvalidSize`] if `new_size` is zero,
-/// or [`StorageError::ResizeFailed`] if the reallocation fails.
+/// [`StorageError::InvalidAlignment`] if the CPU layout cannot be created,
+/// [`StorageError::ResizeFailed`] if the CPU reallocation fails, or
+/// [`StorageError::DeviceError`] if the device backend rejects the resize.
 pub fn resize_op(handle: &mut RustHandle, new_size: usize) -> Result<(), StorageError> {
     StorageManager::with(handle.id, |s: &mut crate::storage::RustStorage| {
         s.resize(new_size)
