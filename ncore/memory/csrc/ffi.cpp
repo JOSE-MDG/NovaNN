@@ -33,6 +33,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <new>
 
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
@@ -72,7 +73,13 @@ template <typename BufKind, auto funcKind, auto DeviceKind>
 constexpr void deviceReserveDispatch(std::size_t bytes, bool pinned,
                                      deviceBuffer_t *dbuf,
                                      novaStatus_t *status) {
-  auto buf = std::make_unique<BufKind>();
+  auto buf = std::unique_ptr<BufKind>(new (std::nothrow) BufKind());
+  if (!buf) {
+    *status = {.err = novaOutOfMemory,
+               .message = "Unable to allocate a device buffer descriptor"};
+    *dbuf = deviceBuffer_t{};
+    return;
+  }
   novaStatus_t dstatus = funcKind(bytes, pinned, buf.get());
 
   status->err = dstatus.err;
@@ -134,6 +141,10 @@ mapCTransferKind2DeviceMemcpyKind(TransferKind kind) noexcept {
  */
 novaStatus_t deviceReserve(std::size_t bytes, deviceBuffer_t *out_buf,
                            bool pinned, deviceKind_t kind) {
+  if (out_buf == nullptr) {
+    return {.err = novaInvalidPointer,
+            .message = "deviceReserve requires a valid output buffer"};
+  }
   novaStatus_t status = {};
   if (kind == deviceKind_t::DeviceCUDA) {
 #ifdef NOVA_HAS_CUDA
@@ -141,7 +152,7 @@ novaStatus_t deviceReserve(std::size_t bytes, deviceBuffer_t *out_buf,
         bytes, pinned, out_buf, &status);
 #else
     status.err = novaBackendNotCompiled;
-    status.message = "CUDA support is not available in this build\n";
+    status.message = "CUDA support is not available in this build";
 #endif
   } else if (kind == deviceKind_t::DeviceHIP) {
 #ifdef NOVA_HAS_HIP
@@ -149,11 +160,11 @@ novaStatus_t deviceReserve(std::size_t bytes, deviceBuffer_t *out_buf,
         bytes, pinned, out_buf, &status);
 #else
     status.err = novaBackendNotCompiled;
-    status.message = "HIP support is not available in this build\n";
+    status.message = "HIP support is not available in this build";
 #endif
   } else {
     status.err = novaDeviceNotAvailable;
-    status.message = "The requested device kind is not recognised\n";
+    status.message = "The requested device kind is not recognized";
   }
   return status;
 }
@@ -174,6 +185,10 @@ novaStatus_t deviceReserve(std::size_t bytes, deviceBuffer_t *out_buf,
  * @see deviceReserve()  Allocates the buffer freed here.
  */
 novaStatus_t deviceRelease(deviceBuffer_t *buf) {
+  if (buf == nullptr) {
+    return {.err = novaInvalidPointer,
+            .message = "deviceRelease requires a valid buffer"};
+  }
   novaStatus_t status = {};
   if (buf->deviceKind == deviceKind_t::DeviceCUDA) {
 #ifdef NOVA_HAS_CUDA
@@ -184,7 +199,7 @@ novaStatus_t deviceRelease(deviceBuffer_t *buf) {
     status.message = cstatus.message;
 #else
     status.err = novaBackendNotCompiled;
-    status.message = "CUDA support is not available in this build\n";
+    status.message = "CUDA support is not available in this build";
 #endif
   } else if (buf->deviceKind == deviceKind_t::DeviceHIP) {
 #ifdef NOVA_HAS_HIP
@@ -195,11 +210,11 @@ novaStatus_t deviceRelease(deviceBuffer_t *buf) {
     status.message = hstatus.message;
 #else
     status.err = novaBackendNotCompiled;
-    status.message = "HIP support is not available in this build\n";
+    status.message = "HIP support is not available in this build";
 #endif
   } else {
     status.err = novaDeviceNotAvailable;
-    status.message = "This buffer belongs to an unrecognised GPU backend\n";
+    status.message = "This buffer belongs to an unrecognized GPU backend";
   }
 
   if (status.err == novaSuccess) {
@@ -232,6 +247,10 @@ novaStatus_t deviceRelease(deviceBuffer_t *buf) {
  * @see deviceRelease()  Explicit deallocation.
  */
 novaStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes) {
+  if (buf == nullptr) {
+    return {.err = novaInvalidPointer,
+            .message = "deviceResize requires a valid buffer"};
+  }
   novaStatus_t status = {};
   if (buf->deviceKind == deviceKind_t::DeviceCUDA) {
 #ifdef NOVA_HAS_CUDA
@@ -245,7 +264,7 @@ novaStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes) {
     }
 #else
     status.err = novaBackendNotCompiled;
-    status.message = "CUDA support is not available in this build\n";
+    status.message = "CUDA support is not available in this build";
 #endif
   } else if (buf->deviceKind == deviceKind_t::DeviceHIP) {
 #ifdef NOVA_HAS_HIP
@@ -259,11 +278,11 @@ novaStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes) {
     }
 #else
     status.err = novaBackendNotCompiled;
-    status.message = "HIP support is not available in this build\n";
+    status.message = "HIP support is not available in this build";
 #endif
   } else {
     status.err = novaDeviceNotAvailable;
-    status.message = "This buffer belongs to an unrecognised GPU backend\n";
+    status.message = "This buffer belongs to an unrecognized GPU backend";
   }
   return status;
 }
@@ -302,7 +321,7 @@ novaStatus_t deviceTransfer(const void *src, void *dst, TransferKind kind,
     return status;
 #else
     status.err = novaBackendNotCompiled;
-    status.message = "CUDA support is not available in this build\n";
+    status.message = "CUDA support is not available in this build";
     return status;
 #endif
   }
@@ -315,11 +334,11 @@ novaStatus_t deviceTransfer(const void *src, void *dst, TransferKind kind,
     return status;
 #else
     status.err = novaBackendNotCompiled;
-    status.message = "HIP support is not available in this build\n";
+    status.message = "HIP support is not available in this build";
     return status;
 #endif
   }
   status.err = novaDeviceNotAvailable;
-  status.message = "No GPU backend was detected on this system\n";
+  status.message = "No GPU backend was detected on this system";
   return status;
 }
