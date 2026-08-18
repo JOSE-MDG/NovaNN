@@ -111,7 +111,6 @@ endif()
 # C++-specific flags
 if(_nova_is_clang_cl)
   set(NOVA_CXX_FLAGS
-    /clang:-fno-exceptions
     /clang:-fno-rtti
     /clang:-Wpessimizing-move
     /clang:-Wredundant-move
@@ -123,7 +122,7 @@ if(_nova_is_clang_cl)
   )
 else()
   set(NOVA_CXX_FLAGS
-    -fno-exceptions -fno-rtti
+    -fno-rtti
     -Wpessimizing-move -Wredundant-move -Wold-style-cast
     -Wnon-virtual-dtor -Woverloaded-virtual -Wzero-as-null-pointer-constant
     -Wextra-semi -Wdeprecated -Wregister
