@@ -315,7 +315,7 @@ Tensor create_tensor_like(const Tensor *ten, novaStatus_t *status);
  * @pre  @p status must not be @c nullptr.
  * @post The returned tensor has @c is_view_ = true and
  *       @c is_leaf_ = false.
- * @post The Rust reference count is incremented by one.
+ * @post On success, the Rust reference count is incremented by one.
  *
  * @see retain()    Increments the storage reference count.
  * @see is_view()   Query predicate.
@@ -350,17 +350,18 @@ void move_tensor(Tensor *restrict dst, Tensor *restrict src);
  *
  * @details
  * Decrements the reference count of the tensor's storage via
- * @ref release().  When the count reaches zero, the storage is
- * freed with @c free().  The gradient sub-graph is then traversed
- * and freed recursively via self-recursive calls.
+ * @ref release().  When the count reaches zero and release succeeds,
+ * the @c TensorStorage descriptor is freed with @c free().  The gradient
+ * sub-graph is then traversed and freed recursively via self-recursive calls.
+ * If release reports an error, the storage descriptor remains attached.
  *
  * Safe to call with @c nullptr (no-op).
  *
  * @param[in,out] ten  Tensor to collect.  May be @c nullptr.
  *
  * @post @p ten's storage reference count is decremented.
- * @post If the count reaches zero, @c storage and @c data are set
- *       to nullptr and @c is_allocated_ to @c false.
+ * @post If the count reaches zero and release succeeds, @c storage and
+ *       @c data are set to nullptr and @c is_allocated_ to @c false.
  * @post The gradient sub-graph is recursively freed.
  *
  * @see release()       Decrements the Rust reference count.
