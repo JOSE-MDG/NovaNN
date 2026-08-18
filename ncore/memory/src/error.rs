@@ -1,26 +1,61 @@
+//! Error types for fallible storage operations.
+//!
+//! [`StorageError`] is used inside the Rust implementation. The FFI layer
+//! converts it to [`crate::NovaStatus`] immediately before crossing into C or
+//! C++, preserving both a machine-readable code and a readable diagnostic.
+
+use crate::status::NovaError;
+
 /// Errors that can occur in the storage system.
 #[derive(Debug, Clone, PartialEq)]
 pub enum StorageError {
-    /// Failed to allocate memory.
+    /// The selected allocator could not provide the requested memory.
     AllocationFailed,
-    /// Handle does not exist or has been invalidated.
+    /// The handle does not exist or has already been invalidated.
     InvalidHandle,
-    /// Alignment must be a power of two and non-zero.
+    /// The requested alignment is zero, not a power of two, or otherwise
+    /// cannot be represented by the platform allocator.
     InvalidAlignment,
-    /// Size must be greater than zero.
+    /// The requested allocation or resize size is zero.
     InvalidSize,
-    /// Failed to reallocate memory.
+    /// The CPU allocator could not resize the allocation.
     ResizeFailed,
-    /// Storage manager mutex was poisoned.
+    /// The global storage registry mutex is poisoned and cannot be used.
     ManagerPoisoned,
-    /// Received null pointer.
+    /// A required pointer argument was null.
     NullPointer,
-    /// Device string was not `"cpu"` or `"device"`.
+    /// The device string is not `"cpu"` or `"device"`.
     InvalidDevice,
-    /// Cannot combine pinned host memory with a GPU device allocation.
+    /// Pinned host memory was requested for a GPU device allocation.
     PinnedMemoryOnDevice,
-    /// An error returned by the C++ device-memory FFI layer.
-    DeviceError(String),
+    /// The storage reference count would overflow on increment.
+    ReferenceCountOverflow,
+    /// The C++ device-memory FFI layer returned a failure status.
+    DeviceError {
+        /// Error code returned by the C++ device backend.
+        code: NovaError,
+        /// Human-readable diagnostic returned by the backend.
+        message: String,
+    },
+}
+
+impl StorageError {
+    /// Maps an internal storage error to the public NovaNN error code.
+    pub(crate) fn code(&self) -> NovaError {
+        match self {
+            Self::AllocationFailed => NovaError::OutOfMemory,
+            Self::InvalidHandle => NovaError::InvalidResourceHandle,
+            Self::InvalidAlignment => NovaError::InvalidAlignment,
+            Self::InvalidSize => NovaError::InvalidValue,
+            Self::ResizeFailed => NovaError::OutOfMemory,
+            Self::ManagerPoisoned | Self::ReferenceCountOverflow => NovaError::InternalError,
+            Self::NullPointer => NovaError::InvalidPointer,
+            Self::InvalidDevice => NovaError::InvalidDevice,
+            Self::PinnedMemoryOnDevice => NovaError::InvalidValue,
+            Self::DeviceError { code, .. } if *code != NovaError::Success => *code,
+            Self::DeviceError { .. } => NovaError::InternalError,
+        }
+    }
 }
 
 impl std::fmt::Display for StorageError {
@@ -31,13 +66,17 @@ impl std::fmt::Display for StorageError {
             Self::InvalidAlignment => write!(f, "Alignment must be a power of two and non-zero"),
             Self::InvalidSize => write!(f, "Size must be greater than zero"),
             Self::ResizeFailed => write!(f, "Memory reallocation failed"),
-            Self::ManagerPoisoned => write!(f, "Storage manager mutex was poisoned"),
-            Self::NullPointer => write!(f, "Received null pointer"),
+            Self::ManagerPoisoned => write!(f, "Storage manager is unavailable"),
+            Self::NullPointer => write!(f, "Storage handle pointer must not be null"),
             Self::InvalidDevice => write!(f, "Device must be \"cpu\" or \"device\""),
             Self::PinnedMemoryOnDevice => {
-                write!(f, "Pinned memory is not supported on GPU device")
+                write!(
+                    f,
+                    "Pinned host memory cannot be requested for a device allocation"
+                )
             }
-            Self::DeviceError(msg) => write!(f, "Device memory error: {msg}"),
+            Self::ReferenceCountOverflow => write!(f, "Storage reference count overflowed"),
+            Self::DeviceError { message, .. } => write!(f, "{message}"),
         }
     }
 }
