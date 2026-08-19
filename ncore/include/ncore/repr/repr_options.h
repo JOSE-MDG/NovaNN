@@ -61,12 +61,12 @@ typedef enum {
  * required for the specific representation call.
  */
 typedef struct {
-  ReprMode mode;     ///< Formatting mode (@c ReprModeNormal or @c ReprModeDebug).
-  size_t threshold;  ///< Max elements before truncation (summarization).
-  size_t edge_items; ///< Elements to show per edge when truncated.
-  size_t linewidth;  ///< Target line width for wrapping (reserved).
-  int precision;     ///< Fixed decimal places for floating-point output.
-  bool sci_mode;     ///< If @c true, forces scientific (@c %e) notation.
+  ReprMode mode; ///< Formatting mode (@c ReprModeNormal or @c ReprModeDebug).
+  size_t threshold;   ///< Max elements before truncation (summarization).
+  size_t edge_items;  ///< Elements to show per edge when truncated.
+  size_t linewidth;   ///< Target line width for wrapping (reserved).
+  int precision;      ///< Fixed decimal places for floating-point output.
+  bool sci_mode;      ///< If @c true, forces scientific (@c %e) notation.
   bool sci_mode_auto; ///< If @c true, auto-enables sci-notation based on data.
   bool show_dequantized; ///< If @c true, appends @c (float) value for quantized
                          ///< types.
