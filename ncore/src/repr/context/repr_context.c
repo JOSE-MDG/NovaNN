@@ -104,9 +104,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   ctx.tensor = ten;
   ctx.options = (opts != nullptr) ? *opts : repr_default_options();
   ctx.is_float = is_floating(ten);
-  ctx.is_integer = (((is_integer(ten) || is_unsigned_integer(ten)) &&
-                     (!is_quantized_signed_integer(ten) &&
-                      !is_quantized_unsigned_integer(ten))) != 0);
+  ctx.is_integer = is_integer(ten);
   ctx.is_quantized = ((is_quantized_signed_integer(ten) ||
                        is_quantized_unsigned_integer(ten)) != 0);
   ctx.is_bool = (((opts != nullptr) ? (int)opts->is_bool : 0) != 0);
