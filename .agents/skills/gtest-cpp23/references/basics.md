@@ -207,18 +207,13 @@ endif()
 
 ### Build and Run
 
-```sh
-# Configure, build, and test through presets (NovaNN-style)
-cmake --preset cpu-test-debug
-cmake --build --preset cpu-test-debug
-ctest --preset cpu-test-debug
+```bash
+# configure/build every cpu preset
+./scripts/build-presets.sh cpu-test-debug-linux
+./scripts/compile-presets.sh cpu-test-debug-linux
 
-# Or configure/build every cpu preset at once
-./scripts/build-presets.sh cpu
-./scripts/compile-presets.sh cpu
-
-# Or run the test binary directly for verbose output
-./build/cpu-test-debug/test_math --gtest_print_time=1
+# run the test binary directly for verbose output
+./build/cpu-test-debug-linux/test_math --gtest_print_time=1
 ```
 
 ---
