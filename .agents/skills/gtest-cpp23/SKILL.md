@@ -65,31 +65,9 @@ Read the reference file that matches the user's need. If they're new to GTest, s
 
 ## CMake Build Setup
 
-### Option A: find_package
+### `nova_configure_gtest_target()`
 
-NovaNN gets GTest from vcpkg (declared in `vcpkg.json`) and detects it with `find_package(GTest CONFIG)` in `cmake/Detect/testing/DetectGTest.cmake`. The project enforces C23/C++23 with extensions disabled:
-
-```cmake
-cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
-project(my-tests CXX)
-
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-find_package(GTest REQUIRED CONFIG)
-
-enable_testing()
-add_executable(my_tests test_basics.cpp)
-target_link_libraries(my_tests PRIVATE GTest::gtest GTest::gtest_main)
-
-include(GoogleTest)
-gtest_discover_tests(my_tests WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-```
-
-### Option B: Inside NovaNN — `nova_configure_gtest_target` (Recommended)
-
-Test targets in the project use the helper defined by [DetectGTest.cmake](../../../cmake/Detect/testing/DetectGTest.cmake), which links `GTest::gtest` + `GTest::gtest_main`. When GTest is absent (`NOVA_HAS_GTEST = 0`) the helper is a no-op, so the same CMakeLists works with or without tests:
+Test targets in the project use the helper defined by [DetectGTest.cmake](../../../cmake/Detect/testing/DetectGTest.cmake), which links `GTest::gtest` + `GTest::gtest_main`.
 
 ```cmake
 # ncore/tests/<area>/CMakeLists.txt — one executable per directory
@@ -115,94 +93,136 @@ if(BUILD_TESTING)
 endif()
 ```
 
-### Option C: FetchContent (no vcpkg / system dependency)
+### Presets Workflow
 
-For standalone projects that cannot rely on a package manager:
+All NovaNN workflows go through `CMakePresets.json` (version 6). Every preset maps to `build/<preset>`.
 
-```cmake
-cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
-project(my-tests CXX)
+#### **`Linux`** (All 36 presets):
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+```bash
+# Use the --help option to view the options for the convenience wrappers
+./scripts/build-presets.sh --help
+./scripts/compile-presets.sh --help
 
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG v1.15.2
-)
-FetchContent_MakeAvailable(googletest)
-
-enable_testing()
-add_executable(my_tests test_basics.cpp)
-target_link_libraries(my_tests PRIVATE GTest::gtest GTest::gtest_main)
-
-include(GoogleTest)
-gtest_discover_tests(my_tests)
+# configure / compile every matching preset
+./scripts/build-presets.sh cuda # Configure cuda-test-release-linux, cuda-test-debug-linux, etc ...
+./scripts/compile-presets.sh cuda
 ```
 
-### Preset Workflow (NovaNN)
+#### **`Windows`** (Only 14 available presets):
 
-All NovaNN workflows go through `CMakePresets.json` (version 6). Every preset maps to `build/<preset>`; test presets set `outputOnFailure` and fail when no tests are registered:
+```powershell
+# Use the --help option to view the options for the convenience wrappers
+.\scripts\build-presets.ps1 --help
+.\scripts\compile-presets.ps1 --help
 
-```json
-{
-  "version": 6,
-  "cmakeMinimumRequired": { "major": 3, "minor": 27 },
-  "configurePresets": [
-    {
-      "name": "cpu-test-debug",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "BUILD_TESTING": "ON"
-      }
-    }
-  ],
-  "buildPresets": [
-    { "name": "cpu-test-debug", "configurePreset": "cpu-test-debug" }
-  ],
-  "testPresets": [
-    {
-      "name": "cpu-test-debug",
-      "configurePreset": "cpu-test-debug",
-      "output": { "outputOnFailure": true },
-      "execution": { "noTestsAction": "error" }
-    }
-  ]
-}
+# configure / compile every matching preset
+.\scripts\build-presets.ps1 cuda # Configure cuda-test-release-windows, cuda-test-debug-windows, etc ...
+.\scripts\compile-presets.ps1 cuda
 ```
+#### Output example **(Linux)**:
+```text
+╭─    ~/Projects/NovaNN  on   feat/tensor-core ⇡375 !3 ?23 
+╰─ scripts/build-presets.sh cuda && scripts/compile-presets.sh -j $(nproc) cuda
 
-```sh
-# Configure, build, and test one preset
-cmake --preset cpu-test-debug
-cmake --build --preset cpu-test-debug
-ctest --preset cpu-test-debug
+NovaNN — configure presets
+12 preset(s) → build/<preset>  ·  full logs: build/logs
 
-# NovaNN convenience wrappers — configure / compile every matching preset
-./scripts/build-presets.sh cpu
-./scripts/compile-presets.sh cpu
+  [ 1/12] ▸ cuda-release-linux
+  ✔ configured  → build/cuda-release-linux  (15s)
+
+  [ 2/12] ▸ cuda-debug-linux
+  ✔ configured  → build/cuda-debug-linux  (14s)
+
+  [ 3/12] ▸ cuda-asan-release-linux
+  ✔ configured  → build/cuda-asan-release-linux  (14s)
+
+  [ 4/12] ▸ cuda-asan-debug-linux
+  ✔ configured  → build/cuda-asan-debug-linux  (14s)
+
+  [ 5/12] ▸ cuda-ubsan-release-linux
+  ✔ configured  → build/cuda-ubsan-release-linux  (15s)
+
+  [ 6/12] ▸ cuda-ubsan-debug-linux
+  ✔ configured  → build/cuda-ubsan-debug-linux  (14s)
+
+  [ 7/12] ▸ cuda-test-release-linux
+  ✔ configured  → build/cuda-test-release-linux  (14s)
+
+  [ 8/12] ▸ cuda-test-debug-linux
+  ✔ configured  → build/cuda-test-debug-linux  (14s)
+
+  [ 9/12] ▸ cuda-asan-test-release-linux
+  ✔ configured  → build/cuda-asan-test-release-linux  (14s)
+
+  [10/12] ▸ cuda-asan-test-debug-linux
+  ✔ configured  → build/cuda-asan-test-debug-linux  (15s)
+
+  [11/12] ▸ cuda-ubsan-test-release-linux
+  ✔ configured  → build/cuda-ubsan-test-release-linux  (14s)
+
+  [12/12] ▸ cuda-ubsan-test-debug-linux
+  ✔ configured  → build/cuda-ubsan-test-debug-linux  (14s)
+
+✔ All 12 preset(s) configured successfully.
+
+NovaNN — compile presets
+12 preset(s) → cmake --build build/<preset>  ·  full logs: build/logs
+parallel jobs: 24
+
+  [ 1/12] ▸ cuda-release-linux  (Release)
+  ✔ built  → build/cuda-release-linux  (7s)
+
+  [ 2/12] ▸ cuda-debug-linux  (Debug)
+  ✔ built  → build/cuda-debug-linux  (6s)
+
+  [ 3/12] ▸ cuda-asan-release-linux  (Release)
+  ✔ built  → build/cuda-asan-release-linux  (7s)
+
+  [ 4/12] ▸ cuda-asan-debug-linux  (Debug)
+  ✔ built  → build/cuda-asan-debug-linux  (5s)
+
+  [ 5/12] ▸ cuda-ubsan-release-linux  (Release)
+  ✔ built  → build/cuda-ubsan-release-linux  (6s)
+
+  [ 6/12] ▸ cuda-ubsan-debug-linux  (Debug)
+  ✔ built  → build/cuda-ubsan-debug-linux  (6s)
+
+  [ 7/12] ▸ cuda-test-release-linux  (Release)
+  ✔ built  → build/cuda-test-release-linux  (8s)
+
+  [ 8/12] ▸ cuda-test-debug-linux  (Debug)
+  ✔ built  → build/cuda-test-debug-linux  (7s)
+
+  [ 9/12] ▸ cuda-asan-test-release-linux  (Release)
+  ✔ built  → build/cuda-asan-test-release-linux  (7s)
+
+  [10/12] ▸ cuda-asan-test-debug-linux  (Debug)
+  ✔ built  → build/cuda-asan-test-debug-linux  (7s)
+
+  [11/12] ▸ cuda-ubsan-test-release-linux  (Release)
+  ✔ built  → build/cuda-ubsan-test-release-linux  (9s)
+
+  [12/12] ▸ cuda-ubsan-test-debug-linux  (Debug)
+  ✔ built  → build/cuda-ubsan-test-debug-linux  (7s)
+
+✔ All 12 preset(s) built successfully.
+╭─    ~/Projects/NovaNN  on   feat/tensor-core ⇡375 !3 ?23 
+╰─
 ```
-
 ---
 
 ## Platform-Specific Notes
 
 ### Linux — GCC / Clang
 
-- Link with `-lpthread` (CMake handles this automatically with GTest targets).
-- Sanitizers are enabled through the `USE_ASAN` / `USE_UBSAN` options, exposed as ready-made presets: `cpu-asan-test-debug`, `cpu-ubsan-test-release`, and the same combinations for `cuda-` and `hip-`. No need to pass `-fsanitize=...` by hand.
-- GTest 1.15+ requires at minimum GCC 12 or Clang 16 for C++23 support. NovaNN itself requires GCC ≥ 15 or Clang ≥ 20.1 (enforced at configure time by `cmake/Utils/CheckCompilerVersion.cmake`).
-- Both compilers are fully supported — no known issues.
+- Sanitizers are enabled through the `USE_ASAN` / `USE_UBSAN` options, exposed as ready-made presets: `cpu-asan-test-debug`, `cpu-ubsan-test-release`, and the same combinations for `cuda-` and `hip-`.
+- Both compilers are fully supported.
 
 ### Windows — clang-cl
 
 - Use the MSVC-compatible Clang frontend: `clang-cl.exe`.
-- Link against the MSVC runtime — no `-lpthread` needed, Windows threading is automatic.
-- When using FetchContent, ensure your generator is "Ninja".
+- Link against the MSVC runtime.
 - Death tests (`EXPECT_DEATH`) behave differently on Windows due to process creation model. See `references/advanced.md` for details.
 
 ---
