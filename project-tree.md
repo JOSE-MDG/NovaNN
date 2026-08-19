@@ -1,464 +1,380 @@
 # File Tree: NovaNN
 
-**Generated:** 6/11/2026, 7:34:04 PM
+**Generated:** 8/18/2026, 12:42:51 AM
 
 ```
+NovaNN
+.
+├── benchmarks (old 4.0.4)
 ├── .agents
-├── benchmarks
-│   ├── autograd
-│   │   ├── backward_overhead.py
-│   │   ├── grad_accumulation.py
-│   │   └── memory_footprint.py
-│   ├── operations
-│   │   ├── elementwise_cpu.py
-│   │   └── reduction_ops.py
-│   ├── training
-│   │   └── end_to_end_cpu.py
-│   ├── utils
-│   │   ├── memory.py
-│   │   └── timing.py
-│   ├── README.es.md
-│   └── README.md
-├── bindings
-│   └── cython
-│       └── lib
+│   └── skills
+│       ├── c23-features
+│       │   └── SKILL.md
+│       ├── cmake-rst-documentation
+│       │   └── SKILL.md
+│       ├── conventional-commit
+│       │   └── SKILL.md
+│       ├── cpp23-features
+│       │   └── SKILL.md
+│       ├── doxygen-c-cxx-documentation
+│       │   └── SKILL.md
+│       ├── gtest-cpp23
+│       │   ├── references
+│       │   │   ├── advanced.md
+│       │   │   ├── basics.md
+│       │   │   └── intermediate.md
+│       │   └── SKILL.md
+│       ├── python-docstrings
+│       │   └── SKILL.md
+│       └── skill-creator
+│           └── SKILL.md
 ├── cmake
-│   ├── Detect
-│   │   ├── cpu
-│   │   │   ├── DetectAMX.cmake
-│   │   │   ├── DetectAVX.cmake
-│   │   │   ├── DetectAVX2.cmake
-│   │   │   ├── DetectAVX512.cmake
-│   │   │   └── DetectSSE.cmake
-│   │   ├── lto
-│   │   │   └── DetectLTO.cmake
-│   │   ├── sanitizers
-│   │   │   └── DetectSanitizers.cmake
-│   │   ├── simd
-│   │   │   └── DetectSIMD.cmake
-│   │   └── threading
-│   │       ├── DetectOpenMP.cmake
-│   │       └── DetectPThreads.cmake
-│   ├── Modules
-│   │   ├── NovaNNBuildFlags.cmake
-│   │   ├── NovaNNCPU.cmake
-│   │   ├── NovaNNCUDA.cmake
-│   │   ├── NovaNNHIP.cmake
-│   │   └── NovaNNRuntime.cmake
-│   ├── Utils
-│   │   └── CheckInstructionSupport.cmake
-│   └── config.h.in
-├── examples
-│   ├── binary_classification.py
-│   ├── conv_example.py
-│   ├── multiclass_classification.py
-│   └── regression.py
-├── images
-│   ├── benchmarks
-│   │   ├── autograd
-│   │   │   ├── accumulation_framework_comparison.png
-│   │   │   ├── accumulation_overhead.png
-│   │   │   ├── accumulation_vs_microbatch.png
-│   │   │   ├── memory_overhead.png
-│   │   │   ├── memory_vs_batch.png
-│   │   │   ├── memory_vs_depth.png
-│   │   │   ├── nova_accumulation_comparison.png
-│   │   │   ├── nova_fwd_vs_bwd.png
-│   │   │   ├── nova_memory_fwd_vs_bwd.png
-│   │   │   ├── overhead_vs_batch.png
-│   │   │   ├── overhead_vs_depth.png
-│   │   │   └── relative_overhead.png
-│   │   ├── operations
-│   │   │   ├── activation_comparison.png
-│   │   │   ├── addition_performance.png
-│   │   │   ├── arithmetic_speedup.png
-│   │   │   ├── basic_reductions_comparison.png
-│   │   │   ├── mean_performance.png
-│   │   │   ├── minmax_performance.png
-│   │   │   ├── multiplication_performance.png
-│   │   │   ├── relu_performance.png
-│   │   │   ├── sigmoid_performance.png
-│   │   │   ├── statistical_reductions_comparison.png
-│   │   │   ├── std_performance.png
-│   │   │   ├── sum_performance.png
-│   │   │   └── var_performance.png
-│   │   └── training
-│   │       ├── convnet_training_performance.png
-│   │       ├── mlp_training_performance.png
-│   │       ├── mlp_training_speedup.png
-│   │       └── optimizer_comparison.png
-│   ├── NovaNN Banners.png
-│   └── graph.png
+│   ├── config.h.in
+│   ├── Detect
+│   │   ├── cpu
+│   │   │   ├── DetectAMX.cmake
+│   │   │   ├── DetectAVX10.1.cmake
+│   │   │   ├── DetectAVX10.2.cmake
+│   │   │   ├── DetectAVX2.cmake
+│   │   │   ├── DetectAVX512.cmake
+│   │   │   ├── DetectAVX.cmake
+│   │   │   └── DetectSSE.cmake
+│   │   ├── lto
+│   │   │   └── DetectLTO.cmake
+│   │   ├── sanitizers
+│   │   │   └── DetectSanitizers.cmake
+│   │   ├── simd
+│   │   │   └── DetectSIMD.cmake
+│   │   ├── testing
+│   │   │   └── DetectGTest.cmake
+│   │   └── threading
+│   │       ├── DetectOpenMP.cmake
+│   │       └── DetectPThreads.cmake
+│   ├── GenExportDef.cmake
+│   ├── Modules
+│   │   ├── NovaNNBuildFlags.cmake
+│   │   ├── NovaNNCPU.cmake
+│   │   ├── NovaNNCUDA.cmake
+│   │   ├── NovaNNHandleCompilerRT.cmake
+│   │   ├── NovaNNHIP.cmake
+│   │   └── NovaNNRuntime.cmake
+│   └── Utils
+│       ├── CheckCompilerVersion.cmake
+│       └── CheckInstructionSupport.cmake
+├── examples (old 4.0.4)
 ├── ncore
-│   ├── backends
-│   ├── doxygen
-│   ├── generated
-│   ├── include
-│   │   ├── autograd
-│   │   │   ├── node.hpp
-│   │   │   └── tensor.hpp
-│   │   └── ncore
-│   │       ├── headeronly
-│   │       │   ├── cast.h
-│   │       │   └── tensor_utils.h
-│   │       ├── repr
-│   │       │   ├── repr_context.h
-│   │       │   ├── repr_options.h
-│   │       │   └── tensor_repr.h
-│   │       ├── tables
-│   │       │   ├── cast_tables.h
-│   │       │   └── dtype_tables.h
-│   │       ├── alloc.h
-│   │       ├── backend.h
-│   │       ├── copy.h
-│   │       ├── cpp_ffi.h
-│   │       ├── device.h
-│   │       ├── dtype.h
-│   │       ├── macros.h
-│   │       ├── simd.h
-│   │       ├── storage.h
-│   │       └── tensor.h
-│   ├── rust
-│   │   ├── .cargo
-│   │   │   └── config.toml
-│   │   ├── csrc
-│   │   │   ├── device
-│   │   │   │   ├── cuda
-│   │   │   │   │   ├── cuda_allocator.cpp
-│   │   │   │   │   ├── cuda_allocator.hpp
-│   │   │   │   │   ├── cuda_io.cpp
-│   │   │   │   │   └── cuda_io.hpp
-│   │   │   │   ├── hip
-│   │   │   │   │   ├── hip_allocator.cpp
-│   │   │   │   │   ├── hip_allocator.hpp
-│   │   │   │   │   ├── hip_io.cpp
-│   │   │   │   │   └── hip_io.hpp
-│   │   │   │   ├── admin.cpp
-│   │   │   │   └── admin.hpp
-│   │   │   ├── CMakeLists.txt
-│   │   │   ├── ffi.cpp
-│   │   │   └── ffi.hpp
-│   │   ├── src
-│   │   │   ├── ffi
-│   │   │   │   ├── cpp
-│   │   │   │   │   └── bindings.rs
-│   │   │   │   ├── cpp.rs
-│   │   │   │   ├── lifecycle.rs
-│   │   │   │   ├── query.rs
-│   │   │   │   ├── reserve.rs
-│   │   │   │   └── resize.rs
-│   │   │   ├── ops
-│   │   │   │   ├── lifecycle.rs
-│   │   │   │   ├── query.rs
-│   │   │   │   ├── reserve.rs
-│   │   │   │   └── resize.rs
-│   │   │   ├── pool
-│   │   │   │   └── caching.rs
-│   │   │   ├── error.rs
-│   │   │   ├── ffi.rs
-│   │   │   ├── handle.rs
-│   │   │   ├── id.rs
-│   │   │   ├── lib.rs
-│   │   │   ├── manager.rs
-│   │   │   ├── ops.rs
-│   │   │   ├── pool.rs
-│   │   │   └── storage.rs
-│   │   ├── CMakeLists.txt
-│   │   ├── Cargo.toml
-│   │   └── build.rs
-│   ├── src
-│   │   ├── autograd
-│   │   │   ├── threadPool
-│   │   │   ├── engine.cpp
-│   │   │   ├── node.cpp
-│   │   │   └── tensor.cpp
-│   │   ├── core
-│   │   │   ├── detect
-│   │   │   │   ├── cuda_device.c
-│   │   │   │   └── hip_device.c
-│   │   │   ├── tables
-│   │   │   │   ├── cast_dispatch_tables.c
-│   │   │   │   ├── cast_tables.c
-│   │   │   │   └── dtype_tables.c
-│   │   │   ├── alloc.c
-│   │   │   ├── copy.c
-│   │   │   ├── device.c
-│   │   │   ├── dtype.c
-│   │   │   ├── simd.c
-│   │   │   └── tensor.c
-│   │   ├── dtypes
-│   │   ├── ops
-│   │   │   ├── asm
-│   │   │   │   └── kernels
-│   │   │   ├── fused
-│   │   │   └── transformers
-│   │   └── repr
-│   │       ├── api
-│   │       │   └── tensor_repr.c
-│   │       ├── context
-│   │       │   └── repr_context.c
-│   │       ├── formatters
-│   │       │   ├── element_fmt.c
-│   │       │   ├── element_fmt.h
-│   │       │   ├── float_formatter.c
-│   │       │   ├── float_formatter.h
-│   │       │   ├── int_formatter.c
-│   │       │   ├── int_formatter.h
-│   │       │   ├── qint_formatter.c
-│   │       │   └── qint_formatter.h
-│   │       ├── layouts
-│   │       │   ├── dense_layout.c
-│   │       │   ├── dense_layout.h
-│   │       │   ├── strided_layout.c
-│   │       │   └── summarized_layout.c
-│   │       ├── metadata
-│   │       │   ├── metadata_fmt.c
-│   │       │   └── metadata_fmt.h
-│   │       ├── options
-│   │       │   └── repr_options.c
-│   │       ├── string_builder
-│   │       │   ├── string_builder.c
-│   │       │   └── string_builder.h
-│   │       └── traversal
-│   │           ├── tensor_iterator.c
-│   │           └── tensor_iterator.h
-│   ├── tests
-│   └── CMakeLists.txt
-├── nova
-│   ├── _interfaces
-│   │   ├── README.es.md
-│   │   ├── README.md
-│   │   ├── _base_tensor.py
-│   │   ├── _lr_scheduler.py
-│   │   ├── _lr_scheduler.pyi
-│   │   ├── _optimizer.py
-│   │   └── _optimizer.pyi
-│   ├── _internal
-│   │   ├── README.es.md
-│   │   ├── README.md
-│   │   ├── _binding.py
-│   │   └── _generators.py
-│   ├── _typing
-│   │   ├── README.es.md
-│   │   ├── README.md
-│   │   ├── __init__.py
-│   │   └── _typing.py
-│   ├── autograd
-│   │   ├── _ops
-│   │   │   ├── native
-│   │   │   │   └── native_functions.yaml
-│   │   │   ├── __init__.py
-│   │   │   ├── _activation.py
-│   │   │   ├── _arithmetic.py
-│   │   │   ├── _comparison.py
-│   │   │   ├── _convolution.py
-│   │   │   ├── _creation.py
-│   │   │   ├── _indexing.py
-│   │   │   ├── _linalg.py
-│   │   │   ├── _linear.py
-│   │   │   ├── _loss.py
-│   │   │   ├── _manipulation.py
-│   │   │   ├── _normalization.py
-│   │   │   ├── _random.py
-│   │   │   ├── _reduction.py
-│   │   │   ├── _trigonometric.py
-│   │   │   ├── _view.py
-│   │   │   └── utils.py
-│   │   ├── engine
-│   │   │   ├── __init__.py
-│   │   │   ├── context.py
-│   │   │   ├── context.pyi
-│   │   │   ├── engine.py
-│   │   │   └── engine.pyi
-│   │   ├── tests
-│   │   │   ├── op_signatures.py
-│   │   │   ├── test_backward.py
-│   │   │   ├── test_function.py
-│   │   │   ├── test_gradients.py
-│   │   │   └── test_operations.py
-│   │   ├── utils
-│   │   │   ├── __init__.py
-│   │   │   └── processing.py
-│   │   ├── README.es.md
-│   │   ├── README.md
-│   │   ├── __init__.py
-│   │   ├── function.py
-│   │   ├── function.pyi
-│   │   ├── grad.py
-│   │   ├── grad.pyi
-│   │   └── grad_mode.py
-│   ├── core
-│   │   ├── README.es.md
-│   │   ├── README.md
-│   │   ├── __init__.py
-│   │   └── constants.py
-│   ├── metrics
-│   │   ├── classification
-│   │   │   ├── __init__.py
-│   │   │   ├── _confusion.py
-│   │   │   ├── _roc_auc.py
-│   │   │   └── _stat.py
-│   │   ├── regression
-│   │   │   ├── __init__.py
-│   │   │   ├── _error.py
-│   │   │   └── _r2.py
-│   │   ├── README.es.md
-│   │   ├── README.md
-│   │   ├── __init__.py
-│   │   └── metric.py
-│   ├── nn
-│   │   ├── modules
-│   │   │   ├── __init__.py
-│   │   │   ├── activation.py
-│   │   │   ├── batchnorm.py
-│   │   │   ├── container.py
-│   │   │   ├── conv.py
-│   │   │   ├── dropout.py
-│   │   │   ├── flatten.py
-│   │   │   ├── layernorm.py
-│   │   │   ├── lazy.py
-│   │   │   ├── linear.py
-│   │   │   ├── loss.py
-│   │   │   ├── module.py
-│   │   │   ├── module.pyi
-│   │   │   └── pooling.py
-│   │   ├── utils
-│   │   │   ├── __init__.py
-│   │   │   ├── clip_grad.py
-│   │   │   └── tensor_utils.py
-│   │   ├── README.es.md
-│   │   ├── README.md
-│   │   ├── __init__.py
-│   │   ├── functional.py
-│   │   ├── functional.pyi
-│   │   ├── init.py
-│   │   ├── init.pyi
-│   │   ├── parameter.py
-│   │   └── parameter.pyi
-│   ├── optim
-│   │   ├── README.es.md
-│   │   ├── README.md
-│   │   ├── __init__.py
-│   │   ├── adam.py
-│   │   ├── adam.pyi
-│   │   ├── adamw.py
-│   │   ├── adamw.pyi
-│   │   ├── lr_scheduler.py
-│   │   ├── lr_scheduler.pyi
-│   │   ├── rmsprop.py
-│   │   ├── rmsprop.pyi
-│   │   ├── sgd.py
-│   │   └── sgd.pyi
-│   ├── serialization
-│   │   ├── README.es.md
-│   │   ├── README.md
-│   │   ├── __init__.py
-│   │   ├── _safe_load.py
-│   │   ├── load.py
-│   │   ├── load.pyi
-│   │   ├── save.py
-│   │   └── save.pyi
-│   ├── utils
-│   │   ├── data
-│   │   │   ├── __init__.py
-│   │   │   ├── dataloader.py
-│   │   │   ├── dataset.py
-│   │   │   └── preprocessing.py
-│   │   ├── datasets
-│   │   │   ├── __init__.py
-│   │   │   ├── fashion.py
-│   │   │   └── mnist.py
-│   │   ├── decorators
-│   │   │   ├── __init__.py
-│   │   │   ├── memory_usage.py
-│   │   │   ├── registry.py
-│   │   │   └── timing.py
-│   │   ├── README.es.md
-│   │   ├── README.md
-│   │   ├── __init__.py
-│   │   ├── grad_checking.py
-│   │   ├── hooks.py
-│   │   ├── logger.py
-│   │   ├── memory.py
-│   │   └── to_tensor.py
-│   ├── README.es.md
-│   ├── README.md
-│   ├── __init__.py
-│   ├── _tensor.py
-│   ├── _tensor.pyi
-│   ├── dtypes.py
-│   └── exceptions.py
-├── skills
-│   ├── conventional-commit
-│   │   └── SKILL.md
-│   └── doxygen-c-cxx-documentation
-│       └── SKILL.md
-├── tests
-│   ├── functional
-│   │   ├── test_activation.py
-│   │   └── test_loss.py
-│   ├── nn
-│   │   ├── test_batchnorm.py
-│   │   ├── test_clip_grad.py
-│   │   ├── test_container.py
-│   │   ├── test_conv.py
-│   │   ├── test_dropout.py
-│   │   ├── test_flatten.py
-│   │   ├── test_layernorm.py
-│   │   ├── test_lazy_variants.py
-│   │   ├── test_linear.py
-│   │   └── test_pooling.py
-│   ├── optim
-│   │   ├── test_adam.py
-│   │   ├── test_adamw.py
-│   │   ├── test_common.py
-│   │   ├── test_rmsprop.py
-│   │   ├── test_schedulers.py
-│   │   └── test_sgd.py
-│   ├── serialization
-│   │   ├── test_load.py
-│   │   └── test_save.py
-│   ├── README.es.md
-│   ├── README.md
-│   ├── test_api.py
-│   ├── test_binding_system.py
-│   ├── test_conversion.py
-│   ├── test_creation_and_casting.py
-│   ├── test_dataset.py
-│   ├── test_fashion_loader.py
-│   ├── test_hooks.py
-│   ├── test_loader.py
-│   ├── test_memory_utils.py
-│   ├── test_metrics.py
-│   ├── test_mnist_loader.py
-│   ├── test_normal_use.py
-│   ├── test_preprocessing.py
-│   ├── test_registry.py
-│   └── test_timing_decorators.py
+│   ├── CMakeLists.txt
+│   ├── include
+│   │   └── ncore
+│   │       ├── core
+│   │       │   ├── alloc.h
+│   │       │   ├── backend.h
+│   │       │   ├── copy.h
+│   │       │   ├── device.h
+│   │       │   ├── dtype.h
+│   │       │   ├── fp_utils.h
+│   │       │   ├── status.h
+│   │       │   └── storage.h
+│   │       ├── headeronly
+│   │       │   ├── cast.h
+│   │       │   ├── dtypes
+│   │       │   │   ├── bfloat16.hh
+│   │       │   │   ├── fp4_e2m1fn_x2.hh
+│   │       │   │   ├── fp8_e4m3fn.hh
+│   │       │   │   ├── fp8_e5m2.hh
+│   │       │   │   └── half.hh
+│   │       │   ├── macros.h
+│   │       │   ├── tensor_utils.h
+│   │       │   └── wrappers
+│   │       │       └── tensor.hh
+│   │       ├── native
+│   │       │   ├── cpu
+│   │       │   │   ├── dtype
+│   │       │   │   │   └── casting.h
+│   │       │   │   └── layout
+│   │       │   │       └── contiguous.h
+│   │       │   └── kernels
+│   │       │       └── casting.h
+│   │       ├── repr
+│   │       │   ├── repr_context.h
+│   │       │   ├── repr_options.h
+│   │       │   └── tensor_repr.h
+│   │       ├── simd
+│   │       │   └── simd.h
+│   │       ├── tables
+│   │       │   ├── cast_tables.h
+│   │       │   └── dtype_tables.h
+│   │       ├── tensor.h
+│   │       └── threading
+│   │           └── threads.h
+│   ├── memory
+│   │   ├── build.rs
+│   │   ├── Cargo.toml
+│   │   ├── CMakeLists.txt
+│   │   ├── csrc
+│   │   │   ├── admin.cpp
+│   │   │   ├── admin.hpp
+│   │   │   ├── CMakeLists.txt
+│   │   │   ├── ffi.cpp
+│   │   │   └── ffi.hpp
+│   │   └── src
+│   │       ├── counter.rs
+│   │       ├── error.rs
+│   │       ├── ffi
+│   │       │   ├── cpp
+│   │       │   │   └── bindings.rs
+│   │       │   ├── cpp.rs
+│   │       │   ├── lifecycle.rs
+│   │       │   ├── query.rs
+│   │       │   ├── reserve.rs
+│   │       │   └── resize.rs
+│   │       ├── ffi.rs
+│   │       ├── handle.rs
+│   │       ├── id.rs
+│   │       ├── lib.rs
+│   │       ├── manager.rs
+│   │       ├── ops
+│   │       │   ├── lifecycle.rs
+│   │       │   ├── query.rs
+│   │       │   ├── reserve.rs
+│   │       │   └── resize.rs
+│   │       ├── ops.rs
+│   │       ├── status.rs
+│   │       └── storage.rs
+│   ├── native
+│   │   ├── CMakeLists.txt
+│   │   ├── cpu
+│   │   │   ├── CMakeLists.txt
+│   │   │   ├── dtype
+│   │   │   │   └── DTypeCasting.c
+│   │   │   └── layout
+│   │   │       ├── Contiguous.c
+│   │   │       ├── Indexing.c
+│   │   │       ├── Permute.c
+│   │   │       ├── Reshape.c
+│   │   │       ├── Slicing.c
+│   │   │       └── Transpose.c
+│   │   ├── cuda
+│   │   │   ├── CMakeLists.txt
+│   │   │   ├── DetectCudaDevice.cpp
+│   │   │   ├── DetectCudaDevice.hpp
+│   │   │   ├── DetectCudaDeviceInfo.cpp
+│   │   │   ├── DetectCudaDeviceInfo.hpp
+│   │   │   ├── kernels
+│   │   │   │   ├── CMakeLists.txt
+│   │   │   │   ├── ContiguousLayoutKernel.cu
+│   │   │   │   ├── ContiguousLayoutKernel.h
+│   │   │   │   ├── DtypeCastingKernel.cu
+│   │   │   │   └── DtypeCastingKernel.h
+│   │   │   └── memory
+│   │   │       ├── CudaAllocator.cpp
+│   │   │       ├── CudaAllocator.hpp
+│   │   │       ├── CudaIO.cpp
+│   │   │       └── CudaIO.hpp
+│   │   ├── hip
+│   │   │   ├── CMakeLists.txt
+│   │   │   ├── DetectHipDevice.cpp
+│   │   │   ├── DetectHipDevice.hpp
+│   │   │   ├── DetectHipDeviceInfo.cpp
+│   │   │   ├── DetectHipDeviceInfo.hpp
+│   │   │   ├── kernels
+│   │   │   │   ├── CMakeLists.txt
+│   │   │   │   ├── ContiguousLayoutKernel.h
+│   │   │   │   ├── ContiguousLayoutKernel.hip
+│   │   │   │   ├── DtypeCastingKernel.h
+│   │   │   │   └── DtypeCastingKernel.hip
+│   │   │   └── memory
+│   │   │       ├── HipAllocator.cpp
+│   │   │       ├── HipAllocator.hpp
+│   │   │       ├── HipIO.cpp
+│   │   │       └── HipIO.hpp
+│   │   ├── kernels
+│   │   │   ├── CastingDispatchImpl.cpp
+│   │   │   └── CMakeLists.txt
+│   │   ├── native_functions.yaml
+│   │   └── native_stub.c
+│   ├── src
+│   │   ├── core
+│   │   │   ├── alloc.c
+│   │   │   ├── backend.c
+│   │   │   ├── copy.c
+│   │   │   ├── device.c
+│   │   │   ├── dtype.c
+│   │   │   ├── simd.c
+│   │   │   ├── status.c
+│   │   │   ├── tables
+│   │   │   │   ├── cast_dispatch_tables.c
+│   │   │   │   ├── cast_tables.c
+│   │   │   │   ├── dtype_tables.c
+│   │   │   │   └── status_dispatch_tables.c
+│   │   │   ├── tensor.c
+│   │   │   └── threading
+│   │   │       ├── concurrency.c
+│   │   │       ├── concurrency.h
+│   │   │       ├── groups
+│   │   │       │   ├── autograd.c
+│   │   │       │   ├── autograd.h
+│   │   │       │   ├── compute.c
+│   │   │       │   ├── compute.h
+│   │   │       │   ├── dtloader.c
+│   │   │       │   └── dtloader.h
+│   │   │       ├── manager.c
+│   │   │       ├── manager.h
+│   │   │       └── threads.c
+│   │   ├── dtypes
+│   │   │   ├── BFloat16.hpp
+│   │   │   ├── DTypes.cpp
+│   │   │   ├── DTypes.hpp
+│   │   │   ├── Float4_e2m1fn_x2.hpp
+│   │   │   ├── Float8_e4m3fn.hpp
+│   │   │   ├── Float8_e5m2.hpp
+│   │   │   └── Half.hpp
+│   │   └── repr
+│   │       ├── api
+│   │       │   └── tensor_repr.c
+│   │       ├── context
+│   │       │   └── repr_context.c
+│   │       ├── formatters
+│   │       │   ├── element_fmt.c
+│   │       │   ├── element_fmt.h
+│   │       │   ├── float_formatter.c
+│   │       │   ├── float_formatter.h
+│   │       │   ├── int_formatter.c
+│   │       │   ├── int_formatter.h
+│   │       │   ├── qint_formatter.c
+│   │       │   └── qint_formatter.h
+│   │       ├── layouts
+│   │       │   ├── dense_layout.c
+│   │       │   ├── layouts.h
+│   │       │   ├── strided_layout.c
+│   │       │   └── summarized_layout.c
+│   │       ├── metadata
+│   │       │   ├── metadata_fmt.c
+│   │       │   └── metadata_fmt.h
+│   │       ├── options
+│   │       │   └── repr_options.c
+│   │       ├── string_builder
+│   │       │   ├── string_builder.c
+│   │       │   └── string_builder.h
+│   │       └── traversal
+│   │           ├── tensor_iterator.c
+│   │           └── tensor_iterator.h
+│   └── tests
+│       ├── CMakeLists.txt
+│       ├── core
+│       │   ├── CMakeLists.txt
+│       │   ├── DeviceDetection_test.cpp
+│       │   ├── MemoryAllocator_test.cpp
+│       │   ├── RuntimeSimdCaps_test.cpp
+│       │   ├── StatusPropagation_test.cpp
+│       │   ├── TensorCopies_test.cpp
+│       │   └── TensorTransfer_test.cpp
+│       ├── dtypeCasting
+│       │   ├── CMakeLists.txt
+│       │   ├── Dispatch_test.cpp
+│       │   ├── ISAEquivalence_test.cpp
+│       │   ├── SaturationInvariant_test.cpp
+│       │   ├── ScalarOracle_test.cpp
+│       │   ├── SpecialValueInvariant_test.cpp
+│       │   └── utils
+│       │       └── Oracle.h
+│       └── dtypes
+│           ├── ABICorrectness_test.cpp
+│           ├── bitPatternIdentity
+│           │   ├── BFloat16_test.cpp
+│           │   ├── Float4_e2m1fn_x2_test.cpp
+│           │   ├── Float8_e4m3fn_test.cpp
+│           │   ├── Float8_e5m2_test.cpp
+│           │   └── Half_test.cpp
+│           ├── CMakeLists.txt
+│           ├── IEEESemantic_test.cpp
+│           ├── PackedPairs_test.cpp
+│           ├── RangeAndDensity_test.cpp
+│           ├── SpecialValuesClassification_test.cpp
+│           └── utils
+│               └── FloatingPointClassification.h
+├── nova (old 4.0.4)
+├── ports
+│   ├── cuda
+│   │   ├── portfile.cmake
+│   │   ├── vcpkg_find_cuda.cmake
+│   │   ├── vcpkg.json
+│   │   └── vcpkg-port-config.cmake
+│   ├── onednn
+│   │   ├── portfile.cmake
+│   │   └── vcpkg.json
+│   ├── openblas
+│   │   ├── android-exclude-sme.diff
+│   │   ├── cmake-project-include.cmake
+│   │   ├── disable-testing.diff
+│   │   ├── getarch.diff
+│   │   ├── portfile.cmake
+│   │   ├── system-check-msvc.diff
+│   │   ├── vcpkg.json
+│   │   └── win32-uwp.diff
+│   └── rocm
+│       ├── portfile.cmake
+│       ├── vcpkg_find_rocm.cmake
+│       ├── vcpkg.json
+│       └── vcpkg-port-config.cmake
+├── scripts
+│   ├── build-presets.ps1
+│   ├── build-presets.sh
+│   ├── compile-presets.ps1
+│   └── compile-presets.sh
+├── tests (old 4.0.4)
 ├── thirdParty
-│   └── sleef
+│   └── sleef
 ├── tools
-│   └── codegen
-│       ├── rules
-│       ├── templates
-│       └── engine.py
+│   └── codegen
+│       ├── engine.py
+│       ├── generate.py
+│       ├── rules
+│       │   └── dtype_casting
+│       │       ├── cast_funcs_rules.json
+│       │       ├── cast_tables_rules.json
+│       │       └── dtype_casting_rules.json
+│       ├── scripts
+│       │   └── dtype_casting
+│       │       ├── _build_cast_funcs_rules.py
+│       │       ├── _build_cast_tables_rules.py
+│       │       ├── gen_cast_funcs.py
+│       │       ├── gen_cast_tables.py
+│       │       └── gen_dtype_casting.py
+│       └── templates
+│           ├── dtype_casting
+│           │   ├── CastFuncs.h.jinja
+│           │   ├── CastTables.h.jinja
+│           │   ├── CastTables.jinja
+│           │   ├── DTypeCasting.h.jinja
+│           │   └── DTypeCasting.jinja
+│           └── utils
+│               ├── DTypes.jinja
+│               └── FileHeaderDocBlock.jinja
 ├── .clang-format
 ├── .clang-tidy
 ├── .clangd
 ├── .gitattributes
 ├── .gitignore
+├── .python-version
+├── AGENTS.md
 ├── CHANGELOG.es.md
 ├── CHANGELOG.md
+├── CLAUDE.md -> AGENTS.md
 ├── CMakeLists.txt
+├── CMakePresets.json
 ├── CONTRIBUTING.es.md
 ├── CONTRIBUTING.md
 ├── LICENCE
-├── README.es.md
-├── README.md
-├── main
-├── main.cpp
-├── merge-commit.txt
 ├── project-tree.md
 ├── pyproject.toml
-└── uv.lock
+├── README.es.md
+├── README.md
+├── ruff.toml
+├── uv.lock
+├── vcpkg-configuration.json
+└── vcpkg.json
 ```
+
+---
+*Generated by FileTree Pro Extension*
