@@ -133,8 +133,8 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
                Host tensors, which the default is set to 64 bytes */
 
   if (!create_storage) {
-    *handle = reserve(bytes, map_device2string(device), pin_memory, align,
-                      &status);
+    *handle =
+        reserve(bytes, map_device2string(device), pin_memory, align, &status);
     return status;
   } else {
     if (ten == nullptr || (is_allocated(ten))) {
@@ -159,8 +159,8 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
     }
 
     RustHandle storage_handle = {};
-    storage_handle = reserve(bytes, map_device2string(device), pin_memory,
-                             align, &status);
+    storage_handle =
+        reserve(bytes, map_device2string(device), pin_memory, align, &status);
 
     if (status.err != novaSuccess) {
       free(storage);
