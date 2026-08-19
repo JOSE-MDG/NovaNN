@@ -36,9 +36,9 @@
  * is set, all subsequent append operations become no-ops.
  */
 typedef enum {
-  SbOk = 0, ///< No error.
-  SbErrOom =
-      1, ///< Memory allocation failure (@c malloc/@c realloc returned @c nullptr).
+  SbOk = 0,     ///< No error.
+  SbErrOom = 1, ///< Memory allocation failure (@c malloc/@c realloc returned @c
+                ///< nullptr).
   SbErrOverflow = 2 ///< Size arithmetic overflow.
 } SBStatus;
 
@@ -61,7 +61,7 @@ typedef struct {
  * is 256 bytes. On allocation failure, the builder enters an error
  * state and all subsequent append operations become no-ops.
  *
- * @param[out] sb          Pointer to an uninitialised StringBuilder.
+ * @param[out] sb          Pointer to an uninitialized StringBuilder.
  * @param[in]  initial_cap Initial allocation size in bytes.
  */
 void sb_init(StringBuilder *sb, size_t initial_cap);
