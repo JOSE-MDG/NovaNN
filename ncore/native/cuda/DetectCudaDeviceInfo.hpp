@@ -42,15 +42,16 @@
  * @endcode
  */
 struct cudaDetectedDeviceProps_t {
-  bool isAvailable;                ///< @c true if the device was detected.
-  std::string name;                ///< Device name (e.g., "NVIDIA GeForce RTX 5070").
-  std::string runtimeVersion;      ///< CUDA runtime version (e.g., "12.8").
-  std::string driverVersion;       ///< CUDA driver version (e.g., "12.8").
-  std::string totalGlobalMem;      ///< Total device memory (formatted, e.g., "12.0 GiB").
-  std::string comCapability;       ///< Compute capability (e.g., "12.0").
-  int multiProcessorCount;         ///< Number of streaming multiprocessors (SMs).
-  int warpSize;                    ///< Warp size in threads.
-  int maxThreadsPerBlock;          ///< Maximum threads per block.
+  bool isAvailable; ///< @c true if the device was detected.
+  std::string name; ///< Device name (e.g., "NVIDIA GeForce RTX 5070").
+  std::string runtimeVersion; ///< CUDA runtime version (e.g., "12.8").
+  std::string driverVersion;  ///< CUDA driver version (e.g., "12.8").
+  std::string
+      totalGlobalMem; ///< Total device memory (formatted, e.g., "12.0 GiB").
+  std::string comCapability; ///< Compute capability (e.g., "12.0").
+  int multiProcessorCount;   ///< Number of streaming multiprocessors (SMs).
+  int warpSize;              ///< Warp size in threads.
+  int maxThreadsPerBlock;    ///< Maximum threads per block.
   int maxThreadsPerMultiProcessor; ///< Maximum threads per SM.
   explicit operator bool() const noexcept { return isAvailable; }
 };

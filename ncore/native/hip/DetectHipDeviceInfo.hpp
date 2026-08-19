@@ -42,11 +42,12 @@
  * @endcode
  */
 struct hipDetectedDeviceProps_t {
-  bool isAvailable;                ///< @c true if the device was detected.
-  std::string name;                ///< Device name (e.g., "AMD Radeon RX 7900 XTX").
-  std::string runtimeVersion;      ///< HIP runtime version (e.g., "6.4.54321").
-  std::string driverVersion;       ///< HIP driver version (e.g., "6.4.54321").
-  std::string totalGlobalMem;      ///< Total device memory (formatted, e.g., "24.0 GiB").
+  bool isAvailable;           ///< @c true if the device was detected.
+  std::string name;           ///< Device name (e.g., "AMD Radeon RX 7900 XTX").
+  std::string runtimeVersion; ///< HIP runtime version (e.g., "6.4.54321").
+  std::string driverVersion;  ///< HIP driver version (e.g., "6.4.54321").
+  std::string
+      totalGlobalMem; ///< Total device memory (formatted, e.g., "24.0 GiB").
   std::string gcnArchName;         ///< GCN architecture name (e.g., "gfx1100").
   int multiProcessorCount;         ///< Number of compute units (CUs).
   int warpSize;                    ///< Wavefront size in threads.
