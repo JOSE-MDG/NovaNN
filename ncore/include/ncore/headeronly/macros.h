@@ -268,8 +268,12 @@
  *       (e.g., @c [STORAGE], @c [CUDA]) for easy identification.
  */
 #ifdef __cplusplus
+[[deprecated("NOVA_INTERNAL_ASSERT is deprecated")]]
+inline void nova_internal_assert_deprecated_marker() {}
+
 #define NOVA_INTERNAL_ASSERT(assertion, msg, ...)                              \
   do {                                                                         \
+    ::nova_internal_assert_deprecated_marker();                                \
     if (!(assertion)) {                                                        \
       std::cerr << msg __VA_OPT__(<< __VA_ARGS__);                             \
       exit(EXIT_FAILURE);                                                      \
@@ -278,13 +282,13 @@
 #else
 #define NOVA_INTERNAL_ASSERT(assertion, msg, ...)                              \
   do {                                                                         \
-    if (!(assertion)) {                                                        \
+    _Pragma("GCC warning \"NOVA_INTERNAL_ASSERT is deprecated\"") if (         \
+        !(assertion)) {                                                        \
       fprintf(stderr, msg __VA_OPT__(, ) __VA_ARGS__);                         \
       exit(EXIT_FAILURE);                                                      \
     }                                                                          \
   } while (0)
 #endif
-
 /**
  * @defgroup SIMD_LANES SIMD lane counts
  * @{
@@ -293,7 +297,7 @@
  *
  * @details
  * These constants are used for:
- * @li Loop unrolling and vectorisation factor selection.
+ * @li Loop unrolling and vectorization factor selection.
  * @li Buffer sizing for SIMD-aligned temporary storage.
  * @li Compile-time assertions that tensor sizes are multiples of
  *   the vector width.
