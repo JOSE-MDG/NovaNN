@@ -6,14 +6,14 @@
  * This file contains the definitions of the global @c const lookup
  * tables declared in @ref dtype_tables.h.  Each classification
  * table is a @c NUM_DTYPES × 1 array of @c bool, populated using
- * C99 designated initialisers so that only the @c true entries
+ * C99 designated initializers so that only the @c true entries
  * need to be listed explicitly (all others default to @c false).
  *
  * The tables are:
  * @li @ref floating — floating-point types.
- * @li @ref integer — all integer types (signed, unsigned, quantized).
- * @li @ref signed_integer — signed integer types (including quantized).
- * @li @ref unsigned_integer — unsigned integer types (including quantized).
+ * @li @ref integer — all non-quantized integer types (signed and unsigned).
+ * @li @ref signed_integer — non-quantized signed integer types.
+ * @li @ref unsigned_integer — non-quantized unsigned integer types.
  * @li @ref quantized_signed_integer — quantized signed only.
  * @li @ref quantized_unsigned_integer — quantized unsigned only.
  * @li @ref lookup_dtype_sizes — byte-width per dtype.
@@ -54,69 +54,72 @@ const bool floating[NUM_DTYPES][1] = {
 
 /**
  * @var integer
- * @brief Boolean mask for all integer dtypes (signed, unsigned,
- *        and quantized).
+ * @brief Boolean mask for all non-quantized integer dtypes (signed
+ *        and unsigned).
  *
  * @details
  * @c integer[dtype][0] is @c true for @c Signed8, @c UnSigned8,
- * @c QSigned8, @c QUnSigned8, @c Signed16, @c UnSigned16, @c QSigned16,
- * @c QUnSigned16, @c Signed32, @c UnSigned32, @c QSigned32,
- * @c QUnSigned32, @c Signed64, @c UnSigned64.  All float types are
+ * @c Signed16, @c UnSigned16, @c Signed32, @c UnSigned32,
+ * @c Signed64, @c UnSigned64.  Quantized dtypes (@c QSigned8,
+ * @c QUnSigned8, ...) are @c false: they are backed by integer
+ * storage but represent quantized floating-point ranges and are
+ * classified via @ref quantized_signed_integer and
+ * @ref quantized_unsigned_integer instead.  All float types are
  * @c false.  Used by @ref is_integer() in @ref dtype.c.
  */
 const bool integer[NUM_DTYPES][1] = {
     [Float32] = {false},      [Float64] = {false},      [Float16] = {false},
     [BFloat16] = {false},     [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
     [Float4E2M1fn] = {false}, [Signed8] = {true},       [UnSigned8] = {true},
-    [QSigned8] = {true},      [QUnSigned8] = {true},    [Signed16] = {true},
-    [UnSigned16] = {true},    [QSigned16] = {true},     [QUnSigned16] = {true},
-    [Signed32] = {true},      [UnSigned32] = {true},    [QSigned32] = {true},
-    [QUnSigned32] = {true},   [Signed64] = {true},      [UnSigned64] = {true},
+    [QSigned8] = {false},     [QUnSigned8] = {false},   [Signed16] = {true},
+    [UnSigned16] = {true},    [QSigned16] = {false},    [QUnSigned16] = {false},
+    [Signed32] = {true},      [UnSigned32] = {true},    [QSigned32] = {false},
+    [QUnSigned32] = {false},  [Signed64] = {true},      [UnSigned64] = {true},
 };
 
 /**
  * @var signed_integer
- * @brief Boolean mask for signed integer dtypes (including
- *        quantized).
+ * @brief Boolean mask for non-quantized signed integer dtypes.
  *
  * @details
- * @c signed_integer[dtype][0] is @c true for @c Signed8, @c QSigned8,
- * @c Signed16, @c QSigned16, @c Signed32, @c QSigned32, and @c Signed64.
- * Note that the quantized types @c QSigned8, @c QSigned16, and
- * @c QSigned32 are included because they are backed by signed
- * storage types.  Used by @ref is_signed_integer() in @ref dtype.c.
+ * @c signed_integer[dtype][0] is @c true for @c Signed8, @c Signed16,
+ * @c Signed32, and @c Signed64.  Quantized dtypes (@c QSigned8,
+ * @c QSigned16, @c QSigned32) are @c false: although they are backed
+ * by signed storage types, they represent quantized floating-point
+ * ranges and are classified via @ref quantized_signed_integer.
+ * Used by @ref is_signed_integer() in @ref dtype.c.
  */
 const bool signed_integer[NUM_DTYPES][1] = {
     [Float32] = {false},      [Float64] = {false},      [Float16] = {false},
     [BFloat16] = {false},     [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
     [Float4E2M1fn] = {false}, [Signed8] = {true},       [UnSigned8] = {false},
-    [QSigned8] = {true},      [QUnSigned8] = {false},   [Signed16] = {true},
-    [UnSigned16] = {false},   [QSigned16] = {true},     [QUnSigned16] = {false},
-    [Signed32] = {true},      [UnSigned32] = {false},   [QSigned32] = {true},
+    [QSigned8] = {false},     [QUnSigned8] = {false},   [Signed16] = {true},
+    [UnSigned16] = {false},   [QSigned16] = {false},    [QUnSigned16] = {false},
+    [Signed32] = {true},      [UnSigned32] = {false},   [QSigned32] = {false},
     [QUnSigned32] = {false},  [Signed64] = {true},      [UnSigned64] = {false},
 };
 
 /**
  * @var unsigned_integer
- * @brief Boolean mask for unsigned integer dtypes (including
- *        quantized).
+ * @brief Boolean mask for non-quantized unsigned integer dtypes.
  *
  * @details
  * @c unsigned_integer[dtype][0] is @c true for @c UnSigned8,
- * @c QUnSigned8, @c UnSigned16, @c QUnSigned16, @c UnSigned32,
- * @c QUnSigned32, and @c UnSigned64.  Note that the quantized types
- * @c QUnSigned8, @c QUnSigned16, and @c QUnSigned32 are included
- * because they are backed by unsigned storage types.  Used by
+ * @c UnSigned16, @c UnSigned32, and @c UnSigned64.  Quantized
+ * dtypes (@c QUnSigned8, @c QUnSigned16, @c QUnSigned32) are
+ * @c false: although they are backed by unsigned storage types, they
+ * represent quantized floating-point ranges and are classified via
+ * @ref quantized_unsigned_integer.  Used by
  * @ref is_unsigned_integer() in @ref dtype.c.
  */
 const bool unsigned_integer[NUM_DTYPES][1] = {
     [Float32] = {false},      [Float64] = {false},      [Float16] = {false},
     [BFloat16] = {false},     [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
     [Float4E2M1fn] = {false}, [Signed8] = {false},      [UnSigned8] = {true},
-    [QSigned8] = {false},     [QUnSigned8] = {true},    [Signed16] = {false},
-    [UnSigned16] = {true},    [QSigned16] = {false},    [QUnSigned16] = {true},
+    [QSigned8] = {false},     [QUnSigned8] = {false},   [Signed16] = {false},
+    [UnSigned16] = {true},    [QSigned16] = {false},    [QUnSigned16] = {false},
     [Signed32] = {false},     [UnSigned32] = {true},    [QSigned32] = {false},
-    [QUnSigned32] = {true},   [Signed64] = {false},     [UnSigned64] = {true},
+    [QUnSigned32] = {false},  [Signed64] = {false},     [UnSigned64] = {true},
 };
 
 /**

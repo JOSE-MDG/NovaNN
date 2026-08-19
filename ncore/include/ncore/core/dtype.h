@@ -203,13 +203,14 @@ bool is_floating(const Tensor *restrict input);
 
 /**
  * @brief Check whether a tensor's dtype is an integer type
- *        (signed or unsigned, including quantized).
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr.
  *
- * @return @c true if @c input->dtype is any integer or quantized
- *         integer type.  @c false otherwise.
+ * @return @c true if @c input->dtype is any non-quantized integer
+ *         type (@c Signed8, @c UnSigned8, @c Signed16, @c UnSigned16,
+ *         @c Signed32, @c UnSigned32, @c Signed64, @c UnSigned64).
+ *         @c false otherwise.
  *
  * @see is_floating()
  * @see is_signed_integer()
@@ -219,14 +220,12 @@ bool is_integer(const Tensor *restrict input);
 
 /**
  * @brief Check whether a tensor's dtype is a signed integer type
- *        (including quantized).
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr.
  *
- * @return @c true if @c input->dtype is @c Signed8, @c QSigned8,
- *         @c Signed16, @c QSigned16, @c Signed32, @c QSigned32,
- *         or @c Signed64.  @c false otherwise.
+ * @return @c true if @c input->dtype is @c Signed8, @c Signed16,
+ *         @c Signed32, or @c Signed64.  @c false otherwise.
  *
  * @see is_unsigned_integer()
  * @see is_quantized_signed_integer()
@@ -235,14 +234,12 @@ bool is_signed_integer(const Tensor *restrict input);
 
 /**
  * @brief Check whether a tensor's dtype is an unsigned integer type
- *        (including quantized).
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr.
  *
- * @return @c true if @c input->dtype is @c UnSigned8, @c QUnSigned8,
- *         @c UnSigned16, @c QUnSigned16, @c UnSigned32,
- *         @c QUnSigned32, or @c UnSigned64.  @c false otherwise.
+ * @return @c true if @c input->dtype is @c UnSigned8, @c UnSigned16,
+ *         @c UnSigned32, or @c UnSigned64.  @c false otherwise.
  *
  * @see is_signed_integer()
  * @see is_quantized_unsigned_integer()

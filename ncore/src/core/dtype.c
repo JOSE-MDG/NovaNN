@@ -87,21 +87,18 @@ bool is_floating(const Tensor *restrict input) {
 
 /**
  * @brief Check whether a tensor's dtype is an integer type
- *        (signed or unsigned, including quantized).
  *
  * @details
  * Indexes into the @c integer lookup table with @c input->dtype as
- * the row index.  Returns @c true for all integer and quantized
- * integer types (@c Signed8, @c Signed16, @c Signed32, @c Signed64,
- * @c UnSigned8, @c UnSigned16, @c UnSigned32, @c UnSigned64,
- * @c QSigned8, @c QSigned16, @c QSigned32, @c QUnSigned8,
- * @c QUnSigned16, @c QUnSigned32).
+ * the row index.  Returns @c true for all non-quantized integer
+ * types (@c Signed8, @c Signed16, @c Signed32, @c Signed64,
+ * @c UnSigned8, @c UnSigned16, @c UnSigned32, @c UnSigned64).
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr and must have a valid @c dtype field.
  *
- * @return @c true if @c input->dtype is any integer type,
- *         @c false otherwise.
+ * @return @c true if @c input->dtype is any non-quantized integer
+ *         type, @c false otherwise.
  *
  * @see is_floating()
  * @see is_signed_integer()
@@ -112,18 +109,18 @@ bool is_integer(const Tensor *restrict input) {
 }
 
 /**
- * @brief Check whether a tensor's dtype is a signed integer type.
+ * @brief Check whether a tensor's dtype is a signed integer type
  *
  * @details
  * Indexes into the @c signed_integer lookup table with
  * @c input->dtype as the row index.  Returns @c true for
- * @c Signed8, @c QSigned8, @c Signed32, and @c Signed64.
+ * @c Signed8, @c Signed16, @c Signed32, and @c Signed64.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr and must have a valid @c dtype field.
  *
- * @return @c true if @c input->dtype is a signed integer type
- *         (including quantized), @c false otherwise.
+ * @return @c true if @c input->dtype is a non-quantized signed
+ *         integer type, @c false otherwise.
  *
  * @see is_unsigned_integer()
  * @see is_quantized_signed_integer()
@@ -134,18 +131,18 @@ bool is_signed_integer(const Tensor *restrict input) {
 }
 
 /**
- * @brief Check whether a tensor's dtype is an unsigned integer type.
+ * @brief Check whether a tensor's dtype is an unsigned integer type
  *
  * @details
  * Indexes into the @c unsigned_integer lookup table with
  * @c input->dtype as the row index.  Returns @c true for
- * @c UnSigned8, @c QUnSigned8, @c UnSigned32, and @c UnSigned64.
+ * @c UnSigned8, @c UnSigned16, @c UnSigned32, and @c UnSigned64.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr and must have a valid @c dtype field.
  *
- * @return @c true if @c input->dtype is an unsigned integer type
- *         (including quantized), @c false otherwise.
+ * @return @c true if @c input->dtype is a non-quantized unsigned
+ *         integer type, @c false otherwise.
  *
  * @see is_signed_integer()
  * @see is_quantized_unsigned_integer()

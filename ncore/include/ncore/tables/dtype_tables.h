@@ -63,15 +63,12 @@ extern const bool floating[NUM_DTYPES][1];
 
 /**
  * @var integer
- * @brief Boolean mask indicating which dtypes are integer types
- *        (signed, unsigned, or quantized).
+ * @brief Boolean mask indicating which dtypes are integer types.
  *
  * @details
- * @c integer[dtype][0] is @c true for all integer and quantized
- * integer dtypes: @c Signed8, @c UnSigned8, @c QSigned8,
- * @c QUnSigned8, @c Signed16, @c UnSigned16, @c QSigned16,
- * @c QUnSigned16, @c Signed32, @c UnSigned32, @c QSigned32,
- * @c QUnSigned32, @c Signed64, @c UnSigned64.
+ * @c integer[dtype][0] is @c true for all non-quantized integer
+ * dtypes: @c Signed8, @c UnSigned8, @c Signed16, @c UnSigned16,
+ * @c Signed32, @c UnSigned32, @c Signed64, @c UnSigned64.
  *
  * @see is_integer()  Classification function using this table.
  */
@@ -80,14 +77,11 @@ extern const bool integer[NUM_DTYPES][1];
 /**
  * @var signed_integer
  * @brief Boolean mask indicating which dtypes are signed integer
- *        types (including quantized).
+ *        types.
  *
  * @details
- * @c signed_integer[dtype][0] is @c true for @c Signed8, @c QSigned8,
- * @c Signed16, @c QSigned16, @c Signed32, @c QSigned32, and
- * @c Signed64.  Note that the quantized types @c QSigned8,
- * @c QSigned16, and @c QSigned32 are included because they are
- * backed by signed storage types.
+ * @c signed_integer[dtype][0] is @c true for @c Signed8, @c Signed16,
+ * @c Signed32, and @c Signed64.
  *
  * @see is_signed_integer()  Classification function using this table.
  */
@@ -96,14 +90,11 @@ extern const bool signed_integer[NUM_DTYPES][1];
 /**
  * @var unsigned_integer
  * @brief Boolean mask indicating which dtypes are unsigned integer
- *        types (including quantized).
+ *        types.
  *
  * @details
  * @c unsigned_integer[dtype][0] is @c true for @c UnSigned8,
- * @c QUnSigned8, @c UnSigned16, @c QUnSigned16, @c UnSigned32,
- * @c QUnSigned32, and @c UnSigned64.  Note that the quantized types
- * @c QUnSigned8, @c QUnSigned16, and @c QUnSigned32 are included
- * because they are backed by unsigned storage types.
+ * @c UnSigned16, @c UnSigned32, and @c UnSigned64.
  *
  * @see is_unsigned_integer()  Classification function using this table.
  */
