@@ -1961,8 +1961,7 @@ void tbf16_to_s8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
 void tbf16_to_s32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
 
 /**
- * @brief Convert every element from bfloat16 to int64_t using
- * AVX-512F+BF16+VL+DQ.
+ * @brief Convert every element from bfloat16 to int64_t using AVX-512F+BF16+VL+DQ.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int64_t.
@@ -1986,8 +1985,7 @@ void tbf16_to_u8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
 void tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
 
 /**
- * @brief Convert every element from bfloat16 to uint64_t using
- * AVX-512F+BF16+VL+DQ.
+ * @brief Convert every element from bfloat16 to uint64_t using AVX-512F+BF16+VL+DQ.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint64_t.

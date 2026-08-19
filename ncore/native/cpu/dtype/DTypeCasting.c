@@ -262,8 +262,8 @@
   }
 
 /**
- * @def REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s, cvt_double, dsttype,
- * \ dmin, dmax, dnan)
+ * @def REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s, cvt_double, dsttype, \
+ *                                          dmin, dmax, dnan)
  * @brief Scalar tail-loop for saturating SIMD conversions through an
  * intermediate double conversion function, without casting @p dnan to
  * @p dsttype.
