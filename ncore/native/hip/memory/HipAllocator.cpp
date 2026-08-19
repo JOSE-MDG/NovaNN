@@ -6,7 +6,7 @@
  * Implements the three core allocation primitives used by the
  * device-agnostic FFI layer (@c ffi.cpp).  All device-memory
  * operations use a temporary HIP stream for async allocation
- * and synchronise before returning.
+ * and synchronize before returning.
  *
  * The file is conditionally compiled behind @c NOVA_HAS_HIP and
  * @c __has_include(<hip/hip_runtime_api.h>).  When HIP headers are
@@ -124,7 +124,7 @@ bool streamCreate(hipStream_t *stream, novaStatus_t *status) {
 /**
  * @brief Block until all work on @p stream has completed.
  *
- * @param[in]  stream  The stream to synchronise.
+ * @param[in]  stream  The stream to synchronize.
  * @param[out] status  Receives the error status on failure.
  *
  * @return @c true on success, @c false on failure.
@@ -165,7 +165,7 @@ bool streamDestroy(hipStream_t stream, novaStatus_t *status) {
  * @details
  * For pinned memory, calls @c hipHostMalloc.  For device memory,
  * creates a temporary stream, calls @c hipMallocAsync,
- * synchronises, and destroys the stream.
+ * synchronizes, and destroys the stream.
  *
  * @param[in]  bytes  Requested size in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
@@ -182,8 +182,7 @@ novaStatus_t hipReserve(std::size_t bytes, bool pinned, hipBuffer_t *out) {
   void *ptr = nullptr;
 
   if (pinned) {
-    const hipError_t err =
-        hipHostMalloc(&ptr, bytes, hipHostMallocDefault);
+    const hipError_t err = hipHostMalloc(&ptr, bytes, hipHostMallocDefault);
     if (err != hipSuccess) {
       status.err = mapError(err);
       status.message = nova_get_error_msg(status.err, nullptr);
@@ -236,7 +235,7 @@ novaStatus_t hipReserve(std::size_t bytes, bool pinned, hipBuffer_t *out) {
  *
  * @details
  * For pinned memory, calls @c hipFreeHost.  For device memory,
- * creates a temporary stream, calls @c hipFreeAsync, synchronises,
+ * creates a temporary stream, calls @c hipFreeAsync, synchronizes,
  * and destroys the stream.  On success, the buffer is zeroed.
  *
  * @param[in,out] buf  Buffer descriptor to free.  Must not be null.
@@ -329,8 +328,7 @@ novaStatus_t hipResize(hipBuffer_t *buf, std::size_t new_bytes) {
   }
 
   novaStatus_t status = {};
-  const std::size_t copyBytes =
-      buf->bytes < new_bytes ? buf->bytes : new_bytes;
+  const std::size_t copyBytes = buf->bytes < new_bytes ? buf->bytes : new_bytes;
   void *newPtr = nullptr;
 
   if (buf->isPinned) {
