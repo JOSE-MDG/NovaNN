@@ -6,7 +6,7 @@
  * Implements the three core allocation primitives used by the
  * device-agnostic FFI layer (@c ffi.cpp).  All device-memory
  * operations use a temporary CUDA stream for async allocation
- * and synchronise before returning.
+ * and synchronize before returning.
  *
  * The file is conditionally compiled behind @c NOVA_HAS_CUDA and
  * @c __has_include(<cuda_runtime_api.h>).  When CUDA headers are
@@ -125,7 +125,7 @@ bool streamCreate(cudaStream_t *stream, novaStatus_t *status) {
 /**
  * @brief Block until all work on @p stream has completed.
  *
- * @param[in]  stream  The stream to synchronise.
+ * @param[in]  stream  The stream to synchronize.
  * @param[out] status  Receives the error status on failure.
  *
  * @return @c true on success, @c false on failure.
@@ -166,7 +166,7 @@ bool streamDestroy(cudaStream_t stream, novaStatus_t *status) {
  * @details
  * For pinned memory, calls @c cudaMallocHost.  For device memory,
  * creates a temporary stream, calls @c cudaMallocAsync,
- * synchronises, and destroys the stream.
+ * synchronizes, and destroys the stream.
  *
  * @param[in]  bytes  Requested size in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
@@ -212,7 +212,7 @@ novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out) {
         return status;
       }
     } else {
-      /* If deivce do not support MemoryPools fallback to cudaMallo.  Normally,
+      /* If device do not support MemoryPools fallback to cudaMallo.  Normally,
        * it shouldn't reach this part of the code  */
       const cudaError_t err = cudaMalloc(&ptr, bytes);
       if (err != cudaSuccess) {
@@ -233,7 +233,7 @@ novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out) {
  *
  * @details
  * For pinned memory, calls @c cudaFreeHost.  For device memory,
- * creates a temporary stream, calls @c cudaFreeAsync, synchronises,
+ * creates a temporary stream, calls @c cudaFreeAsync, synchronizes,
  * and destroys the stream.  On success, the buffer is zeroed.
  *
  * @param[in,out] buf  Buffer descriptor to free.  Must not be null.

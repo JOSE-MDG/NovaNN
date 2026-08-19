@@ -77,7 +77,7 @@ std::once_flag cudaDeviceProbeOnce;
  * @var cudaDeviceLogMtx
  * @brief Mutex protecting stderr output during detection.
  *
- * Serialises error messages printed by @ref isCudaDeviceAvailable
+ * Serializes error messages printed by @ref isCudaDeviceAvailable
  * when the probe fails.
  */
 std::mutex cudaDeviceLogMtx;
@@ -143,8 +143,8 @@ DetectionResult probeCudaDevice() {
  * @return @c true when a CUDA-capable device is found.  @c false if
  *         no device is available or the runtime reports an error.
  *
- * @note Thread-safe.  The probe is serialised by @c std::call_once.
- *       The log mutex serialises stderr output.
+ * @note Thread-safe.  The probe is serialized by @c std::call_once.
+ *       The log mutex serializes stderr output.
  */
 bool isCudaDeviceAvailable(bool log, bool verbose) {
   DetectionResult result;
@@ -166,7 +166,7 @@ bool isCudaDeviceAvailable(bool log, bool verbose) {
     status = printCudaDeviceInfo(verbose);
     if (status.err != novaSuccess) {
       std::cerr << "[CUDA] isCudaDeviceAvailable -> printCudaDeviceInfo: Error "
-                   "obtainig device info.\n"
+                   "obtaining device info.\n"
                 << "Details: '" << status.message << "'\n";
     }
   }

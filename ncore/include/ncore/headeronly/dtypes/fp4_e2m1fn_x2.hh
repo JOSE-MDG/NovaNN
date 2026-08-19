@@ -1076,7 +1076,7 @@ inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 operator/(int64_t a,
 } // namespace ncore::dtypes
 
 // ============================================================
-// std::numeric_limits<Float4_e2m1fn_x2> specialisation
+// std::numeric_limits<Float4_e2m1fn_x2> specialization
 // ============================================================
 namespace std {
 

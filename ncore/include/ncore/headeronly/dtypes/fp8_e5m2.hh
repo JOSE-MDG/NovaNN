@@ -514,7 +514,7 @@ inline NCORE_HOST_DEVICE Float8_e5m2 operator/(int64_t a, Float8_e5m2 b) {
 } // namespace ncore::dtypes
 
 // ============================================================
-// std::numeric_limits specialisation
+// std::numeric_limits specialization
 // ============================================================
 namespace std {
 

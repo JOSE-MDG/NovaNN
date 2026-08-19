@@ -13,7 +13,7 @@
  *
  * This module maintains a single reusable HIP stream (singleton
  * pattern) created on first call to @ref hipTransfer.  All
- * subsequent transfers are serialised on this stream.  The stream
+ * subsequent transfers are serialized on this stream.  The stream
  * is not destroyed during program execution; the HIP runtime
  * reclaims it on process exit.
  *
@@ -27,7 +27,7 @@
  * @section thread-safety Thread Safety
  *
  * @ref hipTransfer is safe to call from multiple threads.  The
- * internal stream serialises all transfers, and HIP runtime
+ * internal stream serializes all transfers, and HIP runtime
  * calls are thread-safe.
  *
  * This header is the HIP counterpart of @c CudaIO.hpp and
@@ -52,7 +52,7 @@
  *
  * @details
  * Performs a memory transfer using @c hipMemcpyAsync on a
- * reusable internal HIP stream, then synchronises the stream
+ * reusable internal HIP stream, then synchronizes the stream
  * before returning.  The transfer direction is determined by
  * @p kind.
  *

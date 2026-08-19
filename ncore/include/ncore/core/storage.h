@@ -67,7 +67,7 @@ extern "C" {
  * arithmetic (e.g., @c ptr.f32[i] for a Float32 tensor).
  *
  * The @c v member provides a type-agnostic @c void* for generic code,
- * while @c data provides a raw byte pointer for serialisation and
+ * while @c data provides a raw byte pointer for serialization and
  * @c memcpy.
  *
  * @see DType_         Enum selecting the active union member.
@@ -76,7 +76,7 @@ extern "C" {
  */
 typedef union {
   void *v;                        ///< Untyped pointer (generic access).
-  unsigned char *data;            ///< Raw byte pointer (serialisation / memcpy).
+  unsigned char *data;            ///< Raw byte pointer (serialization / memcpy).
   float32 *f32;                   ///< Pointer to 32-bit float elements.
   float64 *f64;                   ///< Pointer to 64-bit float (double) elements.
   float16 *half;                  ///< Pointer to IEEE 754 half-precision (16-bit) elements.
@@ -92,12 +92,12 @@ typedef union {
   uint32 *u32;                    ///< Pointer to unsigned 32-bit integer elements.
   int64 *s64;                     ///< Pointer to signed 64-bit integer elements.
   uint64 *u64;                    ///< Pointer to unsigned 64-bit integer elements.
-  qint8 *qs8;                     ///< Pointer to quantised signed 8-bit elements.
-  quint8 *qu8;                    ///< Pointer to quantised unsigned 8-bit elements.
-  qint16 *qs16;                   ///< Pointer to quantised signed 16-bit elements.
-  quint16 *qu16;                  ///< Pointer to quantised unsigned 16-bit elements.
-  qint32 *qs32;                   ///< Pointer to quantised signed 32-bit elements.
-  quint32 *qu32;                  ///< Pointer to quantised unsigned 32-bit elements.
+  qint8 *qs8;                     ///< Pointer to quantized signed 8-bit elements.
+  quint8 *qu8;                    ///< Pointer to quantized unsigned 8-bit elements.
+  qint16 *qs16;                   ///< Pointer to quantized signed 16-bit elements.
+  quint16 *qu16;                  ///< Pointer to quantized unsigned 16-bit elements.
+  qint32 *qs32;                   ///< Pointer to quantized signed 32-bit elements.
+  quint32 *qu32;                  ///< Pointer to quantized unsigned 32-bit elements.
 } data_ptr;
 // clang-format on
 

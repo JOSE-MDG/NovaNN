@@ -157,7 +157,7 @@ static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
 }
 
 /**
- * @brief Render a contiguous, non-summarised tensor.
+ * @brief Render a contiguous, non-summarized tensor.
  *
  * @param[in]     ctx Pointer to the representation context. Must not
  *                    be @c nullptr.

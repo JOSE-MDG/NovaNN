@@ -68,7 +68,7 @@ const inline novaStatus_t HIP_OK{
  * @details
  * For pinned memory, calls @c hipHostMalloc.  For device memory,
  * creates a temporary stream, calls @c hipMallocAsync,
- * synchronises, and destroys the stream.
+ * synchronizes, and destroys the stream.
  *
  * @param[in]  bytes  Requested allocation size in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
@@ -93,7 +93,7 @@ novaStatus_t hipReserve(std::size_t bytes, bool pinned, hipBuffer_t *out);
  *
  * @details
  * For pinned memory, calls @c hipFreeHost.  For device memory,
- * creates a temporary stream, calls @c hipFreeAsync, synchronises,
+ * creates a temporary stream, calls @c hipFreeAsync, synchronizes,
  * and destroys the stream.  On success, the buffer descriptor
  * is zeroed.
  *

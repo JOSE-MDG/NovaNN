@@ -13,7 +13,7 @@
  *
  * This module maintains a single reusable CUDA stream (singleton
  * pattern) created on first call to @ref cudaTransfer.  All
- * subsequent transfers are serialised on this stream.  The stream
+ * subsequent transfers are serialized on this stream.  The stream
  * is not destroyed during program execution; the CUDA runtime
  * reclaims it on process exit.
  *
@@ -27,7 +27,7 @@
  * @section thread-safety Thread Safety
  *
  * @ref cudaTransfer is safe to call from multiple threads.  The
- * internal stream serialises all transfers, and CUDA runtime
+ * internal stream serializes all transfers, and CUDA runtime
  * calls are thread-safe.
  *
  * This header is the CUDA counterpart of @c HipIO.hpp and
@@ -52,7 +52,7 @@
  *
  * @details
  * Performs a memory transfer using @c cudaMemcpyAsync on a
- * reusable internal CUDA stream, then synchronises the stream
+ * reusable internal CUDA stream, then synchronizes the stream
  * before returning.  The transfer direction is determined by
  * @p kind.
  *

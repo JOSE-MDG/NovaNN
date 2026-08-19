@@ -8,7 +8,7 @@
  * (@ref shape_t, @ref strides_t, @ref TensorGrad), and the public
  * API for creation, views, memory management, and query predicates.
  * All cache-line aligned fields (@c ALIGN(64)) are padded for optimal
- * SIMD vectorisation.
+ * SIMD vectorization.
  *
  * All creation and mutation functions accept an output
  * @ref novaStatus_t pointer that receives the operation result.
@@ -25,7 +25,7 @@
  * @li Autograd — optional gradient tensor (@ref TensorGrad) and
  *   backward function node (@ref BackwardNode) for automatic
  *   differentiation.
- * @li Quantisation — scale and zero-point fields for quantised
+ * @li Quantization — scale and zero-point fields for quantized
  *   inference.
  *
  * @section lifecycle Lifecycle
@@ -119,7 +119,7 @@ typedef Node *BackwardNode;
  * @li A @ref DType_ and @ref Device_ for type and placement.
  * @li A reference-counted @ref TensorStorage for the backing buffer.
  * @li Optional gradient fields for autograd.
- * @li Quantisation parameters (scale, zero-point).
+ * @li Quantization parameters (scale, zero-point).
  *
  * The struct is cache-line aligned (@c ALIGN(64)) to enable
  * efficient SIMD operations on the metadata fields.
@@ -132,7 +132,7 @@ typedef Node *BackwardNode;
  * @li Storage — @c storage, @c data, @c is_allocated_, @c is_pinned_
  * @li Autograd — @c grad, @c grad_fn_, @c requires_grad_,
  *     @c retain_grad_, @c is_leaf_, @c is_view_
- * @li Quantisation — @c scale_, @c zero_point_
+ * @li Quantization — @c scale_, @c zero_point_
  * @li Mutation track — @c version_
  *
  * @see shape_t      Fixed-size shape array.
@@ -164,8 +164,8 @@ struct Tensor {
   bool is_leaf_;         ///< If @c true, leaf node in the computation graph.
   bool is_allocated_;    ///< If @c true, @c storage and @c data are valid.
   bool is_pinned_;       ///< If @c true, page-locked host memory.
-  float scale_;          ///< Quantisation scale (1.0 if not quantised).
-  int32_t zero_point_;   ///< Quantisation zero point (0 if not quantised).
+  float scale_;          ///< Quantization scale (1.0 if not quantized).
+  int32_t zero_point_;   ///< Quantization zero point (0 if not quantized).
   int64_t version_;      ///< Mutation counter for in-place alias detection.
 };
 

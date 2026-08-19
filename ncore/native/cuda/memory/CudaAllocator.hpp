@@ -26,7 +26,7 @@
  *
  * Device-memory operations (reserve, release, resize) create a
  * temporary CUDA stream, perform the operation asynchronously,
- * synchronise, and destroy the stream before returning. Provided that
+ * synchronize, and destroy the stream before returning. Provided that
  * MemoryPools is available on the device (which is usually the case).
  *
  * This header is the CUDA counterpart of @c HipAllocator.hpp and
@@ -72,7 +72,7 @@ const inline novaStatus_t CUDA_OK{
  * @details
  * For pinned memory, calls @c cudaMallocHost.  For device memory,
  * creates a temporary stream, calls @c cudaMallocAsync,
- * synchronises, and destroys the stream.
+ * synchronizes, and destroys the stream.
  *
  * @param[in]  bytes  Requested allocation size in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
@@ -97,7 +97,7 @@ novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out);
  *
  * @details
  * For pinned memory, calls @c cudaFreeHost.  For device memory,
- * creates a temporary stream, calls @c cudaFreeAsync, synchronises,
+ * creates a temporary stream, calls @c cudaFreeAsync, synchronizes,
  * and destroys the stream.  On success, the buffer descriptor
  * is zeroed.
  *

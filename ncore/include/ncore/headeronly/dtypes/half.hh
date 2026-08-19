@@ -759,7 +759,7 @@ inline NCORE_HOST_DEVICE Half operator/(int64_t a, Half b) {
 } // namespace ncore::dtypes
 
 // ============================================================
-// std::numeric_limits specialisation
+// std::numeric_limits specialization
 // ============================================================
 namespace std {
 

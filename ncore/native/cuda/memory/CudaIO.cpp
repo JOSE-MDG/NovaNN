@@ -167,10 +167,10 @@ cudaMemcpyKind mapMemcpyKind(DeviceMemcpyKind kind) {
  *
  * The @c static local variable holds the stream handle and is
  * zero-initialised before first use, but stream creation itself is
- * not synchronised: concurrent first calls from multiple threads can
+ * not synchronized: concurrent first calls from multiple threads can
  * race on the @c stream == nullptr check and each invoke
  * @c cudaStreamCreate.  Callers that require a strictly once-created
- * stream must serialise the first call externally.
+ * stream must serialize the first call externally.
  *
  * @param[out] status  Receives an error status if stream creation
  *                     fails.  Unchanged on success.
@@ -193,7 +193,7 @@ cudaStream_t getStream(novaStatus_t *status) {
  *
  * @details
  * Performs a memory transfer using @c cudaMemcpyAsync on a
- * reusable internal CUDA stream, then synchronises the stream
+ * reusable internal CUDA stream, then synchronizes the stream
  * before returning.  The transfer direction is determined by
  * @p kind.
  *

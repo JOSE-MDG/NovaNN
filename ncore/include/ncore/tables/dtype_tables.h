@@ -4,7 +4,7 @@
  *
  * @details
  * This header declares a set of global @c const lookup tables that
- * categorise @ref DType_ values into boolean masks.  Each table is
+ * categorize @ref DType_ values into boolean masks.  Each table is
  * a @c NUM_DTYPES × 1 array of @c bool, indexed by @c DType_ value.
  * A @c true entry at index @c i means the dtype at position @c i
  * belongs to the corresponding category.

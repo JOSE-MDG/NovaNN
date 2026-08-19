@@ -154,8 +154,8 @@ typedef void (*CastFn)(const Tensor *restrict, Tensor *restrict);
  * @li @c 19 — @c Signed64 — @c int64_t — 8 bytes
  * @li @c 20 — @c UnSigned64 — @c uint64_t — 8 bytes
  *
- * @note This enum uses a @c uint8_t underlying type (C23) to minimise its
- *       footprint in structs that are serialised or copied
+ * @note This enum uses a @c uint8_t underlying type (C23) to minimize its
+ *       footprint in structs that are serialized or copied
  *       frequently.
  *
  * @see dtype_size()     Byte-width lookup.

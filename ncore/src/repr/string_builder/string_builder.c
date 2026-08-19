@@ -40,7 +40,7 @@
  * builder enters @ref SbErrOom state and all subsequent append
  * operations become no-ops.
  *
- * @param[out] sb          Pointer to an uninitialised StringBuilder.
+ * @param[out] sb          Pointer to an uninitialized StringBuilder.
  * @param[in]  initial_cap Initial allocation size in bytes.
  */
 void sb_init(StringBuilder *sb, size_t initial_cap) {

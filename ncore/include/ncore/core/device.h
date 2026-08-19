@@ -89,8 +89,8 @@ extern "C" {
  *   lazy evaluation patterns where the actual memory location is
  *   determined later.
  *
- * @note This enum uses a @c uint8_t underlying type (C23) to minimise its
- *       footprint in structs that are serialised or copied frequently.
+ * @note This enum uses a @c uint8_t underlying type (C23) to minimize its
+ *       footprint in structs that are serialized or copied frequently.
  *
  * @see DeviceKind     Identifies which GPU runtime is in use.
  * @see novaStatus_t   Result type for device memory operations.
@@ -115,8 +115,8 @@ typedef enum Device_ : uint8_t {
  * them to be used as array indices in dispatch tables (see
  * @ref device.c).
  *
- * @note This enum uses a @c uint8_t underlying type (C23) to minimise its
- *       footprint in structs that are serialised or copied frequently.
+ * @note This enum uses a @c uint8_t underlying type (C23) to minimize its
+ *       footprint in structs that are serialized or copied frequently.
  *
  * @see Device_ Target device for tensor data placement.
  * @see is_device_available()
@@ -144,8 +144,8 @@ typedef enum DeviceKind : uint8_t {
  * pairs of @c (src Device_, dst Device_) to a @c TransferKind value,
  * which is then passed to the C-callable @c deviceTransfer() wrapper.
  *
- * @note This enum uses a @c uint8_t underlying type (C23) to minimise its
- *       footprint in structs that are serialised or copied frequently.
+ * @note This enum uses a @c uint8_t underlying type (C23) to minimize its
+ *       footprint in structs that are serialized or copied frequently.
  *
  * @see novaStatus_t   Result type for device memory operations.
  * @see transfer_to()  High-level transfer function using this enum.
