@@ -69,7 +69,7 @@ public:
   // ================================================================
 
   /**
-   * @brief Default constructor. Creates an empty (uninitialised) tensor.
+   * @brief Default constructor. Creates an empty (uninitialized) tensor.
    */
   TensorCXX();
 
@@ -240,7 +240,7 @@ public:
 
     const char *repr = tensor_repr_debug(&ten.c_tensor);
     if (repr == nullptr) {
-      os << "\033[31mError\033[0m: No tensor representation avaiable; Result: "
+      os << "\033[31mError\033[0m: No tensor representation available; Result: "
             "NULL\n";
       return os;
     }
@@ -270,9 +270,9 @@ public:
     const char *repr =
         debug ? tensor_repr_debug(&c_tensor) : tensor_repr(&c_tensor);
     if (repr == nullptr) {
-      std::cout
-          << "\033[31mError\033[0m: No tensor representation avaiable; Result: "
-             "NULL\n";
+      std::cout << "\033[31mError\033[0m: No tensor representation available; "
+                   "Result: "
+                   "NULL\n";
     }
 
     std::cout << repr << "\n";
