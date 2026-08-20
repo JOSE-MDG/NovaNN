@@ -212,7 +212,7 @@ novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out) {
         return status;
       }
     } else {
-      /* If device do not support MemoryPools fallback to cudaMallo.  Normally,
+      /* If device do not support MemoryPools fallback to cudaMalloc.  Normally,
        * it shouldn't reach this part of the code  */
       const cudaError_t err = cudaMalloc(&ptr, bytes);
       if (err != cudaSuccess) {
