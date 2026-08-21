@@ -14,73 +14,77 @@ use std::ffi::{CString, c_char};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NovaError {
     /// The operation completed successfully.
-    Success = 0,
+    Success,
     /// An argument has an invalid value.
-    InvalidValue = 1,
+    InvalidValue,
     /// A tensor argument is invalid.
-    InvalidTensor = 2,
+    InvalidTensor,
     /// A pointer argument is null or invalid.
-    InvalidPointer = 3,
+    InvalidPointer,
     /// A data type argument is invalid.
-    InvalidDtype = 4,
+    InvalidDtype,
     /// A device argument is invalid.
-    InvalidDevice = 5,
+    InvalidDevice,
     /// A tensor dimension count is invalid.
-    InvalidNdims = 6,
+    InvalidNdims,
     /// A requested memory alignment is invalid.
-    InvalidAlignment = 7,
+    InvalidAlignment,
+    /// A requested memory layout is invalid.
+    InvalidMemoryLayout,
     /// A tensor shape is invalid.
-    InvalidShape = 8,
+    InvalidShape,
     /// A tensor index is invalid.
-    InvalidIndex = 9,
+    InvalidIndex,
     /// A requested thread count is invalid.
-    InvalidNumThreads = 10,
+    InvalidNumThreads,
+    /// The handle used is valid or has expired.
+    InvalidHandle,
     /// An operation would exceed a buffer boundary.
-    BufferOverflow = 11,
+    BufferOverflow,
     /// The requested allocation could not be completed.
-    OutOfMemory = 12,
+    OutOfMemory,
     /// A storage reservation failed.
-    ReserveError = 13,
+    ReserveError,
     /// A storage release failed.
-    ReleaseError = 14,
+    ReleaseError,
     /// A storage resize failed.
-    ResizeError = 15,
+    ResizeError,
     /// A device transfer failed.
-    TransferError = 16,
+    TransferError,
     /// A host-to-device transfer failed.
-    TransferH2DError = 17,
+    TransferH2DError,
     /// A device-to-host transfer failed.
-    TransferD2HError = 18,
+    TransferD2HError,
     /// A transfer direction is invalid.
-    InvalidTransfDirection = 19,
+    InvalidTransfDirection,
     /// No suitable device is available.
-    DeviceNotAvailable = 20,
+    DeviceNotAvailable,
     /// The requested device has not been initialized.
-    DeviceNotInitialized = 21,
+    DeviceNotInitialized,
     /// An external device API reported a failure.
-    ExternalDeviceError = 22,
+    ExternalDeviceError,
     /// The requested backend was not compiled into the library.
-    BackendNotCompiled = 23,
+    BackendNotCompiled,
     /// The requested backend does not support the operation.
-    BackendNotSupported = 24,
+    BackendNotSupported,
     /// The current operating system cannot support the operation.
-    OsPlatformNotSupported = 25,
+    OsPlatformNotSupported,
     /// A data type is not supported by the selected backend.
-    DtypeNotSupported = 26,
+    DtypeNotSupported,
     /// A type-casting operation is not supported.
-    CastNotSupported = 27,
+    CastNotSupported,
     /// Tensor shapes are incompatible for the requested operation.
-    ShapeMismatch = 28,
+    ShapeMismatch,
     /// A device or storage resource handle is invalid.
-    InvalidResourceHandle = 29,
+    InvalidResourceHandle,
     /// A device kernel failed to launch.
-    KernelLaunchError = 30,
+    KernelLaunchError,
     /// The requested operation has not been implemented.
-    NotImplemented = 31,
+    NotImplemented,
     /// An internal invariant or subsystem failed.
-    InternalError = 32,
+    InternalError,
     /// An unspecified runtime failure occurred.
-    RuntimeError = 33,
+    RuntimeError,
 }
 
 /// C-compatible status containing an error code and diagnostic message.
