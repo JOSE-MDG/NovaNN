@@ -84,16 +84,23 @@ impl RustStorage {
     /// # Errors
     ///
     /// Returns [`StorageError::InvalidSize`] when `size` is zero,
-    /// [`StorageError::InvalidAlignment`] when `align` is not a power of two,
-    /// or [`StorageError::AllocationFailed`] when the system allocator returns
+    /// [`StorageError::InvalidAlignment`] when `align` is zero or not a
+    /// power of two,
+    /// [`StorageError::InvalidMemoryLayout`] when `align` or `size` cannot be
+    /// represented by the platform allocator, or
+    /// [`StorageError::AllocationFailed`] when the system allocator returns
     /// a null pointer.
     pub fn allocate(size: usize, align: usize) -> Result<Self, StorageError> {
         if size == 0 {
             return Err(StorageError::InvalidSize);
         }
 
+        if ((align > 0) && (align & (align - 1)) != 0) || (align == 0) {
+            return Err(StorageError::InvalidAlignment);
+        }
+
         let layout =
-            Layout::from_size_align(size, align).map_err(|_| StorageError::InvalidAlignment)?;
+            Layout::from_size_align(size, align).map_err(|_| StorageError::InvalidMemoryLayout)?;
 
         // SAFETY: layout is non-zero and valid.
         let ptr = unsafe { alloc(layout) };

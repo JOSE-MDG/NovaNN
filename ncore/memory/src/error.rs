@@ -13,9 +13,10 @@ pub enum StorageError {
     AllocationFailed,
     /// The handle does not exist or has already been invalidated.
     InvalidHandle,
-    /// The requested alignment is zero, not a power of two, or otherwise
-    /// cannot be represented by the platform allocator.
+    /// The requested alignment is zero or not a power of two.
     InvalidAlignment,
+    /// The requested memory layout is invalid.
+    InvalidMemoryLayout,
     /// The requested allocation or resize size is zero.
     InvalidSize,
     /// The CPU allocator could not resize the allocation.
@@ -44,8 +45,9 @@ impl StorageError {
     pub(crate) fn code(&self) -> NovaError {
         match self {
             Self::AllocationFailed => NovaError::OutOfMemory,
-            Self::InvalidHandle => NovaError::InvalidResourceHandle,
+            Self::InvalidHandle => NovaError::InvalidHandle,
             Self::InvalidAlignment => NovaError::InvalidAlignment,
+            Self::InvalidMemoryLayout => NovaError::InvalidMemoryLayout,
             Self::InvalidSize => NovaError::InvalidValue,
             Self::ResizeFailed => NovaError::OutOfMemory,
             Self::ManagerPoisoned | Self::ReferenceCountOverflow => NovaError::InternalError,
@@ -64,6 +66,7 @@ impl std::fmt::Display for StorageError {
             Self::AllocationFailed => write!(f, "Memory allocation failed"),
             Self::InvalidHandle => write!(f, "Invalid or expired handle"),
             Self::InvalidAlignment => write!(f, "Alignment must be a power of two and non-zero"),
+            Self::InvalidMemoryLayout => write!(f, "The requested memory layout is invalid"),
             Self::InvalidSize => write!(f, "Size must be greater than zero"),
             Self::ResizeFailed => write!(f, "Memory reallocation failed"),
             Self::ManagerPoisoned => write!(f, "Storage manager is unavailable"),
