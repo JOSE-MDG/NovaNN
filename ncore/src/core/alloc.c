@@ -128,10 +128,7 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
     return status;
   }
 
-  const size_t align =
-      (int)on_device(ten) ? 0 : 64; /** @note The alignment just applied for
-               Host tensors, which the default is set to 64 bytes */
-
+  const size_t align = (int)on_device(ten) ? 512 : (int)pin_memory ? 4096 : 64;
   if (!create_storage) {
     *handle =
         reserve(bytes, map_device2string(device), pin_memory, align, &status);
