@@ -53,6 +53,6 @@ impl RustHandle {
     /// [`crate::ops::query::is_valid_op`] to also verify that the ID is
     /// currently registered.
     pub fn is_valid(&self) -> bool {
-        self.id != 0 && self.size_bytes != 0 && self.align != 0
+        self.id != 0 && self.size_bytes != 0
     }
 }
