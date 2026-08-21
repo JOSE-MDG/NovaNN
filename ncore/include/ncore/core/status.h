@@ -53,9 +53,11 @@ typedef enum novaError_t : uint8_t {
   novaInvalidDevice,
   novaInvalidNdims,
   novaInvalidAlignment,
+  novaInvalidMemoryLayout,
   novaInvalidShape,
   novaInvalidIndex,
   novaInvalidNumThreads,
+  novaInvalidHandle,
 
   /* Memory */
   novaBufferOverflow,

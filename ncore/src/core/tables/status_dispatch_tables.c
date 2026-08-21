@@ -70,12 +70,16 @@ INITIALIZE(init_status_msg_dispatch) {
       "Number of dimensions is not valid or not supported\n";
   status_msg_dispatch[novaInvalidAlignment] =
       "Memory alignment requirement not met for the target device\n";
+  status_msg_dispatch[novaInvalidMemoryLayout] =
+      "The requested memory layout is invalid\n";
   status_msg_dispatch[novaInvalidShape] =
       "Tensor shape is invalid or violates operation constraints\n";
   status_msg_dispatch[novaInvalidIndex] =
       "Index is out of bounds for the given tensor dimensions\n";
   status_msg_dispatch[novaInvalidNumThreads] =
-      "Thread numbers is out of a valid range (thr <= 0) \n";
+      "Thread numbers is out of a valid range \n";
+  status_msg_dispatch[novaInvalidHandle] =
+      "The handle is invalid or has expired\n";
 
   /* Memory */
   status_msg_dispatch[novaBufferOverflow] =
