@@ -7,26 +7,26 @@
 //!
 //! | Variable         | Required | Default     | Description                              |
 //! |------------------|----------|-------------|------------------------------------------|
-//! | `RUSTCSRC_DIR`   | no       | —           | Path to the compiled C++ static library. |
-//! | `RUSTCSRC_NAME`  | no       | `memorycsrc`  | Name of the static library (without lib prefix). |
+//! | `MEMORYCSRC_DIR` | no       | —           | Path to the compiled C++ static library. |
+//! | `MEMORYCSRC_NAME`| no       | `memorycsrc`| Name of the static library (without lib prefix). |
 //!
-//! When `RUSTCSRC_DIR` is set, the script emits the native link search path,
+//! When `MEMORYCSRC_DIR` is set, the script emits the native link search path,
 //! static library, and C++ runtime dependencies required by the CMake build.
 //! When it is absent, the Rust crate can still be checked independently; the
 //! native link configuration is expected to be supplied by CMake.
 
 fn main() {
-    let csrc_dir = match std::env::var("RUSTCSRC_DIR") {
+    let csrc_dir = match std::env::var("MEMORYCSRC_DIR") {
         Ok(path) => path,
         Err(_) => {
             println!(
-                "cargo:warning=RUSTCSRC_DIR is not set; native linking is configured by CMake"
+                "cargo:warning=MEMORYCSRC_DIR is not set; native linking is configured by CMake"
             );
             return;
         }
     };
 
-    let csrc_name = std::env::var("RUSTCSRC_NAME").unwrap_or_else(|_| "memorycsrc".to_string());
+    let csrc_name = std::env::var("MEMORYCSRC_NAME").unwrap_or_else(|_| "memorycsrc".to_string());
 
     // Link the pre-compiled C++ static library and its standard library runtime.
     println!("cargo:rustc-link-search=native={}", csrc_dir);
@@ -35,8 +35,8 @@ fn main() {
 
     println!("cargo:rerun-if-changed=build.rs");
 
-    println!("cargo:rerun-if-env-changed=RUSTCSRC_DIR");
-    println!("cargo:rerun-if-env-changed=RUSTCSRC_NAME");
+    println!("cargo:rerun-if-env-changed=MEMORYCSRC_DIR");
+    println!("cargo:rerun-if-env-changed=MEMORYCSRC_NAME");
 
     // C++ FFI source files — recompile when any of these change.
     println!("cargo:rerun-if-changed=csrc/ffi.cpp");
