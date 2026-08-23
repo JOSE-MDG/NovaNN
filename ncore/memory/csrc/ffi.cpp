@@ -310,6 +310,15 @@ novaStatus_t deviceResize(deviceBuffer_t *buf, std::size_t new_bytes) {
 novaStatus_t deviceTransfer(const void *src, void *dst, TransferKind kind,
                             size_t bytes) {
   novaStatus_t status = {};
+
+  if (kind != deviceMemcpyHostToDevice &&
+      kind != deviceMemcpyDeviceToHost &&
+      kind != deviceMemcpyDeviceToDevice) {
+    status.err = novaInvalidTransfDirection;
+    status.message = "Unknown transfer direction";
+    return status;
+  }
+
   deviceKind_t device = getDeviceBackend();
 
   if (device == deviceKind_t::DeviceCUDA) {
