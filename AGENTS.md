@@ -205,6 +205,65 @@ C/C++ calls:  reserve() / retain() / release() / resize()
 | `ncore_memory` (`ncore::memory`) | IMPORTED STATIC | Rust crate |
 | `memorycsrc` (`ncore::memory::csrc`) | STATIC | C++ bridge for GPU memory |
 
+### Building the Project
+
+Prerequisites: CMake ≥ 3.27, Ninja, and vcpkg with the `VCPKG_ROOT` environment variable pointing to the vcpkg installation (all presets load its toolchain). Every preset builds out-of-source into `build/<preset-name>/`; list them all with `cmake --list-presets`.
+
+#### Preset Naming Convention
+
+Visible presets follow `<backend>-<config>[-<sanitizer>][-test][-os]`:
+
+| Component | Values | Notes |
+|-----------|--------|-------|
+| `<backend>` | `cpu`, `cuda`, `hip` | `hip` presets are Linux-only |
+| `<config>` | `release`, `debug` | Sets `CMAKE_BUILD_TYPE` |
+| `<sanitizer>` | `asan`, `ubsan` | Optional. UBSan presets are Linux-only |
+| `-test` | — | Optional. Enables GoogleTest + CTest (`BUILD_TESTING=ON`) |
+| `-os` | `linux`, `windows` | Compilers: Linux → gcc/g++, Windows → clang-cl + lld-link. HIP forces clang and disables LTO |
+
+Examples: `cpu-release-linux`, `cpu-asan-test-debug-linux`, `cuda-test-release-windows`, `hip-ubsan-test-debug-linux`.
+
+#### Option 1 — Workflow Presets
+
+Chain configure → build (→ test for `-test-*` presets) in one command:
+
+```bash
+cmake --workflow --preset cpu-release-linux      # configure + build
+cmake --workflow --preset cpu-test-debug-linux   # configure + build + ctest
+```
+
+#### Option 2 — Step by Step
+
+```bash
+cmake --preset cpu-test-debug-linux           # 1. configure → build/cpu-test-debug-linux/
+cmake --build --preset cpu-test-debug-linux   # 2. compile
+ctest --preset cpu-test-debug-linux           # 3. run tests (-test-* presets only)
+```
+
+Test presets print output on failure and error out when no tests are registered.
+
+#### Option 3 — Helper Scripts (bulk operations)
+
+Configure or build many presets at once. Both scripts print one summary line per preset (with a live progress spinner on a TTY) and write full output to `build/logs/<preset>.log`.
+
+| Script (bash / pwsh) | Purpose | Options |
+|----------------------|---------|---------|
+| `scripts/build-presets.sh` / `.ps1` | Configure matching presets (`cmake --preset`) | `-c/--continue`, `-l/--list` |
+| `scripts/compile-presets.sh` / `.ps1` | Build already-configured presets (`cmake --build`) | `-C/--config Release\|Debug`, `-j/--jobs N`, `-c/--continue`, `-l/--list` |
+
+```bash
+scripts/build-presets.sh                  # configure every preset
+scripts/build-presets.sh cpu              # configure cpu-* presets
+scripts/compile-presets.sh cpu            # build configured cpu-* presets
+scripts/compile-presets.sh -c -j $(nproc) cuda  # build cuda-* presets, 16 jobs, keep going on failure
+```
+
+- Filters match a backend prefix (`cpu`, `cuda`, `hip`) or an exact preset name; `compile-presets` accepts multiple filters.
+- `--config` defaults to the value derived from the preset name (`*-debug*` → Debug, otherwise Release).
+- Both scripts abort on the first failure unless `--continue` is given. Exit status: `0` success · `1` failure · `2` usage error.
+- On Windows, configuring `cuda-*` presets requires the `CUDA_HOST_COMPILER` environment variable (e.g., pointing to MSVC's `cl.exe`); otherwise those presets are skipped.
+- Typical verification loop: `scripts/build-presets.sh <preset>` → `scripts/compile-presets.sh <preset>` → `ctest --preset <preset>`.
+
 ---
 
 ## Project Status
