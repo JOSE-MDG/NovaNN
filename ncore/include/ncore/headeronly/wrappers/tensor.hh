@@ -32,6 +32,7 @@
 #include <ncore/core/status.h>
 #include <ncore/core/storage.h>
 #include <ncore/headeronly/macros.h>
+#include <ncore/headeronly/tensor_utils.h>
 #include <ncore/repr/tensor_repr.h>
 #include <ncore/tensor.h>
 
@@ -40,6 +41,21 @@
  * @brief High-level C++ wrappers over the ncore C core.
  */
 namespace ncore::wrappers {
+
+/**
+ * @struct UnallocatedTag
+ * @brief Disambiguator selecting the non-allocating @ref TensorCXX
+ *        constructors.
+ *
+ * @details
+ * The unallocated constructors share their parameter lists with the
+ * allocating ones, so an explicit tag is required to tell them apart.
+ * Pass the @ref unallocated constant as the first argument.
+ */
+struct UnallocatedTag {};
+
+/// @brief Tag value requesting an unallocated tensor.
+inline constexpr UnallocatedTag unallocated{};
 
 /**
  * @class TensorCXX
@@ -130,6 +146,49 @@ public:
    */
   TensorCXX(DType_ dtype, Device_ device, bool requires_grad, bool pin_memory,
             novaStatus_t *st);
+
+  /**
+   * @brief Constructs an unallocated n-dimensional tensor.
+   *
+   * @details
+   * Wraps @ref create_unallocated_tensor(): metadata (shape, strides,
+   * dtype, device, gradient handle) is populated but no backing buffer is
+   * reserved. This is the state required by C core APIs that populate a
+   * tensor through an out-pointer, such as @ref deepcopy().
+   *
+   * @param[in] tag           Must be @ref unallocated.
+   * @param[in] shape         Logical dimension sizes.
+   * @param[in] dtype         Data type of the tensor elements.
+   * @param[in] device        Target device (@c DEVICE_CPU, @c DEVICE_GPU,
+   *                          or @c DEVICE_META).
+   * @param[in] requires_grad Whether to attach an unallocated gradient.
+   * @param[in] pin_memory    Whether the future buffer should be pinned.
+   * @param[in,out] st        Status output; @ref novaSuccess on success.
+   *
+   * @see create_unallocated_tensor()  Underlying C constructor.
+   */
+  TensorCXX(UnallocatedTag tag, const std::vector<size_t> &shape,
+            DType_ dtype, Device_ device, bool requires_grad, bool pin_memory,
+            novaStatus_t *st);
+
+  /**
+   * @brief Constructs an unallocated scalar (0-d) tensor.
+   *
+   * @details
+   * Wraps @ref create_unallocated_scalar_tensor(). Same contract as the
+   * tagged n-dimensional constructor with a trivial layout.
+   *
+   * @param[in] tag           Must be @ref unallocated.
+   * @param[in] dtype         Data type of the tensor elements.
+   * @param[in] device        Target device.
+   * @param[in] requires_grad Whether to attach an unallocated gradient.
+   * @param[in] pin_memory    Whether the future buffer should be pinned.
+   * @param[in,out] st        Status output; @ref novaSuccess on success.
+   *
+   * @see create_unallocated_scalar_tensor()  Underlying C constructor.
+   */
+  TensorCXX(UnallocatedTag tag, DType_ dtype, Device_ device,
+            bool requires_grad, bool pin_memory, novaStatus_t *st);
 
   // ================================================================
   // Copy / Move
@@ -336,6 +395,19 @@ public:
    * @return A copy of the internal @ref Tensor structure.
    */
   Tensor getCTensor() noexcept;
+
+  /**
+   * @brief Returns a mutable reference to the underlying C tensor.
+   *
+   * @details
+   * Intended for C core APIs that populate a tensor through an
+   * out-pointer (e.g. @ref deepcopy()). Note that the mirrored metadata
+   * members held by this wrapper are not refreshed automatically; if a
+   * call reshapes the tensor, prefer reconstructing the wrapper.
+   *
+   * @return Mutable reference to the wrapped C tensor.
+   */
+  [[nodiscard]] Tensor &mutableCTensor() noexcept;
 
   // ================================================================
   // Device / dtype transfer helpers
@@ -684,4 +756,44 @@ inline TensorCXX TensorCXX::cuda(novaStatus_t &st) noexcept {
   st = transf_tensor_from_host(&c_tensor, &out.c_tensor);
   return out;
 }
+/// @brief Constructs an unallocated n-dimensional tensor.
+inline TensorCXX::TensorCXX(UnallocatedTag, const std::vector<size_t> &shape,
+                            DType_ dtype, Device_ device, bool requires_grad,
+                            bool pin_memory, novaStatus_t *st) {
+  shape_t local_shape = {0};
+  for (size_t i = 0; i < shape.size(); ++i) {
+    local_shape[i] = shape[i];
+  }
+  c_tensor = create_unallocated_tensor(local_shape, dtype, device,
+                                       requires_grad, pin_memory, shape.size(),
+                                       st);
+
+  this->shape = shape;
+  size = c_tensor.size;
+  ndims = c_tensor.ndims;
+  item_size = c_tensor.item_size;
+  logical_size = c_tensor.logical_size;
+  data = c_tensor.data;
+}
+
+/// @brief Constructs an unallocated scalar (0-d) tensor.
+inline TensorCXX::TensorCXX(UnallocatedTag, DType_ dtype, Device_ device,
+                            bool requires_grad, bool pin_memory,
+                            novaStatus_t *st) {
+  Tensor ten =
+      create_unallocated_scalar_tensor(dtype, device, requires_grad,
+                                       pin_memory, st);
+  move_tensor(&c_tensor, &ten);
+
+  shape = {0};
+  size = c_tensor.size;
+  ndims = c_tensor.ndims;
+  item_size = c_tensor.item_size;
+  logical_size = c_tensor.logical_size;
+  data = c_tensor.data;
+}
+
+/// @brief Returns a mutable reference to the underlying C tensor.
+inline Tensor &TensorCXX::mutableCTensor() noexcept { return c_tensor; }
+
 } // namespace ncore::wrappers
