@@ -31,23 +31,11 @@
 #pragma once
 
 #include <ncore/core/dtype.h>
+// fp4e2m1x2Result_t is defined in the public header; keep a single copy so
+// Clang's -Wreturn-type-c-linkage sees a complete return type everywhere.
+#include <ncore/core/fp_utils.h>
 
 extern "C" {
-
-/**
- * @struct fp4e2m1x2Result_t
- * @brief Result of decomposing a pair-packed FP4 E2M1FN byte into its
- *        constituent nibbles.
- *
- * @c lo and @c hi hold the raw 4-bit values of the low and high nibbles
- * respectively; @c val reproduces the original pair-packed byte as
- * @c (hi << 4) | lo.
- */
-struct fp4e2m1x2Result_t {
-  uint32_t lo;
-  uint32_t hi;
-  float4_e2m1fn_x2 val;
-};
 
 /**
  * @brief Convert a single-precision float to IEEE 754 half-precision (FP16).
