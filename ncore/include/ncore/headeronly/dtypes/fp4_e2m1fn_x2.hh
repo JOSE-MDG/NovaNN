@@ -614,11 +614,12 @@ public:
 
   /**
    * @brief Machine epsilon.
-   * @details 0b0011 → 1.5; the gap between 1.0 and the next representable
-   * value is itself 0.5, i.e. @f$2^{-1}@f$.
+   * @details 0b0001 → 0.5 (@f$2^{-1}@f$): the gap between 1.0 and the next
+   * representable value (1.5), matching the ULP(1) convention used by the
+   * other reduced-precision types.
    */
   static constexpr Float4_e2m1fn epsilon() {
-    return {0b0011, Float4_e2m1fn::from_bits()};
+    return {0b0001, Float4_e2m1fn::from_bits()};
   }
 
   /**
