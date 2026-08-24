@@ -31,8 +31,8 @@
 
 #include <bit>
 #include <cmath>
-
 #include <cstdint>
+#include <limits>
 #include <ncore/core/dtype.h>
 #include <ncore/headeronly/macros.h>
 
@@ -299,7 +299,7 @@ fp4e2m1x2Result_t fp4e2m1x2_to_f32_bits(float4_e2m1fn_x2 val) {
   fp4e2m1x2Result_t r;
   r.lo = val & 0x0F;
   r.hi = (val >> 4) & 0x0F;
-  r.val = static_cast<uint8_t>(r.hi) | static_cast<uint8_t>(r.lo);
+  r.val = static_cast<float4_e2m1fn_x2>((r.hi << 4) | r.lo);
   return r;
 }
 
