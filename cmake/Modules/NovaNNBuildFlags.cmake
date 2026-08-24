@@ -135,17 +135,32 @@ endif()
 
 
 # Release flags
+#
+# -ffast-math is a group flag; every safety flag below must stay AFTER it
+# (later options override earlier ones). Per GCC/Clang manuals it enables
+# -funsafe-math-optimizations (-fno-signed-zeros, -fassociative-math,
+# -freciprocal-math), -ffinite-math-only and friends; the overrides restore
+# the IEEE guarantees a numeric library depends on while keeping the bulk
+# of the throughput.
 if(_nova_is_clang_cl)
   set(NOVA_RELEASE_FLAGS
     /O2
     /clang:-ffast-math
-    /clang:-fno-finite-math-only
+    /clang:-fno-finite-math-only   # NaN/Inf exist: keep isnan/isinf live
+    /clang:-fsigned-zeros          # -0.0 stays distinct (signbit/copysign)
+    /clang:-fno-associative-math   # no reassociation: stable accumulation
+    /clang:-fno-reciprocal-math    # keep x/y correctly rounded
     /GS            # buffer security check (clang-cl equivalent of -fstack-protector-strong)
   )
   list(APPEND NOVA_RELEASE_FLAGS /clang:-march=x86-64-v2)
 else()
   set(NOVA_RELEASE_FLAGS
-    -O3 -ffast-math -fno-finite-math-only
+    -O3 -ffast-math
+    -fno-finite-math-only   # NaN/Inf exist: keep isnan/isinf live
+    -fsigned-zeros          # -0.0 stays distinct (signbit/copysign)
+    -fno-associative-math   # no reassociation: stable accumulation order
+    -fno-reciprocal-math    # keep x/y correctly rounded
+    -mno-daz-ftz            # stop crtfastmath.o from enabling FTZ/DAZ
     -fstack-protector-strong
   )
 
@@ -191,6 +206,9 @@ include(Detect/sanitizers/DetectSanitizers)
     ``-ffat-lto-objects`` is a GCC-only flag and is skipped on Clang.
   - Links against ``nova::sanitizers`` if AddressSanitizer or
     UndefinedBehaviorSanitizer are enabled.
+  - Adds ``-mno-daz-ftz`` to link options on non-Windows targets so
+    ``crtfastmath.o`` (pulled in by ``-ffast-math``) does not enable FTZ/DAZ
+    process-wide.
 
 #]=======================================================================]
 function(nova_configure_build_flags TARGET)
@@ -200,6 +218,13 @@ function(nova_configure_build_flags TARGET)
     $<$<CONFIG:Debug>:${NOVA_DEBUG_FLAGS}>
     $<$<CONFIG:Release>:${NOVA_RELEASE_FLAGS}>
   )
+
+  if(NOT WIN32)
+    # The driver links crtfastmath.o under -ffast-math, which sets FTZ/DAZ
+    # process-wide and flushes subnormals. This must be visible at LINK time
+    # (the decision happens during linking), not just at compile time.
+    target_link_options(${TARGET} PRIVATE -mno-daz-ftz)
+  endif()
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     if(_nova_is_clang_cl)
