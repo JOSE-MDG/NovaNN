@@ -44,3 +44,6 @@ vcpkg_installed/
 
 # CMake test artifacts
 Testing/
+
+# Agents
+agents-memory/
