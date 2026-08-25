@@ -511,7 +511,15 @@ static inline TensorGrad
 create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
                                Device_ device, bool pin_memory, size_t ndims,
                                novaStatus_t *status) {
+#if defined(_WIN64)
   TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
+#else
+  void *raw = nullptr;
+  if (posix_memalign(&raw, alignof(Tensor), sizeof(Tensor)) != 0) {
+    raw = nullptr;
+  }
+  TensorGrad grad = (TensorGrad)raw;
+#endif
   if (grad == nullptr) {
     status->err = novaInvalidPointer;
     status->message =
@@ -627,7 +635,15 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
 static inline TensorGrad
 create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
                                       bool pin_memory, novaStatus_t *status) {
+#if defined(_WIN64)
   TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
+#else
+  void *raw = nullptr;
+  if (posix_memalign(&raw, alignof(Tensor), sizeof(Tensor)) != 0) {
+    raw = nullptr;
+  }
+  TensorGrad grad = (TensorGrad)raw;
+#endif
   if (grad == nullptr) {
     status->err = novaInvalidPointer;
     status->message =
