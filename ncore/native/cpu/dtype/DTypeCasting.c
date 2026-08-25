@@ -3845,7 +3845,7 @@ tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
  */
 [[gnu::target("sse4.2")]] void tf32_to_f64_sse4_2(const Tensor *restrict src,
                                                   Tensor *restrict dst) {
-  const size_t step = NOVA_SIMD_F64_WITH_SSE;
+  const size_t step = NOVA_SIMD_F32_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
@@ -3854,8 +3854,8 @@ tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m128 v = _mm_loadu_ps(&s[i]);
-    __m128d r = _mm_cvtps_pd(v);
-    _mm_storeu_pd(&d[i], r);
+    _mm_storeu_pd(&d[i], _mm_cvtps_pd(v));
+    _mm_storeu_pd(&d[i + 2], _mm_cvtps_pd(_mm_movehl_ps(v, v)));
   }
   if (rem > 0) {
     REMAINING(i, size, d, s, double)
@@ -6119,7 +6119,7 @@ ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
  */
 [[gnu::target("sse4.2")]] void ts32_to_f64_sse4_2(const Tensor *restrict src,
                                                   Tensor *restrict dst) {
-  const size_t step = NOVA_SIMD_F64_WITH_SSE;
+  const size_t step = NOVA_SIMD_F32_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
@@ -6128,8 +6128,8 @@ ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   double *d = dst->data.f64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m128d r = _mm_cvtepi32_pd(v);
-    _mm_storeu_pd(&d[i], r);
+    _mm_storeu_pd(&d[i], _mm_cvtepi32_pd(v));
+    _mm_storeu_pd(&d[i + 2], _mm_cvtepi32_pd(_mm_unpackhi_epi64(v, v)));
   }
   if (rem > 0) {
     REMAINING(i, size, d, s, double)
@@ -6324,13 +6324,10 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const int8 *s = src->data.s8;
   int32 *d = dst->data.s32;
   for (; i < n; i += step) {
-    __m128i r0 = _mm_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
-    __m128i r1 =
-        _mm_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i + 4]));
-    __m128i r2 =
-        _mm_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i + 8]));
-    __m128i r3 =
-        _mm_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i + 12]));
+    __m128i r0 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i]));
+    __m128i r1 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i + 4]));
+    __m128i r2 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i + 8]));
+    __m128i r3 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i + 12]));
     _mm_storeu_si128((__m128i_u *)&d[i], r0);
     _mm_storeu_si128((__m128i_u *)&d[i + 4], r1);
     _mm_storeu_si128((__m128i_u *)&d[i + 8], r2);
@@ -6384,7 +6381,7 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const int8 *s = src->data.s8;
   int64 *d = dst->data.s64;
   for (; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m128i b = _mm_loadu_si32((const void *)&s[i]);
     __m256i r = _mm256_cvtepi8_epi64(b);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
@@ -6410,7 +6407,7 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const int8 *s = src->data.s8;
   int64 *d = dst->data.s64;
   for (; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m128i b = _mm_loadu_si16((const void *)&s[i]);
     __m128i r = _mm_cvtepi8_epi64(b);
     _mm_storeu_si128((__m128i_u *)&d[i], r);
   }
@@ -6516,7 +6513,7 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
  */
 [[gnu::target("sse4.2")]] void ts32_to_s64_sse4_2(const Tensor *restrict src,
                                                   Tensor *restrict dst) {
-  const size_t step = NOVA_SIMD_S64_WITH_SSE;
+  const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
@@ -6525,8 +6522,9 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   int64 *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m128i r = _mm_cvtepi32_epi64(v);
-    _mm_storeu_si128((__m128i_u *)&d[i], r);
+    _mm_storeu_si128((__m128i_u *)&d[i], _mm_cvtepi32_epi64(v));
+    _mm_storeu_si128((__m128i_u *)&d[i + 2],
+                     _mm_cvtepi32_epi64(_mm_unpackhi_epi64(v, v)));
   }
   if (rem > 0) {
     REMAINING(i, size, d, s, int64)
@@ -6694,7 +6692,7 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const uint8 *s = src->data.u8;
   uint64 *d = dst->data.u64;
   for (; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m128i b = _mm_loadu_si32((const void *)&s[i]);
     __m256i r = _mm256_cvtepu8_epi64(b);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
@@ -6720,7 +6718,7 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const uint8 *s = src->data.u8;
   uint64 *d = dst->data.u64;
   for (; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m128i b = _mm_loadu_si16((const void *)&s[i]);
     __m128i r = _mm_cvtepu8_epi64(b);
     _mm_storeu_si128((__m128i_u *)&d[i], r);
   }
@@ -6821,7 +6819,7 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
  */
 [[gnu::target("sse4.2")]] void tu32_to_u64_sse4_2(const Tensor *restrict src,
                                                   Tensor *restrict dst) {
-  const size_t step = NOVA_SIMD_U64_WITH_SSE;
+  const size_t step = NOVA_SIMD_U32_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
@@ -6830,8 +6828,9 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   uint64 *d = dst->data.u64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m128i r = _mm_cvtepu32_epi64(v);
-    _mm_storeu_si128((__m128i_u *)&d[i], r);
+    _mm_storeu_si128((__m128i_u *)&d[i], _mm_cvtepu32_epi64(v));
+    _mm_storeu_si128((__m128i_u *)&d[i + 2],
+                     _mm_cvtepu32_epi64(_mm_unpackhi_epi64(v, v)));
   }
   if (rem > 0) {
     REMAINING(i, size, d, s, uint64)
@@ -7127,13 +7126,10 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst) {
   const int8 *s = src->data.s8;
   uint32 *d = dst->data.u32;
   for (; i < n; i += step) {
-    __m128i r0 = _mm_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
-    __m128i r1 =
-        _mm_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i + 4]));
-    __m128i r2 =
-        _mm_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i + 8]));
-    __m128i r3 =
-        _mm_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i + 12]));
+    __m128i r0 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i]));
+    __m128i r1 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i + 4]));
+    __m128i r2 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i + 8]));
+    __m128i r3 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i + 12]));
     _mm_storeu_si128((__m128i_u *)&d[i], r0);
     _mm_storeu_si128((__m128i_u *)&d[i + 4], r1);
     _mm_storeu_si128((__m128i_u *)&d[i + 8], r2);
@@ -7401,7 +7397,7 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
  */
 [[gnu::target("sse4.2")]] void ts32_to_u64_sse4_2(const Tensor *restrict src,
                                                   Tensor *restrict dst) {
-  const size_t step = NOVA_SIMD_U64_WITH_SSE;
+  const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
@@ -7631,13 +7627,10 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const uint8 *s = src->data.u8;
   int32 *d = dst->data.s32;
   for (; i < n; i += step) {
-    __m128i r0 = _mm_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
-    __m128i r1 =
-        _mm_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i + 4]));
-    __m128i r2 =
-        _mm_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i + 8]));
-    __m128i r3 =
-        _mm_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i + 12]));
+    __m128i r0 = _mm_cvtepu8_epi32(_mm_loadu_si32((const void *)&s[i]));
+    __m128i r1 = _mm_cvtepu8_epi32(_mm_loadu_si32((const void *)&s[i + 4]));
+    __m128i r2 = _mm_cvtepu8_epi32(_mm_loadu_si32((const void *)&s[i + 8]));
+    __m128i r3 = _mm_cvtepu8_epi32(_mm_loadu_si32((const void *)&s[i + 12]));
     _mm_storeu_si128((__m128i_u *)&d[i], r0);
     _mm_storeu_si128((__m128i_u *)&d[i + 4], r1);
     _mm_storeu_si128((__m128i_u *)&d[i + 8], r2);
@@ -7691,7 +7684,7 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const uint8 *s = src->data.u8;
   int64 *d = dst->data.s64;
   for (; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m128i b = _mm_loadu_si32((const void *)&s[i]);
     __m256i r = _mm256_cvtepu8_epi64(b);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
@@ -7717,7 +7710,7 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   const uint8 *s = src->data.u8;
   int64 *d = dst->data.s64;
   for (; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m128i b = _mm_loadu_si16((const void *)&s[i]);
     __m128i r = _mm_cvtepu8_epi64(b);
     _mm_storeu_si128((__m128i_u *)&d[i], r);
   }
@@ -7898,7 +7891,7 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
  */
 [[gnu::target("sse4.2")]] void tu32_to_s64_sse4_2(const Tensor *restrict src,
                                                   Tensor *restrict dst) {
-  const size_t step = NOVA_SIMD_S64_WITH_SSE;
+  const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t i = 0;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
@@ -7907,8 +7900,9 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst) {
   int64 *d = dst->data.s64;
   for (; i < n; i += step) {
     __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m128i r = _mm_cvtepu32_epi64(v);
-    _mm_storeu_si128((__m128i_u *)&d[i], r);
+    _mm_storeu_si128((__m128i_u *)&d[i], _mm_cvtepu32_epi64(v));
+    _mm_storeu_si128((__m128i_u *)&d[i + 2],
+                     _mm_cvtepu32_epi64(_mm_unpackhi_epi64(v, v)));
   }
   if (rem > 0) {
     REMAINING(i, size, d, s, int64)
