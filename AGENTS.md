@@ -250,12 +250,29 @@ Configure or build many presets at once. Both scripts print one summary line per
 |----------------------|---------|---------|
 | `scripts/build-presets.sh` / `.ps1` | Configure matching presets (`cmake --preset`) | `-c/--continue`, `-l/--list` |
 | `scripts/compile-presets.sh` / `.ps1` | Build already-configured presets (`cmake --build`) | `-C/--config Release\|Debug`, `-j/--jobs N`, `-c/--continue`, `-l/--list` |
+| `scripts/run-tests.sh` / `.ps1` | Run matching `*-test-*` presets with ctest | `--force-stop-on-failure`, `-l/--list`, `-- CTEST_ARGS...` |
+| `clean.sh` / `.ps1` | Clean one CMake tree, logs, or the complete `build/` directory | `--target`, `-n/--dry-run`, `-y/--yes` |
+
+The four preset/test runners share colors, error handling, elapsed-time
+formatting, preset discovery, and progress rendering from
+`scripts/lib/common.sh` and `scripts/lib/common.psm1`. `run-tests` continues
+after a failing preset by default; `--force-stop-on-failure` changes that to
+fail-fast. Arguments after `--` are forwarded to ctest, and each preset's
+complete output is saved under `build/logs/tests/`.
+
+`clean --target <build-directory>` invokes `cmake --build <dir> --target
+clean`, preserving the configured tree. `--target logs`, `test-logs`, and
+`build-logs` remove the corresponding log scope. Running `clean` without a
+target removes the whole `build/` directory and requires confirmation unless
+`--yes` is supplied.
 
 ```bash
 scripts/build-presets.sh                  # configure every preset
 scripts/build-presets.sh cpu              # configure cpu-* presets
 scripts/compile-presets.sh cpu            # build configured cpu-* presets
 scripts/compile-presets.sh -c -j $(nproc) cuda  # build cuda-* presets, 16 jobs, keep going on failure
+scripts/run-tests.sh cuda -- -R 'MemoryAllocator.*'  # run a filtered test set
+./clean.sh --target logs                   # remove all build and test logs
 ```
 
 - Filters match a backend prefix (`cpu`, `cuda`, `hip`) or an exact preset name; `compile-presets` accepts multiple filters.
@@ -279,7 +296,7 @@ scripts/compile-presets.sh -c -j $(nproc) cuda  # build cuda-* presets, 16 jobs,
 v4.0.4             v5.0.0-alpha              v5.0.0-beta               v5.0.0
   │                     │                         │                       │
   ▼                     ▼                         ▼                       ▼
-──┴─────────────────────┴─────────────────────────┴───────────────────────▶
+  ┴─────────────────────┴─────────────────────────┴───────────────────────▶
 
 Python+NumPy      Native C core              Autograd C++              Ecosystem
 (legacy)          Backends CPU/CUDA/HIP      Cython Bindings           Hub (models)
@@ -289,6 +306,80 @@ Python+NumPy      Native C core              Autograd C++              Ecosystem
 
 ---
 
-## Summary
+## Agent Guidelines
+
+Working practices for any agent operating in this repository. Each rule
+exists because skipping it caused a concrete failure during development.
+
+### Verify, never assume
+
+- Compiler and linkage facts come from the build tree, never from memory:
+  `CMakeCache.txt` for compilers, `build.ninja` for flags and libraries,
+  `ldd` of the actual test binaries for runtime linkage. Example: CUDA
+  presets build host code exclusively with GCC/G++ (`nvcc` handles device
+  code); HIP presets use Clang. Assuming the opposite misattributes bugs to
+  the wrong toolchain.
+- Before implementing anything that depends on documented semantics
+  (intrinsics, ISA behavior, compiler flags, sanitizer options), fetch the
+  official source online: Intel SDM / Intrinsics Guide, GCC and Clang
+  manuals, LLVM sanitizer documentation. Memorized semantics have been
+  wrong here; cited references are part of the deliverable.
+
+### Generated code
+
+- Files whose banner reads "DO NOT EDIT — GENERATED CODE" (for example
+  `ncore/native/cpu/dtype/DTypeCasting.c`) are produced by the codegen
+  pipeline under `tools/codegen/`. Never edit them directly: edit the Jinja
+  template and JSON rules, then regenerate:
+
+      uv run tools/codegen/generate.py gen --all --keep-going --run-formatters
+
+- All Python tooling in this repository runs through `uv`.
+
+### SIMD and numeric invariants
+
+- Loop invariant for every vectorized kernel: bytes loaded per iteration
+  must equal source element size times the loop step. Watch width traps
+  (`_mm_loadl_epi64` loads 8 bytes while `_mm_cvtepi8_epi32` consumes only
+  the low 4).
+- Splitting a wide body into two narrow stores requires raising the loop
+  step to the SOURCE lane count; otherwise odd sizes trade an over-read for
+  an overlapping write.
+- Read the Intel Intrinsics Guide before writing or modifying intrinsics.
+  Always.
+
+### Editing discipline
+
+- Manual edits with unique anchors; re-read after multi-line replacements.
+  Do not use `sed -i`.
+- Comments state rationale, never narration. Banned: the word "production"
+  (use "the kernels", "the implementation"); em-dash "--" separators in
+  comments (use colon, semicolon, parentheses).
+- Struct and table aggregates use designated initializers with one member
+  per line (`{.name = ..., .pattern = ...}`). Plain scalar arrays remain
+  positional.
+- Header suffixes: test-tree utilities `.hpp`, production C `.h`,
+  header-only C++ `.hh`.
+- Kernel defects are reported and pinned by tests; kernel semantics are
+  never changed unilaterally. Propose the change and await the owner's
+  decision.
+
+### Build and test hygiene
+
+- Use the `--help` option to learn how to use scripts in [`scripts/`](scripts/)
+- A failed Ninja compile deletes object files, so a subsequent ctest runs a
+  stale binary silently. Confirm builds succeeded before interpreting test
+  results; grep `build/logs/<preset>.log` for `error:`.
+- Save full command output to files and grep them; truncated pipes have
+  hidden hundreds of failures.
+- Intentional GTEST_SKIPs carry reason strings and are part of the spec;
+  never widen or remove them without cause.
+- Sanitizer presets configure their runtime environment through
+  `NOVA_SANITIZER_ENV` in `ncore/tests/CMakeLists.txt` and `suppr.txt` at
+  the repository root. Leave this wiring intact.
+
+---
+
+## TL;DR
 
 NovaNN combines **C23** (portable numerical core), **C++23** (autograd and GPU kernels), **Rust** (safe memory), **Cython** (efficient bindings) and **Python** (API). It is in active development of its version 5.0.0, where the native core completely replaces NumPy. It supports CPU, CUDA and HIP, with a modular architecture aimed at being a complete "PyTorch + transformers + PEFT + datasets" ecosystem in a single tool.
