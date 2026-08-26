@@ -34,135 +34,14 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname -- "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
-NO_COLOR="${NO_COLOR:-}"
-TERM="${TERM:-}"
-
-if [[ -t 1 && -z "$NO_COLOR" && "$TERM" != "dumb" ]]; then
-    C_RESET=$'\033[0m'
-    C_BOLD=$'\033[1m'
-    C_DIM=$'\033[2m'
-    C_RED=$'\033[31m'
-    C_GREEN=$'\033[32m'
-    C_YELLOW=$'\033[33m'
-    C_CYAN=$'\033[36m'
-else
-    C_RESET=""; C_BOLD=""; C_DIM=""; C_RED=""; C_GREEN=""; C_YELLOW=""; C_CYAN=""
-fi
-
-C_CLEAR=""
-[[ -t 1 ]] && C_CLEAR=$'\r\033[K'
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
+nova::install_err_trap
 
 LOG_DIR="build/logs"
 CONTINUE_ON_ERROR=0
 LIST_ONLY=0
 FILTER=""
-
-## @brief Print a formatted error message and exit with status 1.
-## @param[in] ...  Message parts concatenated and printed to stderr.
-die() {
-    printf '%sERROR:%s %s\n' "$C_RED" "$C_RESET" "$*" >&2
-    exit 1
-}
-
-## @brief Print a usage error message and exit with status 2.
-## @param[in] ...  Message parts concatenated and printed to stderr.
-usage_error() {
-    printf '%sUsage error:%s %s\n' "$C_RED" "$C_RESET" "$*" >&2
-    printf 'Run %s--help%s for usage.\n' "$C_BOLD" "$C_RESET" >&2
-    exit 2
-}
-
-trap 's=$?; printf "%s%s: line %d — %s%s\n" "$C_RED" "$0" "$LINENO" "$BASH_COMMAND" "$C_RESET" >&2; exit "$s"' ERR
-
-## @brief Format elapsed seconds into a human-readable string.
-## @param[in] s  Elapsed time in seconds.
-## @return Formatted string such as @c 5s or @c 2m 03s.
-fmt_elapsed() {
-    local s="$1" m
-    m=$((s / 60))
-    s=$((s % 60))
-    if [[ "$m" -gt 0 ]]; then
-        printf '%dm %02ds' "$m" "$s"
-    else
-        printf '%ds' "$s"
-    fi
-}
-
-## @brief Display a live progress spinner while a background process runs.
-##
-## Parses the build log for @c [current/total] progress markers and renders
-## a percentage bar with a braille or ASCII spinner.  Falls back to a simple
-## label when no progress fraction is found.  Automatically detects UTF-8
-## locale for braille characters.
-##
-## @param[in] pid      PID of the background process to monitor.
-## @param[in] logfile  Path to the log file the process writes to.
-## @param[in] label    Fallback label shown when no progress fraction is available.
-## @param[in] n        Current index (1-based) in the preset list.
-## @param[in] total    Total number of presets being processed.
-spinner() {
-    set +e
-    trap - ERR
-    local pid="$1" logfile="$2" label="$3" n="$4" total="$5"
-    local locale="${LC_ALL:-${LC_CTYPE:-${LANG:-}}}"
-    local frames bar_full bar_empty
-    if [[ "$locale" == *[Uu][Tt][Ff]-8* ]]; then
-        frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-        bar_full='█'
-        bar_empty='░'
-    else
-        frames=('|' '/' '-' '\')
-        bar_full='#'
-        bar_empty='-'
-    fi
-    local i=0 start elapsed frac pct target num denom filled bar j offset
-    start=$(date +%s 2>/dev/null || printf '0')
-    offset=0
-    if [[ -f "$logfile" ]]; then
-        offset=$(wc -c < "$logfile" 2>/dev/null || printf '0')
-    fi
-    while kill -0 "$pid" 2>/dev/null; do
-        elapsed=$(( $(date +%s 2>/dev/null || printf '0') - start ))
-        [[ "$elapsed" -lt 0 ]] && elapsed=0
-        frac=$(tail -c +$((offset + 1)) "$logfile" 2>/dev/null | tail -c 8192 | grep -aoE '\[[0-9]+/[0-9]+\][^[:cntrl:]]*' | tail -n1) || true
-        pct=-1
-        target=""
-        if [[ -n "$frac" ]]; then
-            num=${frac#[}
-            num=${num%%/*}
-            denom=${frac#*/}
-            denom=${denom%%]*}
-            if [[ "$num" =~ ^[0-9]+$ && "$denom" =~ ^[0-9]+$ && "$denom" -gt 0 ]]; then
-                pct=$((num * 100 / denom))
-            fi
-            if [[ "$frac" == *"] "* ]]; then
-                target="${frac#*] }"
-            fi
-            [[ -n "$target" ]] || target="$label"
-            [[ ${#target} -le 40 ]] || target="${target:0:37}..."
-        fi
-        if [[ "$pct" -ge 0 ]]; then
-            filled=$((pct * 20 / 100))
-            bar=""
-            for ((j = 0; j < filled; j++)); do bar+="$bar_full"; done
-            for ((j = filled; j < 20; j++)); do bar+="$bar_empty"; done
-            printf '\r  %s %s%3d%%%s %s[%s]%s %s%s%s · %s[%d/%d]%s · %s%s%s' \
-                "${frames[$i]}" "$C_CYAN" "$pct" "$C_RESET" \
-                "$C_CYAN" "$bar" "$C_RESET" \
-                "$C_DIM" "$target" "$C_RESET" \
-                "$C_DIM" "$n" "$total" "$C_RESET" \
-                "$C_DIM" "$(fmt_elapsed "$elapsed")" "$C_RESET"
-        else
-            printf '\r  %s %s%s%s · %s[%d/%d]%s · %s%s%s' \
-                "${frames[$i]}" "$C_BOLD" "$label" "$C_RESET" \
-                "$C_DIM" "$n" "$total" "$C_RESET" \
-                "$C_DIM" "$(fmt_elapsed "$elapsed")" "$C_RESET"
-        fi
-        sleep 0.1
-        i=$(( (i + 1) % ${#frames[@]} ))
-    done
-    return 0
-}
 
 ## @brief Print usage information to stdout and exit.
 usage() {
@@ -219,7 +98,7 @@ done
 PRESETS=()
 while IFS= read -r preset; do
     PRESETS+=("$preset")
-done < <(cmake --list-presets 2>/dev/null | sed -n 's/^  "\([^"]*\)".*/\1/p')
+done < <(common::list_presets)
 
 if [[ ${#PRESETS[@]} -eq 0 ]]; then
     die "no CMake presets found — is CMakePresets.json present?"
@@ -268,7 +147,7 @@ for i in "${!PRESETS[@]}"; do
     if [[ -t 1 ]]; then
         cmake --preset "$preset" >"$LOG_DIR/$preset.log" 2>&1 &
         run_pid=$!
-        spinner "$run_pid" "$LOG_DIR/$preset.log" "$preset" "$n" "$TOTAL" &
+        common::spinner "$run_pid" "$LOG_DIR/$preset.log" "$preset" "$n" "$TOTAL" &
         spin_pid=$!
         if wait "$run_pid"; then
             rc=0

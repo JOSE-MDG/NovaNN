@@ -64,28 +64,20 @@ $ScriptName  = Split-Path -Leaf $PSCommandPath
 Set-Location -Path $ProjectRoot
 
 # ---------------------------------------------------------------------------
-# Colors
+# Shared helpers
 # ---------------------------------------------------------------------------
 
-$IsTTY = -not [Console]::IsOutputRedirected
-
-if ($IsTTY -and -not $env:NO_COLOR -and $env:TERM -ne 'dumb') {
-    $ESC     = [char]27
-    $C_RESET = "$ESC[0m"
-    $C_BOLD  = "$ESC[1m"
-    $C_DIM   = "$ESC[2m"
-    $C_RED   = "$ESC[31m"
-    $C_GREEN = "$ESC[32m"
-    $C_YELLOW= "$ESC[33m"
-    $C_CYAN  = "$ESC[36m"
-}
-else {
-    $C_RESET = ''; $C_BOLD = ''; $C_DIM = ''; $C_RED = ''
-    $C_GREEN = ''; $C_YELLOW = ''; $C_CYAN = ''
-}
-
-$C_CLEAR = ''
-if ($IsTTY) { $C_CLEAR = "$([char]13)$([char]27)[K" }
+Import-Module (Join-Path $ScriptDir 'lib/common.psm1') -Force
+$NovaColors = Get-NovaColors
+$IsTTY = [bool]$NovaColors.IsTTY
+$C_RESET = $NovaColors.Reset
+$C_BOLD = $NovaColors.Bold
+$C_DIM = $NovaColors.Dim
+$C_RED = $NovaColors.Red
+$C_GREEN = $NovaColors.Green
+$C_YELLOW = $NovaColors.Yellow
+$C_CYAN = $NovaColors.Cyan
+$C_CLEAR = $NovaColors.Clear
 
 $LogDir          = 'build/logs'
 $ContinueOnError = $false
@@ -93,114 +85,6 @@ $ListOnly        = $false
 $Config          = $null
 $Jobs            = $null
 $Filters         = @()
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-# Print a formatted error message and exit with status 1.
-function Write-Die {
-    param([string]$Message)
-    [Console]::Error.WriteLine("$($C_RED)ERROR:$($C_RESET) $Message")
-    exit 1
-}
-
-# Print a usage error message and exit with status 2.
-function Write-UsageErrorAndExit {
-    param([string]$Message)
-    [Console]::Error.WriteLine("$($C_RED)Usage error:$($C_RESET) $Message")
-    [Console]::Error.WriteLine("Run $($C_BOLD)--help$($C_RESET) for usage.")
-    exit 2
-}
-
-# Format elapsed seconds into a human-readable string such as "5s" or "2m 03s".
-function Format-Elapsed {
-    param([int]$Seconds)
-    $m = [math]::Floor($Seconds / 60)
-    $s = $Seconds % 60
-    if ($m -gt 0) {
-        return ('{0}m {1:D2}s' -f $m, $s)
-    }
-    return ('{0}s' -f $s)
-}
-
-# Display a live progress spinner while a background job runs. Parses the
-# build log for "[current/total]" progress markers and renders a percentage
-# bar with a braille or ASCII spinner. Falls back to a simple label when no
-# progress fraction is found.
-function Show-Spinner {
-    param(
-        [System.Management.Automation.Job]$Job,
-        [string]$LogFile,
-        [string]$Label,
-        [int]$N,
-        [int]$Total
-    )
-
-    $locale = $env:LC_ALL
-    if (-not $locale) { $locale = $env:LC_CTYPE }
-    if (-not $locale) { $locale = $env:LANG }
-
-    if ($locale -and $locale -match '(?i)utf-?8') {
-        $frames  = @('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏')
-        $barFull = '█'
-        $barEmpty = '░'
-    }
-    else {
-        $frames  = @('|', '/', '-', '\')
-        $barFull = '#'
-        $barEmpty = '-'
-    }
-
-    $i = 0
-    $start = Get-Date
-
-    while ($Job.State -eq 'Running') {
-        $elapsed = [int]((Get-Date) - $start).TotalSeconds
-        if ($elapsed -lt 0) { $elapsed = 0 }
-
-        $pct = -1
-        $target = $null
-
-        if (Test-Path -LiteralPath $LogFile) {
-            $tail = Get-Content -LiteralPath $LogFile -Tail 60 -ErrorAction SilentlyContinue
-            if ($tail) {
-                $joined = $tail -join "`n"
-                $regexMatches = [regex]::Matches($joined, '\[(\d+)/(\d+)\]([^\r\n]*)')
-                if ($regexMatches.Count -gt 0) {
-                    $last = $regexMatches[$regexMatches.Count - 1]
-                    $num = [int]$last.Groups[1].Value
-                    $denom = [int]$last.Groups[2].Value
-                    if ($denom -gt 0) {
-                        $pct = [int]($num * 100 / $denom)
-                    }
-                    $target = $last.Groups[3].Value.Trim()
-                    if (-not $target) { $target = $Label }
-                    if ($target.Length -gt 40) {
-                        $target = $target.Substring(0, 37) + '...'
-                    }
-                }
-            }
-        }
-
-        if ($pct -ge 0) {
-            $filled = [int]($pct * 20 / 100)
-            $bar = ($barFull * $filled) + ($barEmpty * (20 - $filled))
-            $pctStr = $pct.ToString().PadLeft(3)
-            $line = "`r  $($frames[$i]) $($C_CYAN)$($pctStr)%$($C_RESET) " +
-                    "$($C_CYAN)[$($bar)]$($C_RESET) $($C_DIM)$($target)$($C_RESET) " +
-                    "· $($C_DIM)[$($N)/$($Total)]$($C_RESET) · $($C_DIM)$(Format-Elapsed $elapsed)$($C_RESET)"
-        }
-        else {
-            $line = "`r  $($frames[$i]) $($C_BOLD)$($Label)$($C_RESET) " +
-                    "· $($C_DIM)[$($N)/$($Total)]$($C_RESET) · $($C_DIM)$(Format-Elapsed $elapsed)$($C_RESET)"
-        }
-
-        Write-Host -NoNewline $line
-        Start-Sleep -Milliseconds 100
-        $i = ($i + 1) % $frames.Count
-    }
-}
 
 # Print usage information to stdout.
 function Show-Usage {
@@ -289,13 +173,7 @@ while ($i -lt $args.Count) {
 # Preset discovery / filtering
 # ---------------------------------------------------------------------------
 
-$Presets = @()
-$listOutput = & cmake --list-presets 2>$null
-foreach ($line in $listOutput) {
-    if ($line -match '^\s*"([^"]+)"') {
-        $Presets += $Matches[1]
-    }
-}
+$Presets = @(Get-NovaPresetNames)
 
 if ($Presets.Count -eq 0) {
     Write-Die "no CMake presets found — is CMakePresets.json present?"
