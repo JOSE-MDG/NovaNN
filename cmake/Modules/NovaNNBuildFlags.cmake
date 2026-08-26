@@ -160,7 +160,6 @@ else()
     -fsigned-zeros          # -0.0 stays distinct (signbit/copysign)
     -fno-associative-math   # no reassociation: stable accumulation order
     -fno-reciprocal-math    # keep x/y correctly rounded
-    -mno-daz-ftz            # stop crtfastmath.o from enabling FTZ/DAZ
     -fstack-protector-strong
   )
 
