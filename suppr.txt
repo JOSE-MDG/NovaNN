@@ -1,0 +1,38 @@
+# LeakSanitizer suppressions for the NovaNN GPU-backend test suites.
+#
+# Official format references:
+#   https://github.com/google/sanitizers/wiki/AddressSanitizerLeakSanitizer#suppressions
+#   https://clang.llvm.org/docs/AddressSanitizer.html#memory-leak
+#
+# One rule per line:  leak:<pattern>
+# <pattern> is substring-matched against every frame of the symbolized leak
+# stack: function name, source file name, or binary (library) file name.
+# Special tokens: * (any substring), ^ (anchor start), $ (anchor end).
+#
+# Usage:
+#   LSAN_OPTIONS=suppressions=/absolute/path/to/suppr.txt
+#
+# ---------------------------------------------------------------------------
+# Why these and only these (verified on this machine):
+#
+# [CUDA] The CUDA Runtime is linked STATICALLY (-lcudart_static, see
+# build/cuda-*/build.ninja; ldd of the test binaries lists no libcudart). On
+# first use it loads the NVIDIA driver, libcuda.so.1, DYNAMICALLY, and the
+# driver allocates internal caches it intentionally never frees (observed:
+# 56-byte calloc reached from cuInit). The leaking frames therefore carry the
+# dynamic module name below, which this rule matches.
+leak:libcuda.so
+
+# [HIP] The ROCm stack is fully dynamic (ldd: libamdhip64.so.7 ->
+# libhsa-runtime64.so.1). Every reported leak frame sits inside the HSA
+# runtime (270+ records); the single rule below covers both its soname
+# (.so.1) and versioned real name (.so.1.18.0) via substring match.
+leak:libhsa-runtime64
+
+# ---------------------------------------------------------------------------
+# Fallbacks (intentionally disabled). Enable only if future reports show
+# stacks that remain entirely inside the statically linked CUDA Runtime
+# (those frames would carry the test binary name, not libcuda) or inside the
+# HIP runtime itself rather than HSA.
+# leak:cudart_static
+# leak:libamdhip64
