@@ -397,9 +397,23 @@ inline uint32_t fp16_ieee_to_fp32_bits(uint16_t h) {
    * renormShift == 0. For denormals renormShift > 0; after shifting, the
    * leading mantissa bit moves into the exponent field (biased exp becomes 1)
    * making it normalized (implicit leading 1 removed).
+   *
+   * Host/device/compiler dispatch mirrors fp8_e4m3fn.hh: device uses
+   * __clz, pure MSVC uses _BitScanReverse, otherwise std::countl_zero
+   * (C++20 <bit>). This keeps the header compilable under nvcc/hipcc
+   * (which cannot lower <bit>) and under pure MSVC that lacks the
+   * builtin.
    */
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+  uint32_t renormShift = static_cast<uint32_t>(__clz(nonsign));
+#elif defined(_MSC_VER) && !defined(__clang__)
+  unsigned long nonsignBsr;
+  _BitScanReverse(&nonsignBsr, static_cast<unsigned long>(nonsign));
+  uint32_t renormShift = static_cast<uint32_t>(nonsignBsr) ^ 31;
+#else
   uint32_t renormShift =
       static_cast<uint32_t>(std::countl_zero<uint32_t>(nonsign));
+#endif
   renormShift = renormShift > 5 ? renormShift - 5 : 0;
   /*
    * If the half-precision exponent is 0x1F (max), the addition below
