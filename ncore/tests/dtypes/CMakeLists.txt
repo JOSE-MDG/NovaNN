@@ -44,16 +44,11 @@ if(TEST_SOURCES)
     add_dependencies(ncore_dtypes_tests nova::codegen)
 
     if(BUILD_TESTING AND NOVA_HAS_GTEST)
-        if(NOVA_SANITIZER_ENV)
-            gtest_discover_tests(ncore_dtypes_tests
-                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                PROPERTIES ENVIRONMENT "${NOVA_SANITIZER_ENV}"
-            )
-        else()
-            gtest_discover_tests(ncore_dtypes_tests
-                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            )
-        endif()
+        gtest_discover_tests(ncore_dtypes_tests
+            DISCOVERY_TIMEOUT 60
+            DISCOVERY_MODE PRE_TEST
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
     endif()
 endif()
 
