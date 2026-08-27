@@ -47,6 +47,10 @@
 
 #include <ncore/headeronly/macros.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @var floating
  * @brief Boolean mask indicating which dtypes are floating-point.
@@ -157,3 +161,7 @@ extern const bool quantizable_dtype[NUM_DTYPES][1];
  * @see DType_        Data-type enumeration.
  */
 extern const size_t lookup_dtype_sizes[NUM_DTYPES];
+
+#ifdef __cplusplus
+}
+#endif
