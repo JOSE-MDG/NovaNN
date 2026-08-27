@@ -3,8 +3,6 @@ __pycache__/
 .pytest_cache/
 
 # Environments and IDEs
-.codex/
-.opencode/
 .env
 .venv/
 .vscode/
