@@ -51,7 +51,7 @@
  * @return The FP16 representation of @p val.
  */
 float16 fp16_from_float(float val) {
-#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+#if defined(_GNUC_CLANG_)
   return static_cast<float16>(val);
 #else
   return ncore::dtypes::detail::fp16_ieee_from_fp32_value(val);
@@ -66,7 +66,7 @@ float16 fp16_from_float(float val) {
  * @return The single-precision float equivalent of @p val.
  */
 float fp16_to_float(float16 val) {
-#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+#if defined(_GNUC_CLANG_)
   return static_cast<float>(val);
 #else
   return ncore::dtypes::detail::fp16_ieee_to_fp32_value(val);
@@ -80,7 +80,7 @@ float fp16_to_float(float16 val) {
  * @return The bfloat16 representation of @p val.
  */
 bfloat16 bf16_from_float(float val) {
-#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+#if defined(_GNUC_CLANG_)
   // Contract (fp_utils.h): NaN maps to the canonical bf16 NaN 0x7FC0.  The
   // native __bf16 static_cast preserves the f32 NaN sign bit instead, so
   // canonicalize explicitly to stay consistent with the BFloat16 structure.
@@ -100,7 +100,7 @@ bfloat16 bf16_from_float(float val) {
  * @return The single-precision float equivalent of @p val.
  */
 float bf16_to_float(bfloat16 val) {
-#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+#if defined(_GNUC_CLANG_)
   return static_cast<float>(val);
 #else
   return ncore::dtypes::detail::f32_from_bits(val);
@@ -182,7 +182,7 @@ void fp4e2m1x2_to_floats(float4_e2m1fn_x2 val, float *lo, float *hi) {
  * @return The IEEE 754 float32 bit pattern of @p val.
  */
 uint32_t fp16_to_f32_bits(float16 val) {
-#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+#if defined(_GNUC_CLANG_)
   return ncore::dtypes::detail::fp16_ieee_to_fp32_bits(
       std::bit_cast<uint16_t>(val));
 #else
@@ -198,7 +198,7 @@ uint32_t fp16_to_f32_bits(float16 val) {
  * @return The FP16 representation of the value described by @p val.
  */
 float16 fp16_from_f32_bits(uint32_t val) {
-#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+#if defined(_GNUC_CLANG_)
   return std::bit_cast<float16>(
       ncore::dtypes::detail::fp16_ieee_from_fp32_value(
           std::bit_cast<float>(val)));
@@ -216,7 +216,7 @@ float16 fp16_from_f32_bits(uint32_t val) {
  * @return The float32 bit pattern of @p val (low 16 bits are zero).
  */
 uint32_t bf16_to_f32_bits(bfloat16 val) {
-#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+#if defined(_GNUC_CLANG_)
   return static_cast<uint32_t>(std::bit_cast<uint16_t>(val)) << 16;
 #else
   return static_cast<uint32_t>(val) << 16;
@@ -231,7 +231,7 @@ uint32_t bf16_to_f32_bits(bfloat16 val) {
  * @return The bfloat16 representation of the value described by @p val.
  */
 bfloat16 bf16_from_f32_bits(uint32_t val) {
-#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+#if defined(_GNUC_CLANG_)
   return std::bit_cast<bfloat16>(
       ncore::dtypes::detail::round_to_nearest_even(std::bit_cast<float>(val)));
 #else
@@ -322,7 +322,7 @@ float4_e2m1fn_x2 fp4e2m1x2_from_f32_bits(const fp4e2m1x2Result_t *val) {
  * @return The raw 16-bit storage pattern of @p val.
  */
 uint16_t fp16_to_bits(float16 val) {
-#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+#if defined(_GNUC_CLANG_)
   return std::bit_cast<uint16_t>(val);
 #else
   return val;
@@ -336,7 +336,7 @@ uint16_t fp16_to_bits(float16 val) {
  * @return The raw 16-bit storage pattern of @p val.
  */
 uint16_t bf16_to_bits(bfloat16 val) {
-#if defined(_GNUC_CLANG_) && !defined(_MSC_VER)
+#if defined(_GNUC_CLANG_)
   return std::bit_cast<uint16_t>(val);
 #else
   return val;
