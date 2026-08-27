@@ -24,6 +24,10 @@
 
 #include <ncore/tensor.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Cast function pointer type.
  * @param[in]  src Source tensor (read-only)
@@ -2753,4 +2757,8 @@ extern const CastFn lookup_tu64_to_u32[];
  * @li Index 0: tu64_to_u32_scalar() — Portable fallback
  */
 extern const CastFn lookup_tu64_to_u32[];
+#endif
+
+#ifdef __cplusplus
+}
 #endif
