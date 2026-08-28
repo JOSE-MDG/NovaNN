@@ -29,9 +29,13 @@ if(BUILD_TESTING)
     # runtime (third-party caches freed at process exit by their owners).
     set(NOVA_SANITIZER_ENV "")
     if(USE_ASAN)
-        list(APPEND NOVA_SANITIZER_ENV
-             "ASAN_OPTIONS=protect_shadow_gap=0"
-             "LSAN_OPTIONS=suppressions=${CMAKE_SOURCE_DIR}/suppr.txt")
+        # protect_shadow_gap=0 is required for CUDA probes on Linux, but
+        # crashes Windows ASan (LLVM 22 CHECK in sanitizer_common_libcdep.cpp).
+        if(NOT WIN32)
+            list(APPEND NOVA_SANITIZER_ENV "ASAN_OPTIONS=protect_shadow_gap=0")
+            # LSAN suppressions (suppr.txt contains libcuda.so etc.).
+            list(APPEND NOVA_SANITIZER_ENV "LSAN_OPTIONS=suppressions=${CMAKE_SOURCE_DIR}/suppr.txt")
+        endif()
     endif()
 
     add_subdirectory(core)
