@@ -138,11 +138,15 @@ if ($ListOnly) {
     exit 0
 }
 
-$asanOptions = 'protect_shadow_gap=0'
+# Windows ASan: protect_shadow_gap=0 triggers CHECK failure
+# sanitizer_common_libcdep.cpp:164 (beg % GetMmapGranularity() == 0).
+# On Linux it is required for CUDA probes, but on Windows CUDA tests
+# pass without it and discovery crashes with it.
 if (-not [string]::IsNullOrEmpty($env:ASAN_OPTIONS)) {
-    $asanOptions += ":$($env:ASAN_OPTIONS)"
+    $env:ASAN_OPTIONS = $env:ASAN_OPTIONS
+} else {
+    Remove-Item Env:ASAN_OPTIONS -ErrorAction SilentlyContinue
 }
-$env:ASAN_OPTIONS = $asanOptions
 
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 Write-Host ''
