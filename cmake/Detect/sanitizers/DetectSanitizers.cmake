@@ -193,6 +193,34 @@ if(USE_ASAN)
   endif()
 endif()
 
+# Deploy the ASan runtime DLL alongside a target on Windows.
+# On clang-cl the ASan runtime is dynamic (clang_rt.asan_dynamic-x86_64.dll)
+# and must be in the same directory as the executable at load time.
+# This replicates the intent of the NOVA_ASAN_RUNTIME_DLL cache variable,
+# which previously had no consumer.
+function(nova_deploy_asan_runtime TARGET)
+  if(NOT WIN32 OR NOT NOVA_HAS_ASAN)
+    return()
+  endif()
+  if(NOT DEFINED NOVA_ASAN_RUNTIME_DLL OR "${NOVA_ASAN_RUNTIME_DLL}" STREQUAL "")
+    return()
+  endif()
+  if(NOT EXISTS "${NOVA_ASAN_RUNTIME_DLL}")
+    return()
+  endif()
+  get_target_property(_nova_asan_target_type ${TARGET} TYPE)
+  if(_nova_asan_target_type STREQUAL "EXECUTABLE" OR _nova_asan_target_type STREQUAL "SHARED_LIBRARY")
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${NOVA_ASAN_RUNTIME_DLL}"
+        "$<TARGET_FILE_DIR:${TARGET}>"
+      COMMENT "Deploying ASan runtime DLL for ${TARGET}"
+      VERBATIM
+    )
+  endif()
+  unset(_nova_asan_target_type)
+endfunction()
+
 # UndefinedBehaviorSanitizer
 if(USE_UBSAN)
   if(_san_is_clang_cl)
