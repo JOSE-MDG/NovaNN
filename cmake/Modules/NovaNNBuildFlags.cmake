@@ -250,6 +250,12 @@ function(nova_configure_build_flags TARGET)
     target_link_libraries(${TARGET} PRIVATE nova::sanitizers)
   endif()
 
+  # On Windows with ASan, deploy the ASan runtime DLL alongside executables
+  # and shared libraries (required at load time for clang-cl dynamic runtime).
+  if(WIN32 AND NOVA_HAS_ASAN AND DEFINED NOVA_ASAN_RUNTIME_DLL)
+    nova_deploy_asan_runtime(${TARGET})
+  endif()
+
   # Inject the UBSan runtime into shared libraries only. Executables must not
   # inject it: the runtime's constructor then runs inside ld.so at startup
   # and deadlocks re-entering its own sigaction interceptor before main.
