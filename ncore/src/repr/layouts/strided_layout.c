@@ -1,37 +1,46 @@
 /**
  * @file strided_layout.c
- * @brief Implementation of the general-purpose strided layout renderer.
+ * @brief General-purpose strided layout renderer implementation.
  *
  * @details
- * This module provides a robust rendering path for tensors that do not
- * meet contiguity requirements (e.g., slices, transposed views). It
- * leverages the @ref TensorIterator to navigate the multidimensional
- * strided space element-by-element.
+ * Provides a robust rendering path for tensors that do not meet
+ * contiguity requirements (e.g., slices, transposed views). Uses
+ * @ref TensorIterator to navigate the multidimensional strided
+ * space element-by-element.
  *
- * While slightly less performant than @ref dense_layout.c, it ensures
- * correct data access for any valid stride pattern supported by the
- * NovaNN core.
+ * While slightly less performant than @ref dense_layout.c, it
+ * ensures correct data access for any valid stride pattern
+ * supported by the NovaNN core.
  *
- * ## Architecture
- * - **Iterator-Driven**: Uses @ref iter_init() and @ref iter_advance()
- *   to handle row-major navigation regardless of physical data layout.
- * - **Recursive Formatting**: Mirrors the bracketed and indented structure
- *   of the dense renderer for visual consistency.
+ * @section architecture Architecture
  *
- * @see tensor_iterator.h Iteration engine.
- * @see dense_layout.h Renderer interface.
+ * @li Iterator-Driven: Uses @ref iter_init() and @ref iter_advance()
+ *   to handle row-major navigation regardless of physical data
+ *   layout.
+ * @li Recursive Formatting: Mirrors the bracketed and indented
+ *   structure of the dense renderer for visual consistency.
+ *
+ * @see layouts.h          Renderer interface declarations.
+ * @see tensor_iterator.h  Iteration engine.
+ * @see repr_context.h     Formatting parameters.
  */
+
+#include <string.h>
 
 #include <ncore/core/dtype.h>
 #include <ncore/headeronly/macros.h>
-#include <string.h>
 
 #include "layouts.h"
 #include "repr/formatters/element_fmt.h"
 #include "repr/traversal/tensor_iterator.h"
 
 /**
- * @brief Helper to append padded strings for alignment.
+ * @brief Append a string with right-justified padding.
+ *
+ * @param[in,out] sb    Output StringBuilder.
+ * @param[in]     val   The formatted string to append.
+ * @param[in]     len   Length of the string (excluding null).
+ * @param[in]     width Desired column width.
  */
 static void pad_and_append(StringBuilder *sb, const char *val, int len,
                            size_t width) {
@@ -45,14 +54,15 @@ static void pad_and_append(StringBuilder *sb, const char *val, int len,
  * @brief Format and append an element at a specific byte offset.
  *
  * @param[in,out] sb       Output StringBuilder.
- * @param[in]     ctx      Pointer to the representation context.
- * @param[in]     ten      Pointer to the tensor.
- * @param[in]     byte_off Byte distance from the start of the data buffer.
+ * @param[in]     ctx      Representation context.
+ * @param[in]     ten      Tensor being rendered.
+ * @param[in]     byte_off Byte offset of the element within the
+ *                         tensor's data buffer.
  */
 static void append_elem_at(StringBuilder *sb, const ReprContext *ctx,
                            const Tensor *ten, size_t byte_off) {
   char buf[128];
-  void *ptr = (uint8 *)ten->data.u8 + byte_off;
+  void *ptr = ten->data.u8 + byte_off;
   int len = format_element(buf, sizeof(buf), ptr, ten, ctx);
   if (ten->ndims > 1) {
     pad_and_append(sb, buf, len, ctx->element_width);
@@ -63,6 +73,12 @@ static void append_elem_at(StringBuilder *sb, const ReprContext *ctx,
 
 /**
  * @brief Recursively render dimensions using strided offsets.
+ *
+ * @param[in,out] sb     Output StringBuilder.
+ * @param[in]     ctx    Representation context.
+ * @param[in]     dim    Current dimension index (0 .. @c ndims-1).
+ * @param[in]     indent Indentation level for the current row.
+ * @param[in,out] it     Tensor iterator tracking the current position.
  */
 static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
                        int indent, TensorIterator *it) {
@@ -70,12 +86,19 @@ static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
   sb_append_char(sb, '[');
 
   if (dim == ten->ndims - 1) {
+    size_t packing = dtype_packing_factor(ten->dtype);
     for (size_t i = 0; i < ten->shape[dim]; i++) {
       if (i > 0) {
         sb_append(sb, ", ");
       }
       size_t off = iter_byte_offset(it);
-      append_elem_at(sb, ctx, ten, off);
+      for (size_t s = 0; s < packing; s++) {
+        if (s > 0) {
+          sb_append(sb, ", ");
+        }
+        ((ReprContext *)ctx)->sub_element_index = s;
+        append_elem_at(sb, ctx, ten, off);
+      }
       iter_advance(it);
     }
   } else if (dim == ten->ndims - 2) {
@@ -102,8 +125,10 @@ static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
 /**
  * @brief Render a view tensor using strided iteration.
  *
- * @param[in]  ctx Pointer to a fully initialised ReprContext.
- * @param[out] sb  Pointer to the StringBuilder.
+ * @param[in]     ctx Pointer to the representation context. Must not
+ *                    be @c nullptr.
+ * @param[in,out] sb  Pointer to the StringBuilder. Must not be
+ *                    @c nullptr.
  */
 void strided_layout_render(const ReprContext *ctx, StringBuilder *sb) {
   TensorIterator it;

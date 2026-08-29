@@ -2,42 +2,48 @@
  * @file config.h.in
  * @brief CMake configuration template — generates config.h at configure time.
  *
- * Every `@VAR@` placeholder is substituted by CMake's configure_file() with
+ * Every @VAR@ placeholder is substituted by CMake's configure_file() with
  * the corresponding CMake variable.  The resulting config.h is consumed by
  * C/C++ source files to conditionally enable SIMD paths and feature gates.
  *
  * Variables populated by:
- *   - DetectSIMD.cmake  → HAS_SSE4_2, HAS_AVX, HAS_AVX2, HAS_AVX512*, HAS_AMX*,
- * etc.
- *   - NovaNNRuntime.cmake → (indirectly, via DetectSIMD)
+ *   @li DetectSIMD.cmake  → HAS_SSE4_2, HAS_AVX, HAS_AVX2, HAS_AVX512*,
+ * HAS_AVX10* HAS_AMX*, etc.
+ *   @li NovaNNRuntime.cmake → (indirectly, via DetectSIMD)
  *
  * @note This file is NOT a public header — it lives in CMAKE_BINARY_DIR
  *       and is included with a PRIVATE path.
  */
 #pragma once
 
+// clang-format off
+
 /* Project version */
-#define VERSION_MAJOR @PROJECT_VERSION_MAJOR @
-#define VERSION_MINOR @PROJECT_VERSION_MINOR @
-#define VERSION_PATCH @PROJECT_VERSION_PATCH @
+#define VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define VERSION_MINOR @PROJECT_VERSION_MINOR@
+#define VERSION_PATCH @PROJECT_VERSION_PATCH@
 
 /* SIMD capabilities detected at build time */
-#define HAS_SSE4_2 @HAS_SSE4_2 @
-#define HAS_AVX @HAS_AVX @
-#define HAS_AVX2 @HAS_AVX2 @
-#define HAS_AVX2_INT8 @HAS_AVX2_INT8 @
-#define HAS_AVX2_VNNI @HAS_AVX2_VNNI @
-#define HAS_F16C @HAS_F16C @
-#define HAS_VNNI @HAS_VNNI @
-#define HAS_FMA3 @HAS_FMA3 @
-#define HAS_AVX512F @HAS_AVX512F @
-#define HAS_AVX512_BW @HAS_AVX512_BW @
-#define HAS_AVX512_DQ @HAS_AVX512_DQ @
-#define HAS_AVX512_VL @HAS_AVX512_VL @
-#define HAS_AVX512_VNNI @HAS_AVX512_VNNI @
-#define HAS_AVX512_FP16 @HAS_AVX512_FP16 @
-#define HAS_AVX512_BF16 @HAS_AVX512_BF16 @
-#define HAS_AMX @HAS_AMX @
-#define HAS_AMX_FP16 @HAS_AMX_FP16 @
-#define HAS_AMX_BF16 @HAS_AMX_BF16 @
-#define HAS_AMX_INT8 @HAS_AMX_INT8 @
+#cmakedefine01 HAS_SSE4_2
+#cmakedefine01 HAS_AVX
+#cmakedefine01 HAS_AVX2
+#cmakedefine01 HAS_AVX2_INT8
+#cmakedefine01 HAS_AVX2_VNNI
+#cmakedefine01 HAS_F16C
+#cmakedefine01 HAS_VNNI
+#cmakedefine01 HAS_FMA3
+#cmakedefine01 HAS_AVX512F
+#cmakedefine01 HAS_AVX512_BW
+#cmakedefine01 HAS_AVX512_DQ
+#cmakedefine01 HAS_AVX512_VL
+#cmakedefine01 HAS_AVX512_VNNI
+#cmakedefine01 HAS_AVX512_FP16
+#cmakedefine01 HAS_AVX512_BF16
+#cmakedefine01 HAS_AVX10_1
+#cmakedefine01 HAS_AVX10_2
+#cmakedefine01 HAS_AMX
+#cmakedefine01 HAS_AMX_FP16
+#cmakedefine01 HAS_AMX_BF16
+#cmakedefine01 HAS_AMX_INT8
+
+// clang-format on

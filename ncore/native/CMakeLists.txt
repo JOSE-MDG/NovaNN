@@ -2,23 +2,58 @@
 Native Backend
 --------------
 
-Aggregator for all native (non-Rust) backend libraries.  Conditionally
-includes the CUDA and HIP subdirectories based on
-``NOVA_HAS_CUDA`` / ``NOVA_HAS_HIP``.  Creates the ``native`` static
-library that collects all backend object libraries.
+Aggregates all native backend object libraries into a single static
+archive ``libnative.a``.
 
-When neither CUDA nor HIP is enabled a stub C source file is generated
-to satisfy CMake's requirement that static libraries contain at least
-one source file.
+Object collection
+^^^^^^^^^^^^^^^^^
 
-Targets created:
+Each backend produces one or more OBJECT libraries.  All of them must
+be listed explicitly here via ``$<TARGET_OBJECTS:...>`` so that every
+``.o`` file is physically written into the archive.
 
-``native``
-  Static library that bundles all available native backends.
+``target_link_libraries`` between OBJECT libraries only propagates
+compile flags and include paths — it does not embed object files.
+``target_sources($<TARGET_OBJECTS:...>)`` on an OBJECT library is not
+reliably expanded by downstream consumers when using the Makefile
+generator.  Explicit enumeration at this level is therefore the only
+portable, generator-agnostic approach.
+
+Targets created
+^^^^^^^^^^^^^^^
+
+``native`` — alias ``ncore::native``
+  STATIC library containing all active backend object files.
+
+Subdirectories
+^^^^^^^^^^^^^^
+
+``cpu/``
+  Vectorized CPU implementations. Defines ``cpu_obj`` (alias
+  ``ncore::native::obj::cpu``)
+
+``kernels/``
+  CPU-side dispatch.  Always included. Defines ``kernels_obj`` (alias
+  ``ncore::native::obj::kernels``)
+
+``cuda/``
+  CUDA host-side code and device kernels.  Included when
+  ``NOVA_HAS_CUDA`` is set.  Defines ``cuda_obj`` (alias
+  ``ncore::native::obj::cuda``) and ``cuda_kernels_obj`` (alias
+  ``ncore::native::obj::cuda::kernels``).
+
+``hip/``
+  HIP host-side code and device kernels.  Included when
+  ``NOVA_HAS_HIP`` is set.  Defines ``hip_obj`` (alias
+  ``ncore::native::obj::hip``) and ``hip_kernels_obj`` (alias
+  ``ncore::native::obj::hip::kernels``).
 
 #]=======================================================================]
 
 set(NATIVE_SOURCES "")
+
+add_subdirectory(kernels)
+add_subdirectory(cpu)
 
 if(NOVA_HAS_CUDA)
     add_subdirectory(cuda)
@@ -28,49 +63,60 @@ if(NOVA_HAS_HIP)
     add_subdirectory(hip)
 endif()
 
-if(TARGET cuda_kernels_obj)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:cuda_kernels_obj>)
+if(TARGET ncore::native::obj::cpu)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::cpu>)
 endif()
 
-if(TARGET hip_kernels_obj)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:hip_kernels_obj>)
+if(TARGET ncore::native::obj::cuda::kernels)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::cuda::kernels>)
 endif()
 
-if(TARGET cuda_obj)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:cuda_obj>)
+if(TARGET ncore::native::obj::hip::kernels)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::hip::kernels>)
 endif()
 
-if(TARGET hip_obj)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:hip_obj>)
+if(TARGET ncore::native::obj::cuda)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::cuda>)
+endif()
+
+if(TARGET ncore::native::obj::hip)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::hip>)
+endif()
+
+if(TARGET ncore::native::obj::kernels)
+    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::kernels>)
 endif()
 
 if(NOT NATIVE_SOURCES)
     set(NATIVE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/native_stub.c")
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/native_stub.c"
-        "/* Stub file to satisfy empty library requirement. */\n"
-    )
 endif()
 
 add_library(native STATIC ${NATIVE_SOURCES})
+add_library(ncore::native ALIAS native)
+
 set_target_properties(native PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     OUTPUT_NAME native
-    CUDA_STANDARD 20
-    CUDA_STANDARD_REQUIRED ON
-    HIP_STANDARD 23
-    HIP_STANDARD_REQUIRED ON
 )
+
+if(NOVA_HAS_CUDA)
+    set_target_properties(native PROPERTIES
+        CUDA_STANDARD 20
+        CUDA_STANDARD_REQUIRED ON
+    )
+endif()
+
+if(NOVA_HAS_HIP)
+    set_target_properties(native PROPERTIES
+        HIP_STANDARD 23
+        HIP_STANDARD_REQUIRED ON
+    )
+endif()
 
 target_include_directories(native
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
-    PUBLIC ${CMAKE_SOURCE_DIR}/ncore/native/cuda/memory
-    PUBLIC ${CMAKE_SOURCE_DIR}/ncore/native/hip/memory
 )
 
-if(TARGET cuda_obj)
-    target_link_libraries(native PUBLIC cuda_obj)
-endif()
-
-if(TARGET hip_obj)
-    target_link_libraries(native PUBLIC hip_obj)
+if(TARGET nova::compiler_rt_builtins)
+    target_link_libraries(native INTERFACE nova::compiler_rt_builtins)
 endif()

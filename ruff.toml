@@ -1,0 +1,33 @@
+line-length = 80
+target-version = "py312"
+
+[lint]
+extend-select = [
+    "B",
+    "C4",
+    "D",
+    "I",
+    "UP",
+    "SIM",
+    "TCH",
+    "RUF",
+    "PERF",
+    "FLY",
+    "FURB",
+]
+
+ignore = ["D100", "D104", "D203", "D213"]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.isort]
+known-first-party = ["nova"]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[format]
+preview = true
+quote-style = "double"
+indent-style = "space"

@@ -8,8 +8,8 @@
  * dispatch table defined in @ref status_dispatch_tables.c to provide
  * O(1) retrieval time.
  *
- * @see status.h Public interface and @ref novaError_t definition.
- * @see status_dispatch_tables.c Global message table definition.
+ * @see status.h                     Public interface and @ref novaError_t definition.
+ * @see status_dispatch_tables.c     Global message table definition.
  */
 
 #include <ncore/core/status.h>
@@ -31,12 +31,12 @@ extern const char *status_msg_dispatch[NUM_ERRORS];
  * @details
  * Validates the provided error code against the table bounds (@ref NUM_ERRORS)
  * and returns the corresponding message string from @ref status_msg_dispatch.
- * If the code is out of bounds or the table entry is NULL, returns the
+ * If the code is out of bounds or the table entry is nullptr, returns the
  * caller-provided @p fallback message, or "Unknown error" if @p fallback
- * is NULL.
+ * is nullptr.
  *
  * @param[in] err      The @ref novaError_t code to look up.
- * @param[in] fallback Custom fallback message.  May be NULL.
+ * @param[in] fallback Custom fallback message.  May be nullptr.
  * @return A constant pointer to the error message string.
  *
  * @note This function is thread-safe as it only performs read operations

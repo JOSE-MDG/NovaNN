@@ -9,30 +9,30 @@
  * size, thread limits, driver/runtime versions) and formats them
  * for human-readable output.
  *
- * The file is conditionally compiled behind `NOVA_HAS_HIP` and
- * `__has_include(<hip/hip_runtime_api.h>)`.  When HIP headers are
+ * The file is conditionally compiled behind @c NOVA_HAS_HIP and
+ * @c __has_include(<hip/hip_runtime_api.h>).  When HIP headers are
  * unavailable, stub functions returning error statuses are
  * provided.
  *
- * A `__HIP_PLATFORM_AMD__` macro is defined when neither AMD nor
+ * A @c __HIP_PLATFORM_AMD__ macro is defined when neither AMD nor
  * NVIDIA platform macros are set, ensuring clangd and clang-tidy
  * can parse the HIP headers correctly.
  *
- * ## Caching
+ * @section caching Caching
  *
- * Device properties are queried once and cached in a `static`
+ * Device properties are queried once and cached in a @c static
  * local variable within @ref initHipDeviceProperties.  Subsequent
  * calls to @ref getHipDeviceProperties and @ref
  * printHipDeviceInfo return the cached values without additional
  * HIP runtime API calls.
  *
- * ## Internal Helpers
+ * @section internal-helpers Internal Helpers
  *
- * - @ref formatMemory — Converts byte counts to human-readable
+ * @li @ref formatMemory — Converts byte counts to human-readable
  *   strings (GiB / MiB / bytes).
- * - @ref formatHipVersion — Converts the HIP integer version
+ * @li @ref formatHipVersion — Converts the HIP integer version
  *   encoding to a "major.minor.patch" string.
- * - @ref initHipDeviceProperties — Performs the actual HIP
+ * @li @ref initHipDeviceProperties — Performs the actual HIP
  *   runtime queries and populates the cached struct.
  *
  * @see DetectHipDeviceInfo.hpp  Type and function declarations.
@@ -41,20 +41,22 @@
  */
 
 #include <iostream>
+#include <sstream>
+#include <string>
+
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
 #include <ncore/headeronly/macros.h>
-#include <sstream>
-#include <string>
 
 #ifdef NOVA_HAS_HIP
 #if __has_include(<hip/hip_runtime_api.h>)
 #if !defined(__HIP_PLATFORM_AMD__) && !defined(__HIP_PLATFORM_NVIDIA__)
 #define __HIP_PLATFORM_AMD__ 1
 #endif
+#include <hip/hip_runtime_api.h>
+
 #include "DetectHipDevice.hpp"
 #include "DetectHipDeviceInfo.hpp"
-#include <hip/hip_runtime_api.h>
 
 namespace {
 
@@ -63,9 +65,9 @@ namespace {
  *
  * @details
  * Converts @p bytes to the most appropriate unit:
- * - 8 GiB or more → "X.X GiB"
- * - 1 MiB or more → "X.X MiB"
- * - Otherwise → "N bytes"
+ * @li 8 GiB or more → "X.X GiB"
+ * @li 1 MiB or more → "X.X MiB"
+ * @li Otherwise → "N bytes"
  *
  * @param[in] bytes  The byte count to format.
  *
@@ -93,8 +95,8 @@ std::string formatMemory(size_t bytes) {
  * @brief Convert a HIP integer version to a "major.minor.patch" string.
  *
  * @details
- * HIP encodes versions as `major * 10000000 + minor * 100000 +
- * patch`.  This function extracts and formats the three
+ * HIP encodes versions as @c major * 10000000 + minor * 100000 +
+ * patch.  This function extracts and formats the three
  * components.
  *
  * @param[in] version  The HIP integer version encoding.
@@ -114,16 +116,16 @@ std::string formatHipVersion(int version) {
  * @brief Query the HIP runtime and populate device properties.
  *
  * @details
- * Calls `hipGetDeviceProperties`, `hipDriverGetVersion`, and
- * `hipRuntimeGetVersion` to fill a @ref hipDetectedDeviceProps_t
- * struct.  The result is cached in a `static` local variable for
+ * Calls @c hipGetDeviceProperties, @c hipDriverGetVersion, and
+ * @c hipRuntimeGetVersion to fill a @ref hipDetectedDeviceProps_t
+ * struct.  The result is cached in a @c static local variable for
  * subsequent calls.
  *
  * If device detection has already been performed (via
  * @ref was_device_detection_done), uses the detected device index;
  * otherwise defaults to device 0.
  *
- * @param[out] status  Receives `novaSuccess` on success, or an
+ * @param[out] status  Receives @c novaSuccess on success, or an
  *                     error code with the HIP error string on
  *                     failure.
  *
@@ -140,9 +142,9 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
 
     if (err != hipSuccess) {
       status->err = (err != hipErrorInvalidValue) ? novaInvalidValue
-                                                   : novaDeviceNotAvailable;
+                                                  : novaDeviceNotAvailable;
       status->message = hipGetErrorString(err);
-      return {.isAvailable = false};
+      return {};
     }
 
     int driverVer = 0;
@@ -179,7 +181,7 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
   }();
 
   status->err = novaSuccess;
-  status->message = nova_get_error_msg(status->err, NULL);
+  status->message = nova_get_error_msg(status->err, nullptr);
   return result;
 }
 
@@ -191,13 +193,13 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
  * @details
  * Queries device 0 properties via @ref initHipDeviceProperties
  * and prints them using ANSI colour codes.  When @p verbose is
- * `false`, a concise two-line summary is printed.  When @p verbose
- * is `true`, a detailed multi-line block is printed.
+ * @c false, a concise two-line summary is printed.  When @p verbose
+ * is @c true, a detailed multi-line block is printed.
  *
- * @param[in] verbose  If `true`, print the full property block
+ * @param[in] verbose  If @c true, print the full property block
  *                     (name, GCN architecture, memory, CUs, warp
  *                     size, thread limits, driver/runtime versions).
- *                     If `false`, print a concise summary.
+ *                     If @c false, print a concise summary.
  *
  * @return @ref novaStatus_t with the result of the detection.
  *         On success, set to @ref novaSuccess.  On failure, set to
@@ -248,7 +250,7 @@ novaStatus_t printHipDeviceInfo(bool verbose) {
               << result.runtimeVersion << "\n"
               << NCORE_LOG_RESET;
     return {.err = novaSuccess,
-            .message = nova_get_error_msg(novaSuccess, NULL)};
+            .message = nova_get_error_msg(novaSuccess, nullptr)};
   }
 
   std::cout << NCORE_LOG_PREFIX << " [HIP] Device 0 "
@@ -263,7 +265,8 @@ novaStatus_t printHipDeviceInfo(bool verbose) {
             << "\n"
             << NCORE_LOG_RESET;
 
-  return {.err = novaSuccess, .message = nova_get_error_msg(novaSuccess, NULL)};
+  return {.err = novaSuccess,
+          .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 /**
@@ -275,13 +278,13 @@ novaStatus_t printHipDeviceInfo(bool verbose) {
  * calls return the cached value without additional HIP runtime
  * API calls.
  *
- * @param[out] status  Receives `novaSuccess` on success, or an
+ * @param[out] status  Receives @c novaSuccess on success, or an
  *                     error code on failure.
  *
  * @return Cached device properties.  Check @ref isAvailable to
  *         determine whether the data is valid.
  *
- * @note Thread-safe.  The result is cached in a `static` local
+ * @note Thread-safe.  The result is cached in a @c static local
  *       variable initialised exactly once (C++11 guarantee).
  */
 hipDetectedDeviceProps_t getHipDeviceProperties(novaStatus_t *status) noexcept {
@@ -294,13 +297,13 @@ hipDetectedDeviceProps_t getHipDeviceProperties(novaStatus_t *status) noexcept {
 /** @brief Stub: HIP runtime headers not available. */
 novaStatus_t printHipDeviceInfo(bool) {
   return {.err = novaBackendNotCompiled,
-          .message = nova_get_error_msg(novaBackendNotCompiled, NULL)};
+          .message = nova_get_error_msg(novaBackendNotCompiled, nullptr)};
 }
 
 /** @brief Stub: HIP runtime headers not available. */
 hipDetectedDeviceProps_t getHipDeviceProperties(novaStatus_t *status) {
   status->err = novaBackendNotCompiled;
-  status->message = nova_get_error_msg(novaBackendNotCompiled, NULL);
+  status->message = nova_get_error_msg(novaBackendNotCompiled, nullptr);
   return {.isAvailable = false};
 }
 

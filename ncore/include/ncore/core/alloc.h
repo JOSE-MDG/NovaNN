@@ -9,17 +9,11 @@
  *
  * Two operating modes are supported via the @p create_storage flag:
  *
- */
-// clang-format off
-/**
- * | create_storage | handle | ten     | Behavior                         |
- * |----------------|--------|---------|----------------------------------|
- * | `false`        | valid  | NULL    | Raw RustHandle allocation only   |
- * | `true`         | NULL   | valid   | Full TensorStorage + Tensor init |
+ * @li @c false — @p create_storage — valid @p handle — @c nullptr
+ *     @p ten — Raw RustHandle allocation only
+ * @li @c true — @p create_storage — @c nullptr @p handle — valid
+ *     @p ten — Full TensorStorage + Tensor init
  *
- */
-// clang-format on
-/**
  * @see alloc.c      Implementation
  * @see storage.h    RustHandle and TensorStorage definitions.
  * @see status.h     novaStatus_t error reporting.
@@ -27,11 +21,13 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include <stddef.h>
+
 #include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
 #include <ncore/core/status.h>
 #include <ncore/core/storage.h>
-#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,50 +38,50 @@ extern "C" {
  *        storage.
  *
  * @details
- * Delegates to @ref safe_reserve() through the Rust FFI to obtain a
+ * Delegates to @ref reserve() through the Rust FFI to obtain a
  * @ref RustHandle.  Alignment is selected automatically: 512 bytes
  * for GPU, 64 bytes otherwise.
  *
- * When @p create_storage is `false`, only a raw @ref RustHandle is
- * returned via @p handle.  When `true`, a @ref TensorStorage is
+ * When @p create_storage is @c false, only a raw @ref RustHandle is
+ * returned via @p handle.  When @c true, a @ref TensorStorage is
  * heap-allocated, populated with the handle and data pointer, and
  * attached to the tensor pointed to by @p ten.
  *
  * @param[in]  bytes          Requested allocation size in bytes.
- * @param[in]  device         Target device (`DEVICE_CPU`, `DEVICE_GPU`,
- *                            or `DEVICE_META`).
- * @param[in]  pin_memory     If `true`, request page-locked host memory
+ * @param[in]  device         Target device (@c DEVICE_CPU, @c DEVICE_GPU,
+ *                            or @c DEVICE_META).
+ * @param[in]  pin_memory     If @c true, request page-locked host memory
  *                            (CPU only).
  * @param[out] handle         Pointer to receive the raw RustHandle.
- *                            Must not be `NULL` when @p create_storage
- *                            is `false`.
- * @param[in,out] ten         Tensor to initialize.  Must not be `NULL`
- *                            when @p create_storage is `true`, and must
+ *                            Must not be @c nullptr when @p create_storage
+ *                            is @c false.
+ * @param[in,out] ten         Tensor to initialize.  Must not be @c nullptr
+ *                            when @p create_storage is @c true, and must
  *                            not already be allocated.
- * @param[in]  create_storage If `true`, create a full TensorStorage and
- *                            attach it to @p ten.  If `false`, only
+ * @param[in]  create_storage If @c true, create a full TensorStorage and
+ *                            attach it to @p ten.  If @c false, only
  *                            populate @p handle.
  *
- * @return @ref novaStatus_t with `novaSuccess` on success.
+ * @return @ref novaStatus_t with @c novaSuccess on success.
  *
- * @retval novaInvalidPointer  @p ten is `NULL` when @p create_storage is
- *                             `true`, or @p ten is already allocated.
+ * @retval novaInvalidPointer  @p ten is @c nullptr when @p create_storage is
+ *                             @c true, or @p ten is already allocated.
  * @retval novaSuccess         META device or successful allocation.
- * @retval ...                 Forwarded from @ref safe_reserve().
+ * @retval ...                 Forwarded from @ref reserve().
  *
  * @pre  @p bytes must be greater than zero.
- * @pre  Exactly one of @p handle or @p ten must be non-NULL,
+ * @pre  Exactly one of @p handle or @p ten must be non-nullptr,
  *       determined by @p create_storage.
  *
- * @post On success with @p create_storage `true`, @p ten is marked
+ * @post On success with @p create_storage @c true, @p ten is marked
  *       as allocated and its @c storage, @c data, and @c is_allocated_
  *       fields are populated.
  *
- * @see safe_reserve()        Low-level Rust FFI allocation.
+ * @see reserve()             Rust-backed allocation.
  * @see get_data_from()       Resolve data pointer from handle.
  * @see TensorStorage         Storage descriptor struct.
  */
-novaStatus_t safe_allocator(size_t bytes, Device device, bool pin_memory,
+novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
                             RustHandle *handle, Tensor *ten,
                             bool create_storage);
 

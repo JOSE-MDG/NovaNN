@@ -1,41 +1,46 @@
 /**
  * @file dense_layout.c
- * @brief implementation of the optimized contiguous-tensor layout renderer.
+ * @brief Optimized contiguous-tensor layout renderer implementation.
  *
  * @details
- * This module produces PyTorch-style bracketed output for tensors whose
- * size is within the summarization threshold. It features a high-performance
- * fast-path for contiguous tensors that uses direct pointer increments
- * in the innermost loops, bypassing expensive multidimensional offset
- * calculations.
+ * Produces NovaNN bracketed output for tensors whose size is
+ * within the summarization threshold. Features a high-performance
+ * fast-path for contiguous tensors that uses direct pointer
+ * increments in the innermost loops, bypassing expensive
+ * multidimensional offset calculations.
  *
- * Separators follow library conventions:
- * - Last dimension: ", " between elements.
- * - Second-to-last: ",\n" + indentation between rows.
- * - Outer dimensions: ",\n\n" + indentation between higher-dimensional slices.
+ * @section separators Separators
  *
- * ## Architecture
- * - **Recursive Descent**: `render_dim` walks the tensor dimensions from
- *   outer (dim 0) to inner (ndims-1).
- * - **Fast-Path**: If @ref is_contiguous() returns true, a base pointer
- *   is propagated down the stack for direct data access.
- * - **Element Alignment**: Column widths from @ref ReprContext are used
- *   to ensure elements align vertically across rows.
+ * @li Last dimension: @c ", " between elements.
+ * @li Second-to-last: @c ",\n" + indentation between rows.
+ * @li Outer dimensions: @c ",\n\n" + indentation between higher-
+ *   dimensional slices.
  *
- * @see dense_layout.h Renderer interface.
- * @see repr_context.h Formatting parameters.
+ * @section architecture Architecture
+ *
+ * @li Recursive Descent: @c render_dim walks the tensor dimensions
+ *   from outer (dim 0) to inner (@c ndims-1).
+ * @li Fast-Path: If @ref is_contiguous() returns @c true, a base
+ *   pointer is propagated down the stack for direct data access.
+ * @li Element Alignment: Column widths from @ref ReprContext ensure
+ *   elements align vertically across rows.
+ *
+ * @see layouts.h        Renderer interface declarations.
+ * @see repr_context.h   Formatting parameters.
+ * @see element_fmt.h    Element formatting dispatch.
  */
+
+#include <string.h>
 
 #include <ncore/core/dtype.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/tensor_utils.h>
-#include <string.h>
 
 #include "layouts.h"
 #include "repr/formatters/element_fmt.h"
 
 /**
- * @brief Calculate the byte pointer for a set of coordinates.
+ * @brief Compute the byte pointer for a coordinate vector.
  *
  * @param[in] ten    Pointer to the tensor.
  * @param[in] coords Coordinate vector.
@@ -44,11 +49,11 @@
  */
 static void *elem_ptr(const Tensor *ten, coords_t coords) {
   size_t off = compute_linear_byte_offset(coords, ten->ndims, ten->strides);
-  return (uint8 *)ten->data.u8 + off;
+  return ten->data.u8 + off;
 }
 
 /**
- * @brief Append a string to the builder with right-justified padding.
+ * @brief Append a string with right-justified padding.
  *
  * @param[in,out] sb    Output StringBuilder.
  * @param[in]     val   The formatted string to append.
@@ -69,6 +74,11 @@ static void pad_and_append(StringBuilder *sb, const char *val, int len,
  * @details
  * Dispatches to @ref format_element() and applies column alignment
  * for multi-dimensional tensors.
+ *
+ * @param[in,out] sb   Output StringBuilder.
+ * @param[in]     ctx  Representation context.
+ * @param[in]     ten  Tensor being rendered.
+ * @param[in]     ptr  Pointer to the element data.
  */
 static void append_elem(StringBuilder *sb, const ReprContext *ctx,
                         const Tensor *ten, const void *ptr) {
@@ -85,15 +95,16 @@ static void append_elem(StringBuilder *sb, const ReprContext *ctx,
  * @brief Recursively render tensor dimensions with layout optimization.
  *
  * @details
- * Walks through each dimension. If the tensor is contiguous, it uses
- * the `base` pointer to perform linear access in the innermost loop.
+ * Walks through each dimension. If the tensor is contiguous, the
+ * @c base pointer is used for linear access in the innermost loop.
  *
  * @param[in,out] sb     Output StringBuilder.
- * @param[in]     ctx    Pointer to the representation context.
- * @param[in]     dim    Index of the dimension being rendered.
- * @param[in]     indent Column position of the opening bracket.
- * @param[in,out] coords Coordinate vector (used for non-contiguous paths).
- * @param[in]     base   Current base pointer for the slice (contiguous only).
+ * @param[in]     ctx    Representation context.
+ * @param[in]     dim    Current dimension index (0 .. @c ndims-1).
+ * @param[in]     indent Indentation level for the current row.
+ * @param[in]     coords Current coordinate vector.
+ * @param[in]     base   Base data pointer for the contiguous fast path
+ *                       (may be @c nullptr).
  */
 static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
                        int indent, coords_t coords, const uint8 *base) {
@@ -102,17 +113,22 @@ static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
   sb_append_char(sb, '[');
 
   if (dim == ten->ndims - 1) {
-    for (size_t i = 0; i < ten->shape[dim]; i++) {
+    size_t packing = dtype_packing_factor(ten->dtype);
+    size_t count = ten->shape[dim] * packing;
+    for (size_t i = 0; i < count; i++) {
       if (i > 0) {
         sb_append(sb, ", ");
       }
-      const void *ptr;
+      size_t byte_idx = i / packing;
+      size_t sub_idx = i % packing;
+      const void *ptr = nullptr;
       if (contiguous && base) {
-        ptr = base + (i * ten->item_size);
+        ptr = base + (byte_idx * ten->item_size);
       } else {
-        coords[dim] = i;
+        coords[dim] = byte_idx;
         ptr = elem_ptr(ten, coords);
       }
+      ((ReprContext *)ctx)->sub_element_index = sub_idx;
       append_elem(sb, ctx, ten, ptr);
     }
   } else {
@@ -126,7 +142,7 @@ static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
         sb_append_repeated(sb, ' ', (size_t)indent + 1);
       }
 
-      const uint8 *next_base = NULL;
+      const uint8 *next_base = nullptr;
       if (contiguous && base) {
         next_base = base + (i * ten->strides[dim]);
       } else if (!contiguous) {
@@ -141,17 +157,15 @@ static void render_dim(StringBuilder *sb, const ReprContext *ctx, size_t dim,
 }
 
 /**
- * @brief Render a contiguous, non-summarised tensor.
+ * @brief Render a contiguous, non-summarized tensor.
  *
- * @details
- * Entry point for tensors within the truncation threshold. Automatically
- * detects contiguity to enable optimized rendering paths.
- *
- * @param[in]  ctx Pointer to a fully initialised ReprContext.
- * @param[out] sb  Pointer to the StringBuilder.
+ * @param[in]     ctx Pointer to the representation context. Must not
+ *                    be @c nullptr.
+ * @param[in,out] sb  Pointer to the StringBuilder. Must not be
+ *                    @c nullptr.
  */
 void dense_layout_render(const ReprContext *ctx, StringBuilder *sb) {
-  coords_t coords = {0};
+  coords_t coords = {};
   const uint8 *base = (const uint8 *)ctx->tensor->data.u8;
   render_dim(sb, ctx, 0, 7, coords, base);
 }

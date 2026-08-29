@@ -1,54 +1,91 @@
 /**
  * @file metadata_fmt.c
- * @brief Implementation of the tensor metadata suffix formatter.
+ * @brief Metadata suffix formatter implementation.
  *
  * @details
- * This module handles the generation of the metadata footer that follows
- * the tensor's data block. It provides contextual information such as
- * data type, shape, device placement, and autograd status, depending
- * on the display mode (NORMAL vs DEBUG).
+ * Generates the metadata footer that follows the tensor's data block.
+ * Provides contextual information such as data type, shape, device
+ * placement, and autograd status, depending on the display mode
+ * (@c ReprModeNormal vs @c ReprModeDebug).
  *
- * ## Architecture
- * - **Context Sensitivity**: Normal mode suppresses information that is
- *   considered "default" (e.g., Float32, CPU) to reduce visual noise.
- * - **Debug Path**: Forces emission of all metadata fields on a new line
- *   to facilitate diagnostics.
- * - **String Mapping**: Uses precomputed string tables for @ref DType_
- *   and @ref Device enumeration values.
+ * @section mode-behavior Mode Behavior
  *
- * @see metadata_fmt.h Footer interface.
- * @see repr_options.h Mode definitions.
+ * @li Normal mode: Suppresses "default" information (e.g.,
+ *   @c Float32, @c CPU) to reduce visual noise. Meta and GPU tensors
+ *   always show dtype and device.
+ * @li Debug mode: Forces emission of all metadata fields on a new
+ *   line for diagnostic clarity.
+ *
+ * @section string-mapping String Mapping
+ *
+ * Uses precomputed string tables (@c g_dtype_string,
+ * @c g_device_string) for @ref DType_ and @ref Device_ enumeration
+ * values.
+ *
+ * @see metadata_fmt.h    Footer interface.
+ * @see repr_options.h    Mode definitions.
+ * @see dtype.h           DType_ enumeration.
+ * @see device.h          Device_ enumeration.
  */
+
+#include <stdio.h>
 
 #include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
-#include <stdio.h>
 
 #include "metadata_fmt.h"
+#include "ncore/tensor.h"
 
 /**
- * @var static const char *g_dtype_string
- * @brief String table for mapping DType_ values to human-readable labels.
+ * @var g_dtype_string
+ * @brief String table mapping @ref DType_ values to human-readable labels.
+ *
+ * @details
+ * Indexed by @ref DType_ values (@c 0 .. @c NUM_DTYPES-1). Every
+ * entry is a static string literal.
+ *
+ * @see dtype_string()
  */
 static const char *g_dtype_string[NUM_DTYPES] = {
-    [Float32] = "float32",   [Float64] = "float64",   [Float16] = "float16",
-    [BFloat16] = "bfloat16", [Signed8] = "int8",      [UnSigned8] = "uint8",
-    [QSigned8] = "qint8",    [QUnSigned8] = "quint8", [Signed32] = "int32",
-    [UnSigned32] = "uint32", [Signed64] = "int64",    [UnSigned64] = "uint64",
+    [Float32] = "float32",
+    [Float64] = "float64",
+    [Float16] = "float16",
+    [BFloat16] = "bfloat16",
+    [Float8E4M3fn] = "float8_e4m3fn",
+    [Float8E5M2] = "float8_e5m2",
+    [Float4E2M1fn] = "float4_e2m1fn_x2",
+    [Signed8] = "int8",
+    [UnSigned8] = "uint8",
+    [QSigned8] = "qint8",
+    [QUnSigned8] = "quint8",
+    [Signed16] = "int16",
+    [UnSigned16] = "uint16",
+    [QSigned16] = "qint16",
+    [QUnSigned16] = "quint16",
+    [Signed32] = "int32",
+    [UnSigned32] = "uint32",
+    [QSigned32] = "qint32",
+    [QUnSigned32] = "quint32",
+    [Signed64] = "int64",
+    [UnSigned64] = "uint64",
 };
 
 /**
- * @var static const char *g_device_string
- * @brief String table for mapping Device values to human-readable labels.
+ * @var g_device_string
+ * @brief String table mapping @ref Device_ values to human-readable labels.
+ *
+ * @see device_string()
  */
 static const char *g_device_string[3] = {
     [DEVICE_CPU] = "cpu", [DEVICE_GPU] = "cuda", [DEVICE_META] = "meta"};
 
 /**
- * @brief Map a DType_ value to its human-readable string representation.
+ * @brief Map a @ref DType_ value to its human-readable string.
  *
- * @param[in] d The DType to look up.
- * @return A static string literal, or "unknown" if the type is invalid.
+ * @param[in] d The data type to look up.
+ *
+ * @return A static string literal, or @c "unknown" if the type is
+ *         out of range.
  */
 static const char *dtype_string(DType_ d) {
   if (d >= NUM_DTYPES) {
@@ -58,12 +95,14 @@ static const char *dtype_string(DType_ d) {
 }
 
 /**
- * @brief Map a Device enum value to its human-readable string representation.
+ * @brief Map a @ref Device_ value to its human-readable string.
  *
- * @param[in] d The Device to look up.
- * @return A static string literal, or "unknown" if the device is invalid.
+ * @param[in] d The device to look up.
+ *
+ * @return A static string literal, or @c "unknown" if the device is
+ *         out of range.
  */
-static const char *device_string(Device d) {
+static const char *device_string(Device_ d) {
   if ((int)d >= 3) {
     return "unknown";
   }
@@ -71,14 +110,11 @@ static const char *device_string(Device d) {
 }
 
 /**
- * @brief Append the metadata suffix and close the outer tensor representation.
+ * @brief Append the metadata suffix and close the outer tensor
+ *        representation.
  *
- * @details
- * This function appends the final ")" and optionally a comma-separated
- * metadata block based on the current mode and tensor state.
- *
- * @param[in]     ctx Pointer to the representation context.
- * @param[in,out] sb  Pointer to the StringBuilder.
+ * @param[in]     ctx Representation context driving the footer output.
+ * @param[in,out] sb  Output StringBuilder receiving the suffix.
  */
 void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
   const Tensor *ten = ctx->tensor;
@@ -106,8 +142,8 @@ void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
     }
 
     bool show_dtype = (ten->dtype != Float32);
-    bool show_grad = (ten->requires_grad_ && ten->grad_fn_ == NULL) != 0;
-    bool show_grad_fn = ten->grad_fn_ != NULL;
+    bool show_grad = ten->requires_grad_;
+    bool show_grad_fn = ten->grad_fn_ != nullptr;
 
     if (!show_dtype && !show_grad && !show_grad_fn) {
       sb_append(sb, ")");
@@ -137,15 +173,19 @@ void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
   sb_append(sb, dtype_string(ten->dtype));
 
   sb_append(sb, ", shape=(");
-  if (ten->ndims == 0) {
+  if (is_scalar(ten)) {
     sb_append(sb, ")");
   } else {
-    for (size_t dim = 0; dim < ten->ndims; dim++) {
+    const size_t packing = dtype_packing_factor(ten->dtype);
+    for (size_t dim = 0; dim < ten->ndims; ++dim) {
       if (dim > 0) {
         sb_append(sb, ", ");
       }
       char buf[32];
-      snprintf(buf, sizeof(buf), "%zu", ten->shape[dim]);
+      const size_t dim_size = ten->shape[dim];
+      const size_t logical_size =
+          (dim == ten->ndims - 1) ? dim_size * packing : dim_size;
+      snprintf(buf, sizeof(buf), "%zu", logical_size);
       sb_append(sb, buf);
     }
     sb_append(sb, ")");
@@ -154,7 +194,7 @@ void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
   sb_append(sb, ", device=");
   sb_append(sb, device_string(ten->device));
 
-  if (ten->grad_fn_ != NULL) {
+  if (ten->grad_fn_ != nullptr) {
     // TODO: pass grad_fn member as string of <BackwardNode> (via C++)
     sb_append(sb, ", grad_fn=<BackwardNode>");
   } else {

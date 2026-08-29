@@ -1,0 +1,1921 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 27
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "cpu",
+      "hidden": true,
+      "inherits": "base",
+      "displayName": "CPU backend"
+    },
+    {
+      "name": "cuda",
+      "hidden": true,
+      "inherits": "base",
+      "displayName": "CUDA backend",
+      "cacheVariables": {
+        "USE_CUDA": "ON"
+      }
+    },
+    {
+      "name": "hip",
+      "hidden": true,
+      "inherits": "base",
+      "displayName": "HIP backend",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "USE_HIP": "ON",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "USE_LTO": "OFF"
+      }
+    },
+    {
+      "name": "asan",
+      "hidden": true,
+      "inherits": "base",
+      "displayName": "AddressSanitizer",
+      "cacheVariables": {
+        "USE_ASAN": "ON"
+      }
+    },
+    {
+      "name": "ubsan",
+      "hidden": true,
+      "inherits": "base",
+      "displayName": "UndefinedBehaviorSanitizer",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "USE_UBSAN": "ON"
+      }
+    },
+    {
+      "name": "windows",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang-cl",
+        "CMAKE_CXX_COMPILER": "clang-cl",
+        "CMAKE_LINKER": "lld-link"
+      }
+    },
+    {
+      "name": "windows-cuda",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CMAKE_CUDA_HOST_COMPILER": "$env{CUDA_HOST_COMPILER}"
+      }
+    },
+    {
+      "name": "windows-asan-debug",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL"
+      }
+    },
+    {
+      "name": "linux",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "cpu-windows",
+      "hidden": true,
+      "inherits": [
+        "cpu",
+        "windows"
+      ],
+      "displayName": "CPU backend (Windows)"
+    },
+    {
+      "name": "cpu-linux",
+      "hidden": true,
+      "inherits": [
+        "cpu",
+        "linux"
+      ],
+      "displayName": "CPU backend (Linux)"
+    },
+    {
+      "name": "cuda-windows",
+      "hidden": true,
+      "inherits": [
+        "cuda",
+        "windows",
+        "windows-cuda"
+      ],
+      "displayName": "CUDA backend (Windows)"
+    },
+    {
+      "name": "cuda-linux",
+      "hidden": true,
+      "inherits": [
+        "cuda",
+        "linux"
+      ],
+      "displayName": "CUDA backend (Linux)"
+    },
+    {
+      "name": "cpu-release-linux",
+      "inherits": "cpu-linux",
+      "displayName": "CPU Release (Linux)",
+      "description": "CPU backend, Release, without tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cpu-debug-linux",
+      "inherits": "cpu-linux",
+      "displayName": "CPU Debug (Linux)",
+      "description": "CPU backend, Debug, without tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cpu-asan-release-linux",
+      "inherits": [
+        "cpu-linux",
+        "asan"
+      ],
+      "displayName": "CPU Release + ASan (Linux)",
+      "description": "CPU backend, Release, AddressSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cpu-asan-debug-linux",
+      "inherits": [
+        "cpu-linux",
+        "asan"
+      ],
+      "displayName": "CPU Debug + ASan (Linux)",
+      "description": "CPU backend, Debug, AddressSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cpu-ubsan-release-linux",
+      "inherits": [
+        "cpu-linux",
+        "ubsan"
+      ],
+      "displayName": "CPU Release + UBSan (Linux)",
+      "description": "CPU backend, Release, UndefinedBehaviorSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cpu-ubsan-debug-linux",
+      "inherits": [
+        "cpu-linux",
+        "ubsan"
+      ],
+      "displayName": "CPU Debug + UBSan (Linux)",
+      "description": "CPU backend, Debug, UndefinedBehaviorSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cpu-test-release-linux",
+      "inherits": "cpu-linux",
+      "displayName": "CPU Release + Tests (Linux)",
+      "description": "CPU backend, Release, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cpu-test-debug-linux",
+      "inherits": "cpu-linux",
+      "displayName": "CPU Debug + Tests (Linux)",
+      "description": "CPU backend, Debug, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cpu-asan-test-release-linux",
+      "inherits": [
+        "cpu-linux",
+        "asan"
+      ],
+      "displayName": "CPU Release + ASan + Tests (Linux)",
+      "description": "CPU backend, Release, AddressSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cpu-asan-test-debug-linux",
+      "inherits": [
+        "cpu-linux",
+        "asan"
+      ],
+      "displayName": "CPU Debug + ASan + Tests (Linux)",
+      "description": "CPU backend, Debug, AddressSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cpu-ubsan-test-release-linux",
+      "inherits": [
+        "cpu-linux",
+        "ubsan"
+      ],
+      "displayName": "CPU Release + UBSan + Tests (Linux)",
+      "description": "CPU backend, Release, UndefinedBehaviorSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cpu-ubsan-test-debug-linux",
+      "inherits": [
+        "cpu-linux",
+        "ubsan"
+      ],
+      "displayName": "CPU Debug + UBSan + Tests (Linux)",
+      "description": "CPU backend, Debug, UndefinedBehaviorSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cpu-release-windows",
+      "inherits": "cpu-windows",
+      "displayName": "CPU Release (Windows)",
+      "description": "CPU backend, Release, without tests (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cpu-debug-windows",
+      "inherits": "cpu-windows",
+      "displayName": "CPU Debug (Windows)",
+      "description": "CPU backend, Debug, without tests (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cpu-asan-release-windows",
+      "inherits": [
+        "cpu-windows",
+        "asan",
+        "windows-asan-debug"
+      ],
+      "displayName": "CPU Release + ASan (Windows)",
+      "description": "CPU backend, Release, AddressSanitizer (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cpu-asan-debug-windows",
+      "inherits": [
+        "cpu-windows",
+        "asan",
+        "windows-asan-debug"
+      ],
+      "displayName": "CPU Debug + ASan (Windows)",
+      "description": "CPU backend, Debug, AddressSanitizer (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cpu-test-release-windows",
+      "inherits": "cpu-windows",
+      "displayName": "CPU Release + Tests (Windows)",
+      "description": "CPU backend, Release, with tests (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cpu-test-debug-windows",
+      "inherits": "cpu-windows",
+      "displayName": "CPU Debug + Tests (Windows)",
+      "description": "CPU backend, Debug, with tests (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cpu-asan-test-release-windows",
+      "inherits": [
+        "cpu-windows",
+        "asan",
+        "windows-asan-debug"
+      ],
+      "displayName": "CPU Release + ASan + Tests (Windows)",
+      "description": "CPU backend, Release, AddressSanitizer, with tests (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cuda-release-linux",
+      "inherits": "cuda-linux",
+      "displayName": "CUDA Release (Linux)",
+      "description": "CUDA backend, Release, without tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cuda-debug-linux",
+      "inherits": "cuda-linux",
+      "displayName": "CUDA Debug (Linux)",
+      "description": "CUDA backend, Debug, without tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cuda-asan-release-linux",
+      "inherits": [
+        "cuda-linux",
+        "asan"
+      ],
+      "displayName": "CUDA Release + ASan (Linux)",
+      "description": "CUDA backend, Release, AddressSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cuda-asan-debug-linux",
+      "inherits": [
+        "cuda-linux",
+        "asan"
+      ],
+      "displayName": "CUDA Debug + ASan (Linux)",
+      "description": "CUDA backend, Debug, AddressSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cuda-ubsan-release-linux",
+      "inherits": [
+        "cuda-linux",
+        "ubsan"
+      ],
+      "displayName": "CUDA Release + UBSan (Linux)",
+      "description": "CUDA backend, Release, UndefinedBehaviorSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cuda-ubsan-debug-linux",
+      "inherits": [
+        "cuda-linux",
+        "ubsan"
+      ],
+      "displayName": "CUDA Debug + UBSan (Linux)",
+      "description": "CUDA backend, Debug, UndefinedBehaviorSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cuda-test-release-linux",
+      "inherits": "cuda-linux",
+      "displayName": "CUDA Release + Tests (Linux)",
+      "description": "CUDA backend, Release, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cuda-test-debug-linux",
+      "inherits": "cuda-linux",
+      "displayName": "CUDA Debug + Tests (Linux)",
+      "description": "CUDA backend, Debug, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cuda-asan-test-release-linux",
+      "inherits": [
+        "cuda-linux",
+        "asan"
+      ],
+      "displayName": "CUDA Release + ASan + Tests (Linux)",
+      "description": "CUDA backend, Release, AddressSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cuda-asan-test-debug-linux",
+      "inherits": [
+        "cuda-linux",
+        "asan"
+      ],
+      "displayName": "CUDA Debug + ASan + Tests (Linux)",
+      "description": "CUDA backend, Debug, AddressSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cuda-ubsan-test-release-linux",
+      "inherits": [
+        "cuda-linux",
+        "ubsan"
+      ],
+      "displayName": "CUDA Release + UBSan + Tests (Linux)",
+      "description": "CUDA backend, Release, UndefinedBehaviorSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cuda-ubsan-test-debug-linux",
+      "inherits": [
+        "cuda-linux",
+        "ubsan"
+      ],
+      "displayName": "CUDA Debug + UBSan + Tests (Linux)",
+      "description": "CUDA backend, Debug, UndefinedBehaviorSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cuda-release-windows",
+      "inherits": "cuda-windows",
+      "displayName": "CUDA Release (Windows)",
+      "description": "CUDA backend, Release, without tests (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cuda-debug-windows",
+      "inherits": "cuda-windows",
+      "displayName": "CUDA Debug (Windows)",
+      "description": "CUDA backend, Debug, without tests (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cuda-asan-release-windows",
+      "inherits": [
+        "cuda-windows",
+        "asan",
+        "windows-asan-debug"
+      ],
+      "displayName": "CUDA Release + ASan (Windows)",
+      "description": "CUDA backend, Release, AddressSanitizer (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cuda-asan-debug-windows",
+      "inherits": [
+        "cuda-windows",
+        "asan",
+        "windows-asan-debug"
+      ],
+      "displayName": "CUDA Debug + ASan (Windows)",
+      "description": "CUDA backend, Debug, AddressSanitizer (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cuda-test-release-windows",
+      "inherits": "cuda-windows",
+      "displayName": "CUDA Release + Tests (Windows)",
+      "description": "CUDA backend, Release, with tests (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cuda-test-debug-windows",
+      "inherits": "cuda-windows",
+      "displayName": "CUDA Debug + Tests (Windows)",
+      "description": "CUDA backend, Debug, with tests (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "cuda-asan-test-release-windows",
+      "inherits": [
+        "cuda-windows",
+        "asan",
+        "windows-asan-debug"
+      ],
+      "displayName": "CUDA Release + ASan + Tests (Windows)",
+      "description": "CUDA backend, Release, AddressSanitizer, with tests (Windows)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "hip-release-linux",
+      "inherits": "hip",
+      "displayName": "HIP Release (Linux)",
+      "description": "HIP backend, Release, without tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "hip-debug-linux",
+      "inherits": "hip",
+      "displayName": "HIP Debug (Linux)",
+      "description": "HIP backend, Debug, without tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "hip-asan-release-linux",
+      "inherits": [
+        "hip",
+        "asan"
+      ],
+      "displayName": "HIP Release + ASan (Linux)",
+      "description": "HIP backend, Release, AddressSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "hip-asan-debug-linux",
+      "inherits": [
+        "hip",
+        "asan"
+      ],
+      "displayName": "HIP Debug + ASan (Linux)",
+      "description": "HIP backend, Debug, AddressSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "hip-ubsan-release-linux",
+      "inherits": [
+        "hip",
+        "ubsan"
+      ],
+      "displayName": "HIP Release + UBSan (Linux)",
+      "description": "HIP backend, Release, UndefinedBehaviorSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "hip-ubsan-debug-linux",
+      "inherits": [
+        "hip",
+        "ubsan"
+      ],
+      "displayName": "HIP Debug + UBSan (Linux)",
+      "description": "HIP backend, Debug, UndefinedBehaviorSanitizer (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "hip-test-release-linux",
+      "inherits": "hip",
+      "displayName": "HIP Release + Tests (Linux)",
+      "description": "HIP backend, Release, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "hip-test-debug-linux",
+      "inherits": "hip",
+      "displayName": "HIP Debug + Tests (Linux)",
+      "description": "HIP backend, Debug, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "hip-asan-test-release-linux",
+      "inherits": [
+        "hip",
+        "asan"
+      ],
+      "displayName": "HIP Release + ASan + Tests (Linux)",
+      "description": "HIP backend, Release, AddressSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "hip-asan-test-debug-linux",
+      "inherits": [
+        "hip",
+        "asan"
+      ],
+      "displayName": "HIP Debug + ASan + Tests (Linux)",
+      "description": "HIP backend, Debug, AddressSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "hip-ubsan-test-release-linux",
+      "inherits": [
+        "hip",
+        "ubsan"
+      ],
+      "displayName": "HIP Release + UBSan + Tests (Linux)",
+      "description": "HIP backend, Release, UndefinedBehaviorSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "hip-ubsan-test-debug-linux",
+      "inherits": [
+        "hip",
+        "ubsan"
+      ],
+      "displayName": "HIP Debug + UBSan + Tests (Linux)",
+      "description": "HIP backend, Debug, UndefinedBehaviorSanitizer, with tests (Linux)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "cpu-release-linux",
+      "configurePreset": "cpu-release-linux"
+    },
+    {
+      "name": "cpu-debug-linux",
+      "configurePreset": "cpu-debug-linux"
+    },
+    {
+      "name": "cpu-asan-release-linux",
+      "configurePreset": "cpu-asan-release-linux"
+    },
+    {
+      "name": "cpu-asan-debug-linux",
+      "configurePreset": "cpu-asan-debug-linux"
+    },
+    {
+      "name": "cpu-ubsan-release-linux",
+      "configurePreset": "cpu-ubsan-release-linux"
+    },
+    {
+      "name": "cpu-ubsan-debug-linux",
+      "configurePreset": "cpu-ubsan-debug-linux"
+    },
+    {
+      "name": "cpu-test-release-linux",
+      "configurePreset": "cpu-test-release-linux"
+    },
+    {
+      "name": "cpu-test-debug-linux",
+      "configurePreset": "cpu-test-debug-linux"
+    },
+    {
+      "name": "cpu-asan-test-release-linux",
+      "configurePreset": "cpu-asan-test-release-linux"
+    },
+    {
+      "name": "cpu-asan-test-debug-linux",
+      "configurePreset": "cpu-asan-test-debug-linux"
+    },
+    {
+      "name": "cpu-ubsan-test-release-linux",
+      "configurePreset": "cpu-ubsan-test-release-linux"
+    },
+    {
+      "name": "cpu-ubsan-test-debug-linux",
+      "configurePreset": "cpu-ubsan-test-debug-linux"
+    },
+    {
+      "name": "cpu-release-windows",
+      "configurePreset": "cpu-release-windows"
+    },
+    {
+      "name": "cpu-debug-windows",
+      "configurePreset": "cpu-debug-windows"
+    },
+    {
+      "name": "cpu-asan-release-windows",
+      "configurePreset": "cpu-asan-release-windows"
+    },
+    {
+      "name": "cpu-asan-debug-windows",
+      "configurePreset": "cpu-asan-debug-windows"
+    },
+    {
+      "name": "cpu-test-release-windows",
+      "configurePreset": "cpu-test-release-windows"
+    },
+    {
+      "name": "cpu-test-debug-windows",
+      "configurePreset": "cpu-test-debug-windows"
+    },
+    {
+      "name": "cpu-asan-test-release-windows",
+      "configurePreset": "cpu-asan-test-release-windows"
+    },
+    {
+      "name": "cuda-release-linux",
+      "configurePreset": "cuda-release-linux"
+    },
+    {
+      "name": "cuda-debug-linux",
+      "configurePreset": "cuda-debug-linux"
+    },
+    {
+      "name": "cuda-asan-release-linux",
+      "configurePreset": "cuda-asan-release-linux"
+    },
+    {
+      "name": "cuda-asan-debug-linux",
+      "configurePreset": "cuda-asan-debug-linux"
+    },
+    {
+      "name": "cuda-ubsan-release-linux",
+      "configurePreset": "cuda-ubsan-release-linux"
+    },
+    {
+      "name": "cuda-ubsan-debug-linux",
+      "configurePreset": "cuda-ubsan-debug-linux"
+    },
+    {
+      "name": "cuda-test-release-linux",
+      "configurePreset": "cuda-test-release-linux"
+    },
+    {
+      "name": "cuda-test-debug-linux",
+      "configurePreset": "cuda-test-debug-linux"
+    },
+    {
+      "name": "cuda-asan-test-release-linux",
+      "configurePreset": "cuda-asan-test-release-linux"
+    },
+    {
+      "name": "cuda-asan-test-debug-linux",
+      "configurePreset": "cuda-asan-test-debug-linux"
+    },
+    {
+      "name": "cuda-ubsan-test-release-linux",
+      "configurePreset": "cuda-ubsan-test-release-linux"
+    },
+    {
+      "name": "cuda-ubsan-test-debug-linux",
+      "configurePreset": "cuda-ubsan-test-debug-linux"
+    },
+    {
+      "name": "cuda-release-windows",
+      "configurePreset": "cuda-release-windows"
+    },
+    {
+      "name": "cuda-debug-windows",
+      "configurePreset": "cuda-debug-windows"
+    },
+    {
+      "name": "cuda-asan-release-windows",
+      "configurePreset": "cuda-asan-release-windows"
+    },
+    {
+      "name": "cuda-asan-debug-windows",
+      "configurePreset": "cuda-asan-debug-windows"
+    },
+    {
+      "name": "cuda-test-release-windows",
+      "configurePreset": "cuda-test-release-windows"
+    },
+    {
+      "name": "cuda-test-debug-windows",
+      "configurePreset": "cuda-test-debug-windows"
+    },
+    {
+      "name": "cuda-asan-test-release-windows",
+      "configurePreset": "cuda-asan-test-release-windows"
+    },
+    {
+      "name": "hip-release-linux",
+      "configurePreset": "hip-release-linux"
+    },
+    {
+      "name": "hip-debug-linux",
+      "configurePreset": "hip-debug-linux"
+    },
+    {
+      "name": "hip-asan-release-linux",
+      "configurePreset": "hip-asan-release-linux"
+    },
+    {
+      "name": "hip-asan-debug-linux",
+      "configurePreset": "hip-asan-debug-linux"
+    },
+    {
+      "name": "hip-ubsan-release-linux",
+      "configurePreset": "hip-ubsan-release-linux"
+    },
+    {
+      "name": "hip-ubsan-debug-linux",
+      "configurePreset": "hip-ubsan-debug-linux"
+    },
+    {
+      "name": "hip-test-release-linux",
+      "configurePreset": "hip-test-release-linux"
+    },
+    {
+      "name": "hip-test-debug-linux",
+      "configurePreset": "hip-test-debug-linux"
+    },
+    {
+      "name": "hip-asan-test-release-linux",
+      "configurePreset": "hip-asan-test-release-linux"
+    },
+    {
+      "name": "hip-asan-test-debug-linux",
+      "configurePreset": "hip-asan-test-debug-linux"
+    },
+    {
+      "name": "hip-ubsan-test-release-linux",
+      "configurePreset": "hip-ubsan-test-release-linux"
+    },
+    {
+      "name": "hip-ubsan-test-debug-linux",
+      "configurePreset": "hip-ubsan-test-debug-linux"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "cpu-test-release-linux",
+      "configurePreset": "cpu-test-release-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cpu-test-debug-linux",
+      "configurePreset": "cpu-test-debug-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cpu-asan-test-release-linux",
+      "configurePreset": "cpu-asan-test-release-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cpu-asan-test-debug-linux",
+      "configurePreset": "cpu-asan-test-debug-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cpu-ubsan-test-release-linux",
+      "configurePreset": "cpu-ubsan-test-release-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cpu-ubsan-test-debug-linux",
+      "configurePreset": "cpu-ubsan-test-debug-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cpu-test-release-windows",
+      "configurePreset": "cpu-test-release-windows",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cpu-test-debug-windows",
+      "configurePreset": "cpu-test-debug-windows",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cpu-asan-test-release-windows",
+      "configurePreset": "cpu-asan-test-release-windows",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cuda-test-release-linux",
+      "configurePreset": "cuda-test-release-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cuda-test-debug-linux",
+      "configurePreset": "cuda-test-debug-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cuda-asan-test-release-linux",
+      "configurePreset": "cuda-asan-test-release-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cuda-asan-test-debug-linux",
+      "configurePreset": "cuda-asan-test-debug-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cuda-ubsan-test-release-linux",
+      "configurePreset": "cuda-ubsan-test-release-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cuda-ubsan-test-debug-linux",
+      "configurePreset": "cuda-ubsan-test-debug-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cuda-test-release-windows",
+      "configurePreset": "cuda-test-release-windows",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cuda-test-debug-windows",
+      "configurePreset": "cuda-test-debug-windows",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "cuda-asan-test-release-windows",
+      "configurePreset": "cuda-asan-test-release-windows",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "hip-test-release-linux",
+      "configurePreset": "hip-test-release-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "hip-test-debug-linux",
+      "configurePreset": "hip-test-debug-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "hip-asan-test-release-linux",
+      "configurePreset": "hip-asan-test-release-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "hip-asan-test-debug-linux",
+      "configurePreset": "hip-asan-test-debug-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "hip-ubsan-test-release-linux",
+      "configurePreset": "hip-ubsan-test-release-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "hip-ubsan-test-debug-linux",
+      "configurePreset": "hip-ubsan-test-debug-linux",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "cpu-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-asan-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-asan-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-asan-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-asan-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-asan-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-asan-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-ubsan-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-ubsan-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-ubsan-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-ubsan-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-ubsan-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-ubsan-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-test-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-test-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-test-release-linux"
+        },
+        {
+          "type": "test",
+          "name": "cpu-test-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-test-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-test-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-test-debug-linux"
+        },
+        {
+          "type": "test",
+          "name": "cpu-test-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-asan-test-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-asan-test-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-asan-test-release-linux"
+        },
+        {
+          "type": "test",
+          "name": "cpu-asan-test-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-asan-test-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-asan-test-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-asan-test-debug-linux"
+        },
+        {
+          "type": "test",
+          "name": "cpu-asan-test-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-ubsan-test-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-ubsan-test-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-ubsan-test-release-linux"
+        },
+        {
+          "type": "test",
+          "name": "cpu-ubsan-test-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-ubsan-test-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-ubsan-test-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cpu-ubsan-test-debug-linux"
+        },
+        {
+          "type": "test",
+          "name": "cpu-ubsan-test-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cpu-release-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-release-windows"
+        },
+        {
+          "type": "build",
+          "name": "cpu-release-windows"
+        }
+      ]
+    },
+    {
+      "name": "cpu-debug-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-debug-windows"
+        },
+        {
+          "type": "build",
+          "name": "cpu-debug-windows"
+        }
+      ]
+    },
+    {
+      "name": "cpu-asan-release-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-asan-release-windows"
+        },
+        {
+          "type": "build",
+          "name": "cpu-asan-release-windows"
+        }
+      ]
+    },
+    {
+      "name": "cpu-asan-debug-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-asan-debug-windows"
+        },
+        {
+          "type": "build",
+          "name": "cpu-asan-debug-windows"
+        }
+      ]
+    },
+    {
+      "name": "cpu-test-release-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-test-release-windows"
+        },
+        {
+          "type": "build",
+          "name": "cpu-test-release-windows"
+        },
+        {
+          "type": "test",
+          "name": "cpu-test-release-windows"
+        }
+      ]
+    },
+    {
+      "name": "cpu-test-debug-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-test-debug-windows"
+        },
+        {
+          "type": "build",
+          "name": "cpu-test-debug-windows"
+        },
+        {
+          "type": "test",
+          "name": "cpu-test-debug-windows"
+        }
+      ]
+    },
+    {
+      "name": "cpu-asan-test-release-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cpu-asan-test-release-windows"
+        },
+        {
+          "type": "build",
+          "name": "cpu-asan-test-release-windows"
+        },
+        {
+          "type": "test",
+          "name": "cpu-asan-test-release-windows"
+        }
+      ]
+    },
+    {
+      "name": "cuda-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-asan-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-asan-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-asan-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-asan-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-asan-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-asan-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-ubsan-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-ubsan-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-ubsan-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-ubsan-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-ubsan-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-ubsan-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-test-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-test-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-test-release-linux"
+        },
+        {
+          "type": "test",
+          "name": "cuda-test-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-test-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-test-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-test-debug-linux"
+        },
+        {
+          "type": "test",
+          "name": "cuda-test-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-asan-test-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-asan-test-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-asan-test-release-linux"
+        },
+        {
+          "type": "test",
+          "name": "cuda-asan-test-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-asan-test-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-asan-test-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-asan-test-debug-linux"
+        },
+        {
+          "type": "test",
+          "name": "cuda-asan-test-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-ubsan-test-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-ubsan-test-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-ubsan-test-release-linux"
+        },
+        {
+          "type": "test",
+          "name": "cuda-ubsan-test-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-ubsan-test-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-ubsan-test-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "cuda-ubsan-test-debug-linux"
+        },
+        {
+          "type": "test",
+          "name": "cuda-ubsan-test-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "cuda-release-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-release-windows"
+        },
+        {
+          "type": "build",
+          "name": "cuda-release-windows"
+        }
+      ]
+    },
+    {
+      "name": "cuda-debug-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-debug-windows"
+        },
+        {
+          "type": "build",
+          "name": "cuda-debug-windows"
+        }
+      ]
+    },
+    {
+      "name": "cuda-asan-release-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-asan-release-windows"
+        },
+        {
+          "type": "build",
+          "name": "cuda-asan-release-windows"
+        }
+      ]
+    },
+    {
+      "name": "cuda-asan-debug-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-asan-debug-windows"
+        },
+        {
+          "type": "build",
+          "name": "cuda-asan-debug-windows"
+        }
+      ]
+    },
+    {
+      "name": "cuda-test-release-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-test-release-windows"
+        },
+        {
+          "type": "build",
+          "name": "cuda-test-release-windows"
+        },
+        {
+          "type": "test",
+          "name": "cuda-test-release-windows"
+        }
+      ]
+    },
+    {
+      "name": "cuda-test-debug-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-test-debug-windows"
+        },
+        {
+          "type": "build",
+          "name": "cuda-test-debug-windows"
+        },
+        {
+          "type": "test",
+          "name": "cuda-test-debug-windows"
+        }
+      ]
+    },
+    {
+      "name": "cuda-asan-test-release-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "cuda-asan-test-release-windows"
+        },
+        {
+          "type": "build",
+          "name": "cuda-asan-test-release-windows"
+        },
+        {
+          "type": "test",
+          "name": "cuda-asan-test-release-windows"
+        }
+      ]
+    },
+    {
+      "name": "hip-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-asan-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-asan-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-asan-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-asan-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-asan-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-asan-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-ubsan-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-ubsan-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-ubsan-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-ubsan-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-ubsan-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-ubsan-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-test-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-test-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-test-release-linux"
+        },
+        {
+          "type": "test",
+          "name": "hip-test-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-test-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-test-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-test-debug-linux"
+        },
+        {
+          "type": "test",
+          "name": "hip-test-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-asan-test-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-asan-test-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-asan-test-release-linux"
+        },
+        {
+          "type": "test",
+          "name": "hip-asan-test-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-asan-test-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-asan-test-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-asan-test-debug-linux"
+        },
+        {
+          "type": "test",
+          "name": "hip-asan-test-debug-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-ubsan-test-release-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-ubsan-test-release-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-ubsan-test-release-linux"
+        },
+        {
+          "type": "test",
+          "name": "hip-ubsan-test-release-linux"
+        }
+      ]
+    },
+    {
+      "name": "hip-ubsan-test-debug-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "hip-ubsan-test-debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "hip-ubsan-test-debug-linux"
+        },
+        {
+          "type": "test",
+          "name": "hip-ubsan-test-debug-linux"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+---
+name: {{ name }}
+description: {{ description }}
+{% if tools %}tools: {{ tools | join(", ") }}{% endif %}
+---
+
+{{ body }}

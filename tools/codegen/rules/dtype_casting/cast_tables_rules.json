@@ -1,0 +1,3818 @@
+{
+  "source": "ncore/native/cpu/dtype/DTypeCasting.c",
+  "tables": [
+    {
+      "signature": "lookup_tfp4e2m1_to_fp8e4m3",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_fp8e5m2",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_fp16",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "fp16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_bf16",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "bf16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_f32",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "f32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_f64",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "f64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_fp4e2m1",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_fp8e5m2",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_fp16",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "fp16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_bf16",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "bf16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_f32",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "f32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_f64",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "f64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_fp4e2m1",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_fp8e4m3",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_fp16",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "fp16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_bf16",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "bf16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_f32",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "f32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_f64",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "f64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_fp4e2m1",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp16_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_fp8e4m3",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp16_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_fp8e5m2",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp16_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_f32",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "f32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tfp16_to_f32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_f32_avx_avx2_fp16c",
+          "requires": [
+            "AVX/AVX2",
+            "F16C"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_f64",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "f64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tfp16_to_f64_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_f64_avx_avx2_fp16c",
+          "requires": [
+            "F16C"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_bf16",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "bf16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tfp16_to_bf16_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_fp4e2m1",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf32_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_fp8e4m3",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf32_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_fp8e5m2",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf32_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_fp16",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "fp16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf32_to_fp16_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_fp16_avx_avx2_f16c",
+          "requires": [
+            "F16C"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_f64",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "f64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf32_to_f64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_f64_avx_avx2",
+          "requires": [
+            "AVX/AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_f64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_bf16",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "bf16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf32_to_bf16_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16",
+            "AVX512BW",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_fp4e2m1",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tbf16_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_fp8e4m3",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tbf16_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_fp8e5m2",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tbf16_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_fp16",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "fp16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tbf16_to_fp16_avx512bf16_fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16",
+            "AVX512FP16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tbf16_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_f32",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "f32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tbf16_to_f32_avx512bf16",
+          "requires": [
+            "AVX512BF16",
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tbf16_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_f64",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "f64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tbf16_to_f64_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tbf16_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_fp4e2m1",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf64_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_fp8e4m3",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf64_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_fp8e5m2",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf64_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_fp16",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "fp16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf64_to_fp16_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_f32",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "f32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf64_to_f32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_f32_avx_avx2",
+          "requires": [
+            "AVX/AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_f32_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_bf16",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "bf16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf64_to_bf16_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_s8",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "s8",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_s16",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_s32",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "s32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_s64",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "s64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_s8",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "s8",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_s16",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_s32",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "s32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_s64",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "s64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_s8",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "s8",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_s16",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_s32",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "s32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_s64",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "s64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_s8",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "s8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tfp16_to_s8_avx512fp16",
+          "requires": [
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512F",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_s16",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp16_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_s32",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "s32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tfp16_to_s32_avx512fp16",
+          "requires": [
+            "AVX512FP16",
+            "AVX512F",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_s64",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "s64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tfp16_to_s64_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_s8",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "s8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf32_to_s8_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512BW"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_s8_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_s16",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf32_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_s32",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "s32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf32_to_s32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_s32_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_s32_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_s64",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "s64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf32_to_s64_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512DQ",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_s8",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "s8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tbf16_to_s8_avx512bf16",
+          "requires": [
+            "AVX512BF16",
+            "AVX512BW",
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tbf16_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_s16",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tbf16_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_s32",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "s32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tbf16_to_s32_avx512bf16",
+          "requires": [
+            "AVX512BF16",
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tbf16_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_s64",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "s64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tbf16_to_s64_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16",
+            "AVX512VL",
+            "AVX512DQ"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tbf16_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_s8",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "s8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf64_to_s8_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_s16",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf64_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_s32",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "s32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf64_to_s32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_s32_avx_avx2",
+          "requires": [
+            "AVX/AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_s32_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_s64",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "s64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf64_to_s64_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_u8",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "u8",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_u16",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_u32",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "u32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp4e2m1_to_u64",
+      "src_type_abbr": "fp4e2m1",
+      "dst_type_abbr": "u64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp4e2m1_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_u8",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "u8",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_u16",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_u32",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "u32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e4m3_to_u64",
+      "src_type_abbr": "fp8e4m3",
+      "dst_type_abbr": "u64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e4m3_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_u8",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "u8",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_u16",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_u32",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "u32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e5m2_to_u64",
+      "src_type_abbr": "fp8e5m2",
+      "dst_type_abbr": "u64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e5m2_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_u8",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "u8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tfp16_to_u8_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_u16",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp16_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_u32",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "u32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tfp16_to_u32_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp16_to_u64",
+      "src_type_abbr": "fp16",
+      "dst_type_abbr": "u64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tfp16_to_u64_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tfp16_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_u8",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "u8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf32_to_u8_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512BW",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_u8_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_u16",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf32_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_u32",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "u32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf32_to_u32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf32_to_u64",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "u64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf32_to_u64_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512DQ",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf32_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_u8",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "u8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tbf16_to_u8_avx512bf16",
+          "requires": [
+            "AVX512BF16",
+            "AVX512BW",
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tbf16_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_u16",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tbf16_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_u32",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "u32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tbf16_to_u32_avx512bf16",
+          "requires": [
+            "AVX512BF16",
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tbf16_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tbf16_to_u64",
+      "src_type_abbr": "bf16",
+      "dst_type_abbr": "u64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tbf16_to_u64_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16",
+            "AVX512VL",
+            "AVX512DQ"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tbf16_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_u8",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "u8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf64_to_u8_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_u16",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf64_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_u32",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "u32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf64_to_u32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tf64_to_u64",
+      "src_type_abbr": "f64",
+      "dst_type_abbr": "u64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tf64_to_u64_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tf64_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_fp4e2m1",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts8_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_fp8e4m3",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts8_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_fp8e5m2",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts8_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_fp16",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "fp16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts8_to_fp16_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_bf16",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "bf16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts8_to_bf16_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_f32",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "f32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts8_to_f32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_f32_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_f64",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "f64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts8_to_f64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_fp4e2m1",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_fp8e4m3",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_fp8e5m2",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_fp16",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "fp16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_bf16",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "bf16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_f32",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "f32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_f64",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "f64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_fp4e2m1",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts32_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_fp8e4m3",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts32_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_fp8e5m2",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts32_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_fp16",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "fp16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts32_to_fp16_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_bf16",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "bf16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts32_to_bf16_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_f32",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "f32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts32_to_f32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_f32_avx_avx2",
+          "requires": [
+            "AVX/AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_f32_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_f64",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "f64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts32_to_f64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_f64_avx_avx2",
+          "requires": [
+            "AVX/AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_f64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_fp4e2m1",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts64_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_fp8e4m3",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts64_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_fp8e5m2",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts64_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_fp16",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "fp16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts64_to_fp16_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_bf16",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "bf16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts64_to_bf16_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512DQ",
+            "AVX512BF16",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_f32",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "f32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts64_to_f32_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_f64",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "f64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts64_to_f64_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_s16",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts8_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_s32",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "s32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts8_to_s32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_s32_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_s32_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_s64",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "s64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts8_to_s64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_s64_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_s64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_s8",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "s8",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_s32",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "s32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_s64",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "s64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_s8",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "s8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts32_to_s8_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_s16",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts32_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_s64",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "s64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts32_to_s64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_s64_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_s64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_s8",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "s8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts64_to_s8_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512BW"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_s16",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts64_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_s32",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "s32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts64_to_s32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_u8",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "u8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts8_to_u8_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_u8_avx_avx2",
+          "requires": [
+            "AVX/AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_u8_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_u16",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts8_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_u32",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "u32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts8_to_u32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_u32_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_u32_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts8_to_u64",
+      "src_type_abbr": "s8",
+      "dst_type_abbr": "u64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts8_to_u64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts8_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_u8",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "u8",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_u16",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_u32",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "u32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts16_to_u64",
+      "src_type_abbr": "s16",
+      "dst_type_abbr": "u64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts16_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_u8",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "u8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts32_to_u8_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512BW"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_u8_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_u8_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_u16",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts32_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_u32",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "u32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts32_to_u32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_u32_avx_avx2",
+          "requires": [
+            "AVX/AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_u32_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts32_to_u64",
+      "src_type_abbr": "s32",
+      "dst_type_abbr": "u64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts32_to_u64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_u64_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_u64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts32_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_u8",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "u8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts64_to_u8_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_u16",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "ts64_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_u32",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "u32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts64_to_u32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_ts64_to_u64",
+      "src_type_abbr": "s64",
+      "dst_type_abbr": "u64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "ts64_to_u64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_u64_avx_avx2",
+          "requires": [
+            "AVX/AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_u64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "ts64_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_fp4e2m1",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu8_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_fp8e4m3",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu8_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_fp8e5m2",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu8_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_fp16",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "fp16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu8_to_fp16_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_bf16",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "bf16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu8_to_bf16_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_f32",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "f32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu8_to_f32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_f32_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_f64",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "f64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu8_to_f64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_fp4e2m1",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_fp8e4m3",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_fp8e5m2",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_fp16",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "fp16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_bf16",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "bf16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_f32",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "f32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_f64",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "f64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_fp4e2m1",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu32_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_fp8e4m3",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu32_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_fp8e5m2",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu32_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_fp16",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "fp16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu32_to_fp16_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_bf16",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "bf16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu32_to_bf16_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_f32",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "f32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu32_to_f32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_f64",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "f64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu32_to_f64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_fp4e2m1",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "fp4e2m1",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu64_to_fp4e2m1_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_fp8e4m3",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "fp8e4m3",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu64_to_fp8e4m3_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_fp8e5m2",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "fp8e5m2",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu64_to_fp8e5m2_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_fp16",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "fp16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu64_to_fp16_avx512fp16",
+          "requires": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_fp16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_bf16",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "bf16",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu64_to_bf16_avx512bf16",
+          "requires": [
+            "AVX512F",
+            "AVX512DQ",
+            "AVX512BF16",
+            "AVX512VL"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_bf16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_f32",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "f32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu64_to_f32_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_f64",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "f64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu64_to_f64_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_f64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_s8",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "s8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu8_to_s8_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512BW"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_s8_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_s8_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_s16",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu8_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_s32",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "s32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu8_to_s32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_s32_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_s32_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_s64",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "s64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu8_to_s64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_s64_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_s64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_s8",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "s8",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_s16",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_s32",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "s32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_s64",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "s64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_s8",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "s8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu32_to_s8_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512BW"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_s16",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu32_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_s32",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "s32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu32_to_s32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_s32_avx_avx2",
+          "requires": [
+            "AVX/AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_s32_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_s64",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "s64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu32_to_s64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_s64_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_s64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_s8",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "s8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu64_to_s8_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_s8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_s16",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "s16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu64_to_s16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_s32",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "s32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu64_to_s32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_s32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_s64",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "s64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu64_to_s64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_s64_avx_avx2",
+          "requires": [
+            "AVX/AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_s64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_s64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_u16",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu8_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_u32",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "u32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu8_to_u32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_u32_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu8_to_u64",
+      "src_type_abbr": "u8",
+      "dst_type_abbr": "u64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu8_to_u64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_u64_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_u64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu8_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_u8",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "u8",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_u32",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "u32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu16_to_u64",
+      "src_type_abbr": "u16",
+      "dst_type_abbr": "u64",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu16_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_u8",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "u8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu32_to_u8_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_u16",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu32_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu32_to_u64",
+      "src_type_abbr": "u32",
+      "dst_type_abbr": "u64",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu32_to_u64_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_u64_avx2",
+          "requires": [
+            "AVX2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_u64_sse4_2",
+          "requires": [
+            "SSE4.2"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu32_to_u64_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_u8",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "u8",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu64_to_u8_avx512",
+          "requires": [
+            "AVX512F",
+            "AVX512BW"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_u8_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_u16",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "u16",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tu64_to_u16_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tu64_to_u32",
+      "src_type_abbr": "u64",
+      "dst_type_abbr": "u32",
+      "guard_required": true,
+      "variants": [
+        {
+          "name": "tu64_to_u32_avx512",
+          "requires": [
+            "AVX512F"
+          ],
+          "is_scalar": false
+        },
+        {
+          "name": "tu64_to_u32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    }
+  ]
+}
