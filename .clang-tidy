@@ -1,4 +1,9 @@
 ---
+# clang-tidy configuration — NovaNN
+#
+# Used by standalone clang-tidy invocations.
+# For IDE integration, see .clangd diagnostics sections.
+
 Checks: >
   clang-diagnostic-*,
   clang-analyzer-*,
@@ -30,25 +35,27 @@ WarningsAsErrors: ""
 
 HeaderFilterRegex: "ncore/.*"
 
-FormatStyle: llvm
+FormatStyle: file
 
 CheckOptions:
   # Asserts
   bugprone-assert-side-effect.AssertMacros: "NOVA_INTERNAL_ASSERT"
   bugprone-suspicious-string-compare.WarnOnImplicitComparison: false
 
-  readability-identifier-naming.FunctionCase: "camelBack"
-  readability-identifier-naming.ClassCase: "CamelCase"
-  readability-identifier-naming.StructCase: "CamelCase"
+  # C23 modernization — flag remaining NULL usage
+  modernize-use-nullptr.NullMacros: "NULL"
+
+  # Naming — C files (lower_case)
+  readability-identifier-naming.FunctionCase: "lower_case"
+  readability-identifier-naming.VariableCase: "lower_case"
+  readability-identifier-naming.LocalVariableCase: "lower_case"
+  readability-identifier-naming.GlobalVariableCase: "lower_case"
+  readability-identifier-naming.GlobalConstantCase: "lower_case"
+  readability-identifier-naming.ConstVariableCase: "lower_case"
   readability-identifier-naming.EnumCase: "CamelCase"
   readability-identifier-naming.EnumConstantCase: "CamelCase"
   readability-identifier-naming.TypedefCase: "CamelCase"
-  readability-identifier-naming.VariableCase: "camelBack"
-  readability-identifier-naming.LocalVariableCase: "camelBack"
-  readability-identifier-naming.GlobalVariableCase: "camelBack"
-  readability-identifier-naming.MemberCase: "camelBack"
-  readability-identifier-naming.PrivateMemberPrefix: "m_"
-  readability-identifier-naming.GlobalConstantCase: "UPPER_CASE"
   readability-identifier-naming.MacroDefinitionCase: "UPPER_CASE"
+  readability-identifier-naming.MemberCase: "lower_case"
 
   readability-braces-around-statements.ShortStatementLines: 1

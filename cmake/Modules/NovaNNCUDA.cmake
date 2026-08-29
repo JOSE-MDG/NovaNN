@@ -15,7 +15,8 @@ This module defines the following cache variables:
   ``1`` when a supported CUDA toolkit is found, ``0`` otherwise.
 
 ``NOVA_CUDA_ARCHITECTURES``
-  Default list of CUDA SM architectures: 75, 80, 86, 89, 90, 100.
+  Default list of CUDA SM architectures:
+  75, 80, 86, 89, 90, 100, 103, 110, 120, 121.
 
 This module defines the following functions:
 
@@ -34,6 +35,15 @@ This module defines the following functions:
   .. code-block:: cmake
 
     nova_configure_cuda_runtime_target(<target>)
+
+
+.. command:: nova_configure_cuda_includes_target
+
+  Configure a target that include the CUDA headers:
+
+  .. code-block:: cmake
+
+    nova_configure_cuda_includes_target(<target>)
 
 .. command:: nova_configure_cuda_kernels_target
 
@@ -54,9 +64,11 @@ This module defines the following functions:
 
     _nova_configure_cuda_common(<target>)
 
-  Sets ``CUDA_STANDARD`` to 20, enables separable compilation for
-  non-OBJECT libraries, validates ``CMAKE_CUDA_ARCHITECTURES``
-  (minimum SM 75), and defines ``NOVA_HAS_CUDA=1``.
+  Sets ``CUDA_STANDARD`` to 20 and sets the ``CUDA_ARCHITECTURES``
+  target property from ``CMAKE_CUDA_ARCHITECTURES``.  Enables
+  separable compilation for non-OBJECT libraries.  Validates that
+  each SM in ``CMAKE_CUDA_ARCHITECTURES`` is at least SM 75.
+  Defines ``NOVA_HAS_CUDA=1``.
 
 #]=======================================================================]
 function(_nova_configure_cuda_common TARGET)
@@ -68,6 +80,8 @@ function(_nova_configure_cuda_common TARGET)
 
     set_target_properties(${TARGET} PROPERTIES
         CUDA_STANDARD 20
+        CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
+        CUDA_RUNTIME_LIBRARY Shared
     )
 
     get_target_property(_target_type ${TARGET} TYPE)
@@ -78,23 +92,17 @@ function(_nova_configure_cuda_common TARGET)
         )
     endif()
 
-    if(DEFINED CMAKE_CUDA_ARCHITECTURES)
-        foreach(SM IN LISTS CMAKE_CUDA_ARCHITECTURES)
-            if(SM MATCHES "^[0-9]+$")
-                if(SM LESS 75)
-                    message(FATAL_ERROR
-                        "CUDA SM ${SM} is not supported by NovaNN. "
-                        "Minimum is SM 75 (Turing). "
-                        "Remove SM ${SM} from CMAKE_CUDA_ARCHITECTURES."
-                    )
-                endif()
+    foreach(SM IN LISTS CMAKE_CUDA_ARCHITECTURES)
+        if(SM MATCHES "^[0-9]+$")
+            if(SM LESS 75)
+                message(FATAL_ERROR
+                    "CUDA SM ${SM} is not supported by NovaNN. "
+                    "Minimum is SM 75 (Turing). "
+                    "Remove SM ${SM} from CMAKE_CUDA_ARCHITECTURES."
+                )
             endif()
-        endforeach()
-    else()
-        set_target_properties(${TARGET} PROPERTIES
-            CUDA_ARCHITECTURES "${NOVA_CUDA_ARCHITECTURES}"
-        )
-    endif()
+        endif()
+    endforeach()
 endfunction()
 
 #[=======================================================================[.rst:
@@ -170,6 +178,31 @@ function(nova_configure_cuda_runtime_target TARGET)
 endfunction()
 
 #[=======================================================================[.rst:
+.. command:: nova_configure_cuda_includes_target
+
+  Configure a target that include the CUDA headers:
+
+  .. code-block:: cmake
+
+    nova_configure_cuda_includes_target(<target>)
+
+  The ``<target>`` argument specifies the CMake target to configure.
+
+  This function calls ``_nova_configure_cuda_common`` and include
+  the ``${CUDAToolkit_INCLUDE_DIRS}`` headers.
+
+#]=======================================================================]
+function(nova_configure_cuda_includes_target TARGET)
+    if(NOT NOVA_HAS_CUDA)
+        return()
+    endif()
+
+    _nova_configure_cuda_common(${TARGET})
+
+    target_include_directories(${TARGET} INTERFACE ${CUDAToolkit_INCLUDE_DIRS})
+endfunction()
+
+#[=======================================================================[.rst:
 .. command:: nova_configure_cuda_kernels_target
 
   Configure a target that compiles CUDA kernel code:
@@ -180,8 +213,8 @@ endfunction()
 
   The ``<target>`` argument specifies the CMake target to configure.
 
-  Any additional arguments after ``<target>`` are forwarded as
-  private link libraries to the target.
+  Additional ``EXTRA_LIBS`` are parsed as a keyword argument and linked
+  as private libraries.
 
 #]=======================================================================]
 function(nova_configure_cuda_kernels_target TARGET)
@@ -189,10 +222,12 @@ function(nova_configure_cuda_kernels_target TARGET)
         return()
     endif()
 
+    cmake_parse_arguments(_CUDA_K "" "" "EXTRA_LIBS" ${ARGN})
+
     _nova_configure_cuda_common(${TARGET})
 
-    if(ARGN)
-        target_link_libraries(${TARGET} PRIVATE ${ARGN})
+    if(_CUDA_K_EXTRA_LIBS)
+        target_link_libraries(${TARGET} PRIVATE ${_CUDA_K_EXTRA_LIBS})
     endif()
 endfunction()
 
@@ -208,7 +243,7 @@ if(NOT CUDAToolkit_FOUND)
     return()
 endif()
 
-set(NOVA_CUDA_MIN_VERSION "12.6")
+set(NOVA_CUDA_MIN_VERSION "13.0")
 
 if(CUDAToolkit_VERSION VERSION_LESS NOVA_CUDA_MIN_VERSION)
     message(FATAL_ERROR
@@ -218,15 +253,32 @@ if(CUDAToolkit_VERSION VERSION_LESS NOVA_CUDA_MIN_VERSION)
     )
 endif()
 
-enable_language(CUDA)
 set(NOVA_HAS_CUDA 1 CACHE INTERNAL "CUDA backend availability")
 message(STATUS "CUDA: ${CUDAToolkit_VERSION} — ${CUDAToolkit_LIBRARY_DIR}")
 
 set(NOVA_CUDA_ARCHITECTURES
+
+    # Turing
     75
+
+    # Ampere
     80
     86
+
+    # Ada Lovelace
     89
+
+    # Hopper
     90
+
+    # Blackwell – Data Center (B100/B200: sm_100; B300/GB300 Ultra: sm_103)
     100
+    103
+
+    # Blackwell – Jetson Thor (renamed from sm_101 in CUDA 13.0+)
+    110
+
+    # Blackwell – Consumer/Workstation (RTX 50-series: sm_120; GB10/DGX Spark: sm_121)
+    120
+    121
 )

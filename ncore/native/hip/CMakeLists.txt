@@ -2,34 +2,42 @@
 HIP Backend
 -----------
 
-Build the HIP backend object library.  Collects all ``.cpp`` source
-files (including the ``memory/`` subdirectory) and merges the
-``hip_kernels_obj`` object library into it.
+Builds the HIP host-side object library and its device kernels.
 
-Targets created:
+Targets created
+^^^^^^^^^^^^^^^
 
-``hip_obj``
-  OBJECT library containing HIP host-side code and device kernels.
+``hip_obj`` — alias ``ncore::native::obj::hip``
+  OBJECT library containing all HIP host-side translation units
+  (``*.cpp``, ``memory/*.cpp``).
+
+``hip_kernels_obj`` — alias ``ncore::native::obj::hip::kernels``
+  (via ``add_subdirectory(kernels)``)
+  OBJECT library containing compiled HIP device code (``*.hip``).
+  Collected by ``native/CMakeLists.txt`` via
+  ``$<TARGET_OBJECTS:ncore::native::obj::hip::kernels>``.
 
 #]=======================================================================]
 
-file(GLOB_RECURSE HIP_RESOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/ncore/native/hip/*.cpp"
-    "${CMAKE_SOURCE_DIR}/ncore/native/hip/memory/*.cpp"
+file(GLOB HIP_RESOURCES CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cpp"
 )
 
 add_library(hip_obj OBJECT ${HIP_RESOURCES})
+add_library(ncore::native::obj::hip ALIAS hip_obj)
 
 set_target_properties(hip_obj PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
+  POSITION_INDEPENDENT_CODE ON
+  CXX_STANDARD 23
+  CXX_STANDARD_REQUIRED ON
 )
 
 target_include_directories(hip_obj
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
-    PRIVATE ${CMAKE_SOURCE_DIR}/ncore/rust/csrc
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
+  PRIVATE ${CMAKE_SOURCE_DIR}/ncore/memory/csrc
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/memory
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 add_subdirectory(kernels)

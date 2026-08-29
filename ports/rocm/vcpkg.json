@@ -1,0 +1,9 @@
+{
+    "name": "rocm",
+    "version": "7.0",
+    "port-version": 1,
+    "description": "ROCm is an open-source stack for GPU computation from AMD.",
+    "homepage": "https://www.amd.com/en/products/software/rocm.html",
+    "license": null,
+    "supports": "linux & x64"
+}

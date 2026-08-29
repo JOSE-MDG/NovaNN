@@ -1,0 +1,1183 @@
+{
+    "funcs": {
+        "arguments": "const Tensor *restrict src, Tensor *restrict dst",
+        "return": "void",
+        "integers_bound": {
+            "_comment": "Bounds are split per source-intermediate precision (f32 vs f64) because INT32_MAX/UINT32_MAX/INT64_MAX/UINT64_MAX are not exactly representable in either IEEE-754 float or double. Each 'max' below is the largest value exactly representable in that precision that is still <= the true destination-type max, so `v > max` in generated C code can never let an out-of-range value slip through the clamp. Values are stored as JSON strings, not numbers: a bare JSON number is parsed as a double by every standard JSON parser (including Python's json module), which would silently re-round 63/64-bit integer bounds before this table is even read. 'min' bounds are always exact powers of two (or 0) in both precisions, so f32 and f64 share the same min values.",
+            "f32": {
+                "s8": {
+                    "min": "-128.0",
+                    "max": "127.0"
+                },
+                "s16": {
+                    "min": "-32768.0",
+                    "max": "32767.0"
+                },
+                "s32": {
+                    "min": "-2147483648.0",
+                    "max": "2147483520.0"
+                },
+                "s64": {
+                    "min": "-9223372036854775808.0",
+                    "max": "9223371487098961920.0"
+                },
+                "u8": {
+                    "min": "0.0",
+                    "max": "255.0"
+                },
+                "u16": {
+                    "min": "0.0",
+                    "max": "65535.0"
+                },
+                "u32": {
+                    "min": "0.0",
+                    "max": "4294967040.0"
+                },
+                "u64": {
+                    "min": "0.0",
+                    "max": "18446742974197923840.0"
+                }
+            },
+            "f64": {
+                "s8": {
+                    "min": "-128.0",
+                    "max": "127.0"
+                },
+                "s16": {
+                    "min": "-32768.0",
+                    "max": "32767.0"
+                },
+                "s32": {
+                    "min": "-2147483648.0",
+                    "max": "2147483647.0"
+                },
+                "s64": {
+                    "min": "-9223372036854775808.0",
+                    "max": "9223372036854774784.0"
+                },
+                "u8": {
+                    "min": "0.0",
+                    "max": "255.0"
+                },
+                "u16": {
+                    "min": "0.0",
+                    "max": "65535.0"
+                },
+                "u32": {
+                    "min": "0.0",
+                    "max": "4294967295.0"
+                },
+                "u64": {
+                    "min": "0.0",
+                    "max": "18446744073709549568.0"
+                }
+            }
+        },
+        "types": {
+            "floating_to_floating": {
+                "signatures": [
+                    {
+                        "name": "tfp4e2m1_to_fp8e4m3_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "tfp4e2m1_to_fp8e5m2_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "tfp4e2m1_to_fp16_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "tfp4e2m1_to_bf16_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "tfp4e2m1_to_f32_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats"
+                    },
+                    {
+                        "name": "tfp4e2m1_to_f64_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats"
+                    },
+                    {
+                        "name": "tfp8e4m3_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "tfp8e4m3_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "tfp8e4m3_to_fp16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "tfp8e4m3_to_bf16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "tfp8e4m3_to_f32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float"
+                    },
+                    {
+                        "name": "tfp8e4m3_to_f64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float"
+                    },
+                    {
+                        "name": "tfp8e5m2_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "tfp8e5m2_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "tfp8e5m2_to_fp16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "tfp8e5m2_to_bf16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "tfp8e5m2_to_f32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float"
+                    },
+                    {
+                        "name": "tfp8e5m2_to_f64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float"
+                    },
+                    {
+                        "name": "tfp16_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "to_float_signature": "fp16_to_float",
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "tfp16_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "tfp16_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "tfp16_to_f32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float"
+                    },
+                    {
+                        "name": "tfp16_to_f64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float"
+                    },
+                    {
+                        "name": "tfp16_to_bf16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "tf32_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "from_float_source": true,
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "tf32_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "from_float_source": true,
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "tf32_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "from_float_source": true,
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "tf32_to_fp16_scalar",
+                        "is_packed": false,
+                        "from_float_source": true,
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "tf32_to_f64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tf32_to_bf16_scalar",
+                        "is_packed": false,
+                        "from_float_source": true,
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "tbf16_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "to_float_signature": "bf16_to_float",
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "tbf16_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "tbf16_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "tbf16_to_fp16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "tbf16_to_f32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float"
+                    },
+                    {
+                        "name": "tbf16_to_f64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float"
+                    },
+                    {
+                        "name": "tf64_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "tf64_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "tf64_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "tf64_to_fp16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "tf64_to_f32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tf64_to_bf16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "bf16_from_float"
+                    }
+                ]
+            },
+            "floating_to_sinteger": {
+                "signatures": [
+                    {
+                        "name": "tfp4e2m1_to_s8_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "saturate": false
+                    },
+                    {
+                        "name": "tfp4e2m1_to_s16_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "saturate": false
+                    },
+                    {
+                        "name": "tfp4e2m1_to_s32_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "saturate": false
+                    },
+                    {
+                        "name": "tfp4e2m1_to_s64_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "saturate": false
+                    },
+                    {
+                        "name": "tfp8e4m3_to_s8_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e4m3_to_s16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e4m3_to_s32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e4m3_to_s64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e5m2_to_s8_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e5m2_to_s16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e5m2_to_s32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e5m2_to_s64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp16_to_s8_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp16_to_s16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp16_to_s32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp16_to_s64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf32_to_s8_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf32_to_s16_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf32_to_s32_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf32_to_s64_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tbf16_to_s8_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tbf16_to_s16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tbf16_to_s32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tbf16_to_s64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf64_to_s8_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf64_to_s16_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf64_to_s32_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf64_to_s64_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    }
+                ]
+            },
+            "floating_to_uinteger": {
+                "signatures": [
+                    {
+                        "name": "tfp4e2m1_to_u8_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp4e2m1_to_u16_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp4e2m1_to_u32_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp4e2m1_to_u64_scalar",
+                        "is_packed": true,
+                        "to_float_signature": "fp4e2m1x2_to_floats",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e4m3_to_u8_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e4m3_to_u16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e4m3_to_u32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e4m3_to_u64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e4m3fn_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e5m2_to_u8_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e5m2_to_u16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e5m2_to_u32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp8e5m2_to_u64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e5m2_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp16_to_u8_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp16_to_u16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp16_to_u32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tfp16_to_u64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf32_to_u8_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf32_to_u16_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf32_to_u32_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf32_to_u64_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tbf16_to_u8_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tbf16_to_u16_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tbf16_to_u32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tbf16_to_u64_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "bf16_to_float",
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf64_to_u8_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf64_to_u16_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf64_to_u32_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    },
+                    {
+                        "name": "tf64_to_u64_scalar",
+                        "is_packed": false,
+                        "saturate": true
+                    }
+                ]
+            },
+            "sinteger_to_floating": {
+                "signatures": [
+                    {
+                        "name": "ts8_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "ts8_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "ts8_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "ts8_to_fp16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "ts8_to_bf16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "ts8_to_f32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts8_to_f64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts16_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "ts16_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "ts16_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "ts16_to_fp16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "ts16_to_bf16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "ts16_to_f32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts16_to_f64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts32_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "ts32_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "ts32_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "ts32_to_fp16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "ts32_to_bf16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "ts32_to_f32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts32_to_f64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts64_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "ts64_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "ts64_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "ts64_to_fp16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "ts64_to_bf16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "ts64_to_f32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts64_to_f64_scalar",
+                        "is_packed": false
+                    }
+                ]
+            },
+            "sinteger_to_sinteger": {
+                "signatures": [
+                    {
+                        "name": "ts8_to_s16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts8_to_s32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts8_to_s64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts16_to_s8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "ts16_to_s32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts16_to_s64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts32_to_s8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "ts32_to_s16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts32_to_s64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts64_to_s8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "ts64_to_s16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts64_to_s32_scalar",
+                        "is_packed": false
+                    }
+                ]
+            },
+            "sinteger_to_uinteger": {
+                "signatures": [
+                    {
+                        "name": "ts8_to_u8_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts8_to_u16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts8_to_u32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts8_to_u64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts16_to_u8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "ts16_to_u16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts16_to_u32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts16_to_u64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts32_to_u8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "ts32_to_u16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts32_to_u32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts32_to_u64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts64_to_u8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "ts64_to_u16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts64_to_u32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "ts64_to_u64_scalar",
+                        "is_packed": false
+                    }
+                ]
+            },
+            "uinteger_to_floating": {
+                "signatures": [
+                    {
+                        "name": "tu8_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "tu8_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "tu8_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "tu8_to_fp16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "tu8_to_bf16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "tu8_to_f32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu8_to_f64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu16_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "tu16_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "tu16_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "tu16_to_fp16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "tu16_to_bf16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "tu16_to_f32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu16_to_f64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu32_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "tu32_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "tu32_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "tu32_to_fp16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "tu32_to_bf16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "tu32_to_f32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu32_to_f64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu64_to_fp4e2m1_scalar",
+                        "is_packed": false,
+                        "special_case": true,
+                        "from_float_signature": "fp4e2m1x2_from_floats"
+                    },
+                    {
+                        "name": "tu64_to_fp8e4m3_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e4m3fn_from_float"
+                    },
+                    {
+                        "name": "tu64_to_fp8e5m2_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp8e5m2_from_float"
+                    },
+                    {
+                        "name": "tu64_to_fp16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "fp16_from_float"
+                    },
+                    {
+                        "name": "tu64_to_bf16_scalar",
+                        "is_packed": false,
+                        "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "tu64_to_f32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu64_to_f64_scalar",
+                        "is_packed": false
+                    }
+                ]
+            },
+            "uinteger_to_sinteger": {
+                "signatures": [
+                    {
+                        "name": "tu8_to_s8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "tu8_to_s16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu8_to_s32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu8_to_s64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu16_to_s8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "tu16_to_s16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu16_to_s32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu16_to_s64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu32_to_s8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "tu32_to_s16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu32_to_s32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu32_to_s64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu64_to_s8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "tu64_to_s16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu64_to_s32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu64_to_s64_scalar",
+                        "is_packed": false
+                    }
+                ]
+            },
+            "uinteger_to_uinteger": {
+                "signatures": [
+                    {
+                        "name": "tu8_to_u16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu8_to_u32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu8_to_u64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu16_to_u8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "tu16_to_u32_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu16_to_u64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu32_to_u8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "tu32_to_u16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu32_to_u64_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu64_to_u8_scalar",
+                        "is_packed": false,
+                        "su8_downcast_clamp": true
+                    },
+                    {
+                        "name": "tu64_to_u16_scalar",
+                        "is_packed": false
+                    },
+                    {
+                        "name": "tu64_to_u32_scalar",
+                        "is_packed": false
+                    }
+                ]
+            }
+        }
+    }
+}

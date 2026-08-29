@@ -27,21 +27,15 @@ This module defines the following functions:
 
     check_min_compiler_version()
 
-  This function must be called after :command:`project` (so that
-  :variable:`CMAKE_C_COMPILER_ID`, :variable:`CMAKE_CXX_COMPILER_ID`,
-  :variable:`CMAKE_C_COMPILER_VERSION`, and
-  :variable:`CMAKE_CXX_COMPILER_VERSION` are populated).  It compares
-  the detected compiler family and version against the minimum
-  required for each language:
-
   ``GNU``
-    Minimum ``14.0.0``.
+    Minimum ``15.0.0``.
 
   ``Clang``
-    Minimum ``17.0.0``.
+    Minimum ``20.1.0`` (including clang-cl on Windows).
 
-  NovaNN only supports GCC/G++ and Clang/Clang++.  Any other compiler
-  ID (for example ``AppleClang`` or ``IntelLLVM``) is rejected.
+  NovaNN only supports GCC/G++ and Clang/Clang++ (including clang-cl).
+  Any other compiler ID (for example ``MSVC``, ``AppleClang``, or
+  ``IntelLLVM``) is rejected.
 
   On failure the function calls :command:`message` with
   ``FATAL_ERROR``, reporting the compiler path, the detected version,
@@ -49,8 +43,8 @@ This module defines the following functions:
 
 #]=======================================================================]
 function(check_min_compiler_version)
-  set(_gnu_min "14.0.0")
-  set(_clang_min "17.0.0")
+  set(_gnu_min "15.0.0")
+  set(_clang_min "20.1.0")
 
   foreach(lang C CXX)
     if(CMAKE_${lang}_COMPILER_ID STREQUAL "GNU")
@@ -64,14 +58,15 @@ function(check_min_compiler_version)
       if(CMAKE_${lang}_COMPILER_VERSION VERSION_LESS _clang_min)
         message(FATAL_ERROR
           "${CMAKE_${lang}_COMPILER} (Clang ${CMAKE_${lang}_COMPILER_VERSION}) "
-          "is too old.  NovaNN requires Clang/Clang++ ${_clang_min} or later."
+          "is too old.  NovaNN requires Clang/Clang++ ${_clang_min} or later "
+          "(clang-cl included)."
         )
       endif()
     else()
       message(FATAL_ERROR
         "${CMAKE_${lang}_COMPILER} uses unsupported compiler ID "
         "'${CMAKE_${lang}_COMPILER_ID}'.  NovaNN only supports GCC/G++ "
-        "and Clang/Clang++."
+        "and Clang/Clang++ (including clang-cl on Windows)."
       )
     endif()
   endforeach()

@@ -5,20 +5,28 @@
 *.cmake linguist-detectable=true
 *.cu linguist-detectable=true
 *.hip linguist-detectable=true
-*.S linguist-detectable=true
+*.s linguist-detectable=true
 *.jinja linguist-detectable=true
 
 # Explicit asignment to avoid indentification errors
 *.rs linguist-language=Rust
 *.py linguist-language=Python
+*.pyi linguist-language=Python
 *.c linguist-language=C
 *.h linguist-language=C
 *.cpp linguist-language=C++
+*.cc linguist-language=C++
 *.hpp linguist-language=C++
+*.hh linguist-language=C++
 *.cmake linguist-language=CMake
 *.cu linguist-language=Cuda
 *.cuh linguist-language=Cuda
 *.hip linguist-language=HIP
 *.hiph linguist-language=HIP
-*.S linguist-language=Assembly
+*.s linguist-language=Assembly
 *.jinja linguist-language=Jinja
+*.pyx linguist-language=Cython
+*.pxd linguist-language=Cython
+*.pxi linguist-language=Cython
+*.sh linguist-language=Shell
+*.in linguist-language=CMake

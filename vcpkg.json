@@ -1,0 +1,37 @@
+{
+  "name": "novann",
+  "version": "5.0.0",
+  "description": "High Performance Deep Learning Framework",
+  "license": "MIT",
+  "dependencies": [
+    "gtest",
+    "onednn",
+    {
+      "name": "openblas",
+      "features": [
+        "openmp"
+      ]
+    },
+    {
+      "name": "openblas",
+      "features": [
+        "threads"
+      ],
+      "platform": "windows"
+    }
+  ],
+  "features": {
+    "cuda": {
+      "description": "NVIDIA CUDA backend",
+      "dependencies": [
+        "cuda"
+      ]
+    },
+    "rocm": {
+      "description": "AMD HIP/ROCm backend",
+      "dependencies": [
+        "rocm"
+      ]
+    }
+  }
+}

@@ -1,37 +1,40 @@
 /**
  * @file tensor_iterator.c
- * @brief Implementation of the multidimensional strided tensor iterator.
+ * @brief Multidimensional strided tensor iterator implementation.
  *
  * @details
- * This module provides the logic for traversing tensors element-by-element
- * in row-major order, regardless of their physical memory layout. It wraps
- * the low-level odometer pattern to provide a clean state-based interface
- * for layout renderers and other modules needing to visit every element
- * of a view.
+ * Provides the logic for traversing tensors element-by-element in
+ * row-major order, regardless of their physical memory layout.
+ * Wraps the low-level odometer pattern to provide a clean
+ * state-based interface for layout renderers and other modules
+ * needing to visit every element of a view.
  *
- * ## Architecture
- * - **Odometer Logic**: The iterator maintains a coordinate vector that is
- *   incremented using the @ref odometer() algorithm, ensuring correct
- *   carry propagation across dimensions.
- * - **Stride Mapping**: At each step, the iterator translates the current
+ * @section architecture Architecture
+ *
+ * @li Odometer Logic: Maintains a coordinate vector incremented
+ *   using the @ref odometer() algorithm, ensuring correct carry
+ *   propagation across dimensions.
+ * @li Stride Mapping: At each step, translates the current
  *   coordinate vector into a linear byte offset using the tensor's
  *   stride array.
- * - **State Management**: The @ref TensorIterator struct tracks the linear
- *   element count and a termination flag (`done`) to simplify iteration loops.
+ * @li State Management: @ref TensorIterator tracks the linear
+ *   element count and a termination flag (@c done) to simplify
+ *   iteration loops.
  *
- * @see repr/traversal/tensor_iterator.h Public descriptor and API.
- * @see ncore/headeronly/tensor_utils.h Underlying coordinate arithmetic.
+ * @see tensor_iterator.h  Public descriptor and API.
+ * @see tensor_utils.h     Underlying coordinate arithmetic.
  */
 
-#include <ncore/headeronly/tensor_utils.h>
 #include <string.h>
+
+#include <ncore/headeronly/tensor_utils.h>
 
 #include "tensor_iterator.h"
 
 /**
  * @brief Initialise a new iterator to the first element of a tensor.
  *
- * @param[out] it  Pointer to the uninitialised iterator state.
+ * @param[out] it  Pointer to the iterator to initialise.
  * @param[in]  ten Pointer to the tensor to traverse.
  */
 void iter_init(TensorIterator *it, const Tensor *ten) {
@@ -45,8 +48,11 @@ void iter_init(TensorIterator *it, const Tensor *ten) {
  * @brief Advance the iterator to the next logical element.
  *
  * @details
- * Increments the internal coordinate vector and checks for termination.
- * If the end of the tensor is reached, the `done` flag is set.
+ * Increments the internal coordinate vector and checks for
+ * termination. If the end of the tensor is reached, the @c done flag
+ * is set.
+ *
+ * @param[in,out] it Pointer to the active iterator.
  */
 void iter_advance(TensorIterator *it) {
   if (it->done) {
@@ -64,7 +70,8 @@ void iter_advance(TensorIterator *it) {
  * @brief Compute the current element's memory offset.
  *
  * @param[in] it Pointer to the active iterator.
- * @return Byte offset from the start of the tensor's data pointer.
+ *
+ * @return Byte offset from the tensor's base data pointer.
  */
 size_t iter_byte_offset(const TensorIterator *it) {
   size_t off = compute_linear_byte_offset(it->coords, it->tensor->ndims,
@@ -75,6 +82,8 @@ size_t iter_byte_offset(const TensorIterator *it) {
 /**
  * @brief Check if the iteration has been completed.
  *
- * @return true if all elements have been visited.
+ * @param[in] it Pointer to the iterator.
+ *
+ * @return @c true if all logical elements have been visited.
  */
 bool iter_done(const TensorIterator *it) { return it->done; }

@@ -3,12 +3,9 @@ __pycache__/
 .pytest_cache/
 
 # Environments and IDEs
-.codex/
-.opencode/
 .env
 .venv/
 .vscode/
-.DS_Store
 
 # Notebooks and experimentation
 .ipynb_checkpoints/
@@ -23,6 +20,9 @@ htmlcov/
 build/
 docs/_build/
 
+# clangd compilation database symlink (generated at configure time)
+compile_commands.json
+
 # Compiled files
 *.so
 *.a
@@ -36,3 +36,12 @@ dist/
 
 # Cargo crate
 Cargo.lock
+
+# vcpkg artifacts
+vcpkg_installed/
+
+# CMake test artifacts
+Testing/
+
+# Agents
+agents-memory/

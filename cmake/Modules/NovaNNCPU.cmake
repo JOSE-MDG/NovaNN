@@ -20,8 +20,8 @@ This module defines the following functions:
 
 #]=======================================================================]
 
-include("${CMAKE_SOURCE_DIR}/cmake/Detect/threading/DetectPThreads.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/Detect/threading/DetectOpenMP.cmake")
+include(Detect/threading/DetectPThreads)
+include(Detect/threading/DetectOpenMP)
 
 #[=======================================================================[.rst:
 .. command:: nova_configure_cpu_target
@@ -53,12 +53,8 @@ function(nova_configure_cpu_target TARGET)
     endif()
 
     if(NOVA_HAS_OPENMP)
-        if(TARGET OpenMP::OpenMP_C)
-            target_link_libraries(${TARGET} PRIVATE OpenMP::OpenMP_C)
-        endif()
-
-        if(TARGET OpenMP::OpenMP_CXX)
-            target_link_libraries(${TARGET} PRIVATE OpenMP::OpenMP_CXX)
+        if(TARGET nova::openmp)
+            target_link_libraries(${TARGET} PRIVATE nova::openmp)
         endif()
 
         target_compile_definitions(${TARGET} PRIVATE NOVA_OPENMP=1)

@@ -17,7 +17,11 @@ This module defines the following cache variables:
 
 ``NOVA_SUPPORTED_HIP_ARCHS``
   Default list of supported HIP GPU architectures:
-  gfx908 gfx90a gfx942 gfx1030 gfx1100 gfx1200.
+  gfx908 gfx90a gfx942 gfx950
+  gfx1030 gfx1031 gfx1032 gfx1033 gfx1034 gfx1035 gfx1036
+  gfx1100 gfx1101 gfx1102 gfx1103
+  gfx1150 gfx1151 gfx1152 gfx1153
+  gfx1200 gfx1201.
 
 This module defines the following functions:
 
@@ -36,6 +40,14 @@ This module defines the following functions:
   .. code-block:: cmake
 
     nova_configure_hip_runtime_target(<target>)
+
+.. command:: nova_configure_hip_includes_target
+
+  Configure a target that include the ROCm headers:
+
+  .. code-block:: cmake
+
+    nova_configure_hip_includes_target(<target>)
 
 .. command:: nova_configure_hip_kernels_target
 
@@ -62,7 +74,32 @@ if(WIN32)
     return()
 endif()
 
-set(NOVA_SUPPORTED_HIP_ARCHS gfx908 gfx90a gfx942 gfx1030 gfx1100 gfx1200)
+set(NOVA_SUPPORTED_HIP_ARCHS
+
+    # CDNA1 (Arcturus)
+    gfx908
+
+    # CDNA2 (Aldebaran)
+    gfx90a
+
+    # CDNA3 (Aqua Vanjaram)
+    gfx942
+
+    # CDNA4 (CDNA Next)
+    gfx950
+
+    # RDNA2
+    gfx1030 gfx1031 gfx1032 gfx1033 gfx1034 gfx1035 gfx1036
+
+    # RDNA3
+    gfx1100 gfx1101 gfx1102 gfx1103
+
+    # RDNA3.5
+    gfx1150 gfx1151 gfx1152 gfx1153
+
+    # RDNA4
+    gfx1200 gfx1201
+)
 
 set(_NOVA_HIP_REJECTED_PREFIXES
     gfx6 gfx7 gfx80 gfx81 gfx900 gfx902 gfx904 gfx906 gfx1010 gfx1011 gfx1012
@@ -122,37 +159,30 @@ endfunction()
 
     _nova_configure_hip_common(<target>)
 
-  Validates ``CMAKE_HIP_ARCHITECTURES`` against
-  ``_NOVA_HIP_REJECTED_PREFIXES`` (legacy Polaris/Vega/RDNA1
-  architectures).  When no user-specified architectures are provided
-  the function defaults to ``NOVA_SUPPORTED_HIP_ARCHS``.  Sets
-  ``HIP_STANDARD`` to 23 and defines ``NOVA_HAS_HIP=1``.
+  Sets ``HIP_STANDARD`` to 23 and sets the ``HIP_ARCHITECTURES``
+  target property from ``CMAKE_HIP_ARCHITECTURES``.  Validates the
+  architectures against ``_NOVA_HIP_REJECTED_PREFIXES`` (legacy
+  Polaris/Vega/RDNA1).  Defines ``NOVA_HAS_HIP=1``.
 
 #]=======================================================================]
 function(_nova_configure_hip_common TARGET)
-    if(DEFINED CMAKE_HIP_ARCHITECTURES)
-        foreach(GFX IN LISTS CMAKE_HIP_ARCHITECTURES)
-            foreach(REJECTED IN LISTS _NOVA_HIP_REJECTED_PREFIXES)
-                if(GFX MATCHES "^${REJECTED}")
-                    message(FATAL_ERROR
-                        "GPU target '${GFX}' is not supported by NovaNN. "
-                        "Legacy architectures (Polaris/Vega/RDNA1) are unsupported."
-                    )
-                endif()
-            endforeach()
+    foreach(GFX IN LISTS CMAKE_HIP_ARCHITECTURES)
+        foreach(REJECTED IN LISTS _NOVA_HIP_REJECTED_PREFIXES)
+            if(GFX MATCHES "^${REJECTED}")
+                message(FATAL_ERROR
+                    "GPU target '${GFX}' is not supported by NovaNN. "
+                    "Legacy architectures (Polaris/Vega/RDNA1) are unsupported."
+                )
+            endif()
         endforeach()
-    else()
-        set_target_properties(${TARGET} PROPERTIES
-            HIP_STANDARD 23
-            HIP_ARCHITECTURES "${NOVA_SUPPORTED_HIP_ARCHS}"
-        )
-    endif()
-
-    _nova_configure_hip_macros(${TARGET})
+    endforeach()
 
     set_target_properties(${TARGET} PROPERTIES
         HIP_STANDARD 23
+        HIP_ARCHITECTURES "${CMAKE_HIP_ARCHITECTURES}"
     )
+
+    _nova_configure_hip_macros(${TARGET})
 endfunction()
 
 #[=======================================================================[.rst:
@@ -183,6 +213,31 @@ function(nova_configure_hip_runtime_target TARGET)
 endfunction()
 
 #[=======================================================================[.rst:
+.. command:: nova_configure_hip_includes_target
+
+  Configure a target that include the ROCm headers:
+
+  .. code-block:: cmake
+
+    nova_configure_hip_includes_target(<target>)
+
+  The ``<target>`` argument specifies the CMake target to configure.
+
+  This function calls ``_nova_configure_hip_common`` and include
+  the ``INTERFACE_INCLUDE_DIRECTORIES`` headers.
+
+#]=======================================================================]
+function(nova_configure_hip_includes_target TARGET)
+    if(NOT NOVA_HAS_HIP)
+        return()
+    endif()
+
+    _nova_configure_hip_common(${TARGET})
+
+    target_include_directories(${TARGET} PRIVATE ${HIP_INCLUDE_DIRS})
+endfunction()
+
+#[=======================================================================[.rst:
 .. command:: nova_configure_hip_kernels_target
 
   Configure a target that compiles HIP kernel code:
@@ -193,8 +248,8 @@ endfunction()
 
   The ``<target>`` argument specifies the CMake target to configure.
 
-  Any additional arguments after ``<target>`` are forwarded as
-  private link libraries to the target.
+  Additional ``EXTRA_LIBS`` are parsed as a keyword argument and linked
+  as private libraries.
 
 #]=======================================================================]
 function(nova_configure_hip_kernels_target TARGET)
@@ -202,10 +257,13 @@ function(nova_configure_hip_kernels_target TARGET)
         return()
     endif()
 
+    cmake_parse_arguments(_HIP_K "" "" "EXTRA_LIBS" ${ARGN})
+
     _nova_configure_hip_common(${TARGET})
 
-    if(ARGN)
-        target_link_libraries(${TARGET} PRIVATE ${ARGN})
+
+    if(_HIP_K_EXTRA_LIBS)
+        target_link_libraries(${TARGET} PRIVATE ${_HIP_K_EXTRA_LIBS})
     endif()
 endfunction()
 
@@ -229,7 +287,7 @@ if(NOT hip_FOUND)
     return()
 endif()
 
-set(NOVA_ROCM_MIN_VERSION "6.2")
+set(NOVA_ROCM_MIN_VERSION "7.0")
 
 if(hip_VERSION VERSION_LESS NOVA_ROCM_MIN_VERSION)
     message(FATAL_ERROR
@@ -238,8 +296,6 @@ if(hip_VERSION VERSION_LESS NOVA_ROCM_MIN_VERSION)
         "Upgrade your ROCm installation or disable HIP."
     )
 endif()
-
-enable_language(HIP)
 
 set(NOVA_HAS_HIP 1 CACHE INTERNAL "HIP backend availability")
 message(STATUS "HIP: ROCm ${hip_VERSION} — ${NOVA_ROCM_PATH}")

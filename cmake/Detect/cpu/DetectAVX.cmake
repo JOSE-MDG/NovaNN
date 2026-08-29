@@ -6,6 +6,10 @@ Detect AVX, F16C, and FMA3 instruction set support.  Sets ``HAS_AVX``
 to ``1`` if the compiler can emit AVX intrinsics.  When AVX is
 available, the module also probes for ``HAS_F16C`` and ``HAS_FMA3``.
 
+.. note::
+  Detection is performed via :command:`check_simd`, which wraps
+  ``-m`` flags with ``/clang:`` prefix when using clang-cl.
+
 Variables defined:
 
 ``HAS_AVX``

@@ -1,0 +1,10 @@
+---
+description: {{ description }}
+mode: subagent
+{% if permission %}permission:
+{% for k, v in permission.items() %}{% if v is mapping %}  {{ k }}:
+{% for kk, vv in v.items() %}    "{{ kk }}": {{ vv }}
+{% endfor %}{% else %}  {{ k }}: {{ v }}
+{% endif %}{% endfor %}{% endif %}---
+
+{{ body }}

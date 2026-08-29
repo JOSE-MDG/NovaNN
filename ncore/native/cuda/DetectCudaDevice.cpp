@@ -5,23 +5,23 @@
  * @details
  * Implements the public detection API declared in
  * @ref DetectCudaDevice.hpp.  Uses the CUDA runtime API
- * (`cudaGetDeviceCount`) to probe for an available GPU and caches
+ * (@c cudaGetDeviceCount) to probe for an available GPU and caches
  * the result in module-level atomics for subsequent queries.
  *
- * The file is conditionally compiled behind `NOVA_HAS_CUDA` and
- * `__has_include(<cuda_runtime_api.h>)`.  When CUDA headers are
- * unavailable, stub functions that return `false` / `-1` are
+ * The file is conditionally compiled behind @c NOVA_HAS_CUDA and
+ * @c __has_include(<cuda_runtime_api.h>).  When CUDA headers are
+ * unavailable, stub functions that return @c false / @c -1 are
  * provided.
  *
- * ## Thread Safety
+ * @section thread-safety Thread Safety
  *
- * The initial probe is guarded by `std::call_once`, ensuring that
- * `cudaGetDeviceCount` is called exactly once even under concurrent
- * access.  The cached results are stored in `std::atomic` variables
- * with `std::memory_order_release` (write) and
- * `std::memory_order_acquire` (read) semantics.
+ * The initial probe is guarded by @c std::call_once, ensuring that
+ * @c cudaGetDeviceCount is called exactly once even under concurrent
+ * access.  The cached results are stored in @c std::atomic variables
+ * with @c std::memory_order_release (write) and
+ * @c std::memory_order_acquire (read) semantics.
  *
- * ## One-shot Caching
+ * @section one-shot-caching One-shot Caching
  *
  * After the first call to @ref isCudaDeviceAvailable, the probe
  * result is cached.  All subsequent calls — regardless of the
@@ -36,20 +36,21 @@
 #include <atomic>
 #include <iostream>
 #include <mutex>
+
 #include <ncore/core/status.h>
 
 #ifdef NOVA_HAS_CUDA
 #if __has_include(<cuda_runtime_api.h>)
-#include "DetectCudaDevice.hpp"
-#include "DetectCudaDeviceInfo.hpp"
 #include <cuda_runtime_api.h>
 
+#include "DetectCudaDevice.hpp"
+#include "DetectCudaDeviceInfo.hpp"
 namespace {
 /**
  * @var activeCudaDeviceId
  * @brief 0-based index of the detected CUDA device.
  *
- * Stores `-1` before detection, or `0` after a successful probe.
+ * Stores @c -1 before detection, or @c 0 after a successful probe.
  * Accessed with acquire/release memory ordering.
  */
 std::atomic<int> activeCudaDeviceId{-1};
@@ -58,7 +59,7 @@ std::atomic<int> activeCudaDeviceId{-1};
  * @var cudaDeviceAvailable
  * @brief Whether a CUDA-capable device was found.
  *
- * Set to `true` after a successful probe.  Accessed with
+ * Set to @c true after a successful probe.  Accessed with
  * acquire/release memory ordering.
  */
 std::atomic<bool> cudaDeviceAvailable{false};
@@ -76,7 +77,7 @@ std::once_flag cudaDeviceProbeOnce;
  * @var cudaDeviceLogMtx
  * @brief Mutex protecting stderr output during detection.
  *
- * Serialises error messages printed by @ref isCudaDeviceAvailable
+ * Serializes error messages printed by @ref isCudaDeviceAvailable
  * when the probe fails.
  */
 std::mutex cudaDeviceLogMtx;
@@ -86,11 +87,11 @@ std::mutex cudaDeviceLogMtx;
  * @brief Outcome of a CUDA device probe.
  *
  * @var DetectionResult::available
- * @brief `true` if a CUDA device was found.
+ * @brief @c true if a CUDA device was found.
  *
  * @var DetectionResult::errorMessage
- * @brief Human-readable error string from `cudaGetErrorString`,
- *        or `nullptr` on success.
+ * @brief Human-readable error string from @c cudaGetErrorString,
+ *        or @c nullptr on success.
  */
 struct DetectionResult {
   bool available = false;
@@ -101,9 +102,9 @@ struct DetectionResult {
  * @brief Perform the actual CUDA device detection.
  *
  * @details
- * Calls `cudaGetDeviceCount` to query the number of available CUDA
- * devices.  If at least one device is found, stores `0` in
- * @ref activeCudaDeviceId and `true` in @ref cudaDeviceAvailable.
+ * Calls @c cudaGetDeviceCount to query the number of available CUDA
+ * devices.  If at least one device is found, stores @c 0 in
+ * @ref activeCudaDeviceId and @c true in @ref cudaDeviceAvailable.
  *
  * @return A @ref DetectionResult indicating whether a device was
  *         found and any error message from the CUDA runtime.
@@ -129,21 +130,21 @@ DetectionResult probeCudaDevice() {
  * @brief Probe the CUDA runtime for an available GPU device.
  *
  * @details
- * Uses `std::call_once` to ensure the probe runs exactly once.
+ * Uses @c std::call_once to ensure the probe runs exactly once.
  * On success, optionally prints device information via
- * @ref printCudaDeviceInfo when @p log is `true`.
+ * @ref printCudaDeviceInfo when @p log is @c true.
  *
- * @param[in] log      If `true`, print error messages to stderr on
+ * @param[in] log      If @c true, print error messages to stderr on
  *                     failure, or call @ref printCudaDeviceInfo on
  *                     success.
- * @param[in] verbose  If `true`, pass verbose flag to
+ * @param[in] verbose  If @c true, pass verbose flag to
  *                     @ref printCudaDeviceInfo for detailed output.
  *
- * @return `true` when a CUDA-capable device is found.  `false` if
+ * @return @c true when a CUDA-capable device is found.  @c false if
  *         no device is available or the runtime reports an error.
  *
- * @note Thread-safe.  The probe is serialised by `std::call_once`.
- *       The log mutex serialises stderr output.
+ * @note Thread-safe.  The probe is serialized by @c std::call_once.
+ *       The log mutex serializes stderr output.
  */
 bool isCudaDeviceAvailable(bool log, bool verbose) {
   DetectionResult result;
@@ -165,7 +166,7 @@ bool isCudaDeviceAvailable(bool log, bool verbose) {
     status = printCudaDeviceInfo(verbose);
     if (status.err != novaSuccess) {
       std::cerr << "[CUDA] isCudaDeviceAvailable -> printCudaDeviceInfo: Error "
-                   "obtainig device info.\n"
+                   "obtaining device info.\n"
                 << "Details: '" << status.message << "'\n";
     }
   }
@@ -178,10 +179,10 @@ bool isCudaDeviceAvailable(bool log, bool verbose) {
  *
  * @details
  * Returns the value stored in @ref activeCudaDeviceId by the most
- * recent successful probe.  The value is `0` when a GPU is found,
- * or `-1` if detection has not yet been performed.
+ * recent successful probe.  The value is @c 0 when a GPU is found,
+ * or @c -1 if detection has not yet been performed.
  *
- * @return 0-based CUDA device index, or `-1` if unavailable.
+ * @return 0-based CUDA device index, or @c -1 if unavailable.
  *
  * @note The return value is only meaningful after at least one call
  *       to @ref isCudaDeviceAvailable has completed.

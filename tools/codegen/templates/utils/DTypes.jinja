@@ -1,0 +1,62 @@
+{#-
+  Maps a dtype abbreviation to its portable C type name, as used in
+  function signatures/docblocks and in scalar (non-SIMD) kernel bodies.
+
+  @param abbr  Dtype abbreviation (e.g. "fp16", "s8", "u32").
+  @return      Portable C type name (e.g. "float16", "int8", "uint32").
+               Falls back to `abbr` itself if unrecognized.
+-#}
+{%- macro c_type(abbr) -%}
+  {%- if abbr == "fp4e2m1" %}float4_e2m1fn_x2
+    {%- elif abbr == "fp8e4m3" %}float8_e4m3fn
+    {%- elif abbr == "fp8e5m2" %}float8_e5m2
+    {%- elif abbr == "fp16" %}float16
+    {%- elif abbr == "bf16" %}bfloat16
+    {%- elif abbr == "f32" %}float
+    {%- elif abbr == "f64" %}double
+    {%- elif abbr == "s8" %}int8
+    {%- elif abbr == "s16" %}int16
+    {%- elif abbr == "s32" %}int32
+    {%- elif abbr == "s64" %}int64
+    {%- elif abbr == "u8" %}uint8
+    {%- elif abbr == "u16" %}uint16
+    {%- elif abbr == "u32" %}uint32
+    {%- elif abbr == "u64" %}uint64
+  {%- else %}{{ abbr }}
+  {%- endif -%}
+{%- endmacro -%}
+
+{#-
+  Maps a dtype abbreviation to its member name in the Tensor.data union
+  (i.e. `src->data.<ptr_member(abbr)>`).
+
+  For most abbreviations the member name is identical to the abbreviation
+  itself (e.g. "s8" -> src->data.s8); only the three reduced-precision
+  float types are renamed to their longer, unambiguous union member names
+  (e.g. "fp4e2m1" -> src->data.fp4e2m1fn_x2). The `else` branch is a
+  passthrough fallback for any abbreviation not explicitly listed, since
+  in practice every recognized abbreviation's union member matches its
+  own name unless overridden above.
+
+  @param abbr  Dtype abbreviation (e.g. "fp4e2m1", "s8", "f32").
+  @return      Name of the corresponding Tensor.data union member.
+-#}
+{%- macro ptr_member(abbr) -%}
+  {%- if abbr == "fp4e2m1" %}fp4e2m1fn_x2
+    {%- elif abbr == "fp8e4m3" %}fp8e4m3fn
+    {%- elif abbr == "fp8e5m2" %}fp8e5m2
+    {%- elif abbr == "fp16" %}half
+    {%- elif abbr == "bf16" %}bf16
+    {%- elif abbr == "f32" %}f32
+    {%- elif abbr == "f64" %}f64
+    {%- elif abbr == "s8" %}s8
+    {%- elif abbr == "s16" %}s16
+    {%- elif abbr == "s32" %}s32
+    {%- elif abbr == "s64" %}s64
+    {%- elif abbr == "u8" %}u8
+    {%- elif abbr == "u16" %}u16
+    {%- elif abbr == "u32" %}u32
+    {%- elif abbr == "u64" %}u64
+  {%- else %}{{ abbr }}
+  {%- endif -%}
+{%- endmacro -%}

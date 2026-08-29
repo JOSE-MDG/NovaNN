@@ -6,6 +6,10 @@ Detect AVX2 and AVX2-VNNI instruction set support.  Sets
 ``HAS_AVX2`` to ``1`` if the compiler can emit AVX2 intrinsics.
 When AVX2 is available, the module also probes for ``HAS_AVX2_VNNI``.
 
+.. note::
+  Detection is performed via :command:`check_simd`, which wraps
+  ``-m`` flags with ``/clang:`` prefix when using clang-cl.
+
 Variables defined:
 
 ``HAS_AVX2``

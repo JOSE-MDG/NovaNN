@@ -1,19 +1,14 @@
 /**
  * @file int_formatter.c
- * @brief Implementation of integer element formatting logic.
+ * @brief Integer element formatting implementation.
  *
  * @details
- * This module provides the conversion of integer types to strings, using
- * standard C integer format specifiers. It includes a specialized path
- * for boolean interpretation of unsigned values.
+ * Implements the conversion of signed and unsigned integer types into
+ * human-readable strings. Uses portable format specifiers (@c PRId64,
+ * @c PRIu64) and supports boolean interpretation of unsigned values.
  *
- * ## Architecture
- * - **Format Specifiers**: Uses `PRId64` and `PRIu64` for maximum
- *   portability across 64-bit platforms.
- * - **Boolean Path**: Overrides numeric output with string literals
- *   when requested by the @ref ReprContext.
- *
- * @see int_formatter.h Interface definitions.
+ * @see int_formatter.h   Interface definitions.
+ * @see element_fmt.c     Element dispatch table.
  */
 
 #include <inttypes.h>
@@ -23,6 +18,12 @@
 
 /**
  * @brief Convert a signed 64-bit integer into a string.
+ *
+ * @param[out] buf      Target string buffer. Must not be @c nullptr.
+ * @param[in]  buf_size Capacity of @p buf in bytes.
+ * @param[in]  val      The integer value to format.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 int int_format_value(char *buf, size_t buf_size, int64_t val) {
   return snprintf(buf, buf_size, "%" PRId64, val);
@@ -30,6 +31,17 @@ int int_format_value(char *buf, size_t buf_size, int64_t val) {
 
 /**
  * @brief Convert an unsigned 64-bit integer into a string.
+ *
+ * @details
+ * If @p is_bool is @c true, the value is rendered as @c "True"
+ * (non-zero) or @c "False" (zero) instead of a numeric label.
+ *
+ * @param[out] buf      Target string buffer. Must not be @c nullptr.
+ * @param[in]  buf_size Capacity of @p buf in bytes.
+ * @param[in]  val      The unsigned integer value to format.
+ * @param[in]  is_bool  If @c true, use boolean labels for 0 and 1.
+ *
+ * @return Number of characters written (excluding null-terminator).
  */
 int uint_format_value(char *buf, size_t buf_size, uint64_t val, bool is_bool) {
   if (is_bool) {
