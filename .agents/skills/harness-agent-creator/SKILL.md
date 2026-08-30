@@ -1,16 +1,16 @@
 ---
 name: harness-agent-creator
-description: Create and maintain project-level subagents for Claude Code (.claude/agents/*.md), OpenCode (.opencode/agents/*.md), and Codex (.codex/agents/*.toml) from a single spec. Use when the user wants to create a new agent, add a subagent, scaffold an assistant for a harness, convert an agent to another harness, or asks about .claude/agents, .opencode/agents, .codex/agents, subagents, custom agents, or agent frontmatter/TOML. Also use when the user says create agent, new agent, agente, or subagente.
+description: Create and maintain project-level subagents for Claude Code (.claude/agents/*.md), OpenCode (.opencode/agents/*.md), Codex (.codex/agents/*.toml) and GitHub (.github/agents/*.agent.md) from a single spec. Use when the user wants to create a new agent, add a subagent, scaffold an assistant for a harness, convert an agent to another harness, or asks about .claude/agents, .opencode/agents, .codex/agents, .github/agents, subagents, custom agents, or agent frontmatter/TOML. Also use when the user says create agent, new agent, agente, or subagente.
 ---
 
 # Harness Agent Creator
 
-One spec → three project agents. Fill the spec, verify against the official docs, then generate the native files under `.claude/agents/`, `.opencode/agents/` and `.codex/agents/`.
+One spec → four project agents. Fill the spec, verify against the official docs, then generate the native files under `.claude/agents/`, `.opencode/agents/`, `.codex/agents/` and `.github/agents/`.
 
 ## When to use
 
 - New agent or subagent, or porting one across harnesses.
-- Anything about `.claude/agents`, `.opencode/agents`, `.codex/agents` or agent frontmatter/TOML.
+- Anything about `.claude/agents`, `.opencode/agents`, `.codex/agents`, `.github/agents` or agent frontmatter/TOML.
 
 Not for a one-off prompt that doesn't need a file.
 
@@ -24,7 +24,7 @@ Check existing agents in the repo and `AGENTS.md` / `CLAUDE.md` if needed. Watch
 
 Copy `references/spec-template.yaml` to `agent-spec.yaml` and fill it. Ask only what's missing — purpose, triggers / non-triggers, scope and constraints. If the user already gave the details, draft the spec and confirm it.
 
-This spec is the source of truth. All three files are generated from it.
+This spec is the source of truth. All four files are generated from it.
 
 ### 3. Verify against official docs
 
@@ -33,6 +33,7 @@ Fetch the current docs for each harness you target. Don't rely on memory.
 - Claude Code: `https://code.claude.com/docs/en/sub-agents`
 - OpenCode: `https://opencode.ai/docs/agents`
 - Codex: `https://learn.chatgpt.com/docs/agent-configuration/subagents`
+- GitHub: `https://docs.github.com/en/copilot/reference/custom-agents-configuration`
 
 Note what you checked — the docs change. If a field is marked as ignored for a scope, don't use it.
 
@@ -49,8 +50,9 @@ Render the native files from the spec.
 - Claude Code: `references/claude-code.md` — `tools` allowlist
 - OpenCode: `references/opencode.md` — `permission` map, `mode: subagent`
 - Codex: `references/codex.md` — TOML with `name`, `description`, `developer_instructions`
+- GitHub: `references/github.md` — `tools` allowlist, `argument-hint`, `user-invocable`
 
-Keep `name` matching the filename. You can use `scripts/generate_agent.py --spec agent-spec.yaml --harnesses claude,opencode,codex` or write by hand.
+Keep `name` matching the filename. You can use `scripts/generate_agent.py --spec agent-spec.yaml --harnesses claude,opencode,codex,github` or write by hand.
 
 If you created a new `agents/` directory, a restart may be needed for the watcher.
 
@@ -65,7 +67,8 @@ Run `scripts/validate_agent.py <path>` or the equivalent checks (`claude plugin 
 | Claude Code fields | `references/claude-code.md` |
 | OpenCode fields | `references/opencode.md` |
 | Codex fields | `references/codex.md` |
-| How the three map | `references/adapter-matrix.md` |
+| GitHub fields | `references/github.md` |
+| How the four map | `references/adapter-matrix.md` |
 | Spec template | `references/spec-template.yaml` |
 
 Only open what you need.
