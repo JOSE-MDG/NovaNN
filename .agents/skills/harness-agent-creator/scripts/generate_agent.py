@@ -119,10 +119,52 @@ def render_codex(spec: dict) -> str:
     return "\n".join(lines)
 
 
+def render_github(spec: dict) -> str:
+    """Render .github/agents/<name>.agent.md."""
+    name = spec["name"]
+    desc = spec["description"].strip().replace('"', '\\"')
+    body = spec.get("body", "").strip()
+    tools = spec.get("tools_needed", {}).get("github")
+    if tools is None:
+        # default read-only for review agents, rely on spec if provided
+        tools = ["read", "search", "web"]
+    # github expects tools as yaml list like [read, search, web]
+    tools_str = "[" + ", ".join(tools) + "]"
+    # argument-hint: prefer spec.github_argument_hint or spec argument_hint
+    hint = spec.get("github_argument_hint") or spec.get("argument_hint")
+    if not hint:
+        # sensible defaults per agent name
+        defaults = {
+            "test-integrity": "A test file or directory to audit, e.g. 'audit ncore/tests/dtypeCasting' or 'review tests for tensor creation'",
+            "build-integrity": "A CMake file, preset, or build log to audit, e.g. 'audit CMakePresets.json' or 'review ncore/tests/CMakeLists.txt'",
+            "implementation-review": "A file, module, or diff to review, e.g. 'review ncore/src/core/tensor.c' or 'audit SIMD kernels after refactor'",
+        }
+        hint = defaults.get(name, "A file, module, or diff to review")
+    # escape double quotes in hint
+    hint_esc = hint.replace('"', '\\"')
+    lines = [
+        "---",
+        f"name: {name}",
+        f'description: "{desc}"',
+        f'argument-hint: "{hint_esc}"',
+        f"tools: {tools_str}",
+        "user-invocable: true",
+    ]
+    # allow extra github fields
+    for k, v in spec.get("github_extra", {}).items():
+        if isinstance(v, bool):
+            lines.append(f"{k}: {str(v).lower()}")
+        else:
+            lines.append(f'{k}: "{v}"')
+    lines += ["---", "", body, ""]
+    return "\n".join(lines)
+
+
 RENDERERS = {
     "claude": (render_claude, ".claude/agents/{name}.md"),
     "opencode": (render_opencode, ".opencode/agents/{name}.md"),
     "codex": (render_codex, ".codex/agents/{name}.toml"),
+    "github": (render_github, ".github/agents/{name}.agent.md"),
 }
 
 
@@ -140,9 +182,9 @@ def generate(
         str,
         typer.Option(
             "--harnesses",
-            help="Comma-separated: claude,opencode,codex",
+            help="Comma-separated: claude,opencode,codex,github",
         ),
-    ] = "claude,opencode,codex",
+    ] = "claude,opencode,codex,github",
     out: Annotated[
         Path,
         typer.Option(

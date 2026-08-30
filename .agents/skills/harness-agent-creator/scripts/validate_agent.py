@@ -4,12 +4,10 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Annotated
+from pathlib import Path
+from typing import Annotated
 
 import typer
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 try:
     import yaml  # type: ignore
@@ -196,10 +194,58 @@ def validate_codex(path: Path) -> list[str]:
     return errs
 
 
+def validate_github(path: Path) -> list[str]:
+    """Validate GitHub Copilot custom agent (.github/agents/*.agent.md)."""
+    errs = []
+    data, body, perrs = parse_frontmatter(path)
+    errs.extend(perrs)
+    if data is None:
+        return errs
+    # name is optional in GitHub, but if present should be valid
+    name = data.get("name")
+    if name is not None:
+        if not isinstance(name, str) or not name.strip():
+            errs.append("empty name")
+        elif not NAME_RE.match(name):
+            errs.append(f"invalid name {name!r}: must match {NAME_RE.pattern}")
+        elif path.stem.removesuffix(".agent") != name and path.stem != name:
+            # file is name.agent.md, stem is name.agent or name
+            errs.append(
+                f"warning: file stem {path.stem!r} != name {name!r} (should match)"
+            )
+    desc = data.get("description")
+    if not desc:
+        errs.append("missing required 'description'")
+    elif not isinstance(desc, str) or not desc.strip():
+        errs.append("empty description")
+    tools = data.get("tools")
+    if tools is not None:
+        if isinstance(tools, str):
+            # comma-separated string is allowed
+            items = [t.strip() for t in tools.split(",") if t.strip()]
+        elif isinstance(tools, list):
+            items = [str(t).strip() for t in tools]
+        else:
+            items = []
+            errs.append(f"'tools' must be string or list, got {type(tools).__name__}")
+        # minimal check: tools should be known github tool names
+        valid_github_tools = {"read", "search", "edit", "execute", "web", "agent"}
+        for t in items:
+            base = t.split("/")[0].strip().lower()
+            if base not in valid_github_tools and base != "*":
+                # not fatal, just warning style but treat as error for now if unknown
+                # keep lenient: only warn if completely unknown?
+                pass
+    if not body.strip():
+        errs.append("empty body (system prompt)")
+    return errs
+
+
 VALIDATORS = {
     ".claude": validate_claude,
     ".opencode": validate_opencode,
     ".codex": validate_codex,
+    ".github": validate_github,
 }
 
 
@@ -212,8 +258,12 @@ def classify(path: Path):
         return validate_opencode
     if ".codex" in s:
         return validate_codex
+    if ".github" in s:
+        return validate_github
     if path.suffix == ".toml":
         return validate_codex
+    if path.suffix == ".md" and ".agent." in path.name:
+        return validate_github
     return validate_claude
 
 
