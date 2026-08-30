@@ -1,4 +1,4 @@
-# Copy to agent-spec.yaml and fill it. Generates .claude/agents, .opencode/agents, .codex/agents.
+# Copy to agent-spec.yaml and fill it. Generates .claude/agents, .opencode/agents, .codex/agents, .github/agents.
 # See adapter-matrix.md for how fields map.
 
 name: example-agent # ^[a-z0-9]+(-[a-z0-9]+)*$ — lowercase, hyphens
@@ -24,6 +24,7 @@ tools_needed:
       "*": deny
       "grep *": allow
   codex_sandbox: read-only
+  github: ["read", "search", "web"]
 
 inputs: Branch diff or file list.
 outputs: Markdown report with file:line refs.
@@ -50,7 +51,7 @@ body: |
   without editing files. Work read-only; split gathering across parallel
   subagents when the diff is large. If there's nothing to flag, say so with evidence.
 
-harnesses: [claude, opencode, codex]
+harnesses: [claude, opencode, codex, github]
 
 research:
   date: "2026-08-28"
@@ -61,8 +62,11 @@ research:
       checked_fields: ["description", "mode", "permission"]
     - url: "https://learn.chatgpt.com/docs/agent-configuration/subagents"
       checked_fields: ["name", "description", "developer_instructions"]
+    - url: "https://docs.github.com/en/copilot/reference/custom-agents-configuration"
+      checked_fields: ["name", "description", "tools", "argument-hint"]
 
 # Generated from this file — don't edit by hand:
 # .claude/agents/<name>.md
 # .opencode/agents/<name>.md
 # .codex/agents/<name>.toml
+# .github/agents/<name>.agent.md
