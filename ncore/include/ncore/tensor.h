@@ -446,47 +446,6 @@ bool is_scalar(const Tensor *ten);
 bool is_scalar_grad(TensorGrad grad);
 
 /**
- * @brief Check whether a tensor's data buffer is properly aligned.
- *
- * @details
- * Alignment requirements differ by device:
- * @li GPU (@c DEVICE_GPU): 512-byte alignment.
- * @li CPU (@c DEVICE_CPU): 64-byte alignment.
- * @li META (@c DEVICE_META): always returns @c true.
- *
- * The check selects the threshold based on @ref Tensor::device and
- * tests @c ten->storage->ptr.v modulo the threshold.
- *
- * @param[in] ten  Tensor to check.  Must not be @c nullptr.
- *
- * @return @c true if the data pointer meets the alignment
- *         requirement, @c false otherwise.
- *
- * @pre  @c ten->storage must not be @c nullptr (except META).
- *
- * @see is_grad_aligned()  Gradient variant.
- */
-bool is_aligned(const Tensor *ten);
-
-/**
- * @brief Check whether a gradient tensor's data buffer is aligned.
- *
- * @details
- * Same alignment logic as @ref is_aligned(): 512-byte for GPU,
- * 64-byte for CPU, and always @c true for META tensors.
- *
- * @param[in] grad  Gradient tensor to check.  Must not be @c nullptr.
- *
- * @return @c true if the gradient data pointer meets the alignment
- *         requirement, @c false otherwise.
- *
- * @pre  @p grad must not be @c nullptr.
- *
- * @see is_aligned()  Tensor variant.
- */
-bool is_grad_aligned(TensorGrad grad);
-
-/**
  * @brief Check whether a tensor has been collected (freed).
  *
  * @details

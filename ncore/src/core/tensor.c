@@ -604,66 +604,6 @@ bool is_scalar_grad(TensorGrad grad) {
 }
 
 /**
- * @brief Check whether a tensor's data buffer is properly aligned.
- *
- * @details
- * Alignment requirements differ by device:
- * @li GPU (@c DEVICE_GPU): 512-byte alignment.
- * @li CPU (@c DEVICE_CPU): 64-byte alignment.
- * @li META (@c DEVICE_META): always returns @c true.
- *
- * The check reads @c ten->device to select the threshold and
- * tests @c ten->storage->ptr.v modulo the threshold.
- *
- * @param[in] ten  Tensor to check.  Must not be @c nullptr.
- *
- * @return @c true if the data pointer meets the alignment
- *         requirement, @c false otherwise.
- *
- * @pre  @c ten->storage must not be @c nullptr (except META).
- *
- * @see is_grad_aligned()  Gradient variant.
- */
-bool is_aligned(const Tensor *ten) {
-  if (ten->device == DEVICE_META) {
-    return true;
-  }
-  return (bool)(ten->device == DEVICE_GPU
-                    ? (((uintptr_t)ten->storage->ptr.v % 512) ==
-                       0) // Aligned by default to 512 bytes (GPU)
-                    : (((uintptr_t)ten->storage->ptr.v % 64) ==
-                       0)); // Aligned by default to 64 bytes (CPU)
-}
-
-/**
- * @brief Check whether a gradient tensor's data buffer is properly
- *        aligned.
- *
- * @details
- * Same alignment logic as @c is_aligned() — 512-byte for GPU,
- * 64-byte for CPU, and always @c true for META tensors.
- *
- * @param[in] grad  Gradient tensor to check.  Must not be @c nullptr.
- *
- * @return @c true if the gradient data pointer meets the alignment
- *         requirement, @c false otherwise.
- *
- * @pre  @p grad must not be @c nullptr.
- *
- * @see is_aligned()  Tensor variant.
- */
-bool is_grad_aligned(TensorGrad grad) {
-  if (grad->device == DEVICE_META) {
-    return true;
-  }
-  return (grad->device == DEVICE_GPU
-              ? (((uintptr_t)grad->storage->ptr.v % 512) ==
-                 0) // Aligned by default to 512 bytes (GPU)
-              : (((uintptr_t)grad->storage->ptr.v % 64) == 0)) !=
-         0; // Aligned by default to 64 bytes (CPU)
-}
-
-/**
  * @brief Check whether a tensor has been collected (freed).
  *
  * @details
@@ -889,12 +829,11 @@ static inline novaStatus_t transf_tensor_commom(const Tensor *restrict src,
  * @return @ref novaStatus_t with the result of the transfer.
  */
 novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
-                                        Tensor *restrict dst) {
+                                       Tensor *restrict dst) {
 
-  bool condition =
-      (bool)((src->device != DEVICE_GPU || !is_allocated(src) ||
-              !is_device_memory_handle(&src->storage->handle) ||
-              (dst->device != DEVICE_CPU || !is_allocated(dst))));
+  bool condition = (bool)((src->device != DEVICE_GPU || !is_allocated(src) ||
+                           !is_device_memory_handle(&src->storage->handle) ||
+                           (dst->device != DEVICE_CPU || !is_allocated(dst))));
 
   return transf_tensor_commom(src, dst, condition);
 }
@@ -913,11 +852,10 @@ novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
  * @return @ref novaStatus_t with the result of the transfer.
  */
 novaStatus_t transf_tensor_from_host(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
-  bool condition =
-      (bool)((src->device != DEVICE_CPU || !is_allocated(src) ||
-              (dst->device != DEVICE_GPU || !is_allocated(dst) ||
-               !is_device_memory_handle(&dst->storage->handle))));
+                                     Tensor *restrict dst) {
+  bool condition = (bool)((src->device != DEVICE_CPU || !is_allocated(src) ||
+                           (dst->device != DEVICE_GPU || !is_allocated(dst) ||
+                            !is_device_memory_handle(&dst->storage->handle))));
 
   return transf_tensor_commom(src, dst, condition);
 }
