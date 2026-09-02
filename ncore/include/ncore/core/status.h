@@ -57,6 +57,7 @@ typedef enum novaError_t : uint8_t {
   novaInvalidShape,
   novaInvalidIndex,
   novaInvalidNumThreads,
+  novaInvalidParallelGroup,
   novaInvalidHandle,
 
   /* Memory */

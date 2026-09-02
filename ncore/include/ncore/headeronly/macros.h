@@ -151,7 +151,7 @@
  *
  * @see novaError_t in status.h.
  */
-#define NUM_ERRORS 36
+#define NUM_ERRORS 37
 
 /**
  * @def NUM_PARALLEL_GROUPS

@@ -78,6 +78,8 @@ INITIALIZE(init_status_msg_dispatch) {
       "Index is out of bounds for the given tensor dimensions\n";
   status_msg_dispatch[novaInvalidNumThreads] =
       "Thread numbers is out of a valid range \n";
+  status_msg_dispatch[novaInvalidParallelGroup] =
+      "Thread group is invalid or not recognized\n";
   status_msg_dispatch[novaInvalidHandle] =
       "The handle is invalid or has expired\n";
 
