@@ -261,7 +261,9 @@ fail-fast. Arguments after `--` are forwarded to ctest, and each preset's
 complete output is saved under `build/logs/tests/`.
 
 `clean --target <build-directory>` invokes `cmake --build <dir> --target
-clean`, preserving the configured tree. `--target logs`, `test-logs`, and
+clean`, preserving the configured tree. Since the codegen outputs live in
+the source tree but are Ninja-tracked build outputs, the script snapshots
+them beforehand and restores them afterwards, byte for byte. `--target logs`, `test-logs`, and
 `build-logs` remove the corresponding log scope. Running `clean` without a
 target removes the whole `build/` directory and requires confirmation unless
 `--yes` is supplied.
