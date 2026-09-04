@@ -143,4 +143,8 @@ INITIALIZE(init_status_msg_dispatch) {
   /* General */
   status_msg_dispatch[novaRuntimeError] =
       "A runtime error occurred during operation execution\n";
+
+  /* Threads */
+  status_msg_dispatch[novaThreadNotInitialized] =
+      "Thread configuration has not been initialized\n";
 }

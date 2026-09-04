@@ -87,6 +87,8 @@ pub enum NovaError {
     InternalError,
     /// An unspecified runtime failure occurred.
     RuntimeError,
+    /// The thread configuration has not been initialized.
+    ThreadNotInitialized,
 }
 
 /// C-compatible status containing an error code and diagnostic message.

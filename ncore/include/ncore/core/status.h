@@ -99,6 +99,9 @@ typedef enum novaError_t : uint8_t {
   /* General */
   novaRuntimeError,
 
+  /* Threads */
+  novaThreadNotInitialized,
+
 } novaError_t;
 
 /**
