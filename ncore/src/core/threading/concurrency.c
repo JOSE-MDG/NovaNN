@@ -73,10 +73,17 @@ static inline uint32 get_num_threads_gnu_impl() {
   *                     no CPUs are available to the process, or if
   *                     @c sched_getaffinity() itself failed.
   *
-  * @return The number of logical threads available to the process, or
-  *         @c 0 on error.
-  */
+ * @return The number of logical threads available to the process, or
+ *         @c 0 on error.
+ *
+ * @note A null @p status is tolerated defensively and reported as
+ *       @c 0. Prefer passing a valid status.
+ */
 uint32 get_num_logical_threads_impl(novaStatus_t *status) {
+
+  if (status == nullptr) {
+    return 0;
+  }
 
   auto num_threads = get_num_threads_gnu_impl();
 
@@ -136,10 +143,17 @@ static inline uint32 get_num_threads_windows_impl() {
   *                     no CPUs are available to the process, or if
   *                     @c GetProcessAffinityMask() itself failed.
   *
-  * @return The number of logical threads available to the process, or
-  *         @c 0 on error.
-  */
+ * @return The number of logical threads available to the process, or
+ *         @c 0 on error.
+ *
+ * @note A null @p status is tolerated defensively and reported as
+ *       @c 0. Prefer passing a valid status.
+ */
 uint32 get_num_logical_threads_impl(novaStatus_t *status) {
+
+  if (status == nullptr) {
+    return 0;
+  }
 
   auto num_threads = get_num_threads_windows_impl();
 
@@ -163,11 +177,17 @@ uint32 get_num_logical_threads_impl(novaStatus_t *status) {
   * Reports @ref novaOsPlatformNotSupported and returns @c 0 without
   * querying any runtime API.
   *
-  * @param[out] status  Receives @ref novaOsPlatformNotSupported.
-  *
-  * @return Always @c 0.
-  */
+ * @param[out] status  Receives @ref novaOsPlatformNotSupported.
+ *
+ * @return Always @c 0.
+ *
+ * @note A null @p status is tolerated defensively and reported as
+ *       @c 0. Prefer passing a valid status.
+ */
 uint32 get_num_logical_threads_impl(novaStatus_t *status) {
+  if (status == nullptr) {
+    return 0;
+  }
   status->err = novaOsPlatformNotSupported;
   status->message = nova_get_error_msg(status->err, nullptr);
   return 0;
