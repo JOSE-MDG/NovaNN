@@ -58,6 +58,26 @@ static _Atomic bool is_stratification_done = false;
 static _Atomic StratifiedThreads last_stratification_result = {0};
 
 /**
+ * @brief Record a successful stratification for the cache.
+ *
+ * @details
+ * Stores @p result before raising @ref is_stratification_done, both
+ * with release ordering. The order is load-bearing: readers testing
+ * the flag first (see @ref is_stratification_complete()) must observe
+ * the matching budget, and release/acquire only publishes writes
+ * sequenced before the flag store. Every success path in
+ * @ref stratify_threads() funnels through here so none can diverge.
+ *
+ * @param[in] result  Budget to record. Always a successful split.
+ *                    Must not be @c nullptr.
+ */
+static inline void record_success(const StratifiedThreads *result) {
+  atomic_store_explicit(&last_stratification_result, *result,
+                        memory_order_release);
+  atomic_store_explicit(&is_stratification_done, true, memory_order_release);
+}
+
+/**
  * @brief Stratify a total thread count across all managed groups.
  *
  * @details
@@ -122,16 +142,12 @@ StratifiedThreads stratify_threads(uint32 threads, novaStatus_t *status) {
         .err = novaSuccess,
         .message = nova_get_error_msg(novaSuccess, nullptr),
     };
-    atomic_store_explicit(&is_stratification_done, true, memory_order_release);
-    // Named temporary: a braced list cannot travel inside a macro call,
-    // the preprocessor splits macro arguments on its commas.
     const StratifiedThreads overcommit = {
         .compute = 1,
         .autograd = 1,
         .dtloader = 1,
     };
-    atomic_store_explicit(&last_stratification_result, overcommit,
-                          memory_order_release);
+    record_success(&overcommit);
     return (StratifiedThreads){
         .compute = 1,
         .autograd = 1,
@@ -148,11 +164,13 @@ StratifiedThreads stratify_threads(uint32 threads, novaStatus_t *status) {
         .err = novaSuccess,
         .message = nova_get_error_msg(novaSuccess, nullptr),
     };
-    return (StratifiedThreads){
+    const StratifiedThreads even = {
         .compute = MIN_THREADS_PER_GROUP,
         .autograd = MIN_THREADS_PER_GROUP,
         .dtloader = MIN_THREADS_PER_GROUP,
     };
+    record_success(&even);
+    return even;
   }
 
   // Dynamic weights: fair split up to DYNASTRAT_EQUAL_TH, target
@@ -256,14 +274,12 @@ StratifiedThreads stratify_threads(uint32 threads, novaStatus_t *status) {
       .err = novaSuccess,
       .message = nova_get_error_msg(novaSuccess, nullptr),
   };
-  atomic_store_explicit(&is_stratification_done, true, memory_order_release);
   const StratifiedThreads recorded = {
       .compute = compute,
       .autograd = autograd,
       .dtloader = dtloader,
   };
-  atomic_store_explicit(&last_stratification_result, recorded,
-                        memory_order_release);
+  record_success(&recorded);
   return (StratifiedThreads){
       .compute = compute,
       .autograd = autograd,
