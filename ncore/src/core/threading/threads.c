@@ -1,9 +1,41 @@
 /**
  * @file threads.c
  * @brief Global and per-group thread-count management.
+ *
+ * @details
+ * Implements the public threading API declared in @ref threads.h:
+ *
+ * @li Global budget: @ref atomic_global_thread_counter with its
+ *   initialized flag, written by @ref set_num_logical_threads() and
+ *   read by @ref get_configured_num_logical_threads().
+ * @li Per-group counters: assigned through the @ref set_threads_funcs
+ *   dispatch table (@ref set_num_threads_to()) and read through
+ *   @ref get_threads_funcs (@ref get_num_threads_from()).
+ * @li Stratification: @ref get_stratified_threads() resolves the total
+ *   and splits it once via @ref stratify_threads(), serving later
+ *   calls from the recorded result;
+ *   @ref distribute_stratified_threads() writes a validated budget
+ *   into the counters.
+ * @li Inspection: @ref print_thread_config() renders the budget, the
+ *   recorded split and the live counters to stdout.
+ *
+ * @section thread-safety Thread Safety
+ *
+ * All shared state in this unit is atomic. The global budget and its
+ * flag pair a relaxed counter with a release/acquire flag, and each
+ * per-group counter is only ever loaded or stored atomically, so
+ * every function here is safe to call concurrently. The
+ * stratification record itself lives in @c manager.c under the same
+ * release/acquire discipline.
+ *
+ * @see threads.h      Public API declarations.
+ * @see manager.h      Split policy and last-result cache.
+ * @see concurrency.h  Affinity-based thread count query.
  */
 
+#include <inttypes.h>
 #include <stdatomic.h>
+#include <stdio.h>
 
 #include <ncore/core/status.h>
 #include <ncore/threading/threads.h>
@@ -28,6 +60,18 @@ static _Atomic uint32 atomic_global_thread_counter = MIN_THREADS_PER_GROUP;
  * @brief Whether the global budget was explicitly set.
  */
 static _Atomic bool atomic_global_thread_counter_initialized = false;
+
+/**
+ * @var atomic_global_budget_set_once
+ * @brief Single-shot latch for @ref set_num_logical_threads().
+ *
+ * @details The global budget may only be configured once per execution.
+ * Kept separate from @ref atomic_global_thread_counter_initialized
+ * (which per-group setters also raise) so a per-group assignment never
+ * blocks the global call. Claimed with an atomic exchange, so
+ * concurrent second callers are reliably rejected.
+ */
+static _Atomic bool atomic_global_budget_set_once = false;
 
 /**
  * @brief Return the number of logical threads available to the
@@ -63,20 +107,39 @@ uint32 get_configured_num_logical_threads(novaStatus_t *status) {
 /**
  * @brief Set the global number of logical threads.
  *
+ * @details
+ * Configures the total thread budget once per execution. A second
+ * successful call is impossible by design: the budget feeds the
+ * stratification cache, and silently swapping it would strand every
+ * recorded split. Repeats are rejected with @ref novaInvalidValue.
+ *
  * @param[in] threads  Total threads to use. Must be at least
  *                     @ref MIN_THREADS_PER_GROUP.
  *
  * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
- *         success, or @ref novaInvalidNumThreads when @p threads is
- *         less than @ref MIN_THREADS_PER_GROUP.
+ *         success, @ref novaInvalidNumThreads when @p threads is
+ *         less than @ref MIN_THREADS_PER_GROUP, or
+ *         @ref novaInvalidValue when the budget was already set.
  *
  * @pre  @p threads must be at least @ref MIN_THREADS_PER_GROUP.
+ *
+ * @note Thread-safe. The single-shot latch is claimed with an atomic
+ *       exchange, so concurrent repeats are rejected deterministically.
  */
 novaStatus_t set_num_logical_threads(uint32 threads) {
   if (threads < MIN_THREADS_PER_GROUP) {
     return (novaStatus_t){
         .err = novaInvalidNumThreads,
         .message = nova_get_error_msg(novaInvalidNumThreads, nullptr),
+    };
+  }
+  if (atomic_exchange_explicit(&atomic_global_budget_set_once, true,
+                               memory_order_acq_rel)) {
+    return (novaStatus_t){
+        .err = novaInvalidValue,
+        .message =
+            "Global thread budget is already configured; "
+            "set_num_logical_threads() succeeds only once per execution.",
     };
   }
   atomic_store_explicit(&atomic_global_thread_counter, threads,
@@ -121,8 +184,15 @@ static const get_threads_func_t get_threads_funcs[NUM_PARALLEL_GROUPS] = {
  * @return Number of threads for @p group, or @c 0 on failure.
  *
  * @pre  @p status must not be @c nullptr.
+ *
+ * @note A null @p status is tolerated defensively and reported as
+ *       @c 0, which is unambiguous since live counters never hold
+ *       zero. Prefer passing a valid status.
  */
 uint32 get_num_threads_from(ParallelGroups group, novaStatus_t *status) {
+  if (status == nullptr) {
+    return 0;
+  }
   if (group >= NUM_PARALLEL_GROUPS) {
     *status = (novaStatus_t){
         .err = novaInvalidParallelGroup,
@@ -179,6 +249,7 @@ bool is_global_thread_count_initialized() {
  * @param[in] strat  Budget to validate. Must not be @c nullptr.
  *
  * @return @c true when every member is nonzero, @c false otherwise.
+ *         A null budget is invalid and returns @c false.
  *
  * @pre  @p strat must not be @c nullptr.
  *
@@ -186,6 +257,9 @@ bool is_global_thread_count_initialized() {
  * @see StratifiedThreads                Budget under validation.
  */
 bool is_valid_stratification_result(const StratifiedThreads *strat) {
+  if (strat == nullptr) {
+    return false;
+  }
   return ((strat->compute != 0) && (strat->autograd != 0) &&
           (strat->dtloader != 0)) != 0;
 }
@@ -238,11 +312,19 @@ bool is_valid_latest_stratification_result() {
  *
  * @pre  @p status must not be @c nullptr.
  *
+ * @note A null @p status is tolerated defensively and reported as
+ *       @c {0,0,0}, the documented failure sentinel. Prefer passing
+ *       a valid status.
+ *
  * @see stratify_threads()  Partitioning and recording.
  * @see is_stratification_complete()  Cache state query.
  * @see get_last_stratification_result()  Cached result source.
  */
 StratifiedThreads get_stratified_threads(novaStatus_t *status) {
+
+  if (status == nullptr) {
+    return (StratifiedThreads){0, 0, 0};
+  }
 
   uint32 total_threads;
   if (!is_global_thread_count_initialized()) {
@@ -314,4 +396,154 @@ novaStatus_t distribute_stratified_threads(const StratifiedThreads *strat) {
     return st;
   }
   return set_num_threads_to(ParallelDTLoaderGroup, strat->dtloader);
+}
+
+/**
+ * @brief Query whether the thread configuration is fully initialized.
+ *
+ * @details
+ * Combines both halves of the setup: an explicitly set global budget
+ * (@ref is_global_thread_count_initialized()) and at least one
+ * successful stratification (@ref is_stratification_complete()).
+ * @ref print_thread_config() branches on this: @c false means only a
+ * partial view can be shown.
+ *
+ * @return @c true when the budget is set and a stratification result
+ *         is recorded, @c false otherwise.
+ *
+ * @note Thread-safe. Both flags are read with acquire ordering.
+ *
+ * @see is_global_thread_count_initialized()  Budget half of the guard.
+ * @see is_stratification_complete()  Stratification half of the guard.
+ * @see print_thread_config()  Consumer of this guard.
+ */
+bool is_thread_config_initialized() {
+  return (is_global_thread_count_initialized() &&
+          is_stratification_complete()) != 0;
+}
+
+/**
+ * @brief Print the current thread budget and its stratification.
+ *
+ * @details
+ * Writes a human-readable summary to stdout with the @c NCORE_LOG_*
+ * palette: green prefix, bold headings, cyan values, dim labels,
+ * yellow for uninitialized or unavailable entries. Concise mode fits
+ * the whole state on one line; verbose mode prints one aligned row
+ * per entry, mirroring @ref printCudaDeviceInfo().
+ *
+ * Every row reads live data, so a @c false guard still shows the
+ * hardware thread count and the per-group counters; only the
+ * configured budget is marked @c NOT INITIALIZED. A failed hardware
+ * query degrades its row to @c unavailable instead of hiding the rest.
+ *
+ * @param[in] verbose  If @c false, print the one-line summary. If
+ *                     @c true, print the full block.
+ *
+ * @return @ref novaStatus_t with @c err set to @ref novaSuccess when
+ *         the complete configuration was printed, or to
+ *         @ref novaThreadNotInitialized when only a partial view was
+ *         available.
+ *
+ * @note Thread-safe. Reads atomic counters and the recorded
+ *       stratification with acquire ordering; performs no writes.
+ *
+ * @see is_thread_config_initialized()  Completeness guard.
+ * @see get_last_stratification_result()  Recorded split shown.
+ * @see print_device_info()  Device-side counterpart.
+ */
+novaStatus_t print_thread_config(bool verbose) {
+  novaStatus_t query = {0, nullptr};
+  const uint32 logical = get_num_logical_threads(&query);
+  const bool logical_ok = (query.err == novaSuccess);
+  const bool initialized = is_thread_config_initialized();
+
+  // Live per-group counters always hold a value, even before any
+  // configuration, so they are shown in both modes unconditionally.
+  const uint32 live_compute = get_compute_threads();
+  const uint32 live_autograd = get_autograd_threads();
+  const uint32 live_dtloader = get_dtloader_threads();
+
+  if (!verbose) {
+    if (initialized) {
+      const uint32 total = get_configured_num_logical_threads(nullptr);
+      const StratifiedThreads strat = get_last_stratification_result();
+      printf(NCORE_LOG_PREFIX
+             " [Threads] total " NCORE_LOG_VALUE "%" PRIu32 NCORE_LOG_RESET
+             " (compute " NCORE_LOG_VALUE "%" PRIu32 NCORE_LOG_RESET
+             " autograd " NCORE_LOG_VALUE "%" PRIu32 NCORE_LOG_RESET
+             " dtloader " NCORE_LOG_VALUE "%" PRIu32 NCORE_LOG_RESET ")\n",
+             total, strat.compute, strat.autograd, strat.dtloader);
+    } else if (logical_ok) {
+      printf(NCORE_LOG_PREFIX " [Threads] logical " NCORE_LOG_VALUE
+                              "%" PRIu32 NCORE_LOG_RESET " " NCORE_LOG_YELLOW
+                              "NOT INITIALIZED" NCORE_LOG_RESET "\n",
+             logical);
+    } else {
+      printf(NCORE_LOG_PREFIX " [Threads] " NCORE_LOG_RED
+                              "thread count unavailable" NCORE_LOG_RESET "\n");
+    }
+  } else {
+    printf(NCORE_LOG_PREFIX NCORE_LOG_BOLD
+           " === Thread Config ===\n" NCORE_LOG_RESET);
+    if (logical_ok) {
+      printf(NCORE_LOG_PREFIX
+             "   " NCORE_LOG_DIM
+             "Logical threads:   " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
+             "\n" NCORE_LOG_RESET,
+             logical);
+    } else {
+      printf(NCORE_LOG_PREFIX
+             "   " NCORE_LOG_DIM
+             "Logical threads:   " NCORE_LOG_RESET NCORE_LOG_YELLOW
+             "unavailable\n" NCORE_LOG_RESET);
+    }
+    if (initialized) {
+      const uint32 total = get_configured_num_logical_threads(nullptr);
+      printf(NCORE_LOG_PREFIX
+             "   " NCORE_LOG_DIM
+             "Configured budget: " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
+             "\n" NCORE_LOG_RESET,
+             total);
+      printf(NCORE_LOG_PREFIX
+             "   " NCORE_LOG_DIM
+             "Initialized:       " NCORE_LOG_RESET NCORE_LOG_VALUE
+             "yes\n" NCORE_LOG_RESET);
+    } else {
+      printf(NCORE_LOG_PREFIX
+             "   " NCORE_LOG_DIM
+             "Configured budget: " NCORE_LOG_RESET NCORE_LOG_YELLOW
+             "NOT INITIALIZED\n" NCORE_LOG_RESET);
+      printf(NCORE_LOG_PREFIX
+             "   " NCORE_LOG_DIM
+             "Initialized:       " NCORE_LOG_RESET NCORE_LOG_YELLOW
+             "no\n" NCORE_LOG_RESET);
+    }
+    printf(NCORE_LOG_PREFIX
+           "   " NCORE_LOG_DIM
+           "Compute:           " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
+           "\n" NCORE_LOG_RESET,
+           live_compute);
+    printf(NCORE_LOG_PREFIX
+           "   " NCORE_LOG_DIM
+           "Autograd:          " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
+           "\n" NCORE_LOG_RESET,
+           live_autograd);
+    printf(NCORE_LOG_PREFIX
+           "   " NCORE_LOG_DIM
+           "DTLoader:          " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
+           "\n" NCORE_LOG_RESET,
+           live_dtloader);
+  }
+
+  if (initialized) {
+    return (novaStatus_t){
+        .err = novaSuccess,
+        .message = nova_get_error_msg(novaSuccess, nullptr),
+    };
+  }
+  return (novaStatus_t){
+      .err = novaThreadNotInitialized,
+      .message = nova_get_error_msg(novaThreadNotInitialized, nullptr),
+  };
 }
