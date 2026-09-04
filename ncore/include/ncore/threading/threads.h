@@ -26,6 +26,9 @@
  * @li Validation — @ref is_valid_stratification_result() and
  *   @ref is_valid_latest_stratification_result() report whether a
  *   budget holds no empty group.
+ * @li Inspection — @ref print_thread_config() prints the current
+ *   thread budget and its stratification to stdout, in concise or
+ *   verbose form.
  *
  * @see concurrency.h  Low-level logical-thread query implementation.
  * @see status.h       novaStatus_t error reporting.
@@ -102,16 +105,21 @@ typedef struct {
  * underlying high-performance libraries use for parallel execution.
  * The value is stored in @ref atomic_global_thread_counter and
  * determines the total number of threads the library is allowed to
- * use. The managed groups may then be configured individually via
- * @ref set_num_threads_to(). The value must be at least
- * @ref MIN_THREADS_PER_GROUP (1).
- *
- * @param[in] threads  Total number of logical threads to use. Must be
- *                     at least @ref MIN_THREADS_PER_GROUP (1).
- *
- * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
- *         success, or @ref novaInvalidNumThreads when @p threads is
- *         less than @ref MIN_THREADS_PER_GROUP.
+  * use. The managed groups may then be configured individually via
+  * @ref set_num_threads_to(). The value must be at least
+  * @ref MIN_THREADS_PER_GROUP (1).
+  *
+  * The budget may only be set once per execution: a repeat call is
+  * rejected with @ref novaInvalidValue, since silently swapping the
+  * total would strand the recorded stratification.
+  *
+  * @param[in] threads  Total number of logical threads to use. Must be
+  *                     at least @ref MIN_THREADS_PER_GROUP (1).
+  *
+  * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
+  *         success, @ref novaInvalidNumThreads when @p threads is
+  *         less than @ref MIN_THREADS_PER_GROUP, or
+  *         @ref novaInvalidValue when the budget was already set.
  *
  * @pre  @p threads must be at least @ref MIN_THREADS_PER_GROUP.
  *
@@ -316,6 +324,61 @@ bool is_valid_latest_stratification_result();
   * @see ParallelGroups                    Group order applied.
   */
 novaStatus_t distribute_stratified_threads(const StratifiedThreads *strat);
+
+/**
+  * @brief Query whether the thread configuration is fully initialized.
+  *
+  * @details
+  * Reports whether both halves of the setup are done: the global
+  * thread budget was explicitly set (see
+  * @ref is_global_thread_count_initialized()) and at least one
+  * stratification succeeded (see @ref is_stratification_complete()).
+  * @ref print_thread_config() uses this as its guard: a @c false
+  * result means only a partial view can be shown.
+  *
+  * @return @c true when the budget is set and a stratification result
+  *         is recorded, @c false otherwise.
+  *
+  * @see is_global_thread_count_initialized()  Budget half of the guard.
+  * @see is_stratification_complete()  Stratification half of the guard.
+  * @see print_thread_config()  Consumer of this guard.
+  */
+bool is_thread_config_initialized();
+
+/**
+  * @brief Print the current thread budget and its stratification.
+  *
+  * @details
+  * Writes a human-readable summary to stdout using the @c NCORE_LOG_*
+  * palette from @c macros.h (green prefix, bold headings, cyan values,
+  * dim labels, yellow for uninitialized entries). With @p verbose set
+  * to @c false a single summary line is printed; with @c true a full
+  * block follows: logical thread count, configured budget, whether the
+  * configuration is initialized, and the live per-group counters.
+  *
+ * The print never fails for lack of configuration: when
+ * @ref is_thread_config_initialized() returns @c false, whatever is
+ * known (hardware thread count, live counters) is shown with the
+  * missing entries marked @c NOT INITIALIZED, and the status reports
+  * @ref novaThreadNotInitialized. A hardware count query failure is
+  * shown as @c unavailable without hiding the remaining rows.
+  *
+  * @param[in] verbose  If @c false, print the one-line summary. If
+  *                     @c true, print the full block.
+  *
+  * @return @ref novaStatus_t with @c err set to @ref novaSuccess when
+  *         the complete configuration was printed, or to
+  *         @ref novaThreadNotInitialized when only a partial view was
+  *         available.
+  *
+  * @note Thread-safe. Reads atomic counters and the recorded
+  *       stratification with acquire ordering; performs no writes.
+  *
+  * @see is_thread_config_initialized()  Completeness guard.
+  * @see get_stratified_threads()        Budget behind the summary.
+  * @see get_last_stratification_result()  Recorded split shown.
+  */
+novaStatus_t print_thread_config(bool verbose);
 
 #ifdef __cplusplus
 }

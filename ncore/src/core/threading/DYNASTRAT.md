@@ -283,3 +283,8 @@ pushing toward whatever priority order you want while respecting `m`.
   `threads.h`) validates a budget, then writes it into the per-group
   counters in (compute, autograd, dtloader) order, stopping at the first
   group that refuses it.
+- `print_thread_config()` (`threads.c`, declared in `threads.h`) renders
+  the budget and the live counters to stdout, in concise or verbose
+  form. It guards on `is_thread_config_initialized()`: without a full
+  configuration it shows whatever is known with the rest marked
+  `NOT INITIALIZED`.
