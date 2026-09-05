@@ -314,8 +314,9 @@ bool is_hip_available(void);
  *                         transfer directions.
  * @see TransferKind       Enum encoding copy directions.
  */
-novaStatus_t transfer_to(Device_ src, Device_ dst, const void *src_buf,
-                         void *dst_buf, size_t bytes);
+NCORE_HOST_DEVICE novaStatus_t transfer_to(Device_ src, Device_ dst,
+                                           const void *src_buf, void *dst_buf,
+                                           size_t bytes);
 
 /**
  * @brief Return the active device id (CUDA or HIP).
