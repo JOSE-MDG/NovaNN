@@ -17,6 +17,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdlib>
 #include <initializer_list>
@@ -62,10 +63,10 @@ inline constexpr UnallocatedTag unallocated{};
  * @brief RAII wrapper around the C @ref Tensor, exposing a safe C++ interface.
  *
  * @details
- * Manages the full lifecycle of a NovaNN tensor: allocation, shape
- * metadata, reference counting (via the C core), copy/move semantics,
- * element access, and device/dtype transfers.  The class is aligned to
- * 64 bytes for cache-line friendliness.
+  * Manages the full lifecycle of a NovaNN tensor: allocation, shape
+  * metadata, reference counting (via the C core), copy/move semantics,
+  * element access, layout transforms, and device/dtype transfers.
+  * The class is aligned to 64 bytes for cache-line friendliness.
  *
  * @par Ownership
  * Constructing a @ref TensorCXX allocates the underlying buffer through
@@ -167,8 +168,8 @@ public:
    *
    * @see create_unallocated_tensor()  Underlying C constructor.
    */
-  TensorCXX(UnallocatedTag tag, const std::vector<size_t> &shape,
-            DType_ dtype, Device_ device, bool requires_grad, bool pin_memory,
+  TensorCXX(UnallocatedTag tag, const std::vector<size_t> &shape, DType_ dtype,
+            Device_ device, bool requires_grad, bool pin_memory,
             novaStatus_t *st);
 
   /**
@@ -391,6 +392,14 @@ public:
   [[nodiscard]] DType_ getDType() const noexcept;
 
   /**
+   * @brief Reports whether the tensor data is stored contiguously.
+   * @return @c true when elements are laid out row-major without gaps.
+   *
+   * @see is_contiguous()  Underlying C query.
+   */
+  [[nodiscard]] bool is_contiguous() const noexcept;
+
+  /**
    * @brief Returns the underlying C tensor (by value copy).
    * @return A copy of the internal @ref Tensor structure.
    */
@@ -465,6 +474,74 @@ public:
    * @pre  The tensor must reside on CPU (@c DEVICE_CPU).
    */
   TensorCXX cuda(novaStatus_t &st) noexcept;
+
+  // ================================================================
+  // Layout transforms
+  // ================================================================
+
+  /**
+   * @brief Returns a transposed view with two dimensions swapped.
+   *
+   * @details
+   * Wraps @ref transpose(): no data is copied, the result shares this
+   * tensor's storage with swapped shape and strides. Negative indices
+   * count from the last dimension.
+   *
+   * @param[in]  dim0  First dimension to swap. May be negative.
+   * @param[in]  dim1  Second dimension to swap. May be negative.
+   * @param[out] st    Status output; @ref novaSuccess on success.
+   * @return A view sharing this tensor's storage.
+   *
+   * @see transpose()  Underlying C routine.
+   */
+  TensorCXX transpose(int dim0, int dim1, novaStatus_t &st) const noexcept;
+
+  /**
+   * @brief Returns a view with dimensions reordered by permutation.
+   *
+   * @details
+   * Wraps @ref permute(): no data is copied, dimension @c i of the
+   * result takes the shape and stride of source dimension
+   * @c dims[i]. Every source dimension must appear exactly once;
+   * negative entries count from the last dimension.
+   *
+   * @param[in]  dims  Permutation of @c [0, dims()). Only the first
+   *                   @ref dims() entries are read.
+   * @param[out] st    Status output; @ref novaSuccess on success.
+   * @return A view sharing this tensor's storage.
+   *
+   * @see permute()  Underlying C routine.
+   */
+  TensorCXX permute(const std::vector<int> &dims,
+                    novaStatus_t &st) const noexcept;
+
+  /**
+   * @brief Returns a view with dimensions reordered by permutation.
+   *
+   * @details
+   * Delegates to the vector overload.
+   *
+   * @param[in]  dims  Permutation of @c [0, dims()).
+   * @param[out] st    Status output; @ref novaSuccess on success.
+   * @return A view sharing this tensor's storage.
+   */
+  TensorCXX permute(std::initializer_list<int> dims,
+                    novaStatus_t &st) const noexcept;
+
+  /**
+   * @brief Returns a contiguous copy of this tensor.
+   *
+   * @details
+   * Wraps @ref contiguous(): when the tensor is already contiguous
+   * the result shares its storage, otherwise a new dense buffer is
+   * allocated and filled through the active backend.
+   *
+   * @param[out] st    Status output; @ref novaSuccess on success.
+   * @return A contiguous tensor with the same shape and metadata.
+   *
+   * @see contiguous()  Underlying C routine.
+   */
+  TensorCXX contiguous(novaStatus_t &st) const noexcept;
 
 private:
   Tensor c_tensor{};         ///< Underlying C tensor handle.
@@ -630,6 +707,11 @@ inline Device_ TensorCXX::getDevice() const noexcept { return c_tensor.device; }
 /// @copydoc TensorCXX::getDType()
 inline DType_ TensorCXX::getDType() const noexcept { return c_tensor.dtype; }
 
+/// @copydoc TensorCXX::is_contiguous()
+inline bool TensorCXX::is_contiguous() const noexcept {
+  return ::is_contiguous(&c_tensor);
+}
+
 // ================================================================
 // ScalarRef — inline definitions
 // ================================================================
@@ -756,6 +838,74 @@ inline TensorCXX TensorCXX::cuda(novaStatus_t &st) noexcept {
   st = transf_tensor_from_host(&c_tensor, &out.c_tensor);
   return out;
 }
+
+// ================================================================
+// Layout transforms — inline definitions
+// ================================================================
+
+/// @brief Returns a transposed view sharing this tensor's storage.
+inline TensorCXX TensorCXX::transpose(int dim0, int dim1,
+                                      novaStatus_t &st) const noexcept {
+  TensorCXX out;
+  auto tmp = ::transpose(&c_tensor, &st, dim0, dim1);
+  if (st.err != novaSuccess) {
+    return out;
+  }
+  move_tensor(&out.c_tensor, &tmp);
+  out.shape.assign(out.c_tensor.shape, out.c_tensor.shape + out.c_tensor.ndims);
+  out.size = out.c_tensor.size;
+  out.ndims = out.c_tensor.ndims;
+  out.item_size = out.c_tensor.item_size;
+  out.logical_size = out.c_tensor.logical_size;
+  out.data = out.c_tensor.data;
+  return out;
+}
+
+/// @brief Returns a permuted view sharing this tensor's storage.
+inline TensorCXX TensorCXX::permute(const std::vector<int> &dims,
+                                    novaStatus_t &st) const noexcept {
+  TensorCXX out;
+  std::array<int, NOVA_MAX_DIMS> raw = {0};
+  const size_t n = dims.size() < NOVA_MAX_DIMS ? dims.size() : NOVA_MAX_DIMS;
+  for (size_t i = 0; i < n; ++i) {
+    raw[i] = dims[i];
+  }
+  Tensor tmp = ::permute(&c_tensor, &st, raw.data());
+  if (st.err != novaSuccess) {
+    return out;
+  }
+  move_tensor(&out.c_tensor, &tmp);
+  out.shape.assign(out.c_tensor.shape, out.c_tensor.shape + out.c_tensor.ndims);
+  out.size = out.c_tensor.size;
+  out.ndims = out.c_tensor.ndims;
+  out.item_size = out.c_tensor.item_size;
+  out.logical_size = out.c_tensor.logical_size;
+  out.data = out.c_tensor.data;
+  return out;
+}
+
+/// @brief Delegates to the vector overload.
+inline TensorCXX TensorCXX::permute(std::initializer_list<int> dims,
+                                    novaStatus_t &st) const noexcept {
+  return permute(std::vector<int>(dims), st);
+}
+
+/// @brief Returns a contiguous copy of this tensor.
+inline TensorCXX TensorCXX::contiguous(novaStatus_t &st) const noexcept {
+  TensorCXX out;
+  Tensor tmp = ::contiguous(&c_tensor, &st);
+  if (st.err != novaSuccess) {
+    return out;
+  }
+  move_tensor(&out.c_tensor, &tmp);
+  out.shape.assign(out.c_tensor.shape, out.c_tensor.shape + out.c_tensor.ndims);
+  out.size = out.c_tensor.size;
+  out.ndims = out.c_tensor.ndims;
+  out.item_size = out.c_tensor.item_size;
+  out.logical_size = out.c_tensor.logical_size;
+  out.data = out.c_tensor.data;
+  return out;
+}
 /// @brief Constructs an unallocated n-dimensional tensor.
 inline TensorCXX::TensorCXX(UnallocatedTag, const std::vector<size_t> &shape,
                             DType_ dtype, Device_ device, bool requires_grad,
@@ -764,9 +914,8 @@ inline TensorCXX::TensorCXX(UnallocatedTag, const std::vector<size_t> &shape,
   for (size_t i = 0; i < shape.size(); ++i) {
     local_shape[i] = shape[i];
   }
-  c_tensor = create_unallocated_tensor(local_shape, dtype, device,
-                                       requires_grad, pin_memory, shape.size(),
-                                       st);
+  c_tensor = create_unallocated_tensor(
+      local_shape, dtype, device, requires_grad, pin_memory, shape.size(), st);
 
   this->shape = shape;
   size = c_tensor.size;
@@ -780,9 +929,8 @@ inline TensorCXX::TensorCXX(UnallocatedTag, const std::vector<size_t> &shape,
 inline TensorCXX::TensorCXX(UnallocatedTag, DType_ dtype, Device_ device,
                             bool requires_grad, bool pin_memory,
                             novaStatus_t *st) {
-  Tensor ten =
-      create_unallocated_scalar_tensor(dtype, device, requires_grad,
-                                       pin_memory, st);
+  Tensor ten = create_unallocated_scalar_tensor(dtype, device, requires_grad,
+                                                pin_memory, st);
   move_tensor(&c_tensor, &ten);
 
   shape = {0};
