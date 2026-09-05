@@ -15,25 +15,23 @@
  *
  * The dispatch uses a static @c std::map<DeviceKind, kernel_t> lookup
  * table populated at compile time based on which backends are enabled
- * (@c NOVA_HAS_CUDA, @c NOVA_HAS_HIP).
- *
- * @section device-detection-flow Device Detection Flow
- *
- * @li 1. If device detection has already been performed, use the cached
- *    result directly.
- * @li 2. Otherwise, probe CUDA and HIP availability and cache the result.
- * @li 3. If exactly one backend is available, use it; otherwise return
- *    @ref novaDeviceNotAvailable.
+ * (@c NOVA_HAS_CUDA, @c NOVA_HAS_HIP). The detection flow itself
+ * (cached kind, probe, exactly-one-backend) lives in
+ * @ref ncore::dispatch::launch(), shared with every launcher.
  *
  * @see casting.h               Public interface for this module.
+ * @see KernelDispatcher.hpp    Shared backend-resolution flow.
  * @see DtypeCastingKernel.cu   CUDA kernel implementation.
  * @see DtypeCastingKernel.hip  HIP kernel implementation.
  */
 
 #include <map>
+
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
 #include <ncore/tensor.h>
+
+#include "utils/KernelDispatcher.hpp"
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,8 +93,8 @@ using kernel_t = novaStatus_t (*)(const Tensor *, Tensor *);
  * @brief Static dispatch table mapping device kinds to casting kernels.
  *
  * @details
- * Populated at compile time.  Entries for unavailable backends are
- * set to @c nullptr.  Accessed via @ref getDispatchedKernel.
+ * Populated at compile time. Entries for unavailable backends are
+ * set to @c nullptr. Consumed by @ref ncore::dispatch::launch().
  */
 const std::map<DeviceKind, kernel_t> KERNEL_DISPATCHER = {
 #if defined(NOVA_HAS_CUDA) && !defined(NOVA_HAS_HIP)
@@ -112,44 +110,15 @@ const std::map<DeviceKind, kernel_t> KERNEL_DISPATCHER = {
 #endif
 };
 
-/**
- * @brief Retrieve the casting kernel for the given device kind.
- *
- * @param[in]  kind   The device kind to look up.
- * @param[out] status Receives the operation result.
- *
- * @return Function pointer to the kernel, or @c nullptr if the device
- *         has no registered kernel.
- *
- * @pre  @p status must not be null.
- * @post On success, @p status->err is @ref novaSuccess.
- */
-kernel_t getDispatchedKernel(DeviceKind kind, novaStatus_t *status) noexcept {
-
-  if (kind != CUDA_DEVICE && kind != HIP_DEVICE && kind != NULL_DEVICE) {
-    status->err = novaInvalidValue;
-    status->message = "Invalid device kind specified for kernel dispatch\n";
-    return nullptr;
-  }
-
-  const kernel_t kernel = KERNEL_DISPATCHER.at(kind);
-  status->err = novaSuccess;
-  status->message = nova_get_error_msg(status->err, nullptr);
-  return kernel;
-}
-
 } // namespace
 
 /**
  * @brief Launch a dtype casting kernel on the detected compute device.
  *
  * @details
- * Entry point declared in @ref casting.h.  Selects the appropriate
- * backend kernel using @ref getDispatchedKernel and invokes it.
- *
- * If device detection has not been performed yet, this function
- * probes CUDA and HIP availability and caches the result before
- * proceeding with the dispatch.
+ * Entry point declared in @ref casting.h. Backend resolution and
+ * error handling live in @ref ncore::dispatch::launch(); this body
+ * only forwards the table and the tensors.
  *
  * @param[in]  src  Source tensor to cast from.
  * @param[in,out] dst  Destination tensor to cast into.
@@ -165,49 +134,5 @@ kernel_t getDispatchedKernel(DeviceKind kind, novaStatus_t *status) noexcept {
  */
 extern "C" novaStatus_t launchDtypeCastingKernel(const Tensor *src,
                                                  Tensor *dst) {
-
-  novaStatus_t status;
-
-  if (was_device_detection_done()) {
-
-    auto kernel = getDispatchedKernel(get_detected_device_kind(), &status);
-
-    if (status.err != novaSuccess) {
-      return status;
-    }
-
-    if (kernel == nullptr || get_detected_device_kind() == NULL_DEVICE) {
-      status.err = novaDeviceNotInitialized;
-      status.message = "No kernel available for the detected device; device "
-                       "may not be initialized\n";
-      return status;
-    }
-
-    // Launch the kernel
-    status = kernel(src, dst);
-    return status;
-  }
-
-  if ((is_cuda_available() && !is_hip_available()) ||
-      (!is_cuda_available() && is_hip_available())) {
-
-    auto kernel = getDispatchedKernel(get_detected_device_kind(), &status);
-
-    if (status.err != novaSuccess) {
-      return status;
-    }
-
-    if (kernel == nullptr || get_detected_device_kind() == NULL_DEVICE) {
-      status.err = novaDeviceNotInitialized;
-      status.message = "No kernel available for the detected device; device "
-                       "may not be initialized\n";
-      return status;
-    }
-    return kernel(src, dst);
-  }
-
-  status.err = novaDeviceNotAvailable;
-  status.message =
-      "No compute device available; cannot launch casting kernel\n";
-  return status;
+  return ncore::dispatch::launch(KERNEL_DISPATCHER, src, dst);
 }
