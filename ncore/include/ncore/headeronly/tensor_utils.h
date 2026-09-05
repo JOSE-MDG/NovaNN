@@ -395,6 +395,54 @@ static inline void compute_coords_given_linear_byte_offset_(
 }
 
 /**
+ * @brief Reconstruct multi-dimensional coordinates from a linear
+ *        element index.
+ *
+ * @details
+ * Converts a flat element index into per-dimension coordinates by
+ * repeatedly taking the remainder against each dimension size, from
+ * the innermost dimension outward:
+ *
+ * @code
+ * for dim = ndims-1 .. 0:
+ *     coords[dim] = item % shape[dim]
+ *     item       /= shape[dim]
+ * @endcode
+ *
+ * Unlike @c compute_coords_given_linear_byte_offset_(), which walks
+ * byte strides, this variant works on element counts, so it stays
+ * valid for strided or collapsed views where the byte stride is not
+ * a multiple of the element size.  Each thread in an OpenMP parallel
+ * loop calls it with its own @c item, which keeps the conversion
+ * thread-safe without shared state (see @c contiguous_cpu_impl() ).
+ *
+ * @param[in]  item   Linear element index, from @c 0 to
+ *                    @c product(shape[0..ndims-1]) - 1.
+ * @param[in]  ndims  Number of dimensions.
+ * @param[in]  shape  Dimension sizes.  Only the first @c ndims
+ *                     entries are read.  All must be > 0.
+ * @param[out] coords Output array (written in-place).  Only the
+ *                     first @c ndims entries are written.
+ *
+ * @pre  @c ndims must be > 0.
+ * @pre  @c item must be < @c product(shape[0..ndims-1]) (not
+ *       validated).
+ * @post @c coords[0..ndims-1] contain the reconstructed position.
+ *
+ * @see compute_coords_given_linear_byte_offset_()  Byte-stride
+ *      variant.
+ * @see odometer()  Incremental counterpart for serial loops.
+ */
+NCORE_HOST_DEVICE static inline void
+compute_coords_from_linear_index_(size_t item, size_t ndims,
+                                  const size_t *shape, coords_t coords) {
+  for (size_t dim = ndims; dim-- > 0;) {
+    coords[dim] = item % shape[dim];
+    item /= shape[dim];
+  }
+}
+
+/**
  * @brief Create a Tensor without allocating a data buffer.
  *
  * @details
