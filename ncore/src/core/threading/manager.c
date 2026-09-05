@@ -11,13 +11,15 @@
  * @c compute above @c dtloader and @c dtloader above @c autograd once
  * the total is large enough to hold both gaps.
  *
- * Every successful stratification is recorded in
- * @ref last_stratification_result and flagged through
- * @ref is_stratification_done, so @ref get_stratified_threads() can
- * serve later calls from the cache while the global budget stays
- * immutable. The split computation itself uses no other shared state,
- * allocates nothing and runs in constant time and memory for the
- * three managed groups.
+ * Every successful stratification is copied into @ref last_storage
+ * and published through @ref last_ptr, so
+ * @ref get_stratified_threads() can serve later calls from the cache
+ * while the global budget stays immutable. Only the 8-byte pointer
+ * travels atomically (a whole @ref StratifiedThreads fits no
+ * lock-free atomic on every toolchain); the struct write is sequenced
+ * before the publishing store. The split computation itself uses no
+ * other shared state, allocates nothing and runs in constant time and
+ * memory for the three managed groups.
  *
  * @see manager.h     Tuning constants and public contract.
  * @see DYNASTRAT.md  Policy rationale, worked traces and tuning guide.
@@ -36,45 +38,47 @@
 #define DYNASTRAT_MAX_ORDER_PASSES 10
 
 /**
- * @var is_stratification_done
- * @brief Whether any stratification already succeeded.
+ * @var last_storage
+ * @brief Backing slot for the recorded stratification budget.
  *
- * @details Set by @ref stratify_threads() on every success and read by
- * @ref is_stratification_complete(), letting
- * @ref get_stratified_threads() serve the recorded budget instead of
- * recomputing while the global budget stays immutable.
+ * @details Plain (non-atomic) storage holding the latest successful
+ * @ref StratifiedThreads value. Written only by @ref record_success()
+ * before publishing @ref last_ptr, so readers that observe a
+ * non-null pointer always see a fully written budget. Static storage
+ * zero-initialises it to @c {0,0,0}.
  */
-static _Atomic bool is_stratification_done = false;
+static StratifiedThreads last_storage;
 
 /**
- * @var last_stratification_result
- * @brief Budget recorded by the latest successful stratification.
+ * @var last_ptr
+ * @brief Publication pointer for the recorded budget, or null.
  *
- * @details Holds the @ref StratifiedThreads value stored by the latest
- * @ref stratify_threads() success, served by
- * @ref get_last_stratification_result(). Starts as @c {0,0,0} and is
- * only replaced on success, never on failure.
+ * @details Null until the first @ref stratify_threads() success;
+ * afterwards it permanently points at @ref last_storage. The pointer
+ * alone travels atomically (8 bytes, lock-free on every toolchain),
+ * which is what lets this cache link without @c libatomic. Read with
+ * acquire ordering, written with release ordering.
  */
-static _Atomic StratifiedThreads last_stratification_result = {0};
+static _Atomic(StratifiedThreads *) last_ptr;
 
 /**
  * @brief Record a successful stratification for the cache.
  *
  * @details
- * Stores @p result before raising @ref is_stratification_done, both
- * with release ordering. The order is load-bearing: readers testing
- * the flag first (see @ref is_stratification_complete()) must observe
- * the matching budget, and release/acquire only publishes writes
- * sequenced before the flag store. Every success path in
- * @ref stratify_threads() funnels through here so none can diverge.
+ * Copies @p result into @ref last_storage and then publishes
+ * @ref last_ptr, with release ordering on the publish. The order is
+ * load-bearing: readers dereference the pointer only after observing
+ * it non-null (see @ref get_last_stratification_result()), and
+ * release/acquire publishes exactly the writes sequenced before the
+ * pointer store. Every success path in @ref stratify_threads()
+ * funnels through here so none can diverge.
  *
  * @param[in] result  Budget to record. Always a successful split.
  *                    Must not be @c nullptr.
  */
 static inline void record_success(const StratifiedThreads *result) {
-  atomic_store_explicit(&last_stratification_result, *result,
-                        memory_order_release);
-  atomic_store_explicit(&is_stratification_done, true, memory_order_release);
+  last_storage = *result;
+  atomic_store_explicit(&last_ptr, &last_storage, memory_order_release);
 }
 
 /**
@@ -89,9 +93,9 @@ static inline void record_success(const StratifiedThreads *result) {
  * an ordering fixup. Every member of a successful result is at least
  * @ref MIN_THREADS_PER_GROUP, and totals above 3 add up exactly.
  *
- * Every success is recorded in @ref last_stratification_result and
- * flagged through @ref is_stratification_done with release ordering,
- * so @ref get_stratified_threads() can serve later calls from the
+ * Every success is copied into @ref last_storage and published
+ * through @ref last_ptr with release ordering, so
+ * @ref get_stratified_threads() can serve later calls from the
  * cache. Failures leave the recorded values untouched.
  *
  * @param[in] threads  Total number of threads to distribute. Must be
@@ -291,43 +295,48 @@ StratifiedThreads stratify_threads(uint32 threads, novaStatus_t *status) {
  * @brief Query whether any stratification already succeeded.
  *
  * @details
- * Reads @ref is_stratification_done with acquire ordering. Returns
- * @c true once @ref stratify_threads() has completed at least once,
- * meaning @ref get_last_stratification_result() holds a recorded
- * budget that @ref get_stratified_threads() can serve from the cache.
+ * Reads @ref last_ptr with acquire ordering. Returns @c true once
+ * @ref stratify_threads() has completed at least once, meaning
+ * @ref get_last_stratification_result() serves a recorded budget
+ * that @ref get_stratified_threads() can hand out from the cache.
  *
  * @return @c true after the first successful stratification,
  *         @c false before.
  *
- * @note Thread-safe. Pairs with the release-ordered store in
- *       @ref stratify_threads().
+ * @note Thread-safe. Pairs with the release-ordered publish in
+ *       @ref record_success().
  *
- * @see stratify_threads()  Call setting the flag.
+ * @see stratify_threads()  Call publishing the pointer.
  * @see get_last_stratification_result()  Recorded budget accessor.
  */
 bool is_stratification_complete() {
-  return atomic_load_explicit(&is_stratification_done, memory_order_acquire);
+  return atomic_load_explicit(&last_ptr, memory_order_acquire) != nullptr;
 }
 
 /**
  * @brief Return the budget recorded by the latest stratification.
  *
  * @details
- * Reads @ref last_stratification_result with acquire ordering.
- * Before any successful @ref stratify_threads() call the recorded
- * value is @c {0,0,0}, so callers must validate the result with
- * @ref is_valid_stratification_result() before applying it.
+ * Loads @ref last_ptr with acquire ordering and dereferences it.
+ * Before any successful @ref stratify_threads() call the pointer is
+ * null and the result is @c {0,0,0}, so callers must validate the
+ * result with @ref is_valid_stratification_result() before applying
+ * it.
  *
  * @return The recorded budget, or @c {0,0,0} when nothing was
  *         recorded yet.
  *
- * @note Thread-safe. Pairs with the release-ordered store in
- *       @ref stratify_threads().
+ * @note Thread-safe. Pairs with the release-ordered publish in
+ *       @ref record_success().
  *
  * @see stratify_threads()  Call storing the budget.
  * @see is_valid_stratification_result()  Recorded budget validation.
  */
 StratifiedThreads get_last_stratification_result() {
-  return atomic_load_explicit(&last_stratification_result,
-                              memory_order_acquire);
+  StratifiedThreads *recorded =
+      atomic_load_explicit(&last_ptr, memory_order_acquire);
+  if (recorded == nullptr) {
+    return (StratifiedThreads){0, 0, 0};
+  }
+  return *recorded;
 }
