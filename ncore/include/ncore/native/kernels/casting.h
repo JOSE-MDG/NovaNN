@@ -1,16 +1,18 @@
 /**
  * @file casting.h
- * @brief Public C interface for GPU dtype casting kernel dispatch.
+ * @brief Device-agnostic entry point for dtype casting kernels.
  *
  * @details
- * Declares the single entry point used to launch element-wise dtype
- * casting between tensors.  The actual kernel implementation is
- * backend-specific (CUDA or HIP) and resolved at run time by the
- * dispatch layer in @ref CastingDispatchImpl.cpp.
+ * Declares @ref launchDtypeCastingKernel(), which resolves the active
+ * GPU backend at run time and forwards to
+ * @ref launchCudaDtypeCastingKernel() or
+ * @ref launchHipDtypeCastingKernel(). Implemented in
+ * @c CastingDispatchImpl.cpp through
+ * @ref ncore::dispatch::launch().
  *
- * @see CastingDispatchImpl.cpp
- * @see launchCudaDtypeCastingKernel()
- * @see launchHipDtypeCastingKernel()
+ * @see CastingDispatchImpl.cpp  Dispatcher implementation.
+ * @see DtypeCastingKernel.cu   CUDA kernel implementation.
+ * @see DtypeCastingKernel.hip  HIP kernel implementation.
  */
 
 #pragma once
