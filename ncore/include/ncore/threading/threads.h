@@ -29,6 +29,9 @@
  * @li Inspection — @ref print_thread_config() prints the current
  *   thread budget and its stratification to stdout, in concise or
  *   verbose form.
+ * @li Parallelism — @ref is_parallelizable() decides whether a tensor
+ *   holds enough work to amortize a parallel region for a given
+ *   thread count and @ref ParallelizableBy criterion.
  *
  * @see concurrency.h  Low-level logical-thread query implementation.
  * @see status.h       novaStatus_t error reporting.
@@ -62,16 +65,41 @@ typedef enum {
 } ParallelGroups;
 
 /**
-  * @struct StratifiedThreads
-  * @brief Thread budget partitioned across the managed groups.
-  *
-  * @details
+ * @enum ParallelizableBy
+ * @brief Criterion used by @ref is_parallelizable() to judge work size.
+ *
+ * @details
+ * Each value is a bit flag so they combine with @c | . A tensor is
+ * considered parallelizable only when every selected criterion is met:
+ * @li @c ParallelizableByElements — enough logical elements per thread.
+ * @li @c ParallelizableByBytes — enough storage bytes per thread.
+ * @li @c ParallelizableByTensor — structural and type-driven sanity:
+ *   not scalar or empty, allocated on @c DEVICE_CPU, valid @ref DType_,
+ *   and with dtype-aware grain (packed and quantized types need more
+ *   elements to amortize unpacking, tiny @c item_size needs more
+ *   bytes to avoid false sharing).
+ *
+ * Typical use is a single flag or @c ByElements | @c ByTensor for
+ * element-wise kernels and @c ByBytes | @c ByTensor for memory-bound
+ * copies. Passing @c 0 is treated as @c ByElements.
+ */
+typedef enum ParallelizableBy : uint8_t {
+  ParallelizableByElements = 1u << 0, ///< Grain on @c logical_size.
+  ParallelizableByBytes = 1u << 1,    ///< Grain on @c storage->size_bytes.
+  ParallelizableByTensor = 1u << 2,   ///< Structural checks on the tensor.
+} ParallelizableBy;
+
+/**
+ * @struct StratifiedThreads
+ * @brief Thread budget partitioned across the managed groups.
+ *
+ * @details
  * Produced by @ref stratify_threads() to describe how a total thread
  * count is distributed among the NovaNN worker pools.  The sum of
  * the three members equals the total number of threads that was
  * stratified, except for a total of 2, which yields @c {1,1,1} so
  * that no pool is left without threads.
-  */
+ */
 typedef struct {
   uint32 compute;  ///< Threads assigned to the compute group.
   uint32 autograd; ///< Threads assigned to the autograd group.
@@ -379,6 +407,42 @@ bool is_thread_config_initialized();
   * @see get_last_stratification_result()  Recorded split shown.
   */
 novaStatus_t print_thread_config(bool verbose);
+
+/**
+ * @brief Report whether a tensor holds enough work to parallelize.
+ *
+ * @details
+ * Replaces fixed thresholds like @c size > 100000 with a dynamic
+ * check that accounts for the actual thread count and the kind of
+ * work. The @p kind bitmask selects which criteria must hold; every
+ * selected bit must pass for the result to be @c true:
+ * @li @c ParallelizableByElements — @c ten->logical_size is at least
+ *   @c threads * grain elements.
+ * @li @c ParallelizableByBytes — @c ten->size * @c ten->item_size is
+ *   at least @c threads * grain bytes.
+ * @li @c ParallelizableByTensor — structural and type-driven sanity:
+ *   allocated on @c DEVICE_CPU with a valid @ref DType_, not scalar
+ *   or empty, and with dtype-aware grain (packed and quantized types
+ *   need more elements, 1-byte items need more bytes).
+ * Combine flags with @c | ; passing @c 0 selects
+ * @c ParallelizableByElements. A single thread or a null tensor is
+ * never considered parallelizable.
+ *
+ * @param[in] ten      Tensor to inspect. May be @c nullptr.
+ * @param[in] threads  Thread count the parallel region would use.
+ *                     Values @c 0 or @c 1 always yield @c false.
+ * @param[in] kind     Bitmask of @ref ParallelizableBy criteria.
+ *
+ * @return @c true when the tensor satisfies every selected criterion
+ *         for @p threads, @c false otherwise.
+ *
+ * @note Thread-safe. Reads only @p ten fields and @p threads; no
+ *       shared state is touched.
+ *
+ * @see ParallelizableBy
+ */
+bool is_parallelizable(const struct Tensor *ten, uint32 threads,
+                       ParallelizableBy kind);
 
 #ifdef __cplusplus
 }
