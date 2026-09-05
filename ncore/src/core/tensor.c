@@ -28,6 +28,9 @@
  * @see storage.h  retain() / release() reference-count operations.
  */
 
+#include <stdio.h>
+#include <string.h>
+
 #include <ncore/core/alloc.h>
 #include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
@@ -35,8 +38,9 @@
 #include <ncore/core/storage.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/tensor_utils.h>
+#include <ncore/native/cpu/layout/contiguous.h>
+#include <ncore/native/kernels/contiguous.h>
 #include <ncore/tensor.h>
-#include <string.h>
 
 /**
  * @brief Create a fully allocated n-dimensional tensor.
@@ -377,6 +381,9 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
     }
   }
 
+  status->err = novaSuccess;
+  status->message = nova_get_error_msg(status->err, nullptr);
+
   return dst;
 }
 
@@ -465,11 +472,170 @@ Tensor contiguous(const Tensor *restrict ten, novaStatus_t *status) {
                           status);
 
   if (status->err != novaSuccess) {
-    return dst; // zeroaed tensor
+    return dst;
   }
 
-  // TODO: Implement dispatching contiguous operation
+  if (on_device(ten)) {
+    *status = launchContiguousKernel(ten, &dst);
+    if (status->err != novaSuccess) {
+      collect(&dst);
+    }
+  } else if (on_host(ten)) {
+    *status = contiguous_cpu_impl(ten, &dst);
+    if (status->err != novaSuccess) {
+      collect(&dst);
+    }
+  }
 
+  return dst;
+}
+
+/**
+ * @var err_msg_buf
+ * @brief Scratch space for formatted error messages.
+ *
+ * @details Thread-local so concurrent failures never clobber each
+ * other, mirroring the Rust side (@c STATUS_MESSAGE in
+ * @c status.rs). Valid until the next formatted error on the same
+ * thread; callers consume it immediately through @c status.message.
+ */
+static thread_local char err_msg_buf[128];
+
+/**
+ * @brief Swap two dimensions of a tensor, returning a view.
+ *
+ * @details
+ * Builds a view sharing @p ten's storage (no data is copied) with
+ * the two dimensions exchanged. Both shape and strides come from the
+ * source, so the result is a genuine transposed view: element
+ * @c [i, j] of the result aliases @c [j, i] of the source, and the
+ * result is generally not contiguous. Swapping a dimension with
+ * itself is a no-op. Negative indices count from the last dimension
+ * (@c -1 is the innermost), matching the usual convention.
+ *
+ * @param[in]  ten   Source tensor. Must not be @c nullptr.
+ * @param[out] st    Receives the operation result.
+ * @param[in]  dim0  First dimension to swap. May be negative.
+ * @param[in]  dim1  Second dimension to swap. May be negative.
+ *
+ * @return View @c Tensor sharing @p ten's storage, or a collected
+ *         tensor on failure.
+ *
+ * @pre  @p ten must not be @c nullptr.
+ * @pre  @p st must not be @c nullptr.
+ * @post On success, the result has @c is_view_ == true and swapped
+ *       shape and strides at @p dim0 and @p dim1.
+ *
+ * @see permute()      General dimension reordering.
+ * @see create_view()  Storage sharing behind the result.
+ */
+Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
+
+  auto dst = create_view(ten, ten->shape, ten->ndims, st);
+
+  if (st->err != novaSuccess) {
+    return dst;
+  }
+
+  const int ndims = (int)ten->ndims;
+  const int d0 = dim0 < 0 ? ndims + dim0 : dim0;
+  const int d1 = dim1 < 0 ? ndims + dim1 : dim1;
+
+  if ((d0 < 0 || d0 >= ndims) || (d1 < 0 || d1 >= ndims)) {
+    st->err = novaInvalidValue;
+    snprintf(err_msg_buf, sizeof(err_msg_buf),
+             "transpose(): dims (%d, %d) out of range for tensor with %d dims",
+             dim0, dim1, ndims);
+    st->message = err_msg_buf;
+    collect(&dst);
+    return dst;
+  }
+
+  memcpy(dst.strides, ten->strides, (size_t)ndims * sizeof(size_t));
+
+  dst.shape[d0] = ten->shape[d1];
+  dst.shape[d1] = ten->shape[d0];
+  dst.strides[d0] = ten->strides[d1];
+  dst.strides[d1] = ten->strides[d0];
+
+  st->err = novaSuccess;
+  st->message = nova_get_error_msg(st->err, nullptr);
+  return dst;
+}
+
+/**
+ * @brief Reorder tensor dimensions following an explicit permutation.
+ *
+ * @details
+ * Builds a view sharing @p ten's storage (no data is copied) whose
+ * @c i-th dimension takes the shape and stride of source dimension
+ * @c dims[i]. Negative entries count from the last dimension. Every
+ * source dimension must appear exactly once: out-of-range indices
+ * and duplicates are rejected before anything is written, so a
+ * failed call leaves no half-permuted tensor behind.
+ *
+ * Only the first @p ndims entries of @p dims are read; the rest of
+ * the @c NOVA_MAX_DIMS array is ignored.
+ *
+ * @param[in]  ten   Source tensor. Must not be @c nullptr.
+ * @param[out] st    Receives the operation result.
+ * @param[in]  dims  Permutation of @c [0, ndims). Negative entries
+ *                   count from the last dimension.
+ *
+ * @return View @c Tensor sharing @p ten's storage, or a collected
+ *         tensor on failure.
+ *
+ * @pre  @p ten must not be @c nullptr.
+ * @pre  @p st must not be @c nullptr.
+ * @pre  @p dims holds each index in @c [0, ndims) exactly once
+ *       (negatives allowed).
+ * @post On success, the result has @c is_view_ == true with shape
+ *       and strides permuted after @p dims.
+ *
+ * @see transpose()    Two-dimension swap.
+ * @see create_view()  Storage sharing behind the result.
+ */
+Tensor permute(const Tensor *ten, novaStatus_t *st,
+               const int dims[NOVA_MAX_DIMS]) {
+  Tensor dst = create_view(ten, ten->shape, ten->ndims, st);
+
+  if (st->err != novaSuccess) {
+    return dst;
+  }
+  const int ndims = (int)ten->ndims;
+
+  shape_t tmp_shape;
+  strides_t tmp_strides;
+  memcpy(tmp_shape, ten->shape, (size_t)ndims * sizeof(size_t));
+  memcpy(tmp_strides, ten->strides, (size_t)ndims * sizeof(size_t));
+
+  bool seen[NOVA_MAX_DIMS] = {false};
+  for (int i = 0; i < ndims; ++i) {
+    const int dim = dims[i] < 0 ? ndims + dims[i] : dims[i];
+    if (dim < 0 || dim >= ndims) {
+      st->err = novaInvalidValue;
+      snprintf(err_msg_buf, sizeof(err_msg_buf),
+               "permute(): dims[%d] = %d out of range for tensor with %d dims",
+               i, dims[i], ndims);
+      st->message = err_msg_buf;
+      collect(&dst);
+      return dst;
+    }
+    if (seen[dim]) {
+      st->err = novaInvalidValue;
+      snprintf(err_msg_buf, sizeof(err_msg_buf),
+               "permute(): duplicate dimension %d in permutation", dim);
+      st->message = err_msg_buf;
+      collect(&dst);
+      return dst;
+    }
+    seen[dim] = true;
+    dst.shape[i] = tmp_shape[dim];
+    dst.strides[i] = tmp_strides[dim];
+  }
+
+  st->err = novaSuccess;
+  st->message = nova_get_error_msg(st->err, nullptr);
   return dst;
 }
 
