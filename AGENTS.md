@@ -76,7 +76,7 @@ Pretraining → SFT → DPO → Quantization (NF4, FP8) → PEFT (LoRA/QLoRA) �
           └── error → raises Python exception
 ```
 
-### 3. Backward (planned — autograd engine paused, not implemented)
+### 3. Backward (planned — autograd engine paused)
 
 ```
     loss = nova.mean(Z)
@@ -133,8 +133,7 @@ tensor([[2.3474e-01, 4.6948e-01, 7.0422e-01, ..., 7.0422e+00, 7.2769e+00, 7.5117
 Soft-float implementation for low-precision types (FP4 E2M1, FP8 E4M3/E5M2, FP16, BF16) with conversions to float32 and native compiler support when available (`_Float16`, `__bf16`).
 
 ### Autograd (C++23, paused)
-Reverse-mode automatic differentiation engine. Destined to be implemented in C++23.
-
+Reverse-mode automatic differentiation engine.
 ---
 
 ## Hardware Backends
@@ -142,8 +141,8 @@ Reverse-mode automatic differentiation engine. Destined to be implemented in C++
 | Backend | Status | Current Capabilities |
 |---------|--------|---------------------|
 | **CPU** | Active | SIMD for dtype casting (SSE4.2 to AVX10.2). Layouts: contiguous implemented, others in progress. Arithmetic ops pending. |
-| **CUDA** | Active | Device detection, GPU allocator, host↔device transfers, dtype casting kernel f32→fp16. |
-| **HIP** | Active (Linux only) | Parallel to CUDA: detection, allocator, transfers, dtype casting kernel f32→fp16. Not available on Windows: RDNA 2/3 and CDNA consumer GPUs lack official Windows driver support. |
+| **CUDA** | Active | Device detection, GPU allocator, host↔device transfers, CUDA kernels. |
+| **HIP** | Active (Linux only) | Parallel to CUDA: detection, allocator, transfers, HIP kernels. Not available on Windows: RDNA 2/3 and CDNA consumer GPUs lack official Windows driver support. |
 | **cuDNN** | Placeholder | No implementation. |
 | **MIOpen** | Placeholder | No implementation. |
 | **oneDNN** | Placeholder | No implementation. |
@@ -160,6 +159,7 @@ The three main backends (CPU, CUDA, HIP) are developed in parallel. CUDA and HIP
 
 ```
 C/C++ calls:  reserve() / retain() / release() / resize()
+
                       │
                       ▼
               ┌────────────────┐
