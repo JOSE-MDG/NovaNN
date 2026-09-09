@@ -47,6 +47,8 @@
 #endif
 #include <hip/hip_runtime_api.h>
 
+#include <mutex>
+
 #include "../DetectHipDevice.hpp"
 #include "HipAllocator.hpp"
 #include "HipIO.hpp"
@@ -103,14 +105,17 @@ novaStatus_t mapError(hipError_t err) {
  * is allocated on the device.
  *
  * @return @c true if memory pools are supported, @c false otherwise.
+ *         Queried once; function-local statics initialize exactly once
+ *         even under concurrent first calls.
  */
 bool supportMemoryPool() {
-  static int supported = 0;
-
-  const hipError_t err = hipDeviceGetAttribute(
-      &supported, hipDeviceAttributeMemoryPoolsSupported, getHipDeviceId());
-
-  return err == hipSuccess && static_cast<bool>(supported);
+  static const bool supported = [] {
+    int value = 0;
+    const hipError_t err = hipDeviceGetAttribute(
+        &value, hipDeviceAttributeMemoryPoolsSupported, getHipDeviceId());
+    return err == hipSuccess && value != 0;
+  }();
+  return supported;
 }
 
 /**
@@ -145,35 +150,37 @@ hipMemcpyKind mapMemcpyKind(DeviceMemcpyKind kind) {
  * @brief Get or create the reusable HIP stream.
  *
  * @details
- * Returns a singleton HIP stream that is created on first call
- * and reused for all subsequent @ref hipTransfer operations.  The
- * stream is created with default flags (non-blocking, no
- * priority override).
+ * Returns a singleton HIP stream created exactly once via
+ * @c std::call_once and reused for all subsequent default-path
+ * @ref hipTransfer operations.  The stream is created with default
+ * flags (non-blocking, no priority override).
  *
  * The stream is never explicitly destroyed.  The HIP runtime
  * reclaims all resources on process exit.  This avoids the
  * overhead of create/destroy per transfer and eliminates the
  * risk of use-after-free in concurrent scenarios.
  *
- * The @c static local variable holds the stream handle and is
- * zero-initialised before first use, but stream creation itself is
- * not synchronized: concurrent first calls from multiple threads can
- * race on the @c stream == nullptr check and each invoke
- * @c hipStreamCreate.  Callers that require a strictly once-created
- * stream must serialize the first call externally.
- *
  * @param[out] status  Receives an error status if stream creation
  *                     fails.  Unchanged on success.
  *
- * @return The singleton @c hipStream_t.
+ * @return The singleton @c hipStream_t, or null on failure.
+ *
+ * @warning A failed creation is sticky: @c std::call_once never
+ *          retries, so every later call also fails until process
+ *          restart.  Stream creation failure implies a broken device.
  */
 hipStream_t getStream(novaStatus_t *status) {
   static hipStream_t stream = nullptr;
-  if (stream == nullptr) {
+  static std::once_flag flag;
+  static novaStatus_t initStatus = {};
+  std::call_once(flag, [] {
     const hipError_t err = hipStreamCreate(&stream);
     if (err != hipSuccess) {
-      *status = mapError(err);
+      initStatus = mapError(err);
     }
+  });
+  if (stream == nullptr) {
+    *status = initStatus;
   }
   return stream;
 }
@@ -184,25 +191,27 @@ hipStream_t getStream(novaStatus_t *status) {
  * @brief Copy memory between host and device (or device to device).
  *
  * @details
- * Performs a memory transfer using @c hipMemcpyAsync on a
- * reusable internal HIP stream, then synchronizes the stream
- * before returning.  The transfer direction is determined by
- * @p kind.
+ * Performs a memory transfer using @c hipMemcpyAsync on @p stream
+ * when given (no synchronization), or on the singleton stream with
+ * synchronization before returning when @p stream is null.  The
+ * transfer direction is determined by @p kind.
  *
  * @subsection execution-flow Execution Flow
  *
  * @code{.cpp}
  *   novaStatus_t status;
- *   stream = getStream(&status);        // singleton stream
+ *   work = (stream != nullptr) ? stream : getStream(&status);  // select
  *    if(status.err != novaSuccess) {
  *       // code
  *    }
  *   err = hipMemcpyAsync(dst, src,      // enqueue transfer
  *                        bytes, kind,
- *                        stream);
+ *                        work);
  *   if (err != hipSuccess) return mapError(err);
- *   sync_err = hipStreamSynchronize(stream);  // block
- *   if (sync_err != hipSuccess) return mapError(sync_err);
+ *   if (stream == nullptr) {                       // sync iff internal
+ *     sync_err = hipStreamSynchronize(work);       // block
+ *     if (sync_err != hipSuccess) return mapError(sync_err);
+ *   }
  *   return HIP_OK;
  * @endcode
  *
@@ -211,7 +220,7 @@ hipStream_t getStream(novaStatus_t *status) {
  * Errors are detected at two points:
  * @li 1. @c hipMemcpyAsync launch failure — returns immediately.
  * @li 2. @c hipStreamSynchronize failure — detected after transfer
- *    completes (or fails asynchronously).
+ *    completes (or fails asynchronously). Only on the internal path.
  *
  * Both use @ref mapError for consistent error mapping.
  *
@@ -219,30 +228,36 @@ hipStream_t getStream(novaStatus_t *status) {
  * @param[in]  kind      Copy direction (@ref DeviceMemcpyKind).
  * @param[in]  src       Source pointer (host or device memory).
  * @param[out] dst       Destination pointer (host or device memory).
+ * @param[in]  stream    Caller stream for chaining, or null for the
+ *                       synchronous singleton path. Never destroyed here.
  *
  * @return @ref HIP_OK on success, or a @ref novaStatus_t with
  *         a non-success error and a descriptive message.
  */
 novaStatus_t hipTransfer(std::size_t bytes, DeviceMemcpyKind kind,
-                         const void *src, void *dst) {
+                         const void *src, void *dst, hipStream_t stream) {
   novaStatus_t status = {};
-  hipStream_t stream = getStream(&status);
-
-  if (status.err != novaSuccess) {
-    return status;
+  hipStream_t work = stream;
+  if (work == nullptr) {
+    work = getStream(&status);
+    if (status.err != novaSuccess) {
+      return status;
+    }
   }
 
   if (supportMemoryPool()) {
     const hipError_t err =
-        hipMemcpyAsync(dst, src, bytes, mapMemcpyKind(kind), stream);
+        hipMemcpyAsync(dst, src, bytes, mapMemcpyKind(kind), work);
 
     if (err != hipSuccess) {
       return mapError(err);
     }
 
-    const hipError_t syncErr = hipStreamSynchronize(stream);
-    if (syncErr != hipSuccess) {
-      return mapError(syncErr);
+    if (stream == nullptr) {
+      const hipError_t syncErr = hipStreamSynchronize(work);
+      if (syncErr != hipSuccess) {
+        return mapError(syncErr);
+      }
     }
   } else {
     const hipError_t err = hipMemcpy(dst, src, bytes, mapMemcpyKind(kind));
@@ -258,7 +273,8 @@ novaStatus_t hipTransfer(std::size_t bytes, DeviceMemcpyKind kind,
 #else // !__has_include(<hip/hip_runtime_api.h>)
 
 /** @brief Stub: HIP runtime headers not available. */
-novaStatus_t hipTransfer(std::size_t, DeviceMemcpyKind, const void *, void *) {
+novaStatus_t hipTransfer(std::size_t, DeviceMemcpyKind, const void *, void *,
+                         hipStream_t) {
   return novaStatus_t{.err = novaBackendNotCompiled,
                       .message =
                           nova_get_error_msg(novaBackendNotCompiled, nullptr)};
