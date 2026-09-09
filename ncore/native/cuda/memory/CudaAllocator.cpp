@@ -94,14 +94,17 @@ novaError_t mapError(cudaError_t err) {
  * @c getCudaDeviceId() always returns a valid value.
  *
  * @return @c true if memory pools are supported, @c false otherwise.
+ *         Queried once; function-local statics initialize exactly once
+ *         even under concurrent first calls.
  */
 bool supportMemoryPool() {
-  static int supported = 0;
-
-  cudaError_t err = cudaDeviceGetAttribute(
-      &supported, cudaDevAttrMemoryPoolsSupported, getCudaDeviceId());
-
-  return err != cudaSuccess ? false : bool(supported);
+  static const bool supported = [] {
+    int value = 0;
+    const cudaError_t err = cudaDeviceGetAttribute(
+        &value, cudaDevAttrMemoryPoolsSupported, getCudaDeviceId());
+    return err == cudaSuccess && value != 0;
+  }();
+  return supported;
 }
 
 /**
@@ -165,12 +168,15 @@ bool streamDestroy(cudaStream_t stream, novaStatus_t *status) {
  *
  * @details
  * For pinned memory, calls @c cudaMallocHost.  For device memory,
- * creates a temporary stream, calls @c cudaMallocAsync,
- * synchronizes, and destroys the stream.
+ * calls @c cudaMallocAsync on @p stream when given (no sync, caller
+ * owns ordering), or on a temporary synchronized stream when @p stream
+ * is null.
  *
  * @param[in]  bytes  Requested size in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
  * @param[out] out    Receives the buffer descriptor on success.
+ * @param[in]  stream Caller stream for chaining, or null for the
+ *                    synchronous internal path. Never destroyed here.
  *
  * @return @ref CUDA_OK on success, or an error status.
  *
@@ -178,7 +184,13 @@ bool streamDestroy(cudaStream_t stream, novaStatus_t *status) {
  * @pre  @p out must not be null.
  * @post On success, @p out->ptr points to valid CUDA memory.
  */
-novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out) {
+novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out,
+                         cudaStream_t stream) {
+  if (out == nullptr) {
+    return novaStatus_t{.err = novaInvalidPointer,
+                        .message =
+                            nova_get_error_msg(novaInvalidPointer, nullptr)};
+  }
   novaStatus_t status = {};
   void *ptr = nullptr;
 
@@ -191,25 +203,33 @@ novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out) {
     }
   } else {
     if (supportMemoryPool()) {
-      cudaStream_t stream = nullptr;
-      if (!streamCreate(&stream, &status)) {
-        return status;
+      cudaStream_t work = stream;
+      bool ownStream = false;
+      if (work == nullptr) {
+        if (!streamCreate(&work, &status)) {
+          return status;
+        }
+        ownStream = true;
       }
 
-      const cudaError_t err = cudaMallocAsync(&ptr, bytes, stream);
+      const cudaError_t err = cudaMallocAsync(&ptr, bytes, work);
       if (err != cudaSuccess) {
-        cudaStreamDestroy(stream);
+        if (ownStream) {
+          cudaStreamDestroy(work);
+        }
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
         return status;
       }
 
-      if (!streamSync(stream, &status)) {
-        cudaStreamDestroy(stream);
-        return status;
-      }
-      if (!streamDestroy(stream, &status)) {
-        return status;
+      if (ownStream) {
+        if (!streamSync(work, &status)) {
+          cudaStreamDestroy(work);
+          return status;
+        }
+        if (!streamDestroy(work, &status)) {
+          return status;
+        }
       }
     } else {
       /* If device do not support MemoryPools fallback to cudaMalloc.  Normally,
@@ -233,16 +253,19 @@ novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out) {
  *
  * @details
  * For pinned memory, calls @c cudaFreeHost.  For device memory,
- * creates a temporary stream, calls @c cudaFreeAsync, synchronizes,
- * and destroys the stream.  On success, the buffer is zeroed.
+ * calls @c cudaFreeAsync on @p stream when given (no sync, caller
+ * owns ordering), or on a temporary synchronized stream when @p stream
+ * is null.  On success, the buffer is zeroed.
  *
- * @param[in,out] buf  Buffer descriptor to free.  Must not be null.
+ * @param[in,out] buf    Buffer descriptor to free.  Must not be null.
+ * @param[in]     stream Caller stream for chaining, or null for the
+ *                       synchronous internal path. Never destroyed here.
  *
  * @return @ref CUDA_OK on success, or an error status.
  *
  * @post On success, @p buf is zeroed.
  */
-novaStatus_t cudaRelease(cudaBuffer_t *buf) {
+novaStatus_t cudaRelease(cudaBuffer_t *buf, cudaStream_t stream) {
   if (buf == nullptr || buf->ptr == nullptr) {
     return novaStatus_t{.err = novaInvalidPointer,
                         .message =
@@ -260,25 +283,33 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf) {
     }
   } else {
     if (supportMemoryPool()) {
-      cudaStream_t stream = nullptr;
-      if (!streamCreate(&stream, &status)) {
-        return status;
+      cudaStream_t work = stream;
+      bool ownStream = false;
+      if (work == nullptr) {
+        if (!streamCreate(&work, &status)) {
+          return status;
+        }
+        ownStream = true;
       }
 
-      const cudaError_t err = cudaFreeAsync(buf->ptr, stream);
+      const cudaError_t err = cudaFreeAsync(buf->ptr, work);
       if (err != cudaSuccess) {
-        cudaStreamDestroy(stream);
+        if (ownStream) {
+          cudaStreamDestroy(work);
+        }
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
         return status;
       }
 
-      if (!streamSync(stream, &status)) {
-        cudaStreamDestroy(stream);
-        return status;
-      }
-      if (!streamDestroy(stream, &status)) {
-        return status;
+      if (ownStream) {
+        if (!streamSync(work, &status)) {
+          cudaStreamDestroy(work);
+          return status;
+        }
+        if (!streamDestroy(work, &status)) {
+          return status;
+        }
       }
     } else {
       const cudaError_t err = cudaFree(buf->ptr);
@@ -302,11 +333,15 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf) {
  * @details
  * Allocates a new buffer, copies @c min(old, new) bytes, then frees
  * the old buffer.  For pinned memory the copy uses
- * @c std::memcpy; for device memory it uses @c cudaMemcpyAsync on a
- * temporary stream.
+ * @c std::memcpy; for device memory the alloc, copy, and free all run
+ * on @p stream when given (no sync), or on a temporary synchronized
+ * stream when @p stream is null.
  *
  * @param[in,out] buf       Buffer descriptor to resize.
  * @param[in]     new_bytes New size in bytes.
+ * @param[in]     stream    Caller stream for chaining, or null for
+ *                          the synchronous internal path. Never
+ *                          destroyed here.
  *
  * @return @ref CUDA_OK on success, or an error status.
  *
@@ -314,7 +349,8 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf) {
  *
  * @warning On failure the original buffer may be freed.
  */
-novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes) {
+novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes,
+                        cudaStream_t stream) {
   if (buf == nullptr || buf->ptr == nullptr) {
     return novaStatus_t{.err = novaInvalidPointer,
                         .message =
@@ -344,14 +380,18 @@ novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes) {
     }
   } else {
     if (supportMemoryPool()) {
-      cudaStream_t stream = nullptr;
-      if (!streamCreate(&stream, &status)) {
-        return status;
+      cudaStream_t work = stream;
+      bool ownStream = false;
+      if (work == nullptr) {
+        if (!streamCreate(&work, &status)) {
+          return status;
+        }
+        ownStream = true;
       }
 
-      cudaError_t err = cudaMallocAsync(&newPtr, new_bytes, stream);
+      cudaError_t err = cudaMallocAsync(&newPtr, new_bytes, work);
       if (err != cudaSuccess) {
-        if (!streamDestroy(stream, &status)) {
+        if (ownStream && !streamDestroy(work, &status)) {
           return status;
         }
         status.err = mapError(err);
@@ -360,55 +400,63 @@ novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes) {
       }
 
       err = cudaMemcpyAsync(newPtr, buf->ptr, copyBytes,
-                            cudaMemcpyDeviceToDevice, stream);
+                            cudaMemcpyDeviceToDevice, work);
       if (err != cudaSuccess) {
-        const cudaError_t freeAsyncErr = cudaFreeAsync(newPtr, stream);
+        const cudaError_t freeAsyncErr = cudaFreeAsync(newPtr, work);
         if (freeAsyncErr != cudaSuccess) {
-          streamSync(stream, &status);
-          streamDestroy(stream, &status);
+          if (ownStream) {
+            streamSync(work, &status);
+            streamDestroy(work, &status);
+          }
           status.err = mapError(freeAsyncErr);
           status.message = nova_get_error_msg(status.err, nullptr);
           return status;
         }
-        if (!streamSync(stream, &status)) {
-          streamDestroy(stream, &status);
-          return status;
-        }
-        if (!streamDestroy(stream, &status)) {
-          return status;
+        if (ownStream) {
+          if (!streamSync(work, &status)) {
+            streamDestroy(work, &status);
+            return status;
+          }
+          if (!streamDestroy(work, &status)) {
+            return status;
+          }
         }
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
         return status;
       }
 
-      err = cudaFreeAsync(buf->ptr, stream);
+      err = cudaFreeAsync(buf->ptr, work);
       if (err != cudaSuccess) {
-        const cudaError_t freeAsyncErr = cudaFreeAsync(newPtr, stream);
+        const cudaError_t freeAsyncErr = cudaFreeAsync(newPtr, work);
 
         if (freeAsyncErr != cudaSuccess) {
           status.err = mapError(freeAsyncErr);
           status.message = nova_get_error_msg(status.err, nullptr);
           return status;
         }
-        if (!streamSync(stream, &status)) {
-          cudaStreamDestroy(stream);
-          return status;
-        }
-        if (!streamDestroy(stream, &status)) {
-          return status;
+        if (ownStream) {
+          if (!streamSync(work, &status)) {
+            cudaStreamDestroy(work);
+            return status;
+          }
+          if (!streamDestroy(work, &status)) {
+            return status;
+          }
         }
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
         return status;
       }
 
-      if (!streamSync(stream, &status)) {
-        cudaStreamDestroy(stream);
-        return status;
-      }
-      if (!streamDestroy(stream, &status)) {
-        return status;
+      if (ownStream) {
+        if (!streamSync(work, &status)) {
+          cudaStreamDestroy(work);
+          return status;
+        }
+        if (!streamDestroy(work, &status)) {
+          return status;
+        }
       }
     } else {
       cudaError_t err = cudaMalloc(&newPtr, new_bytes);
@@ -444,21 +492,21 @@ novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes) {
 #else // !__has_include(<cuda_runtime_api.h>)
 
 /** @brief Stub: CUDA runtime headers not available. */
-novaStatus_t cudaReserve(std::size_t, bool, cudaBuffer_t *) {
+novaStatus_t cudaReserve(std::size_t, bool, cudaBuffer_t *, cudaStream_t) {
   return novaStatus_t{.err = novaBackendNotCompiled,
                       .message =
                           nova_get_error_msg(novaBackendNotCompiled, nullptr)};
 }
 
 /** @brief Stub: CUDA runtime headers not available. */
-novaStatus_t cudaRelease(cudaBuffer_t *) {
+novaStatus_t cudaRelease(cudaBuffer_t *, cudaStream_t) {
   return novaStatus_t{.err = novaBackendNotCompiled,
                       .message =
                           nova_get_error_msg(novaBackendNotCompiled, nullptr)};
 }
 
 /** @brief Stub: CUDA runtime headers not available. */
-novaStatus_t cudaResize(cudaBuffer_t *, std::size_t) {
+novaStatus_t cudaResize(cudaBuffer_t *, std::size_t, cudaStream_t) {
   return novaStatus_t{.err = novaBackendNotCompiled,
                       .message =
                           nova_get_error_msg(novaBackendNotCompiled, nullptr)};
