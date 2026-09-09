@@ -130,7 +130,7 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
                           : cudaGetDeviceProperties(&prop, 0);
 
     if (err != cudaSuccess) {
-      status->err = (err != cudaErrorInvalidValue) ? novaInvalidValue
+      status->err = (err == cudaErrorInvalidValue) ? novaInvalidValue
                                                    : novaDeviceNotAvailable;
       status->message = cudaGetErrorString(err);
       return {};
@@ -141,7 +141,7 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
 
     cudaError_t driverErr = cudaDriverGetVersion(&driverVer);
     if (driverErr != cudaSuccess) {
-      status->err = (driverErr != cudaErrorInvalidValue)
+      status->err = (driverErr == cudaErrorInvalidValue)
                         ? novaInvalidValue
                         : novaDeviceNotAvailable;
       status->message = cudaGetErrorString(driverErr);
@@ -149,7 +149,7 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
     }
     cudaError_t runtimeErr = cudaRuntimeGetVersion(&runtimeVer);
     if (runtimeErr != cudaSuccess) {
-      status->err = (runtimeErr != cudaErrorInvalidValue)
+      status->err = (runtimeErr == cudaErrorInvalidValue)
                         ? novaInvalidValue
                         : novaDeviceNotAvailable;
       status->message = cudaGetErrorString(runtimeErr);
@@ -168,6 +168,11 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
             .maxThreadsPerBlock = prop.maxThreadsPerBlock,
             .maxThreadsPerMultiProcessor = prop.maxThreadsPerMultiProcessor};
   }();
+  if (!result.isAvailable) {
+    status->err = novaDeviceNotAvailable;
+    status->message = nova_get_error_msg(status->err, nullptr);
+    return result;
+  }
 
   status->err = novaSuccess;
   status->message = nova_get_error_msg(status->err, nullptr);

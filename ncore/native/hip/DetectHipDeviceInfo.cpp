@@ -141,7 +141,7 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
                          : hipGetDeviceProperties(&prop, 0);
 
     if (err != hipSuccess) {
-      status->err = (err != hipErrorInvalidValue) ? novaInvalidValue
+      status->err = (err == hipErrorInvalidValue) ? novaInvalidValue
                                                   : novaDeviceNotAvailable;
       status->message = hipGetErrorString(err);
       return {};
@@ -152,7 +152,7 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
 
     hipError_t driverErr = hipDriverGetVersion(&driverVer);
     if (driverErr != hipSuccess) {
-      status->err = (driverErr != hipErrorInvalidValue)
+      status->err = (driverErr == hipErrorInvalidValue)
                         ? novaInvalidValue
                         : novaDeviceNotAvailable;
       status->message = hipGetErrorString(driverErr);
@@ -161,7 +161,7 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
 
     hipError_t runtimeErr = hipRuntimeGetVersion(&runtimeVer);
     if (runtimeErr != hipSuccess) {
-      status->err = (runtimeErr != hipErrorInvalidValue)
+      status->err = (runtimeErr == hipErrorInvalidValue)
                         ? novaInvalidValue
                         : novaDeviceNotAvailable;
       status->message = hipGetErrorString(runtimeErr);
@@ -179,6 +179,11 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
             .maxThreadsPerBlock = prop.maxThreadsPerBlock,
             .maxThreadsPerMultiProcessor = prop.maxThreadsPerMultiProcessor};
   }();
+  if (!result.isAvailable) {
+    status->err = novaDeviceNotAvailable;
+    status->message = nova_get_error_msg(status->err, nullptr);
+    return result;
+  }
 
   status->err = novaSuccess;
   status->message = nova_get_error_msg(status->err, nullptr);
