@@ -4,7 +4,7 @@
  *
  * @details
  * Declares @ref launchCudaContiguousKernel(), the CUDA entry point
- * for materialising contiguous tensor layouts. The device-agnostic
+ * for materializing contiguous tensor layouts. The device-agnostic
  * dispatcher in @c ContiguousDispatchImpl.cpp calls it after
  * resolving the active backend.
  *
@@ -27,8 +27,8 @@ extern "C" {
  * Already-contiguous sources become views sharing storage; 1-D
  * tensors move through the device-to-device fast path; anything else
  * is collapsed and gathered by a grid-stride kernel whose geometry
- * comes from @ref resolve_launch_config() fed with the detected CUDA
- * properties.
+ * comes from @ref ncore::heuristics::kernels::resolveLaunchConfig()
+ * fed with the detected CUDA properties.
  *
  * @param[in]  src  Source tensor in CUDA device memory.
  * @param[out] dst  Destination tensor in CUDA device memory.
@@ -36,7 +36,8 @@ extern "C" {
  * @return @ref novaStatus_t with the launch outcome, or the property
  *         query error when the device caps cannot be read.
  */
-novaStatus_t launchCudaContiguousKernel(const Tensor *src, Tensor *dst);
+novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
+                                        Tensor *restrict dst);
 
 #ifdef __cplusplus
 }
