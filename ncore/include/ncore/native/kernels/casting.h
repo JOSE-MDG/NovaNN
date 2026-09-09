@@ -16,7 +16,9 @@
  */
 
 #pragma once
+
 #include <ncore/core/status.h>
+#include <ncore/headeronly/macros.h>
 #include <ncore/tensor.h>
 
 #ifdef __cplusplus
@@ -51,7 +53,8 @@ extern "C" {
  * @warning Calling this function without a valid compute device
  *          results in @ref novaDeviceNotAvailable.
  */
-novaStatus_t launchDtypeCastingKernel(const Tensor *src, Tensor *dst);
+novaStatus_t launchDtypeCastingKernel(const Tensor *restrict src,
+                                      Tensor *restrict dst);
 
 #ifdef __cplusplus
 }

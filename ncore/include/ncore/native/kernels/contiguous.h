@@ -18,6 +18,7 @@
 #pragma once
 
 #include <ncore/core/status.h>
+#include <ncore/headeronly/macros.h>
 #include <ncore/tensor.h>
 
 #ifdef __cplusplus
@@ -42,7 +43,8 @@ extern "C" {
  * @pre  @p src and @p dst must be valid tensors.
  * @post On success, @p dst holds a contiguous copy of @p src.
  */
-novaStatus_t launchContiguousKernel(const Tensor *src, Tensor *dst);
+novaStatus_t launchContiguousKernel(const Tensor *restrict src,
+                                    Tensor *restrict dst);
 
 #ifdef __cplusplus
 }
