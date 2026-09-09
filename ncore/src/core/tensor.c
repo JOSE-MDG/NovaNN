@@ -931,26 +931,24 @@ bool on_device(const Tensor *ten) {
  * @brief Check whether a tensor's data resides in CPU host memory.
  *
  * @details
- * A tensor is considered to be "on host" when all three conditions
- * hold:
- * @li @c is_allocated(ten) — the tensor has valid backing storage.
- * @li @c ten->device == @c DEVICE_CPU — the tensor is host-resident.
- * @li @c !is_device_memory_handle(&ten->storage->handle) — the storage
- *   is NOT backed by device-managed memory (i.e., plain host
- *   allocation, not pinned memory).
+ * A tensor is considered to be "on host" when it is allocated and
+ * host-resident. Pinned host memory counts: it is still CPU
+ * memory, directly addressable by host kernels, additionally
+ * reachable by DMA. Only the placement field decides, never the
+ * handle kind.
  *
  * @param[in] ten  Tensor to check.  Must not be @c nullptr.
  *
- * @return @c true if the tensor is allocated, host-resident, and
- *         backed by plain host memory, @c false otherwise.
+ * @return @c true if the tensor is allocated and host-resident,
+ *         @c false otherwise.
  *
  * @see on_device()                   Complementary check.
  * @see is_allocated()                Allocation precondition.
- * @see is_device_memory_handle()     Storage backing check.
+ * @see is_device_memory_handle()     DMA-reachability check, used
+ *                                    by transfers and repr, not here.
  */
 bool on_host(const Tensor *ten) {
-  return (bool)(is_allocated(ten) && ten->device == DEVICE_CPU &&
-                !is_device_memory_handle(&ten->storage->handle));
+  return (bool)(is_allocated(ten) && ten->device == DEVICE_CPU);
 }
 
 /**
@@ -968,17 +966,17 @@ bool on_host(const Tensor *ten) {
  *
  * @return @ref novaStatus_t describing the outcome.
  */
-static inline novaStatus_t transf_tensor_commom(const Tensor *restrict src,
+static inline novaStatus_t transf_tensor_common(const Tensor *restrict src,
                                                 Tensor *restrict dst,
                                                 bool condition) {
-  novaStatus_t status;
   if (condition) {
-    status.err = novaTransferError;
-    status.message = nova_get_error_msg(status.err, nullptr);
-    return status;
+    return (novaStatus_t){.err = novaTransferError,
+                          .message =
+                              nova_get_error_msg(novaTransferError, nullptr)};
   }
-  return transfer_to(src->device, dst->device, (const void *)src->data.v,
-                     dst->data.v, src->storage->size_bytes);
+
+  return transfer_to(src->device, dst->device, src->data.v, dst->data.v,
+                     src->storage->size_bytes);
 }
 
 /**
@@ -988,7 +986,7 @@ static inline novaStatus_t transf_tensor_commom(const Tensor *restrict src,
  * @details
  * Validates that @p src is GPU-resident with device-backed storage
  * and that @p dst is an allocated CPU tensor.  Delegates to
- * @ref transf_tensor_commom() for the actual transfer.
+ * @ref transf_tensor_common() for the actual transfer.
  *
  * @param[in]     src  Source tensor on GPU.
  * @param[in,out] dst  Destination tensor on CPU.
@@ -1001,7 +999,7 @@ novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
                            !is_device_memory_handle(&src->storage->handle) ||
                            (dst->device != DEVICE_CPU || !is_allocated(dst))));
 
-  return transf_tensor_commom(src, dst, condition);
+  return transf_tensor_common(src, dst, condition);
 }
 
 /**
@@ -1011,7 +1009,7 @@ novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
  * @details
  * Validates that @p src is an allocated CPU tensor and that @p dst
  * is GPU-resident with device-backed storage.  Delegates to
- * @ref transf_tensor_commom() for the actual transfer.
+ * @ref transf_tensor_common() for the actual transfer.
  *
  * @param[in]     src  Source tensor on CPU.
  * @param[in,out] dst  Destination tensor on GPU.
@@ -1023,5 +1021,5 @@ novaStatus_t transf_tensor_from_host(const Tensor *restrict src,
                            (dst->device != DEVICE_GPU || !is_allocated(dst) ||
                             !is_device_memory_handle(&dst->storage->handle))));
 
-  return transf_tensor_commom(src, dst, condition);
+  return transf_tensor_common(src, dst, condition);
 }
