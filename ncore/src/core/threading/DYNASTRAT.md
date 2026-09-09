@@ -288,3 +288,21 @@ pushing toward whatever priority order you want while respecting `m`.
   form. It guards on `is_thread_config_initialized()`: without a full
   configuration it shows whatever is known with the rest marked
   `NOT INITIALIZED`.
+
+## 13. Manual mode (outside this policy)
+
+Direct `set_num_threads_to()` calls bypass dynastrat entirely: each
+touched group is marked `(manual)` (vs `(auto)` after distribute,
+`(unset)` when never assigned), visible in verbose
+`print_thread_config()`. Counted manual threads (groups parked at 1
+excluded) past the machine total print a yellow advisory warning
+wherever the live configuration is shown; the assignment still
+succeeds. The stratification cache is never invalidated by manual
+sets.
+
+One process, one mode: automatic and manual assignments are mutually
+exclusive. `set_num_threads_to()` is rejected once an automatic
+stratification was distributed, and
+`distribute_stratified_threads()` is rejected once any group was
+assigned manually; `current_distribution_kind()` reports which mode
+owns the counters.
