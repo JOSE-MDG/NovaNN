@@ -7,19 +7,23 @@
  * analysis of a tensor and its formatting options to produce a
  * persistent @ref ReprContext. This context drives all subsequent
  * layout and formatting operations, ensuring consistent alignment
- * and numeric representation.
+ * and uniform numeric representation.
  *
  * @section context-building-process Context Building Process
  *
- * The builder performs two primary passes:
+ * The builder performs three passes:
  *
  * @li 1. Classification: Maps the tensor's metadata (dtype, device,
  *    ndims) to categorical flags in the context.
- * @li 2. Analysis Pass: Samples the tensor's data (up to 1000
- *    elements from each edge) to:
- *    @li Apply an auto-detection heuristic for scientific notation.
- *    @li Calculate the maximum formatted width of elements, accounting
- *      for strided (view) layouts.
+ * @li 2. Sampling: Walks head and tail logical elements through
+ *    shape-derived coordinates (correct for strided views), bounded
+ *    by the options, recording the maximum sampled magnitude.
+ * @li 3. Analysis: Applies the notation rule to the maximum and
+ *    measures formatted widths over the same sample.
+ *
+ * The notation rule keys on the maximum alone because maxima
+ * concentrate across samples while minima do not: identical data
+ * keeps identical notation run to run.
  *
  * @see repr_context.h  Structure definition.
  * @see element_fmt.h   Element-wise formatting dispatch.
@@ -27,6 +31,7 @@
  */
 
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -40,53 +45,60 @@
 
 #include "repr/formatters/element_fmt.h"
 
+#ifdef _GNUC_CLANG_
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
+#endif
+
 /**
- * @brief Extract a numeric value as double for range analysis.
+ * @brief Absolute value of one element as double, from pointer and lane.
  *
  * @details
- * Used exclusively during the scientific notation auto-detection
- * phase to calculate the absolute range of the tensor's elements.
- *
- * @param[in] ten Pointer to the tensor.
- * @param[in] idx Linear index of the element.
- *
- * @return The element value converted to @c double.
+ * Used exclusively during the notation-detection phase. The pointer
+ * already accounts for strides and packing; this helper only
+ * converts the lane to @c double.
  */
-static inline double get_double_value(const Tensor *ten, size_t idx) {
-  if (ten->dtype == Float4E2M1fn) {
-    size_t packing = dtype_packing_factor(ten->dtype);
-    size_t byte_off = (ten->offset / ten->item_size) + (idx / packing);
-    size_t sub = idx % packing;
-    float lo;
-    float hi;
-    fp4e2m1x2_to_floats(ten->data.fp4e2m1fn_x2[byte_off], &lo, &hi);
-    return (sub == 0) ? (double)lo : (double)hi;
-  }
-  const size_t elem_off = (ten->offset / ten->item_size) + idx;
+static inline double lane_abs_double(const Tensor *ten, const void *ptr,
+                                     size_t sub) {
+  double v = 0.0;
   switch (ten->dtype) {
   case Float32:
-    return (double)ten->data.f32[elem_off];
+    v = (double)*(const float *)ptr;
+    break;
   case Float64:
-    return ten->data.f64[elem_off];
+    v = *(const double *)ptr;
+    break;
   case Float16:
 #ifdef _GNUC_CLANG_
-    return (double)ten->data.half[elem_off];
+    v = (double)*(const float16 *)ptr;
 #else
-    return (double)fp16_to_float(ten->data.half[elem_off]);
+    v = (double)fp16_to_float(*(const float16 *)ptr);
 #endif
+    break;
   case BFloat16:
 #ifdef _GNUC_CLANG_
-    return (double)ten->data.bf16[elem_off];
+    v = (double)*(const bfloat16 *)ptr;
 #else
-    return (double)fp16_to_float(ten->data.bf16[elem_off]);
+    v = (double)fp16_to_float(*(const bfloat16 *)ptr);
 #endif
+    break;
   case Float8E4M3fn:
-    return (double)fp8e4m3fn_to_float(ten->data.fp8e4m3fn[elem_off]);
+    v = (double)fp8e4m3fn_to_float(*(const float8_e4m3fn *)ptr);
+    break;
   case Float8E5M2:
-    return (double)fp8e5m2_to_float(ten->data.fp8e5m2[elem_off]);
-  default:
-    return 0.0;
+    v = (double)fp8e5m2_to_float(*(const float8_e5m2 *)ptr);
+    break;
+  case Float4E2M1fn: {
+    float lo;
+    float hi;
+    fp4e2m1x2_to_floats(*(const float4_e2m1fn_x2 *)ptr, &lo, &hi);
+    v = (double)(sub == 0 ? lo : hi);
+    break;
   }
+  default:
+    break;
+  }
+  return fabs(v);
 }
 
 /**
@@ -112,86 +124,110 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   ctx.is_meta = (ten->device == DEVICE_META);
   ctx.is_gpu = (ten->device == DEVICE_GPU);
   ctx.effective_precision = opts ? opts->precision : 4;
-  ctx.is_summarized = (ten->logical_size > ctx.options.threshold);
+
+  size_t edge = ctx.options.edge_items != 0 ? ctx.options.edge_items : 1U;
+  if (ctx.options.threshold != 0 && edge > ctx.options.threshold) {
+    /* No single dimension needs more edge items than the total
+     * budget; this also keeps the tightening loop below short. */
+    edge = ctx.options.threshold;
+  }
+  const size_t total = ten->logical_size;
+  ctx.is_summarized = (total > ctx.options.threshold);
+  for (size_t d = 0; d < ten->ndims && !ctx.is_summarized; ++d) {
+    ctx.is_summarized = (ten->shape[d] > 2U * edge);
+  }
+
+  /* Tighten the edge count so high-rank output stays bounded: the
+   * shown-element product must fit four thresholds worth. Never
+   * loosened, never below one per edge. */
+  if (ctx.is_summarized && ctx.options.threshold != 0) {
+    const uint64_t cap = ctx.options.threshold > ~0ULL / 4U
+                             ? ~0ULL
+                             : (uint64_t)ctx.options.threshold * 4U;
+    while (edge > 1U) {
+      uint64_t shown = 1U;
+      bool fits = true;
+      for (size_t d = 0; d < ten->ndims; ++d) {
+        const uint64_t m = ten->shape[d] < (2U * edge) + 1U
+                               ? (uint64_t)ten->shape[d]
+                               : (2U * edge) + 1U;
+        if (m != 0 && shown > cap / m) {
+          fits = false;
+          break;
+        }
+        shown *= m;
+      }
+      if (fits) {
+        break;
+      }
+      edge--;
+    }
+    ctx.options.edge_items = edge;
+  }
+
   ctx.use_sci = (((opts != nullptr) ? (int)opts->sci_mode : 0) != 0);
 
-  size_t n = ten->logical_size > 1000 ? 1000 : ten->logical_size;
-
-  if (ctx.is_meta) {
-    ctx.element_width = 3;
-    ctx.use_sci = false;
+  if (ctx.is_meta || total == 0) {
+    ctx.element_width = ((int)ctx.is_meta ? 3U : 1U);
+    if (ctx.is_meta) {
+      ctx.use_sci = false;
+    }
     return ctx;
   }
 
-  /* --- Scientific-notation auto-detection --- */
+  /* Sample head and tail logical elements, bounded by the options. */
+  size_t limit = ctx.options.threshold;
+  if (limit < 2U * edge) {
+    limit = 2U * edge;
+  }
+  if (limit > total) {
+    limit = total;
+  }
+  const size_t head = (limit + 1U) / 2U;
+
+  /* Notation detection over the sample maximum */
   const bool sci_mode_auto =
       ((opts != nullptr) ? (int)opts->sci_mode_auto : 1) != 0;
   const bool sci_mode = ((opts != nullptr) ? (int)opts->sci_mode : 0) != 0;
 
-  if (ctx.is_float && sci_mode_auto && !sci_mode && n > 0) {
-    double max_abs = 0.0;
-    double min_nonzero_abs = 1e100;
-    bool found = false;
-
-    /* Scan start and end elements for the auto-detection heuristic */
-    size_t scan_count = (ten->logical_size > 2000) ? 1000 : ten->logical_size;
-
-    for (size_t i = 0; i < scan_count; i++) {
-      size_t idx = (i < 1000) ? i : (ten->logical_size - (scan_count - i));
-      auto v = get_double_value(ten, idx);
-      if (isinf(v) || isnan(v)) {
+  double max_abs = 0.0;
+  if (ctx.is_float && sci_mode_auto && !sci_mode) {
+    for (size_t i = 0; i < limit; i++) {
+      const size_t logical = i < head ? i : total - limit + i;
+      coords_t coords = {};
+      compute_coords_from_linear_index_(logical, ten->ndims, ten->shape,
+                                        coords);
+      const void *ptr = ten->data.data + compute_linear_byte_offset(
+                                             coords, ten->ndims, ten->strides);
+      const double av = lane_abs_double(ten, ptr, 0);
+      if (!(av > max_abs)) {
         continue;
       }
-      auto av = fabs(v);
-      if (av <= 0.0) {
-        continue;
-      }
-      found = true;
-      if (av > max_abs) {
-        max_abs = av;
-      }
-      if (av < min_nonzero_abs) {
-        min_nonzero_abs = av;
-      }
+      max_abs = av;
     }
-
-    if (found) {
-      if (min_nonzero_abs < 1e-4 || max_abs >= 1e4 ||
-          (min_nonzero_abs > 0 && max_abs / min_nonzero_abs > 1e3)) {
-        ctx.use_sci = true;
-      }
+    if (isinf(max_abs) || isnan(max_abs)) {
+      max_abs = 0.0;
+    }
+    if (max_abs >= 1e4 || (max_abs > 0.0 && max_abs < 1e-4)) {
+      ctx.use_sci = true;
     }
   }
 
-  if (ten->logical_size == 0) {
-    ctx.element_width = 1;
-    return ctx;
-  }
-
-  /* --- Compute maximum formatted element width --- */
+  /* Maximum formatted element width over the same sample */
   size_t max_w = 0;
-  size_t packing = dtype_packing_factor(ten->dtype);
-  size_t scan_limit = (ten->logical_size > 2000) ? 1000 : ten->logical_size;
-
-  for (size_t i = 0; i < scan_limit; i++) {
-    size_t idx;
-    if (ten->logical_size > 2000 && i >= 500) {
-      idx = ten->logical_size - 1000 + i;
-    } else {
-      idx = i;
-    }
+  const size_t packing = dtype_packing_factor(ten->dtype);
+  for (size_t i = 0; i < limit; i++) {
+    const size_t logical = i < head ? i : total - limit + i;
+    coords_t coords = {};
+    compute_coords_from_linear_index_(logical, ten->ndims, ten->shape, coords);
+    const void *ptr = ten->data.data + compute_linear_byte_offset(
+                                           coords, ten->ndims, ten->strides);
 
     char fmt_buf[128];
-    coords_t coords;
-    size_t byte_idx = idx / packing;
-    compute_coords_given_linear_byte_offset_(byte_idx * ten->item_size,
-                                             ten->ndims, coords, ten->strides);
-    const void *ptr =
-        (const uint8 *)ten->data.u8 +
-        compute_linear_byte_offset(coords, ten->ndims, ten->strides);
-
-    int w = format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &ctx);
-    if ((size_t)w > max_w) {
+    ReprContext lane = ctx;
+    lane.sub_element_index = (size_t)(logical % (packing != 0 ? packing : 1U));
+    const int w = format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &lane);
+    if (w > 0 && (size_t)w > max_w) {
       max_w = (size_t)w;
     }
   }
@@ -199,3 +235,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   ctx.element_width = max_w;
   return ctx;
 }
+
+#ifdef _GNUC_CLANG_
+#pragma GCC diagnostic pop
+#endif
