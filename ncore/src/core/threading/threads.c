@@ -155,6 +155,84 @@ novaStatus_t set_num_logical_threads(uint32 threads) {
   };
 }
 
+/**
+ * @brief Provenance flags mirroring the per-group counters.
+ */
+static _Atomic GroupOrigin group_origin[NUM_PARALLEL_GROUPS] = {0};
+
+/**
+ * @brief Display label for a group origin flag.
+ */
+static const char *origin_label(GroupOrigin origin) {
+  switch (origin) {
+  case ThreadsOriginAuto:
+    return "auto";
+  case ThreadsOriginManual:
+    return "manual";
+  default:
+    return "unset";
+  }
+}
+
+/**
+ * @brief Read the distribution mode from explicit origins.
+ *
+ * @details
+ * Pure derivation behind @ref current_distribution_kind(): manual
+ * when any group is manual, automatic otherwise when any group is
+ * automatic, unset when nothing was ever assigned. Unset groups are
+ * neutral in every combination.
+ */
+DistributionKind distribution_kind_of(GroupOrigin compute_origin,
+                                      GroupOrigin autograd_origin,
+                                      GroupOrigin dtloader_origin) {
+  const bool any_manual = ((compute_origin == ThreadsOriginManual) ||
+                           (autograd_origin == ThreadsOriginManual) ||
+                           (dtloader_origin == ThreadsOriginManual)) != 0;
+  if (any_manual) {
+    return DistributionManual;
+  }
+  const bool any_auto = ((compute_origin == ThreadsOriginAuto) ||
+                         (autograd_origin == ThreadsOriginAuto) ||
+                         (dtloader_origin == ThreadsOriginAuto)) != 0;
+  if (any_auto) {
+    return DistributionAuto;
+  }
+  return DistributionUnset;
+}
+
+/**
+ * @brief Read the live distribution mode of the group counters.
+ */
+DistributionKind current_distribution_kind() {
+  return distribution_kind_of(
+      atomic_load_explicit(&group_origin[ParallelComputeGroup],
+                           memory_order_relaxed),
+      atomic_load_explicit(&group_origin[ParallelAutogradGroup],
+                           memory_order_relaxed),
+      atomic_load_explicit(&group_origin[ParallelDTLoaderGroup],
+                           memory_order_relaxed));
+}
+
+/**
+ * @brief Print the oversubscription warning block.
+ *
+ * @details
+ * Yellow, single block, fully computed numbers. Advisory only:
+ * the assignment stands.
+ */
+static void print_oversubscription_warning(uint32 compute, uint32 autograd,
+                                           uint32 dtloader, uint32 total,
+                                           uint64_t counted) {
+  printf("-- " NCORE_LOG_YELLOW
+         "[Threads] WARNING: manual assignment oversubscribes the machine: "
+         "counted %" PRIu64 " (compute %" PRIu32 " + autograd %" PRIu32
+         " + dtloader %" PRIu32
+         "; groups at 1 excluded) > machine total %" PRIu32
+         ". Expect context-switching losses.\n" NCORE_LOG_RESET,
+         counted, compute, autograd, dtloader, total);
+}
+
 typedef novaStatus_t (*set_threads_func_t)(uint32);
 typedef uint32 (*get_threads_func_t)();
 
@@ -177,6 +255,29 @@ static const get_threads_func_t get_threads_funcs[NUM_PARALLEL_GROUPS] = {
     [ParallelAutogradGroup] = get_autograd_threads,
     [ParallelDTLoaderGroup] = get_dtloader_threads,
 };
+
+/**
+ * @brief Assign a count to a group, recording its provenance.
+ *
+ * @details
+ * Shared backend for the public setter (manual) and the
+ * stratification distribute (auto). Range-checks the group;
+ * per-group minimums are enforced by the dispatched setter.
+ */
+static novaStatus_t assign_group_threads(ParallelGroups group, uint32 threads,
+                                         GroupOrigin origin) {
+  if (group >= NUM_PARALLEL_GROUPS) {
+    return (novaStatus_t){
+        .err = novaInvalidParallelGroup,
+        .message = nova_get_error_msg(novaInvalidParallelGroup, nullptr),
+    };
+  }
+  novaStatus_t st = set_threads_funcs[group](threads);
+  if (st.err == novaSuccess) {
+    atomic_store_explicit(&group_origin[group], origin, memory_order_relaxed);
+  }
+  return st;
+}
 
 /**
  * @brief Return the number of threads assigned to a group.
@@ -229,9 +330,14 @@ novaStatus_t set_num_threads_to(ParallelGroups group, uint32 threads) {
         .message = nova_get_error_msg(novaInvalidParallelGroup, nullptr),
     };
   }
-  atomic_store_explicit(&atomic_global_thread_counter_initialized, true,
-                        memory_order_release);
-  return set_threads_funcs[group](threads);
+  if (current_distribution_kind() == DistributionAuto) {
+    return (novaStatus_t){
+        .err = novaInvalidValue,
+        .message = "Thread groups already stratified automatically; manual "
+                   "assignment is rejected to keep a single distribution mode.",
+    };
+  }
+  return assign_group_threads(group, threads, ThreadsOriginManual);
 }
 
 /**
@@ -395,15 +501,28 @@ novaStatus_t distribute_stratified_threads(const StratifiedThreads *strat) {
     };
   }
 
-  auto st = set_num_threads_to(ParallelComputeGroup, strat->compute);
+  if (current_distribution_kind() == DistributionManual) {
+    return (novaStatus_t){
+        .err = novaInvalidValue,
+        .message = "Thread groups already assigned manually; "
+                   "distribute_stratified_threads() is rejected to keep a "
+                   "single distribution mode.",
+    };
+  }
+  atomic_store_explicit(&atomic_global_thread_counter_initialized, true,
+                        memory_order_release);
+  auto st = assign_group_threads(ParallelComputeGroup, strat->compute,
+                                 ThreadsOriginAuto);
   if (st.err != novaSuccess) {
     return st;
   }
-  st = set_num_threads_to(ParallelAutogradGroup, strat->autograd);
+  st = assign_group_threads(ParallelAutogradGroup, strat->autograd,
+                            ThreadsOriginAuto);
   if (st.err != novaSuccess) {
     return st;
   }
-  return set_num_threads_to(ParallelDTLoaderGroup, strat->dtloader);
+  return assign_group_threads(ParallelDTLoaderGroup, strat->dtloader,
+                              ThreadsOriginAuto);
 }
 
 /**
@@ -426,6 +545,9 @@ novaStatus_t distribute_stratified_threads(const StratifiedThreads *strat) {
  * @see print_thread_config()  Consumer of this guard.
  */
 bool is_thread_config_initialized() {
+  if (current_distribution_kind() == DistributionManual) {
+    return true;
+  }
   return (is_global_thread_count_initialized() &&
           is_stratification_complete()) != 0;
 }
@@ -553,19 +675,33 @@ bool is_parallelizable(const struct Tensor *ten, uint32 threads,
  * @see print_device_info()  Device-side counterpart.
  */
 novaStatus_t print_thread_config(bool verbose) {
-  novaStatus_t query = {0, nullptr};
+  novaStatus_t query = {};
   const uint32 logical = get_num_logical_threads(&query);
   const bool logical_ok = (query.err == novaSuccess);
   const bool initialized = is_thread_config_initialized();
+  const bool manual_mode = (current_distribution_kind() == DistributionManual);
 
   // Live per-group counters always hold a value, even before any
   // configuration, so they are shown in both modes unconditionally.
   const uint32 live_compute = get_compute_threads();
   const uint32 live_autograd = get_autograd_threads();
   const uint32 live_dtloader = get_dtloader_threads();
+  const char *origin_compute = origin_label(atomic_load_explicit(
+      &group_origin[ParallelComputeGroup], memory_order_relaxed));
+  const char *origin_autograd = origin_label(atomic_load_explicit(
+      &group_origin[ParallelAutogradGroup], memory_order_relaxed));
+  const char *origin_dtloader = origin_label(atomic_load_explicit(
+      &group_origin[ParallelDTLoaderGroup], memory_order_relaxed));
 
   if (!verbose) {
-    if (initialized) {
+    if (manual_mode) {
+      printf(NCORE_LOG_PREFIX
+             " [Threads] manual (compute " NCORE_LOG_VALUE
+             "%" PRIu32 NCORE_LOG_RESET " autograd " NCORE_LOG_VALUE
+             "%" PRIu32 NCORE_LOG_RESET " dtloader " NCORE_LOG_VALUE
+             "%" PRIu32 NCORE_LOG_RESET ")\n",
+             live_compute, live_autograd, live_dtloader);
+    } else if (initialized) {
       const uint32 total = get_configured_num_logical_threads(nullptr);
       const StratifiedThreads strat = get_last_stratification_result();
       printf(NCORE_LOG_PREFIX
@@ -598,13 +734,22 @@ novaStatus_t print_thread_config(bool verbose) {
              "Logical threads:   " NCORE_LOG_RESET NCORE_LOG_YELLOW
              "unavailable\n" NCORE_LOG_RESET);
     }
-    if (initialized) {
+    if (is_global_thread_count_initialized()) {
       const uint32 total = get_configured_num_logical_threads(nullptr);
       printf(NCORE_LOG_PREFIX
              "   " NCORE_LOG_DIM
              "Configured budget: " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
              "\n" NCORE_LOG_RESET,
              total);
+      printf(NCORE_LOG_PREFIX
+             "   " NCORE_LOG_DIM
+             "Initialized:       " NCORE_LOG_RESET NCORE_LOG_VALUE
+             "yes\n" NCORE_LOG_RESET);
+    } else if (manual_mode) {
+      printf(NCORE_LOG_PREFIX
+             "   " NCORE_LOG_DIM
+             "Configured budget: " NCORE_LOG_RESET NCORE_LOG_DIM
+             "manual\n" NCORE_LOG_RESET);
       printf(NCORE_LOG_PREFIX
              "   " NCORE_LOG_DIM
              "Initialized:       " NCORE_LOG_RESET NCORE_LOG_VALUE
@@ -621,19 +766,25 @@ novaStatus_t print_thread_config(bool verbose) {
     }
     printf(NCORE_LOG_PREFIX
            "   " NCORE_LOG_DIM
-           "Compute:           " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
-           "\n" NCORE_LOG_RESET,
-           live_compute);
+           "Compute:           " NCORE_LOG_RESET NCORE_LOG_VALUE
+           "%" PRIu32 NCORE_LOG_RESET NCORE_LOG_DIM " (%s)\n" NCORE_LOG_RESET,
+           live_compute, origin_compute);
     printf(NCORE_LOG_PREFIX
            "   " NCORE_LOG_DIM
-           "Autograd:          " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
-           "\n" NCORE_LOG_RESET,
-           live_autograd);
+           "Autograd:          " NCORE_LOG_RESET NCORE_LOG_VALUE
+           "%" PRIu32 NCORE_LOG_RESET NCORE_LOG_DIM " (%s)\n" NCORE_LOG_RESET,
+           live_autograd, origin_autograd);
     printf(NCORE_LOG_PREFIX
            "   " NCORE_LOG_DIM
-           "DTLoader:          " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
-           "\n" NCORE_LOG_RESET,
-           live_dtloader);
+           "DTLoader:          " NCORE_LOG_RESET NCORE_LOG_VALUE
+           "%" PRIu32 NCORE_LOG_RESET NCORE_LOG_DIM " (%s)\n" NCORE_LOG_RESET,
+           live_dtloader, origin_dtloader);
+    if (logical_ok && manual_counts_oversubscribed(live_compute, live_autograd,
+                                                   live_dtloader, logical)) {
+      print_oversubscription_warning(
+          live_compute, live_autograd, live_dtloader, logical,
+          counted_thread_sum(live_compute, live_autograd, live_dtloader));
+    }
   }
 
   if (initialized) {
