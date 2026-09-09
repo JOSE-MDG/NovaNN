@@ -340,3 +340,20 @@ StratifiedThreads get_last_stratification_result() {
   }
   return *recorded;
 }
+
+/**
+ * @brief Report whether manual per-group counts oversubscribe the machine.
+ *
+ * @details
+ * Pure predicate over explicit counts: no shared state is read, so
+ * unit tests need no hardware. Groups parked at exactly 1 are
+ * excluded from the sum; an unknown machine total (0) never
+ * reports oversubscription.
+ */
+bool manual_counts_oversubscribed(uint32 compute, uint32 autograd,
+                                  uint32 dtloader, uint32 machine_total) {
+  if (machine_total == 0) {
+    return false;
+  }
+  return counted_thread_sum(compute, autograd, dtloader) > machine_total;
+}
