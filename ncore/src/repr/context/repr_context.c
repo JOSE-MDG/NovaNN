@@ -47,7 +47,7 @@
 
 #ifdef _GNUC_CLANG_
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-align"
+#pragma GCC diagnostic ignored "-Wuseless-cast"
 #endif
 
 /**
