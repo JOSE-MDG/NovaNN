@@ -30,7 +30,45 @@
 
 #pragma once
 
+#include <stdint.h>
+
+#include <ncore/core/dtype.h>
 #include <ncore/threading/threads.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @enum GroupOrigin
+ * @brief Provenance of a per-group thread count.
+ *
+ * @details
+ * Tracks how each group counter got its value: untouched since
+ * process start, assigned by @ref distribute_stratified_threads(),
+ * or assigned by a direct @ref set_num_threads_to() call.
+ */
+typedef enum GroupOrigin : uint8_t {
+  ThreadsOriginUnset = 0,  ///< Never assigned; still the default.
+  ThreadsOriginAuto = 1,   ///< Assigned by stratification distribute.
+  ThreadsOriginManual = 2, ///< Assigned by a direct setter call.
+} GroupOrigin;
+
+/**
+ * @enum DistributionKind
+ * @brief Distribution mode of the three group counters.
+ *
+ * @details
+ * Exactly one workflow owns the counters per process: automatic,
+ * manual, or none yet. The mutating calls reject anything else, so
+ * no mixed state exists.
+ */
+typedef enum DistributionKind : uint8_t {
+  // typedef enum novaError_t : uint8_t {
+  DistributionUnset = 0,  ///< No group was ever assigned.
+  DistributionAuto = 1,   ///< Assigned groups came from distribute.
+  DistributionManual = 2, ///< Assigned groups were set directly.
+} DistributionKind;
 
 /**
  * @def DYNASTRAT_EQUAL_TH
@@ -179,6 +217,63 @@
 StratifiedThreads stratify_threads(uint32 threads, novaStatus_t *status);
 
 /**
+ * @brief Report whether manual per-group counts oversubscribe the machine.
+ *
+ * @details
+ * Pure predicate over explicit counts: reads no shared state, so unit
+ * tests need no hardware. Groups parked at exactly 1 are excluded
+ * from the sum (a lone thread marks an idle pool, not provisioned
+ * capacity); an unknown machine total (0) never reports
+ * oversubscription. Used to warn on manual stratifications that
+ * invite context-switching losses; dynastrat output can never
+ * trigger it (it conserves the total, and all-ones counts are
+ * excluded).
+ *
+ * @param[in] compute        Compute-group count under test.
+ * @param[in] autograd       Autograd-group count under test.
+ * @param[in] dtloader       Data-loader-group count under test.
+ * @param[in] machine_total  Machine thread total to fit, or 0 when
+ *                           unknown.
+ *
+ * @return @c true when the counted sum exceeds @p machine_total.
+ */
+bool manual_counts_oversubscribed(uint32 compute, uint32 autograd,
+                                  uint32 dtloader, uint32 machine_total);
+
+/**
+ * @brief Read the distribution mode from explicit origins.
+ *
+ * @details
+ * Pure derivation: manual when any origin is manual, automatic
+ * otherwise when any origin is automatic, unset when nothing was
+ * ever assigned. Unset groups are neutral in every combination.
+ */
+DistributionKind distribution_kind_of(GroupOrigin compute_origin,
+                                      GroupOrigin autograd_origin,
+                                      GroupOrigin dtloader_origin);
+
+/**
+ * @brief Read the live distribution mode of the group counters.
+ */
+DistributionKind current_distribution_kind();
+
+/**
+ * @brief Counted threads for oversubscription checks.
+ *
+ * @details
+ * Groups parked at exactly 1 thread are excluded: a lone thread
+ * marks an idle pool, not provisioned capacity.
+ */
+static inline uint64_t counted_thread_sum(uint32 compute, uint32 autograd,
+                                          uint32 dtloader) {
+  uint64_t sum = 0;
+  sum += (compute != 1) ? (uint64_t)compute : 0U;
+  sum += (autograd != 1) ? (uint64_t)autograd : 0U;
+  sum += (dtloader != 1) ? (uint64_t)dtloader : 0U;
+  return sum;
+}
+
+/**
  * @brief Query whether any stratification already succeeded.
  *
  * @details
@@ -213,3 +308,7 @@ bool is_stratification_complete();
  * @see is_valid_stratification_result()  Recorded budget validation.
  */
 StratifiedThreads get_last_stratification_result();
+
+#ifdef __cplusplus
+}
+#endif
