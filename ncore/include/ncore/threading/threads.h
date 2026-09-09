@@ -196,13 +196,23 @@ uint32 get_num_logical_threads(novaStatus_t *status);
  * pool is allowed to use. The value must be at least
  * @ref MIN_THREADS_PER_GROUP (1).
  *
+ * Direct calls mark the group as manually stratified (shown as
+ * @c (manual) by @ref print_thread_config(), as opposed to
+ * @c (auto) for @ref distribute_stratified_threads() results and
+ * @c (unset) for never-assigned groups). Each process picks a single
+ * distribution mode: once an automatic stratification was
+ * distributed, direct calls are rejected with @c novaInvalidValue,
+ * and vice versa.
+ *
  * @param[in] group    The managed group to configure.
  * @param[in] threads  Number of threads to assign to @p group. Must be
  *                     at least @ref MIN_THREADS_PER_GROUP (1).
  *
  * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
  *         success, @ref novaInvalidParallelGroup when @p group is
- *         invalid, or @ref novaInvalidNumThreads when @p threads is
+ *         invalid, @ref novaInvalidValue when the process already
+ *         runs an automatic stratification, or
+ *         @ref novaInvalidNumThreads when @p threads is
  *         less than @ref MIN_THREADS_PER_GROUP.
  *
  * @see get_num_threads_from()  Queries the assigned count.
@@ -330,8 +340,12 @@ bool is_valid_latest_stratification_result();
   * @brief Apply a stratified budget to the per-group counters.
   *
   * @details
-  * Assigns @p strat members to their groups in @ref ParallelGroups
-  * order (compute, autograd, dtloader) through @ref set_num_threads_to().
+ * Assigns @p strat members to their groups in @ref ParallelGroups
+ * order (compute, autograd, dtloader), marking each group automatic
+ * (@c auto in @ref print_thread_config(), as opposed to @c manual
+ * for direct @ref set_num_threads_to() calls). Rejected with
+ * @c novaInvalidValue when any group was assigned manually: each
+ * process picks a single distribution mode.
   * The budget is validated with @ref is_valid_stratification_result()
   * before touching any counter; assignment stops at the first failing
   * group and reports its error.
@@ -339,11 +353,11 @@ bool is_valid_latest_stratification_result();
   * @param[in] strat  Budget to apply. Must not be @c nullptr and must
   *                   hold no empty group.
   *
-  * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
-  *         success, @ref novaInvalidPointer when @p strat is
-  *         @c nullptr, @ref novaInvalidValue when the budget holds an
-  *         empty group, or the error of the first failing per-group
-  *         assignment.
+ * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
+ *         success, @ref novaInvalidPointer when @p strat is
+ *         @c nullptr, @ref novaInvalidValue when the budget holds an
+ *         empty group or any group was assigned manually, or the
+ *         error of the first failing per-group assignment.
   *
   * @pre  @p strat must not be @c nullptr.
   *
@@ -354,35 +368,42 @@ bool is_valid_latest_stratification_result();
 novaStatus_t distribute_stratified_threads(const StratifiedThreads *strat);
 
 /**
-  * @brief Query whether the thread configuration is fully initialized.
-  *
-  * @details
-  * Reports whether both halves of the setup are done: the global
-  * thread budget was explicitly set (see
-  * @ref is_global_thread_count_initialized()) and at least one
-  * stratification succeeded (see @ref is_stratification_complete()).
-  * @ref print_thread_config() uses this as its guard: a @c false
-  * result means only a partial view can be shown.
-  *
-  * @return @c true when the budget is set and a stratification result
-  *         is recorded, @c false otherwise.
-  *
-  * @see is_global_thread_count_initialized()  Budget half of the guard.
-  * @see is_stratification_complete()  Stratification half of the guard.
-  * @see print_thread_config()  Consumer of this guard.
-  */
+ * @brief Query whether the thread configuration is fully initialized.
+ *
+ * @details
+ * Reports whether both halves of the setup are done: the global
+ * thread budget was explicitly set (see
+ * @ref is_global_thread_count_initialized()) and at least one
+ * stratification succeeded (see @ref is_stratification_complete()).
+ * A manually assigned configuration (any @c manual group origin,
+ * see @ref set_num_threads_to()) counts as initialized on its own:
+ * the user took control, so there is nothing left to complete.
+ * @ref print_thread_config() uses this as its guard: a @c false
+ * result means only a partial view can be shown.
+ *
+ * @return @c true when the budget is set and a stratification result
+ *         is recorded, or when any group was assigned manually;
+ *         @c false otherwise.
+ *
+ * @see is_global_thread_count_initialized()  Budget half of the guard.
+ * @see is_stratification_complete()  Stratification half of the guard.
+ * @see print_thread_config()  Consumer of this guard.
+ */
 bool is_thread_config_initialized();
 
 /**
   * @brief Print the current thread budget and its stratification.
   *
   * @details
-  * Writes a human-readable summary to stdout using the @c NCORE_LOG_*
-  * palette from @c macros.h (green prefix, bold headings, cyan values,
-  * dim labels, yellow for uninitialized entries). With @p verbose set
-  * to @c false a single summary line is printed; with @c true a full
-  * block follows: logical thread count, configured budget, whether the
-  * configuration is initialized, and the live per-group counters.
+ * Writes a human-readable summary to stdout using the @c NCORE_LOG_*
+ * palette from @c macros.h (green prefix, bold headings, cyan values,
+ * dim labels, yellow for uninitialized entries). With @p verbose set
+ * to @c false a single summary line is printed; with @c true a full
+ * block follows: logical thread count, configured budget, whether the
+ * configuration is initialized, and the live per-group counters.
+ * Verbose rows carry each group's provenance (@c manual, @c auto or
+ * @c unset) and repeat the oversubscription warning while the live
+ * counts violate it.
   *
  * The print never fails for lack of configuration: when
  * @ref is_thread_config_initialized() returns @c false, whatever is
