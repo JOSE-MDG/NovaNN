@@ -28,6 +28,7 @@
 #include <map>
 
 #include <ncore/core/status.h>
+#include <ncore/headeronly/macros.h>
 #include <ncore/native/kernels/contiguous.h>
 #include <ncore/tensor.h>
 
@@ -53,7 +54,8 @@ extern "C" {
  * @see ContiguousLayoutKernel.cu
  * @see launchContiguousKernel()
  */
-extern novaStatus_t launchCudaContiguousKernel(const Tensor *src, Tensor *dst);
+extern novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
+                                               Tensor *restrict dst);
 #endif
 
 #ifdef NOVA_HAS_HIP
@@ -72,7 +74,8 @@ extern novaStatus_t launchCudaContiguousKernel(const Tensor *src, Tensor *dst);
  * @see ContiguousLayoutKernel.hip
  * @see launchContiguousKernel()
  */
-extern novaStatus_t launchHipContiguousKernel(const Tensor *src, Tensor *dst);
+extern novaStatus_t launchHipContiguousKernel(const Tensor *restrict src,
+                                              Tensor *restrict dst);
 #endif
 
 #ifdef __cplusplus
@@ -84,7 +87,7 @@ namespace {
 /**
  * @brief Function pointer type for backend-specific contiguous kernels.
  */
-using kernel_t = novaStatus_t (*)(const Tensor *, Tensor *);
+using kernel_t = novaStatus_t (*)(const Tensor *restrict, Tensor *restrict);
 
 /**
  * @brief Static dispatch table mapping device kinds to contiguous kernels.
@@ -129,6 +132,7 @@ const std::map<DeviceKind, kernel_t> KERNEL_DISPATCHER = {
  * @warning If no compute device is available, returns
  *          @ref novaDeviceNotAvailable.
  */
-extern "C" novaStatus_t launchContiguousKernel(const Tensor *src, Tensor *dst) {
+extern "C" novaStatus_t launchContiguousKernel(const Tensor *restrict src,
+                                               Tensor *restrict dst) {
   return ncore::dispatch::launch(KERNEL_DISPATCHER, src, dst);
 }

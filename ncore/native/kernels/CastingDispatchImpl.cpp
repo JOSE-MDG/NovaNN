@@ -29,6 +29,7 @@
 
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
+#include <ncore/headeronly/macros.h>
 #include <ncore/tensor.h>
 
 #include "utils/KernelDispatcher.hpp"
@@ -54,8 +55,8 @@ extern "C" {
  * @see DtypeCastingKernel.cu
  * @see launchDtypeCastingKernel()
  */
-extern novaStatus_t launchCudaDtypeCastingKernel(const Tensor *src,
-                                                 Tensor *dst);
+extern novaStatus_t launchCudaDtypeCastingKernel(const Tensor *restrict src,
+                                                 Tensor *restrict dst);
 #endif
 
 #ifdef NOVA_HAS_HIP
@@ -75,7 +76,8 @@ extern novaStatus_t launchCudaDtypeCastingKernel(const Tensor *src,
  * @see DtypeCastingKernel.hip
  * @see launchDtypeCastingKernel()
  */
-extern novaStatus_t launchHipDtypeCastingKernel(const Tensor *src, Tensor *dst);
+extern novaStatus_t launchHipDtypeCastingKernel(const Tensor *restrict src,
+                                                Tensor *restrict dst);
 #endif
 
 #ifdef __cplusplus
@@ -87,7 +89,7 @@ namespace {
 /**
  * @brief Function pointer type for backend-specific casting kernels.
  */
-using kernel_t = novaStatus_t (*)(const Tensor *, Tensor *);
+using kernel_t = novaStatus_t (*)(const Tensor *restrict, Tensor *restrict);
 
 /**
  * @brief Static dispatch table mapping device kinds to casting kernels.
@@ -132,7 +134,7 @@ const std::map<DeviceKind, kernel_t> KERNEL_DISPATCHER = {
  * @warning If no compute device is available, returns
  *          @ref novaDeviceNotAvailable.
  */
-extern "C" novaStatus_t launchDtypeCastingKernel(const Tensor *src,
-                                                 Tensor *dst) {
+extern "C" novaStatus_t launchDtypeCastingKernel(const Tensor *restrict src,
+                                                 Tensor *restrict dst) {
   return ncore::dispatch::launch(KERNEL_DISPATCHER, src, dst);
 }
