@@ -24,10 +24,16 @@
  *
  * @section stream-lifecycle Stream Lifecycle
  *
- * Device-memory operations (reserve, release, resize) create a
- * temporary CUDA stream, perform the operation asynchronously,
- * synchronize, and destroy the stream before returning. Provided that
- * MemoryPools is available on the device (which is usually the case).
+ * Device-memory operations (reserve, release, resize) run on a CUDA
+ * stream selected per call:
+ * @li @c stream == nullptr (default) — a temporary stream is created,
+ *   the operation runs on it, the stream is synchronized, and the
+ *   stream is destroyed before returning. Synchronous contract.
+ * @li @c stream != nullptr — the operation is enqueued on the caller
+ *   stream with no synchronization and no stream destruction. The
+ *   caller owns ordering: every access to the buffer must be ordered
+ *   after the allocation and before the free in stream order, per the
+ *   stream-ordered allocator rules. Pinned-host paths ignore @p stream.
  *
  * This header is the CUDA counterpart of @c HipAllocator.hpp and
  * provides an identical API surface.  The dispatch layer in
@@ -42,6 +48,13 @@
 
 #include <cstddef>
 #include <ncore/core/status.h>
+
+#if defined(NOVA_HAS_CUDA) && __has_include(<cuda_runtime_api.h>)
+#include <cuda_runtime_api.h>
+#else
+struct CUstream_st;
+using cudaStream_t = CUstream_st *;
+#endif
 
 /**
  * @struct cudaBuffer_t
@@ -70,54 +83,74 @@ const inline novaStatus_t CUDA_OK{
  * @brief Allocate a CUDA memory buffer.
  *
  * @details
- * For pinned memory, calls @c cudaMallocHost.  For device memory,
- * creates a temporary stream, calls @c cudaMallocAsync,
- * synchronizes, and destroys the stream.
+ * For pinned memory, calls @c cudaMallocHost (synchronous; @p stream
+ * is ignored).  For device memory with memory pools, calls
+ * @c cudaMallocAsync on @p stream when given, or on a temporary
+ * synchronized stream when @p stream is null.  Without memory pools,
+ * falls back to @c cudaMalloc (synchronous; @p stream is ignored).
  *
  * @param[in]  bytes  Requested allocation size in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
  * @param[out] out    Receives the buffer descriptor on success.
+ * @param[in]  stream Caller stream for chaining, or null for the
+ *                    synchronous internal path. Never destroyed here.
  *
  * @return @ref CUDA_OK on success, or an error status with a
  *         descriptive message.
  *
  * @pre  @p bytes must be greater than zero.
  * @pre  @p out must not be null.
- * @post On success, @p out->ptr points to a valid CUDA memory
- *       region of at least @p bytes.
+ * @post On success with @p stream == null, @p out->ptr points to a
+ *       valid CUDA memory region of at least @p bytes usable from
+ *       any stream.
+ * @post On success with @p stream != null, @p out->ptr is valid only
+ *       in @p stream order (ordered after this call).
+ *
+ * @warning With @p stream != null there is no synchronization: any
+ *          access outside @p stream order is undefined behavior.
  *
  * @see cudaRelease()  Frees a buffer allocated by this function.
  * @see cudaResize()   Resizes an existing buffer.
  */
-novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out);
+novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out,
+                         cudaStream_t stream = nullptr);
 
 /**
  * @brief Free a CUDA memory buffer previously allocated by
  *        @ref cudaReserve.
  *
  * @details
- * For pinned memory, calls @c cudaFreeHost.  For device memory,
- * creates a temporary stream, calls @c cudaFreeAsync, synchronizes,
- * and destroys the stream.  On success, the buffer descriptor
- * is zeroed.
+ * For pinned memory, calls @c cudaFreeHost (synchronous; @p stream
+ * is ignored).  For device memory with memory pools, calls
+ * @c cudaFreeAsync on @p stream when given, or on a temporary
+ * synchronized stream when @p stream is null.  On success, the
+ * buffer descriptor is zeroed.
  *
- * @param[in,out] buf  Pointer to the buffer descriptor to free.
- *                     Must not be null, and @p buf->ptr must be
- *                     valid.
+ * @param[in,out] buf    Pointer to the buffer descriptor to free.
+ *                       Must not be null, and @p buf->ptr must be
+ *                       valid.
+ * @param[in]     stream Caller stream for chaining, or null for the
+ *                       synchronous internal path. Never destroyed here.
  *
  * @return @ref CUDA_OK on success, or an error status.
  *
  * @pre  @p buf must point to a valid @ref cudaBuffer_t whose
  *       @ref ptr member was returned by @ref cudaReserve.
+ * @pre  With @p stream != null, every prior access to @p buf->ptr
+ *       must be ordered before this call in @p stream order.
  * @post On success, @p buf is zeroed (ptr = nullptr, bytes = 0,
  *       isPinned = false).
  *
  * @note Safe to call with a null @p buf or null @p buf->ptr;
  *       returns a non-zero status without crashing.
  *
+ * @warning With @p stream != null there is no synchronization: the
+ *          memory must not be accessed after this call in any stream
+ *          unless reordered with events.
+ *
  * @see cudaReserve()  Allocates the buffer freed here.
  */
-novaStatus_t cudaRelease(cudaBuffer_t *buf);
+novaStatus_t cudaRelease(cudaBuffer_t *buf, cudaStream_t stream = nullptr);
 
 /**
  * @brief Resize an existing CUDA memory buffer.
@@ -132,6 +165,10 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf);
  * @param[in,out] buf       Pointer to the buffer descriptor to
  *                          resize.  Must not be null.
  * @param[in]     new_bytes New size in bytes.
+ * @param[in]     stream    Caller stream for chaining, or null for
+ *                          the synchronous internal path. The alloc,
+ *                          copy, and free all run on this stream.
+ *                          Never destroyed here.
  *
  * @return @ref CUDA_OK on success, or an error status.
  *
@@ -147,4 +184,5 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf);
  * @see cudaReserve()  Initial allocation.
  * @see cudaRelease()  Explicit deallocation.
  */
-novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes);
+novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes,
+                         cudaStream_t stream = nullptr);
