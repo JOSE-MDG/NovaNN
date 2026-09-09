@@ -35,9 +35,9 @@ extern "C" {
  *
  * @details
  * The context is the single source of truth during the
- * representation pipeline. It is populated by scanning a sample of
- * the tensor's data (up to 1000 elements at each edge) to ensure
- * consistent column alignment and optimal numeric notation.
+ * representation pipeline. It is populated by scanning head and
+ * tail samples of the tensor's data (bounded by the options) to
+ * ensure consistent column alignment and uniform numeric notation.
  *
  * @section field-categories Field Categories
  *
@@ -55,7 +55,9 @@ typedef struct {
   bool use_sci;             ///< Final decision on scientific notation (@c %e).
   int effective_precision;  ///< Target number of decimal places for floats.
   size_t element_width;     ///< Maximum formatted width for column alignment.
-  bool is_summarized;       ///< true if tensor size exceeds threshold.
+  bool is_summarized;       ///< true when truncated rendering applies:
+                            ///< size over threshold or a dimension over
+                            ///< twice the edge count.
   size_t sub_element_index; ///< Sub-element index within a packed storage unit.
 
   /* ---- DType Classification Shortcuts ---- */
@@ -75,12 +77,15 @@ typedef struct {
  *
  * @details
  * Analyzes the input tensor's metadata and performs a partial data
- * scan (sampling the first and last 1000 elements) to derive optimal
- * display parameters.
+ * scan (head and tail logical elements, bounded by the options) to
+ * derive optimal display parameters.
  *
  * For floating-point tensors, it applies an auto-detection heuristic
  * to determine if scientific notation should be enabled based on the
- * range of absolute values. For all types, it calculates the maximum
+ * maximum sampled magnitude: extremes in either direction select
+ * scientific, ordinary ranges stay fixed. Minima and ratios are
+ * deliberately ignored (sample noise flips them run to run, while
+ * maxima concentrate). For all types, it calculates the maximum
  * string width of elements to ensure multi-dimensional output is
  * correctly column-aligned.
  *
