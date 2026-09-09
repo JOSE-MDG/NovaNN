@@ -298,15 +298,18 @@ public:
    */
   friend std::ostream &operator<<(std::ostream &os, TensorCXX &ten) {
 
-    const char *repr = tensor_repr_debug(&ten.c_tensor);
-    if (repr == nullptr) {
-      os << "\033[31mError\033[0m: No tensor representation available; Result: "
-            "NULL\n";
+    char *repr = nullptr;
+    const novaStatus_t st = tensor_repr_debug(&ten.c_tensor, &repr);
+    if (st.err != novaSuccess || repr == nullptr) {
+      os << NCORE_LOG_RED "Error" NCORE_LOG_RESET ": "
+         << (st.message != nullptr ? st.message : "representation failed")
+         << "\n";
+      std::free(repr);
       return os;
     }
 
     os << repr << "\n";
-    std::free(const_cast<char *>(repr));
+    std::free(repr);
 
     return os;
   }
@@ -321,22 +324,28 @@ public:
    * the plain tensor representation is printed.
    *
    * @param[in] debug  If @c true, print the debug representation.
+   * @return Render status; failures print nothing.
    *
    * @see tensor_repr_debug()  Debug representation.
    * @see tensor_repr()        Plain representation.
    */
-  void print(bool debug = true) {
+  novaStatus_t print(bool debug = true) {
 
-    const char *repr =
-        debug ? tensor_repr_debug(&c_tensor) : tensor_repr(&c_tensor);
-    if (repr == nullptr) {
-      std::cout << "\033[31mError\033[0m: No tensor representation available; "
-                   "Result: "
-                   "NULL\n";
+    char *repr = nullptr;
+    const novaStatus_t st = debug ? tensor_repr_debug(&c_tensor, &repr)
+                                  : tensor_repr(&c_tensor, &repr);
+    if (st.err != novaSuccess || repr == nullptr) {
+      std::cout << NCORE_LOG_RED
+          "Error" NCORE_LOG_RESET
+          ": " << (st.message != nullptr ? st.message : "representation failed")
+                << "\n";
+      std::free(repr);
+      return st;
     }
 
     std::cout << repr << "\n";
-    std::free(const_cast<char *>(repr));
+    std::free(repr);
+    return st;
   }
 
   // ================================================================
