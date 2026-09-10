@@ -27,8 +27,10 @@
   * Platform-specific implementation:
   * @li Linux: counts the CPUs in the process CPU affinity mask via
   *   @c sched_getaffinity().
-  * @li Windows: counts the set bits of the process affinity mask via
-  *   @c GetProcessAffinityMask().
+ * @li Windows: counts the logical CPUs in the process affinity
+ *   state. Single processor group: popcount of the process affinity
+ *   mask. Multiple groups: exact per-group process masks collected
+ *   by a helper thread visiting each process group.
   * @li Other platforms: returns @c 0 with
   *   @ref novaOsPlatformNotSupported.
   *
