@@ -462,12 +462,19 @@ Tensor contiguous(const Tensor *restrict ten, novaStatus_t *status) {
     return create_view(ten, ten->shape, ten->ndims, status);
   }
 
+  shape_t logical_shape = {};
+  memcpy(logical_shape, ten->shape, ten->ndims * sizeof(size_t));
+  const size_t packing = dtype_packing_factor(ten->dtype);
+  if (packing > 1 && ten->ndims > 0) {
+    logical_shape[ten->ndims - 1] *= packing;
+  }
+
   Tensor dst =
       (int)is_scalar(ten)
           ? create_scalar_tensor(ten->dtype, ten->device, ten->requires_grad_,
                                  ten->is_pinned_, status)
 
-          : create_tensor(ten->shape, ten->dtype, ten->device,
+          : create_tensor(logical_shape, ten->dtype, ten->device,
                           ten->requires_grad_, ten->is_pinned_, ten->ndims,
                           status);
 
@@ -499,7 +506,7 @@ Tensor contiguous(const Tensor *restrict ten, novaStatus_t *status) {
  * @c status.rs). Valid until the next formatted error on the same
  * thread; callers consume it immediately through @c status.message.
  */
-static thread_local char err_msg_buf[128];
+static thread_local char err_msg_buf[512];
 
 /**
  * @brief Swap two dimensions of a tensor, returning a view.
@@ -511,7 +518,9 @@ static thread_local char err_msg_buf[128];
  * @c [i, j] of the result aliases @c [j, i] of the source, and the
  * result is generally not contiguous. Swapping a dimension with
  * itself is a no-op. Negative indices count from the last dimension
- * (@c -1 is the innermost), matching the usual convention.
+ * (@c -1 is the innermost), matching the usual convention. Packed
+ * dtypes (packing factor above 1) may not move the last dimension:
+ * swapping it with another fails with @ref novaInvalidMemoryLayout.
  *
  * @param[in]  ten   Source tensor. Must not be @c nullptr.
  * @param[out] st    Receives the operation result.
@@ -551,6 +560,28 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
     return dst;
   }
 
+  if (ten->ndims > 0 && dtype_packing_factor(ten->dtype) > 1) {
+    // Packed dtypes store several logical values per storage byte along the
+    // last dimension, so moving it would split values across rows, which byte
+    // strides cannot express. Swapping the dimension with itself is a no-op
+    // and stays allowed.
+    const size_t packing = dtype_packing_factor(ten->dtype);
+    const int last = ndims - 1;
+    if ((d0 == last) != (d1 == last)) {
+      st->err = novaInvalidMemoryLayout;
+      snprintf(err_msg_buf, sizeof(err_msg_buf),
+               "transpose(): cannot move the packed last dim\n(packing "
+               "factor %zu, several logical values share one storage "
+               "byte):\nswapping dims (%d, %d) would split values across "
+               "rows,\nwhich byte strides cannot express.\nTranspose dims "
+               "that exclude the last one.\n",
+               packing, dim0, dim1);
+      st->message = err_msg_buf;
+      collect(&dst);
+      return dst;
+    }
+  }
+
   memcpy(dst.strides, ten->strides, (size_t)ndims * sizeof(size_t));
 
   dst.shape[d0] = ten->shape[d1];
@@ -572,7 +603,9 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
  * @c dims[i]. Negative entries count from the last dimension. Every
  * source dimension must appear exactly once: out-of-range indices
  * and duplicates are rejected before anything is written, so a
- * failed call leaves no half-permuted tensor behind.
+ * failed call leaves no half-permuted tensor behind. Packed dtypes
+ * (packing factor above 1) must keep the last dimension innermost:
+ * anything else fails with @ref novaInvalidMemoryLayout.
  *
  * Only the first @p ndims entries of @p dims are read; the rest of
  * the @c NOVA_MAX_DIMS array is ignored.
@@ -632,6 +665,28 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
     seen[dim] = true;
     dst.shape[i] = tmp_shape[dim];
     dst.strides[i] = tmp_strides[dim];
+  }
+
+  if (ten->ndims > 0 && dtype_packing_factor(ten->dtype) > 1) {
+    // Same constraint as transpose(): the packed last dimension must stay
+    // innermost, otherwise values would split across rows. dims[] was
+    // validated in range above, so normalizing the innermost entry is safe.
+    const size_t packing = dtype_packing_factor(ten->dtype);
+    const int last = ndims - 1;
+    const int inner = dims[last] < 0 ? ndims + dims[last] : dims[last];
+    if (inner != last) {
+      st->err = novaInvalidMemoryLayout;
+      snprintf(err_msg_buf, sizeof(err_msg_buf),
+               "permute(): cannot move the packed last dim\n(packing factor "
+               "%zu, several logical values share one storage byte):\nthe "
+               "permutation takes it out of the innermost position,\nwhich "
+               "byte strides cannot express.\nKeep the last dim "
+               "innermost.\n",
+               packing);
+      st->message = err_msg_buf;
+      collect(&dst);
+      return dst;
+    }
   }
 
   st->err = novaSuccess;
