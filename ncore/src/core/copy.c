@@ -78,7 +78,8 @@ static inline void copy_host_buffer(const Tensor *restrict src,
                                     novaStatus_t *status) {
 
   (void)status;
-  memcpy(dst->data.v, src->data.v, src->storage->size_bytes);
+  memcpy(dst->data.data + src->offset, src->data.data,
+         src->storage->size_bytes);
 }
 
 /**
@@ -128,8 +129,8 @@ static inline void copy_device_buffer(const Tensor *restrict src,
     return;
   }
 
-  *status = transfer_to(src->device, dst->device, src->data.v, dst->data.v,
-                        src->storage->size_bytes);
+  *status = transfer_to(src->device, dst->device, src->data.data + src->offset,
+                        dst->data.data, src->storage->size_bytes);
 }
 
 /**
