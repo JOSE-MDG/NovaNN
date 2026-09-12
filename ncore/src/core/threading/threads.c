@@ -158,7 +158,8 @@ novaStatus_t set_num_logical_threads(uint32 threads) {
 /**
  * @brief Provenance flags mirroring the per-group counters.
  */
-static _Atomic GroupOrigin group_origin[NUM_PARALLEL_GROUPS] = {0};
+static _Atomic GroupOrigin group_origin[NUM_PARALLEL_GROUPS] = {
+    ThreadsOriginUnset, ThreadsOriginUnset, ThreadsOriginUnset};
 
 /**
  * @brief Display label for a group origin flag.
@@ -649,7 +650,7 @@ bool is_parallelizable(const struct Tensor *ten, uint32 threads,
  *
  * @details
  * Writes a human-readable summary to stdout with the @c NCORE_LOG_*
- * palette: green prefix, bold headings, cyan values, dim labels,
+ * palette: green prefix, bold headings, cyan values, plain labels,
  * yellow for uninitialized or unavailable entries. Concise mode fits
  * the whole state on one line; verbose mode prints one aligned row
  * per entry, mirroring @ref printCudaDeviceInfo().
@@ -724,59 +725,48 @@ novaStatus_t print_thread_config(bool verbose) {
            " === Thread Config ===\n" NCORE_LOG_RESET);
     if (logical_ok) {
       printf(NCORE_LOG_PREFIX
-             "   " NCORE_LOG_DIM
-             "Logical threads:   " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
+             "   Logical threads:   " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
              "\n" NCORE_LOG_RESET,
              logical);
     } else {
       printf(NCORE_LOG_PREFIX
-             "   " NCORE_LOG_DIM
-             "Logical threads:   " NCORE_LOG_RESET NCORE_LOG_YELLOW
+             "   Logical threads:   " NCORE_LOG_RESET NCORE_LOG_YELLOW
              "unavailable\n" NCORE_LOG_RESET);
     }
     if (is_global_thread_count_initialized()) {
       const uint32 total = get_configured_num_logical_threads(nullptr);
       printf(NCORE_LOG_PREFIX
-             "   " NCORE_LOG_DIM
-             "Configured budget: " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
+             "   Configured budget: " NCORE_LOG_RESET NCORE_LOG_VALUE "%" PRIu32
              "\n" NCORE_LOG_RESET,
              total);
       printf(NCORE_LOG_PREFIX
-             "   " NCORE_LOG_DIM
-             "Initialized:       " NCORE_LOG_RESET NCORE_LOG_VALUE
+             "   Initialized:       " NCORE_LOG_RESET NCORE_LOG_VALUE
              "yes\n" NCORE_LOG_RESET);
     } else if (manual_mode) {
       printf(NCORE_LOG_PREFIX
-             "   " NCORE_LOG_DIM
-             "Configured budget: " NCORE_LOG_RESET NCORE_LOG_DIM
+             "   Configured budget: " NCORE_LOG_RESET NCORE_LOG_DIM
              "manual\n" NCORE_LOG_RESET);
       printf(NCORE_LOG_PREFIX
-             "   " NCORE_LOG_DIM
-             "Initialized:       " NCORE_LOG_RESET NCORE_LOG_VALUE
+             "   Initialized:       " NCORE_LOG_RESET NCORE_LOG_VALUE
              "yes\n" NCORE_LOG_RESET);
     } else {
       printf(NCORE_LOG_PREFIX
-             "   " NCORE_LOG_DIM
-             "Configured budget: " NCORE_LOG_RESET NCORE_LOG_YELLOW
+             "   Configured budget: " NCORE_LOG_RESET NCORE_LOG_YELLOW
              "NOT INITIALIZED\n" NCORE_LOG_RESET);
       printf(NCORE_LOG_PREFIX
-             "   " NCORE_LOG_DIM
-             "Initialized:       " NCORE_LOG_RESET NCORE_LOG_YELLOW
+             "   Initialized:       " NCORE_LOG_RESET NCORE_LOG_YELLOW
              "no\n" NCORE_LOG_RESET);
     }
     printf(NCORE_LOG_PREFIX
-           "   " NCORE_LOG_DIM
-           "Compute:           " NCORE_LOG_RESET NCORE_LOG_VALUE
+           "   Compute:           " NCORE_LOG_RESET NCORE_LOG_VALUE
            "%" PRIu32 NCORE_LOG_RESET NCORE_LOG_DIM " (%s)\n" NCORE_LOG_RESET,
            live_compute, origin_compute);
     printf(NCORE_LOG_PREFIX
-           "   " NCORE_LOG_DIM
-           "Autograd:          " NCORE_LOG_RESET NCORE_LOG_VALUE
+           "   Autograd:          " NCORE_LOG_RESET NCORE_LOG_VALUE
            "%" PRIu32 NCORE_LOG_RESET NCORE_LOG_DIM " (%s)\n" NCORE_LOG_RESET,
            live_autograd, origin_autograd);
     printf(NCORE_LOG_PREFIX
-           "   " NCORE_LOG_DIM
-           "DTLoader:          " NCORE_LOG_RESET NCORE_LOG_VALUE
+           "   DTLoader:          " NCORE_LOG_RESET NCORE_LOG_VALUE
            "%" PRIu32 NCORE_LOG_RESET NCORE_LOG_DIM " (%s)\n" NCORE_LOG_RESET,
            live_dtloader, origin_dtloader);
     if (logical_ok && manual_counts_oversubscribed(live_compute, live_autograd,
