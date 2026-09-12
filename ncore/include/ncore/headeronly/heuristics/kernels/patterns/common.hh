@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 namespace ncore::heuristics::kernels {
 
@@ -91,20 +92,17 @@ struct DeviceCaps {
   uint32_t smCount = 0;                  ///< SM (CUDA) / CU (HIP) count.
   size_t smemPerBlock = 0;               ///< Shared memory per block, bytes.
   size_t smemPerSM = 0;                  ///< Shared memory per SM, bytes.
-  bool l1SmemSplitConfigurable = false;  ///< Shared/L1 budget is splittable.
   uint32_t regsPerSM = 0;                ///< Registers per SM.
   uint32_t regsAllocGranularity =
       0; ///< Per-thread quantum (8 on SM75+/CDNA, 0 disables).
   uint32_t maxGridX = 0, maxGridY = 0, maxGridZ = 0; ///< Grid limits per axis.
-  uint32_t archVersion = 0;                   ///< Packed arch generation.
-  uint64_t memBandwidthBytesPerSec = 0;       ///< Theoretical bandwidth.
-  uint64_t peakFlops = 0;                     ///< Theoretical throughput.
-  size_t l2Size = 0;                          ///< L2 capacity, bytes.
-  size_t l2PersistentReservable = 0;          ///< Reservable persistent share.
-  size_t l2MaxWindow = 0;                     ///< Max persistent policy window.
-  bool asyncCopyEngines = false;              ///< HW global/shared async copy.
-  bool clusterSharedMem = false;              ///< Multi-block shared access.
-  bool crossBlockAtomicsWithOrdering = false; ///< Ordered cross-block atomics.
+  uint32_t archVersion = 0;             ///< Packed arch generation.
+  uint64_t memBandwidthBytesPerSec = 0; ///< Theoretical bandwidth.
+  uint64_t peakFlops = 0;               ///< Theoretical throughput.
+  size_t l2Size = 0;                    ///< L2 capacity, bytes.
+  size_t l2PersistentReservable = 0;    ///< Reservable persistent share.
+  size_t l2MaxWindow = 0;               ///< Max persistent policy window.
+  bool asyncCopyEngines = false;        ///< HW global/shared async copy.
 };
 
 /**
@@ -356,13 +354,123 @@ inline uint32_t pointerAlign(const void *p) noexcept {
   return static_cast<uint32_t>(low);
 }
 
+namespace detail {
+
+/**
+ * @brief FP32 CUDA cores per SM by compute capability (major * 100 + minor).
+ *
+ * @details
+ * Covers exactly the SMs in @c NOVA_CUDA_ARCHITECTURES (minimum SM 75,
+ * enforced with @c FATAL_ERROR at configure time); anything else answers
+ * 0 so every consumer degrades to its no-data path instead of deciding
+ * on lies. Sources: TU102 public count (4608/72) for 7.5, Ampere Tuning
+ * Guide (8.6 doubles 8.0, hence 64 there), Ada Tuning Guide (8.9 doubles
+ * 8.0), Hopper architecture blog (H100: 128 per SM), Blackwell
+ * whitepaper.
+ */
+inline uint32_t fp32CoresPerSM(uint32_t arch) noexcept {
+  switch (arch) {
+  case 750U:
+  case 800U:
+    return 64U;
+  case 860U:
+  case 890U:
+  case 900U:
+  case 1000U:
+  case 1003U:
+  case 1100U:
+  case 1200U:
+  case 1201U:
+    return 128U;
+  default:
+    return 0U;
+  }
+}
+
+/// Theoretical DRAM bandwidth in bytes/s from memory clock (kHz) and bus
+/// width (bits), assuming double data rate. Zero input answers zero.
+inline uint64_t theoreticalBandwidth(uint32_t memClockKHz,
+                                     uint32_t busWidthBits) noexcept {
+  if (memClockKHz == 0U || busWidthBits == 0U) {
+    return 0U;
+  }
+  return satMul(satMul(2ULL * memClockKHz, 1000ULL), busWidthBits / 8ULL);
+}
+
+/// FP32 FMA peak throughput in flop/s for CUDA: cores/SM * SMs * clock * 2
+/// for the fused multiply-add. Any unknown input answers 0 (unknown,
+/// skipped downstream).
+inline uint64_t cudaPeakFp32Flops(uint32_t arch, uint32_t smCount,
+                                  uint32_t clockKHz) noexcept {
+  const uint32_t cores = fp32CoresPerSM(arch);
+  if (cores == 0U || smCount == 0U || clockKHz == 0U) {
+    return 0U;
+  }
+  return satMul(satMul(static_cast<uint64_t>(cores) * smCount,
+                       static_cast<uint64_t>(clockKHz) * 1000ULL),
+                2ULL);
+}
+
+/**
+ * @brief FP32 operations per clock per AMD compute unit, FMA included.
+ *
+ * @details
+ * Keyed by gfx-name prefix from @c gcnArchName. Values reproduce AMD
+ * published SKU peaks exactly (units * perCU * clock, no extra FMA
+ * factor): MI100 (120 * 128 * 1502 MHz = 23.1 TFLOPS), MI250X
+ * (220 * 128 * 1700 MHz = 47.9 vector), MI300X (304 * 256 * 2100 MHz =
+ * 163.4), RX 6900 XT (80 * 128 * 2250 MHz = 23.04), RX 7900 XTX
+ * (96 * 256 * 2500 MHz = 61.44, dual-issue). Sources: AMD product specs
+ * and the Hot Chips MI200/MI300 decks (per-CU FLOPS/clock tables).
+ * Prefixes without a verified row (gfx906, gfx101x, gfx115x, gfx120x)
+ * answer 0.
+ *
+ * WGP/CU caveat: on RDNA the runtime may report work-group processors
+ * instead of CUs (one WGP holds two CUs), halving the unit count. The
+ * error then halves the roofline knee, which stays orders of magnitude
+ * above any streaming intensity the sole consumer (bandwidth-bound test)
+ * decides on, so the mistake direction is safe by margin.
+ */
+inline uint32_t amdFlopsPerCU(std::string_view gfx) noexcept {
+  if (gfx.starts_with("gfx908") || gfx.starts_with("gfx90a") ||
+      gfx.starts_with("gfx103")) {
+    return 128U;
+  }
+  if (gfx.starts_with("gfx94") || gfx.starts_with("gfx110")) {
+    return 256U;
+  }
+  return 0U;
+}
+
+/// FP32 peak throughput in flop/s for HIP: perCU * units * clock, with the
+/// FMA doubling already inside the table values. Any unknown input
+/// answers 0 (unknown, skipped downstream).
+inline uint64_t hipPeakFp32Flops(std::string_view gfx, uint32_t units,
+                                 uint32_t clockKHz) noexcept {
+  const uint32_t perCU = amdFlopsPerCU(gfx);
+  if (perCU == 0U || units == 0U || clockKHz == 0U) {
+    return 0U;
+  }
+  return satMul(static_cast<uint64_t>(perCU) * units,
+                static_cast<uint64_t>(clockKHz) * 1000ULL);
+}
+
+} // namespace detail
+
 /**
  * @brief Build caps from either backend's detected properties.
  *
  * @details
- * Copies the four numeric fields both property structs share; every
- * other cap stays zero (unknown) so the router and clamps skip what
- * they cannot prove. Host-only glue for kernel launch sites.
+ * Copies every numeric field both property structs share and derives
+ * the theoretical bandwidth and packed architecture tag. Fields the
+ * runtime reports as zero stay zero (unknown) so the router and clamps
+ * skip what they cannot prove; that covers backends with documented
+ * zero-returning queries. Peak throughput arrives precomputed per
+ * backend (CUDA derives it from the CUDA table, HIP from the gfx table
+ * above). The packed tag reuses major * 100 + minor on both backends;
+ * on HIP the pair is not a CUDA generation so only exact-match consumers
+ * may use it (GEMM tuning degrades, roofline uses bandwidth and peak).
+ * Host-only glue for kernel launch sites.
  */
 template <typename DetectedProps>
 inline DeviceCaps capsFromDetected(const DetectedProps &p) noexcept {
@@ -370,7 +478,21 @@ inline DeviceCaps capsFromDetected(const DetectedProps &p) noexcept {
   d.warpSize = static_cast<uint32_t>(p.warpSize);
   d.maxThreadsPerBlockDevice = static_cast<uint32_t>(p.maxThreadsPerBlock);
   d.maxThreadsPerSM = static_cast<uint32_t>(p.maxThreadsPerMultiProcessor);
+  d.maxBlocksPerSM = static_cast<uint32_t>(p.maxBlocksPerMultiProcessor);
   d.smCount = static_cast<uint32_t>(p.multiProcessorCount);
+  d.smemPerBlock = static_cast<size_t>(p.sharedMemPerBlock);
+  d.smemPerSM = static_cast<size_t>(p.sharedMemPerMultiprocessor);
+  d.regsPerSM = static_cast<uint32_t>(p.regsPerMultiprocessor);
+  d.maxGridX = static_cast<uint32_t>(p.maxGridSize[0]);
+  d.maxGridY = static_cast<uint32_t>(p.maxGridSize[1]);
+  d.maxGridZ = static_cast<uint32_t>(p.maxGridSize[2]);
+  d.archVersion = static_cast<uint32_t>((p.major * 100) + p.minor);
+  d.memBandwidthBytesPerSec =
+      detail::theoreticalBandwidth(static_cast<uint32_t>(p.memoryClockRate),
+                                   static_cast<uint32_t>(p.memoryBusWidth));
+  d.peakFlops = p.peakFp32Flops;
+  d.l2Size = static_cast<size_t>(p.l2CacheSize);
+  d.l2MaxWindow = static_cast<size_t>(p.persistingL2CacheMaxSize);
   return d;
 }
 
