@@ -27,10 +27,12 @@
  * elements of @c src->item_size bytes each.
  *
  * The implementation collapses contiguous dimensions via
- * @ref collapse() and iterates over the collapsed view.  When @p src
- * is one-dimensional and already contiguous, no copy is performed
- * and @p dst is replaced by a view into @p src.  When @p src is a
- * scalar, the function succeeds without modifying @p dst.
+ * @ref collapse() and iterates over the collapsed view.  Copies run
+ * over storage units, so packed pairs (FP4) move as whole bytes
+ * with both nibbles preserved.  This layer always copies: the caller
+ * (@ref contiguous()) returns a view itself when no copy is required.
+ * When @p src is a scalar, the function succeeds without modifying
+ * @p dst.
  *
  * @param[in]  src  Source tensor.  Must not be @c nullptr.
  * @param[out] dst  Destination tensor with a caller-allocated data
