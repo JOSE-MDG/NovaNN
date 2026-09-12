@@ -29,10 +29,13 @@ extern "C" {
  * @brief Launch a contiguous-layout kernel on the detected device.
  *
  * @details
- * Already-contiguous sources become views sharing storage; 1-D
- * tensors move through the device-to-device fast path; anything else
- * is collapsed and gathered by a grid-stride kernel sized for the
- * detected backend.
+ * Callers handle already-contiguous inputs before dispatch (see @c tensor.c );
+ * this entry point assumes a non-contiguous source and always materializes
+ * a copy: dense one-dimensional tensors move through the device-to-device
+ * fast path; column-contiguous two-dimensional views take a shared-memory
+ * tile with fixed geometry; anything else is collapsed and gathered by a
+ * grid-stride kernel with the widest provable vector width, sized for
+ * the detected backend.
  *
  * @param[in]  src  Source tensor in device memory.
  * @param[in,out] dst  Destination tensor receiving the contiguous copy.
