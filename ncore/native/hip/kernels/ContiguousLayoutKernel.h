@@ -25,16 +25,19 @@ extern "C" {
  * @brief Materialize a contiguous copy of @p src into @p dst on HIP.
  *
  * @details
- * Already-contiguous sources become views sharing storage; 1-D
- * tensors move through the device-to-device fast path; anything else
- * is collapsed and gathered by a grid-stride kernel whose geometry
- * comes from @ref ncore::heuristics::kernels::resolveLaunchConfig()
- * fed with the detected HIP properties.
+ * Already-contiguous inputs are handled by the caller before dispatch
+ * (see @c tensor.c ); this launcher assumes a non-contiguous source and
+ * always materializes a copy: 1-D tensors move through the
+ * device-to-device fast path; anything else is collapsed and gathered
+ * by a grid-stride kernel whose geometry comes from
+ * @ref ncore::heuristics::kernels::resolveLaunchConfig() fed with the
+ * detected HIP properties.
  *
  * @param[in]  src  Source tensor in HIP device memory.
  * @param[out] dst  Destination tensor in HIP device memory.
  *
- * @return @ref novaStatus_t with the launch outcome, or the property
+ * @return @ref novaStatus_t with the launch outcome
+ *         (@ref novaKernelLaunchError on launch failure), or the property
  *         query error when the device caps cannot be read.
  */
 novaStatus_t launchHipContiguousKernel(const Tensor *restrict src,
