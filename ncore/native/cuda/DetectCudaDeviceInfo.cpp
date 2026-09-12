@@ -26,6 +26,8 @@
  *
  * @li @ref formatMemory — Converts byte counts to human-readable
  *   strings (GiB / MiB / bytes).
+ * @li @ref formatBandwidth — Converts bytes/s to human-readable
+ *   bandwidth (GB/s).
  * @li @ref formatCudaVersion — Converts the CUDA integer version
  *   encoding to a "major.minor" string.
  * @li @ref initCudaDeviceProperties — Performs the actual CUDA
@@ -36,12 +38,14 @@
  * @see device.c                  Core device layer that calls these.
  */
 
+#include <cstdint>
 #include <iostream>
 #include <sstream>
 #include <string>
 
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
+#include <ncore/headeronly/heuristics/kernels/patterns/common.hh>
 #include <ncore/headeronly/macros.h>
 
 #ifdef NOVA_HAS_CUDA
@@ -85,6 +89,26 @@ std::string formatMemory(size_t bytes) {
 }
 
 /**
+ * @brief Format a bandwidth figure as a human-readable string.
+ *
+ * @details
+ * Converts @p bytesPerSec to gigabytes per second with one decimal
+ * place (decimal giga, the industry unit for DRAM bandwidth).
+ *
+ * @param[in] bytesPerSec  Theoretical bandwidth in bytes per second.
+ *
+ * @return A formatted string (e.g., "672.0 GB/s").
+ */
+std::string formatBandwidth(uint64_t bytesPerSec) {
+  std::ostringstream out;
+  out.setf(std::ios::fixed);
+  out.precision(1);
+
+  out << static_cast<double>(bytesPerSec) / 1e9 << " GB/s";
+  return out.str();
+}
+
+/**
  * @brief Convert a CUDA integer version to a "major.minor" string.
  *
  * @details
@@ -124,10 +148,9 @@ std::string formatCudaVersion(int version) {
 cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
   static const cudaDetectedDeviceProps_t result =
       [&status]() -> cudaDetectedDeviceProps_t {
+    const int deviceId = was_device_detection_done() ? getCudaDeviceId() : 0;
     cudaDeviceProp prop{};
-    cudaError_t err = was_device_detection_done()
-                          ? cudaGetDeviceProperties(&prop, getCudaDeviceId())
-                          : cudaGetDeviceProperties(&prop, 0);
+    cudaError_t err = cudaGetDeviceProperties(&prop, deviceId);
 
     if (err != cudaSuccess) {
       status->err = (err == cudaErrorInvalidValue) ? novaInvalidValue
@@ -156,6 +179,19 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
       return {};
     }
 
+    namespace hk = ncore::heuristics::kernels;
+    novaStatus_t attrStatus{};
+    const cudaDetectedDeviceAttrs_t attrs =
+        getCudaDeviceAttributes(&attrStatus);
+    const uint32_t arch =
+        static_cast<uint32_t>((prop.major * 100) + prop.minor);
+    const uint64_t peak = hk::detail::cudaPeakFp32Flops(
+        arch, static_cast<uint32_t>(prop.multiProcessorCount),
+        static_cast<uint32_t>(attrs.clockRate));
+    const uint64_t bandwidth = hk::detail::theoreticalBandwidth(
+        static_cast<uint32_t>(attrs.memoryClockRate),
+        static_cast<uint32_t>(prop.memoryBusWidth));
+
     return {.isAvailable = true,
             .name = prop.name,
             .runtimeVersion = formatCudaVersion(runtimeVer),
@@ -166,7 +202,22 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
             .multiProcessorCount = prop.multiProcessorCount,
             .warpSize = prop.warpSize,
             .maxThreadsPerBlock = prop.maxThreadsPerBlock,
-            .maxThreadsPerMultiProcessor = prop.maxThreadsPerMultiProcessor};
+            .maxThreadsPerMultiProcessor = prop.maxThreadsPerMultiProcessor,
+            .maxBlocksPerMultiProcessor = prop.maxBlocksPerMultiProcessor,
+            .major = prop.major,
+            .minor = prop.minor,
+            .clockRate = attrs.clockRate,
+            .memoryClockRate = attrs.memoryClockRate,
+            .memoryBusWidth = prop.memoryBusWidth,
+            .sharedMemPerBlock = prop.sharedMemPerBlock,
+            .sharedMemPerMultiprocessor = prop.sharedMemPerMultiprocessor,
+            .regsPerMultiprocessor = prop.regsPerMultiprocessor,
+            .maxGridSize = {prop.maxGridSize[0], prop.maxGridSize[1],
+                            prop.maxGridSize[2]},
+            .l2CacheSize = prop.l2CacheSize,
+            .persistingL2CacheMaxSize = prop.persistingL2CacheMaxSize,
+            .peakFp32Flops = peak,
+            .memBandwidth = formatBandwidth(bandwidth)};
   }();
   if (!result.isAvailable) {
     status->err = novaDeviceNotAvailable;
@@ -179,6 +230,45 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
   return result;
 }
 } // namespace
+
+/**
+ * @brief Retrieve auxiliary device attributes.
+ *
+ * @details
+ * Queries the SM and DRAM peak clocks via @c cudaDeviceGetAttribute
+ * (absent from @c cudaDeviceProp in current toolkits) on the detected
+ * device, defaulting to device 0 before detection ran. The result is
+ * cached in a @c static local variable; later calls pay no runtime
+ * cost. A failed query degrades that field to 0 without failing.
+ * Query after detection: the device id is captured on the first call,
+ * so a later device switch keeps returning the first device attrs
+ * until process restart.
+ *
+ * @param[out] status  Receives @c novaSuccess.
+ *
+ * @return Cached attributes (zeros where unknown).
+ */
+cudaDetectedDeviceAttrs_t
+getCudaDeviceAttributes(novaStatus_t *status) noexcept {
+  static const cudaDetectedDeviceAttrs_t attrs = [] {
+    const int deviceId = was_device_detection_done() ? getCudaDeviceId() : 0;
+    int clockKHz = 0;
+    int memClockKHz = 0;
+    if (cudaDeviceGetAttribute(&clockKHz, cudaDevAttrClockRate, deviceId) !=
+        cudaSuccess) {
+      clockKHz = 0;
+    }
+    if (cudaDeviceGetAttribute(&memClockKHz, cudaDevAttrMemoryClockRate,
+                               deviceId) != cudaSuccess) {
+      memClockKHz = 0;
+    }
+    return cudaDetectedDeviceAttrs_t{.clockRate = clockKHz,
+                                     .memoryClockRate = memClockKHz};
+  }();
+  status->err = novaSuccess;
+  status->message = nova_get_error_msg(status->err, nullptr);
+  return attrs;
+}
 
 /**
  * @brief Print CUDA device properties to stdout.
@@ -223,6 +313,9 @@ novaStatus_t printCudaDeviceInfo(bool verbose) {
               << NCORE_LOG_RESET << NCORE_LOG_PREFIX
               << "   Total Global Memory:   " << NCORE_LOG_VALUE
               << result.totalGlobalMem << "\n"
+              << NCORE_LOG_RESET << NCORE_LOG_PREFIX
+              << "   Memory Bandwidth:      " << NCORE_LOG_VALUE
+              << result.memBandwidth << "\n"
               << NCORE_LOG_RESET << NCORE_LOG_PREFIX
               << "   SMs:                   " << NCORE_LOG_VALUE
               << result.multiProcessorCount << "\n"
