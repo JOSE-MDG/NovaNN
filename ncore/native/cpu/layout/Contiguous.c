@@ -23,13 +23,43 @@
 #include <ncore/threading/threads.h>
 
 /**
+ * @brief Copy one storage unit of a statically known width.
+ *
+ * @details
+ * Constant sizes lower to a single load/store pair while remaining
+ * strictly conforming on unaligned addresses. Falls back to @c memcpy
+ * for widths outside 1/2/4/8.
+ */
+static inline void copy_storage_unit(unsigned char *restrict dst,
+                                     const unsigned char *restrict src,
+                                     size_t item_size) {
+  switch (item_size) {
+  case 1:
+    memcpy(dst, src, 1);
+    break;
+  case 2:
+    memcpy(dst, src, 2);
+    break;
+  case 4:
+    memcpy(dst, src, 4);
+    break;
+  case 8:
+    memcpy(dst, src, 8);
+    break;
+  default:
+    memcpy(dst, src, item_size);
+    break;
+  }
+}
+
+/**
  * @brief Copy a one-dimensional tensor into a contiguous buffer.
  *
  * @details
- * If @p src is already contiguous, @p dst becomes a view of the
- * same data via @ref create_view().  Otherwise the raw bytes are
- * copied with @c memcpy and the strides of @p dst are recomputed
- * for the contiguous layout.
+ * Gathers the storage units one by one from the offset-adjusted base
+ * and recomputes the strides of @p dst for the contiguous layout.
+ * Each unit is copied whole, so packed pairs (FP4) keep both nibbles
+ * in order.
  *
  * @param[in]  src  Source tensor.  Must have exactly one dimension.
  * @param[out] dst  Destination tensor that receives the contiguous
@@ -49,15 +79,36 @@ contiguous_one_dimensional_tensor(const Tensor *restrict src,
                  "one-dimensional tensor";
     return st;
   }
-  if (!is_contiguous(src)) {
-    memcpy(dst->data.v, src->data.v, src->storage->size_bytes);
-    compute_tensor_strides_(dst, src->ndims, src->shape, src->item_size);
-    st.err = novaSuccess;
-    st.message = nova_get_error_msg(st.err, nullptr);
+  const size_t stride = src->strides[0];
+  const size_t item_size = src->item_size;
+  const unsigned char *sbase = src->data.data + src->offset;
+  unsigned char *dbase = dst->data.data;
+
+#ifdef NOVA_OPENMP
+
+  auto threads = get_num_threads_from(ParallelComputeGroup, &st);
+
+  if (st.err != novaSuccess) {
     return st;
   }
 
-  *dst = create_view(src, src->shape, src->ndims, &st);
+  const bool parallelize = is_parallelizable(
+      src, threads, ParallelizableByElements | ParallelizableByBytes);
+
+#pragma omp parallel for simd num_threads(threads)                             \
+    schedule(static) if (parallelize)
+  for (size_t item = 0; item < src->size; ++item) {
+    copy_storage_unit(dbase + (item * item_size), sbase + (item * stride),
+                      item_size);
+  }
+
+#else
+  for (size_t item = 0; item < src->size; ++item) {
+    copy_storage_unit(dbase + (item * item_size), sbase + (item * stride),
+                      item_size);
+  }
+#endif
+  compute_tensor_strides_(dst, src->ndims, src->shape, src->item_size);
   st.err = novaSuccess;
   st.message = nova_get_error_msg(st.err, nullptr);
   return st;
@@ -68,9 +119,10 @@ contiguous_one_dimensional_tensor(const Tensor *restrict src,
  *        buffer.
  *
  * @details
- * If the collapsed stride equals the source item size, the data is
- * already contiguous and is copied with @c memcpy.  Otherwise the
- * elements are gathered one by one using the collapsed stride.
+ * If the collapsed stride equals the source item size, the extent
+ * (@c src->size units from the offset base) is dense and copied
+ * with @c memcpy.  Otherwise the units are gathered one by one
+ * using the collapsed stride from the offset base.
  *
  * @param[in]  cv   Collapsed view describing the source layout.
  *                  Must have exactly one dimension.
@@ -99,32 +151,34 @@ static inline novaStatus_t contiguous_one_dimensional_cv(
 #ifdef NOVA_OPENMP
 
     auto threads = get_num_threads_from(ParallelComputeGroup, &st);
-    omp_set_num_threads((int)threads);
 
     if (st.err != novaSuccess) {
       return st;
     }
 
-#pragma omp parallel for schedule(                                             \
-        static) if (is_parallelizable(src, threads,                            \
-                                          ParallelizableByElements |           \
-                                                  ParallelizableByTensor))
+    const bool parallelize = is_parallelizable(
+        src, threads, ParallelizableByElements | ParallelizableByBytes);
+
+#pragma omp parallel for simd num_threads(threads)                             \
+    schedule(static) if (parallelize)
     for (size_t item = 0; item < src->size; ++item) {
-      memcpy(dst->data.data + (item * src->item_size),
-             src->data.data + (item * stride), src->item_size);
+      copy_storage_unit(dst->data.data + (item * src->item_size),
+                        src->data.data + src->offset + (item * stride),
+                        src->item_size);
     }
 
 #else
     for (size_t item = 0; item < src->size; ++item) {
-      memcpy(dst->data.data + (item * src->item_size),
-             src->data.data + (item * stride), src->item_size);
+      copy_storage_unit(dst->data.data + (item * src->item_size),
+                        src->data.data + src->offset + (item * stride),
+                        src->item_size);
     }
 #endif
     st.err = novaSuccess;
     st.message = nova_get_error_msg(st.err, nullptr);
     return st;
   }
-  memcpy(dst->data.v, src->data.v, src->storage->size_bytes);
+  memcpy(dst->data.v, src->data.data + src->offset, src->size * src->item_size);
   st.err = novaSuccess;
   st.message = nova_get_error_msg(st.err, nullptr);
   return st;
@@ -137,10 +191,9 @@ static inline novaStatus_t contiguous_one_dimensional_cv(
  * Entry point of the CPU contiguous backend.  Scalars pass through
  * unchanged.  One-dimensional tensors are handled by
  * @ref contiguous_one_dimensional_tensor.  Other tensors are
- * collapsed with @ref collapse() and copied element by element,
- * following the collapsed strides with an odometer walk.  When
- * @c NOVA_OPENMP is defined the multi-dimensional copy loop is
- * left unimplemented; the fallback loop is used otherwise.
+ * collapsed with @ref collapse() and copied unit by unit,
+ * following the collapsed strides (per-thread coordinates under
+ * @c NOVA_OPENMP, an odometer walk otherwise).
  *
  * @param[in]  src  Source tensor with arbitrary layout.
  * @param[out] dst  Destination tensor that receives the contiguous
@@ -173,16 +226,16 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
 #ifdef NOVA_OPENMP
 
   auto threads = get_num_threads_from(ParallelComputeGroup, &st);
-  omp_set_num_threads((int)threads);
 
   if (st.err != novaSuccess) {
     return st;
   }
 
-#pragma omp parallel for schedule(                                             \
-        static) if (is_parallelizable(src, threads,                            \
-                                          ParallelizableByElements |           \
-                                                  ParallelizableByTensor))
+  const bool parallelize = is_parallelizable(
+      src, threads, ParallelizableByElements | ParallelizableByBytes);
+
+#pragma omp parallel for simd num_threads(threads)                             \
+    schedule(static) if (parallelize)
   for (size_t item = 0; item < src->size; ++item) {
     size_t offset = src->offset;
     coords_t coords = {0};
@@ -192,11 +245,12 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
       offset += coords[dim] * cv.strides[dim];
     }
 
-    memcpy(dst->data.data + (item * src->item_size),
-           src->data.data + offset, src->item_size);
+    copy_storage_unit(dst->data.data + (item * src->item_size),
+                      src->data.data + offset, src->item_size);
   }
 
 #else
+  coords_t coords = {0};
   for (size_t item = 0; item < src->size; ++item) {
 
     size_t offset = src->offset;
@@ -205,8 +259,8 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
       offset += coords[dim] * cv.strides[dim];
     }
 
-    memcpy(dst->data.data + (item * src->item_size),
-           src->data.data + offset, src->item_size);
+    copy_storage_unit(dst->data.data + (item * src->item_size),
+                      src->data.data + offset, src->item_size);
     odometer(coords, cv.ndims, cv.shape);
   }
 #endif
