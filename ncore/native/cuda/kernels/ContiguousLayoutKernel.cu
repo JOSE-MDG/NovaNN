@@ -34,6 +34,8 @@
 #include "ffi.hpp"
 #include "memory/CudaIO.hpp"
 
+namespace hk = ncore::heuristics::kernels;
+
 namespace {
 
 /// Every accessed address stays a multiple of @p vB.
@@ -53,7 +55,6 @@ inline bool stridesVecOk(const CollapsedView &cv, size_t srcOff, size_t vB) {
 inline size_t vecWidthBytes(size_t itemSize, size_t totalBytes, const void *sp,
                             const void *dp, size_t srcOff,
                             const CollapsedView &cv) {
-  namespace hk = ncore::heuristics::kernels;
   if (itemSize == 0U) {
     return 0U;
   }
@@ -80,7 +81,6 @@ inline size_t vecWidthBytes(size_t itemSize, size_t totalBytes, const void *sp,
 /// Column-contiguous 2-D view with single-element transactions.
 inline bool tile2DApplicable(const CollapsedView &cv, size_t itemSize,
                              const void *sp, const void *dp, size_t srcOff) {
-  namespace hk = ncore::heuristics::kernels;
   if (cv.ndims != 2U) {
     return false;
   }
@@ -308,14 +308,14 @@ __global__ void contiguousKernel2DTileVec(size_t rows, size_t cols, size_t s0v,
 template <typename VecT>
 void launchOneDimCVVec(size_t strideBytes, size_t srcOffBytes, size_t count,
                        size_t itemSize, const unsigned char *src,
-                       unsigned char *dst, dim3 grid, dim3 blocks) {
-  constexpr size_t VB = sizeof(VecT);
+                       unsigned char *dst, dim3 grid, dim3 threads) {
+  constexpr size_t vB = sizeof(VecT);
 #ifdef _GNUC_CLANG_
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 #endif
-  contiguousKernelOneDimCVVec<VecT><<<grid, blocks>>>(
-      strideBytes / VB, srcOffBytes / VB, (count * itemSize) / VB,
+  contiguousKernelOneDimCVVec<VecT><<<grid, threads>>>(
+      strideBytes / vB, srcOffBytes / vB, (count * itemSize) / vB,
       reinterpret_cast<const VecT *>(src), reinterpret_cast<VecT *>(dst));
 #ifdef _GNUC_CLANG_
 #pragma GCC diagnostic pop
@@ -325,18 +325,18 @@ void launchOneDimCVVec(size_t strideBytes, size_t srcOffBytes, size_t count,
 template <typename VecT>
 void launchNDimVec(const CollapsedView &cv, size_t srcOff, size_t count,
                    size_t itemSize, const unsigned char *src,
-                   unsigned char *dst, dim3 grid, dim3 blocks) {
-  constexpr size_t VB = sizeof(VecT);
+                   unsigned char *dst, dim3 grid, dim3 threads) {
+  constexpr size_t vB = sizeof(VecT);
   CollapsedView cvv = cv;
   for (size_t i = 0; i < cvv.ndims; ++i) {
-    cvv.strides[i] /= VB;
+    cvv.strides[i] /= vB;
   }
 #ifdef _GNUC_CLANG_
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 #endif
-  contiguousKernelNDimVec<VecT><<<grid, blocks>>>(
-      cvv, srcOff / VB, (count * itemSize) / VB,
+  contiguousKernelNDimVec<VecT><<<grid, threads>>>(
+      cvv, srcOff / vB, (count * itemSize) / vB,
       reinterpret_cast<const VecT *>(src), reinterpret_cast<VecT *>(dst));
 #ifdef _GNUC_CLANG_
 #pragma GCC diagnostic pop
@@ -347,7 +347,7 @@ template <typename VecT>
 void launch2DTileVec(size_t rows, size_t cols, size_t s0, size_t s1,
                      size_t srcOff, const unsigned char *src,
                      unsigned char *dst) {
-  constexpr size_t VB = sizeof(VecT);
+  constexpr size_t vB = sizeof(VecT);
   const size_t tileCols = (cols + 31U) / 32U;
   const size_t tileRows = (rows + 31U) / 32U;
   const dim3 blocks(32U, 8U);
@@ -359,11 +359,75 @@ void launch2DTileVec(size_t rows, size_t cols, size_t s0, size_t s1,
 #pragma GCC diagnostic ignored "-Wcast-align"
 #endif
   contiguousKernel2DTileVec<VecT><<<grid, blocks>>>(
-      rows, cols, s0 / VB, s1 / VB, srcOff / VB,
+      rows, cols, s0 / vB, s1 / vB, srcOff / vB,
       reinterpret_cast<const VecT *>(src), reinterpret_cast<VecT *>(dst));
 #ifdef _GNUC_CLANG_
 #pragma GCC diagnostic pop
 #endif
+}
+
+/// Compiled facts of one gather kernel, queried once per instantiation.
+template <typename Kernel> hk::KernelAttrs kernelAttrs(Kernel *func) {
+  static const hk::KernelAttrs attrs = [func] {
+    hk::KernelAttrs a{};
+    cudaFuncAttributes q{};
+    if (cudaFuncGetAttributes(&q, reinterpret_cast<const void *>(func)) ==
+        cudaSuccess) {
+      a.regsPerThread = static_cast<uint32_t>(q.numRegs);
+      a.staticSmemBytes = q.sharedSizeBytes;
+      a.maxThreadsPerBlockKernel = static_cast<uint32_t>(q.maxThreadsPerBlock);
+    }
+    return a;
+  }();
+  return attrs;
+}
+
+/// Attributes of the gather kernel selected for a collapsed view and a
+/// proven vector width (0 selects the byte fallback).
+hk::KernelAttrs contiguousKernelAttrs(const CollapsedView &cv,
+                                      size_t vecBytes) {
+  const bool oneDim = (cv.ndims == 1);
+  switch (vecBytes) {
+  case 16U:
+    if (oneDim) {
+      return kernelAttrs(contiguousKernelOneDimCVVec<uint4>);
+    }
+    return kernelAttrs(contiguousKernelNDimVec<uint4>);
+  case 8U:
+    if (oneDim) {
+      return kernelAttrs(contiguousKernelOneDimCVVec<uint2>);
+    }
+    return kernelAttrs(contiguousKernelNDimVec<uint2>);
+  case 4U:
+    if (oneDim) {
+      return kernelAttrs(contiguousKernelOneDimCVVec<uint32_t>);
+    }
+    return kernelAttrs(contiguousKernelNDimVec<uint32_t>);
+  case 2U:
+    if (oneDim) {
+      return kernelAttrs(contiguousKernelOneDimCVVec<uint16_t>);
+    }
+    return kernelAttrs(contiguousKernelNDimVec<uint16_t>);
+  default:
+    if (oneDim) {
+      return kernelAttrs(contiguousKernelOneDimCV);
+    }
+    return kernelAttrs(contiguousKernelNDim);
+  }
+}
+
+/// Map the pending launch error into status (also resets the sticky error).
+inline novaStatus_t checkLaunch() {
+  if (cudaGetLastError() != cudaSuccess) {
+    novaStatus_t s{};
+    s.err = novaKernelLaunchError;
+    s.message = nova_get_error_msg(s.err, nullptr);
+    return s;
+  }
+  novaStatus_t s{};
+  s.err = novaSuccess;
+  s.message = nova_get_error_msg(s.err, nullptr);
+  return s;
 }
 
 } // namespace
@@ -372,7 +436,9 @@ void launch2DTileVec(size_t rows, size_t cols, size_t s0, size_t s1,
  * @brief Materialize a contiguous copy of @p src into @p dst on CUDA.
  *
  * @details
- * Already-contiguous sources become views; 1-D tensors take the
+ * Already-contiguous inputs are handled by the caller before dispatch
+ * (see tensor.c); this launcher assumes a non-contiguous source and
+ * always materializes a copy: 1-D tensors take the
  * device-to-device fast path; column-contiguous 2-D views take the
  * shared tile; anything else is collapsed and gathered with the
  * widest proven vector width, sized with
@@ -382,8 +448,10 @@ void launch2DTileVec(size_t rows, size_t cols, size_t s0, size_t s1,
  * @param[in]  src  Source tensor in CUDA device memory.
  * @param[out] dst  Destination tensor in CUDA device memory.
  *
- * @return @ref novaStatus_t with the launch outcome, or the property
- *         query error when the device caps cannot be read.
+ * @return @ref novaStatus_t with the launch outcome
+ *         (@ref novaKernelLaunchError when @c cudaGetLastError reports
+ *         a launch failure), or the property query error when the
+ *         device caps cannot be read.
  *
  * @see ncore::heuristics::kernels::resolveLaunchConfig()
  * @see launchHipContiguousKernel()  HIP mirror.
@@ -392,11 +460,6 @@ novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
                                         Tensor *restrict dst) {
 
   novaStatus_t st{};
-
-  if (is_contiguous(src)) {
-    *dst = create_view(src, src->shape, src->ndims, &st);
-    return st;
-  }
 
   if (src->ndims == 1 && src->strides[0] == src->item_size &&
       src->offset == 0) {
@@ -429,8 +492,7 @@ novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
                                      dst->data.data);
       break;
     }
-    st.err = novaSuccess;
-    st.message = nova_get_error_msg(st.err, nullptr);
+    st = checkLaunch();
     return st;
   }
 
@@ -438,7 +500,6 @@ novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
   if (st.err != novaSuccess) {
     return st;
   }
-  namespace hk = ncore::heuristics::kernels;
   hk::ElementWiseParams hp{};
   hp.device = hk::capsFromDetected(props);
   hp.numElements = src->size;
@@ -452,77 +513,75 @@ novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
   hp.numInputs = 1;
   hp.arithmeticIntensity = 0.0F;
   hp.reuseAfter = false;
-  const hk::LaunchConfig cfg = hk::resolveLaunchConfig(hp);
-  dim3 blocks(cfg.threads.x, cfg.threads.y, cfg.threads.z);
+
+  const size_t totalBytes = src->storage->size_bytes;
+  if (cv.ndims == 1 && cv.strides[0] == src->item_size) {
+    st = cudaTransfer(src->storage->size_bytes,
+                      DeviceMemcpyKind::deviceMemcpyDeviceToDevice,
+                      src->data.data + src->offset, dst->data.v);
+    return st;
+  }
+  const size_t vecBytes = vecWidthBytes(src->item_size, totalBytes, src->data.v,
+                                        dst->data.v, src->offset, cv);
+  hp.kernel = contiguousKernelAttrs(cv, vecBytes);
+  thread_local hk::FullConfigCache cache;
+  const hk::LaunchConfig cfg = hk::resolveLaunchConfig(hp, &cache);
+  dim3 threads(cfg.threads.x, cfg.threads.y, cfg.threads.z);
   dim3 grid(cfg.blocks.x, cfg.blocks.y, cfg.blocks.z);
 
   if (cv.ndims == 1) {
-    if (cv.strides[0] != src->item_size) {
-      const size_t totalBytes = src->storage->size_bytes;
-      switch (vecWidthBytes(src->item_size, totalBytes, src->data.v,
-                            dst->data.v, src->offset, cv)) {
-      case 16U:
-        launchOneDimCVVec<uint4>(cv.strides[0], src->offset, src->size,
-                                 src->item_size, src->data.data, dst->data.data,
-                                 grid, blocks);
-        break;
-      case 8U:
-        launchOneDimCVVec<uint2>(cv.strides[0], src->offset, src->size,
-                                 src->item_size, src->data.data, dst->data.data,
-                                 grid, blocks);
-        break;
-      case 4U:
-        launchOneDimCVVec<uint32_t>(cv.strides[0], src->offset, src->size,
-                                    src->item_size, src->data.data,
-                                    dst->data.data, grid, blocks);
-        break;
-      case 2U:
-        launchOneDimCVVec<uint16_t>(cv.strides[0], src->offset, src->size,
-                                    src->item_size, src->data.data,
-                                    dst->data.data, grid, blocks);
-        break;
-      default:
-        contiguousKernelOneDimCV<<<grid, blocks>>>(
-            cv.strides[0], src->offset, src->size, src->item_size,
-            src->data.data, dst->data.data);
-        break;
-      }
-    } else {
-      st = cudaTransfer(src->storage->size_bytes,
-                        DeviceMemcpyKind::deviceMemcpyDeviceToDevice,
-                        src->data.v, dst->data.v);
-      if (st.err != novaSuccess) {
-        return st;
-      }
+    switch (vecBytes) {
+    case 16U:
+      launchOneDimCVVec<uint4>(cv.strides[0], src->offset, src->size,
+                               src->item_size, src->data.data, dst->data.data,
+                               grid, threads);
+      break;
+    case 8U:
+      launchOneDimCVVec<uint2>(cv.strides[0], src->offset, src->size,
+                               src->item_size, src->data.data, dst->data.data,
+                               grid, threads);
+      break;
+    case 4U:
+      launchOneDimCVVec<uint32_t>(cv.strides[0], src->offset, src->size,
+                                  src->item_size, src->data.data,
+                                  dst->data.data, grid, threads);
+      break;
+    case 2U:
+      launchOneDimCVVec<uint16_t>(cv.strides[0], src->offset, src->size,
+                                  src->item_size, src->data.data,
+                                  dst->data.data, grid, threads);
+      break;
+    default:
+      contiguousKernelOneDimCV<<<grid, threads>>>(
+          cv.strides[0], src->offset, src->size, src->item_size, src->data.data,
+          dst->data.data);
+      break;
     }
   } else {
-    const size_t totalBytes = src->storage->size_bytes;
-    switch (vecWidthBytes(src->item_size, totalBytes, src->data.v, dst->data.v,
-                          src->offset, cv)) {
+    switch (vecBytes) {
     case 16U:
       launchNDimVec<uint4>(cv, src->offset, src->size, src->item_size,
-                           src->data.data, dst->data.data, grid, blocks);
+                           src->data.data, dst->data.data, grid, threads);
       break;
     case 8U:
       launchNDimVec<uint2>(cv, src->offset, src->size, src->item_size,
-                           src->data.data, dst->data.data, grid, blocks);
+                           src->data.data, dst->data.data, grid, threads);
       break;
     case 4U:
       launchNDimVec<uint32_t>(cv, src->offset, src->size, src->item_size,
-                              src->data.data, dst->data.data, grid, blocks);
+                              src->data.data, dst->data.data, grid, threads);
       break;
     case 2U:
       launchNDimVec<uint16_t>(cv, src->offset, src->size, src->item_size,
-                              src->data.data, dst->data.data, grid, blocks);
+                              src->data.data, dst->data.data, grid, threads);
       break;
     default:
-      contiguousKernelNDim<<<grid, blocks>>>(cv, src->offset, src->size,
-                                             src->item_size, src->data.data,
-                                             dst->data.data);
+      contiguousKernelNDim<<<grid, threads>>>(cv, src->offset, src->size,
+                                              src->item_size, src->data.data,
+                                              dst->data.data);
       break;
     }
   }
-  st.err = novaSuccess;
-  st.message = nova_get_error_msg(st.err, nullptr);
+  st = checkLaunch();
   return st;
 }
