@@ -64,18 +64,18 @@ static inline uint32 get_num_threads_gnu_impl() {
 }
 
 /**
-  * @brief Linux implementation of the logical thread-count query.
-  *
-  * @details
-  * Counts the CPUs in the process affinity mask via
-  * @c sched_getaffinity(). A count of @c 0 is treated as a failure
-  * and reported with @ref novaInvalidNumThreads.
-  *
-  * @param[out] status  Receives the result.  Set to @ref novaSuccess
-  *                     on success, or to @ref novaInvalidNumThreads if
-  *                     no CPUs are available to the process, or if
-  *                     @c sched_getaffinity() itself failed.
-  *
+ * @brief Linux implementation of the logical thread-count query.
+ *
+ * @details
+ * Counts the CPUs in the process affinity mask via
+ * @c sched_getaffinity(). A count of @c 0 is treated as a failure
+ * and reported with @ref novaInvalidNumThreads.
+ *
+ * @param[out] status  Receives the result.  Set to @ref novaSuccess
+ *                     on success, or to @ref novaInvalidNumThreads if
+ *                     no CPUs are available to the process, or if
+ *                     @c sched_getaffinity() itself failed.
+ *
  * @return The number of logical threads available to the process, or
  *         @c 0 on error.
  *
@@ -282,7 +282,7 @@ static inline uint32 get_num_threads_windows_impl() {
  *                     on success, or to @ref novaInvalidNumThreads if
  *                     no CPUs are available to the process, or if the
  *                     affinity query itself failed.
-  *
+ *
  * @return The number of logical threads available to the process, or
  *         @c 0 on error.
  *
@@ -311,12 +311,12 @@ uint32 get_num_logical_threads_impl(novaStatus_t *status) {
 
 #else
 /**
-  * @brief Fallback implementation for unsupported platforms.
-  *
-  * @details
-  * Reports @ref novaOsPlatformNotSupported and returns @c 0 without
-  * querying any runtime API.
-  *
+ * @brief Fallback implementation for unsupported platforms.
+ *
+ * @details
+ * Reports @ref novaOsPlatformNotSupported and returns @c 0 without
+ * querying any runtime API.
+ *
  * @param[out] status  Receives @ref novaOsPlatformNotSupported.
  *
  * @return Always @c 0.
