@@ -45,7 +45,7 @@
 
 #include "repr/formatters/element_fmt.h"
 
-#ifdef _GNUC_CLANG_
+#ifndef __clang__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuseless-cast"
 #endif
@@ -236,6 +236,6 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   return ctx;
 }
 
-#ifdef _GNUC_CLANG_
+#ifndef __clang__
 #pragma GCC diagnostic pop
 #endif
