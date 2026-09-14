@@ -23,7 +23,8 @@ Functions used
 #]=======================================================================]
 
 file(GLOB_RECURSE CPU_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/ncore/native/cpu/*.c"
+    "${CMAKE_SOURCE_DIR}/ncore/native/cpu/dtype/DTypeCasting.c"
+    "${CMAKE_SOURCE_DIR}/ncore/native/cpu/layout/*.c"
 )
 
 add_library(cpu_obj OBJECT ${CPU_SOURCES})
