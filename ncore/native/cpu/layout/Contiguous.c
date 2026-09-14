@@ -95,8 +95,7 @@ contiguous_one_dimensional_tensor(const Tensor *restrict src,
   const bool parallelize = is_parallelizable(
       src, threads, ParallelizableByElements | ParallelizableByBytes);
 
-#pragma omp parallel for simd num_threads(threads)                             \
-    schedule(static) if (parallelize)
+#pragma omp parallel for num_threads(threads) schedule(static) if (parallelize)
   for (size_t item = 0; item < src->size; ++item) {
     copy_storage_unit(dbase + (item * item_size), sbase + (item * stride),
                       item_size);
@@ -159,8 +158,7 @@ static inline novaStatus_t contiguous_one_dimensional_cv(
     const bool parallelize = is_parallelizable(
         src, threads, ParallelizableByElements | ParallelizableByBytes);
 
-#pragma omp parallel for simd num_threads(threads)                             \
-    schedule(static) if (parallelize)
+#pragma omp parallel for num_threads(threads) schedule(static) if (parallelize)
     for (size_t item = 0; item < src->size; ++item) {
       copy_storage_unit(dst->data.data + (item * src->item_size),
                         src->data.data + src->offset + (item * stride),
@@ -234,8 +232,7 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
   const bool parallelize = is_parallelizable(
       src, threads, ParallelizableByElements | ParallelizableByBytes);
 
-#pragma omp parallel for simd num_threads(threads)                             \
-    schedule(static) if (parallelize)
+#pragma omp parallel for num_threads(threads) schedule(static) if (parallelize)
   for (size_t item = 0; item < src->size; ++item) {
     size_t offset = src->offset;
     coords_t coords = {0};
