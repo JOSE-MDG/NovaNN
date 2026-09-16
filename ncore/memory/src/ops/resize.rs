@@ -12,8 +12,8 @@ use crate::manager::StorageManager;
 
 /// Resizes the storage associated with the handle to `new_size` bytes.
 ///
-/// On success the handle's cached `size_bytes` field is updated to
-/// reflect the new size.
+/// On success the handle's cached `size_bytes` and `align` fields are updated
+/// to reflect the storage object.
 ///
 /// # Arguments
 ///
@@ -28,9 +28,13 @@ use crate::manager::StorageManager;
 /// [`StorageError::ResizeFailed`] if the CPU reallocation fails, or
 /// [`StorageError::DeviceError`] if the device backend rejects the resize.
 pub fn resize_op(handle: &mut RustHandle, new_size: usize) -> Result<(), StorageError> {
-    StorageManager::with(handle.id, |s: &mut crate::storage::RustStorage| {
-        s.resize(new_size)
-    })??;
+    let effective_align = StorageManager::with(handle.id, |s: &mut crate::storage::RustStorage| {
+        let status = s.resize(new_size);
+        let align = s.align();
+        (status, align)
+    })
+    .map(|(status, align)| status.map(|()| align))??;
     handle.size_bytes = new_size;
+    handle.align = effective_align;
     Ok(())
 }
