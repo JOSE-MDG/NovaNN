@@ -78,7 +78,7 @@ static inline void copy_host_buffer(const Tensor *restrict src,
                                     novaStatus_t *status) {
 
   (void)status;
-  memcpy(dst->data.data + src->offset, src->data.data,
+  memcpy(dst->data.data, src->data.data + src->offset,
          src->storage->size_bytes);
 }
 
