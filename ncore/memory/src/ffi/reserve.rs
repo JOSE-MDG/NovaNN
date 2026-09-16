@@ -22,7 +22,7 @@ use std::ffi::{CStr, c_char};
 ///                  with the native allocator wrapper.
 /// * `pin_memory` - If `true`, allocate page-locked host memory (only valid
 ///                  when `device` is `"cpu"`).
-/// * `align`      - Required memory alignment. Must be a power of two.
+/// * `align` - Required memory alignment. Must be a power of two. Ignored for device and pinned host allocations.
 /// * `status`     - Non-null output status populated for every call.
 ///
 /// # Returns

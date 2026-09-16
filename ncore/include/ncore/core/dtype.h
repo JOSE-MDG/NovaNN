@@ -48,7 +48,7 @@ typedef float float32;
 /** @brief 64-bit IEEE 754 double-precision float. */
 typedef double float64;
 
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(_GNUC_CLANG_)
 /** @brief 16-bit IEEE 754 half-precision float (compiler extension). */
 typedef _Float16 float16;
 

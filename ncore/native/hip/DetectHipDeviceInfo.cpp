@@ -30,6 +30,8 @@
  *
  * @li @ref formatMemory — Converts byte counts to human-readable
  *   strings (GiB / MiB / bytes).
+ * @li @ref formatBandwidth — Converts bytes/s to human-readable
+ *   bandwidth (GB/s).
  * @li @ref formatHipVersion — Converts the HIP integer version
  *   encoding to a "major.minor.patch" string.
  * @li @ref initHipDeviceProperties — Performs the actual HIP
@@ -40,12 +42,14 @@
  * @see device.c                 Core device layer that calls these.
  */
 
+#include <cstdint>
 #include <iostream>
 #include <sstream>
 #include <string>
 
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
+#include <ncore/headeronly/heuristics/kernels/patterns/common.hh>
 #include <ncore/headeronly/macros.h>
 
 #ifdef NOVA_HAS_HIP
@@ -89,6 +93,26 @@ std::string formatMemory(size_t bytes) {
   }
 
   return std::to_string(bytes) + " bytes";
+}
+
+/**
+ * @brief Format a bandwidth figure as a human-readable string.
+ *
+ * @details
+ * Converts @p bytesPerSec to gigabytes per second with one decimal
+ * place (decimal giga, the industry unit for DRAM bandwidth).
+ *
+ * @param[in] bytesPerSec  Theoretical bandwidth in bytes per second.
+ *
+ * @return A formatted string (e.g., "672.0 GB/s").
+ */
+std::string formatBandwidth(uint64_t bytesPerSec) {
+  std::ostringstream out;
+  out.setf(std::ios::fixed);
+  out.precision(1);
+
+  out << static_cast<double>(bytesPerSec) / 1e9 << " GB/s";
+  return out.str();
 }
 
 /**
@@ -141,7 +165,7 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
                          : hipGetDeviceProperties(&prop, 0);
 
     if (err != hipSuccess) {
-      status->err = (err != hipErrorInvalidValue) ? novaInvalidValue
+      status->err = (err == hipErrorInvalidValue) ? novaInvalidValue
                                                   : novaDeviceNotAvailable;
       status->message = hipGetErrorString(err);
       return {};
@@ -152,7 +176,7 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
 
     hipError_t driverErr = hipDriverGetVersion(&driverVer);
     if (driverErr != hipSuccess) {
-      status->err = (driverErr != hipErrorInvalidValue)
+      status->err = (driverErr == hipErrorInvalidValue)
                         ? novaInvalidValue
                         : novaDeviceNotAvailable;
       status->message = hipGetErrorString(driverErr);
@@ -161,12 +185,28 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
 
     hipError_t runtimeErr = hipRuntimeGetVersion(&runtimeVer);
     if (runtimeErr != hipSuccess) {
-      status->err = (runtimeErr != hipErrorInvalidValue)
+      status->err = (runtimeErr == hipErrorInvalidValue)
                         ? novaInvalidValue
                         : novaDeviceNotAvailable;
       status->message = hipGetErrorString(runtimeErr);
       return {};
     }
+
+    novaStatus_t attrStatus{};
+    const hipDetectedDeviceAttrs_t attrs = getHipDeviceAttributes(&attrStatus);
+    // Prefer the property query; fall back to attributes where the runtime
+    // documents zero returns.
+    const int maxThreadsPerMP = (prop.maxThreadsPerMultiProcessor != 0)
+                                    ? prop.maxThreadsPerMultiProcessor
+                                    : attrs.maxThreadsPerMultiProcessor;
+
+    namespace hk = ncore::heuristics::kernels;
+    uint64_t bandwidth = hk::detail::theoreticalBandwidth(
+        static_cast<uint32_t>(prop.memoryClockRate),
+        static_cast<uint32_t>(prop.memoryBusWidth));
+    const uint64_t peak = hk::detail::hipPeakFp32Flops(
+        prop.gcnArchName, static_cast<uint32_t>(prop.multiProcessorCount),
+        static_cast<uint32_t>(prop.clockRate));
 
     return {.isAvailable = true,
             .name = prop.name,
@@ -177,8 +217,28 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
             .multiProcessorCount = prop.multiProcessorCount,
             .warpSize = prop.warpSize,
             .maxThreadsPerBlock = prop.maxThreadsPerBlock,
-            .maxThreadsPerMultiProcessor = prop.maxThreadsPerMultiProcessor};
+            .maxThreadsPerMultiProcessor = maxThreadsPerMP,
+            .maxBlocksPerMultiProcessor = prop.maxBlocksPerMultiProcessor,
+            .major = prop.major,
+            .minor = prop.minor,
+            .clockRate = prop.clockRate,
+            .memoryClockRate = prop.memoryClockRate,
+            .memoryBusWidth = prop.memoryBusWidth,
+            .sharedMemPerBlock = prop.sharedMemPerBlock,
+            .sharedMemPerMultiprocessor = prop.sharedMemPerMultiprocessor,
+            .regsPerMultiprocessor = prop.regsPerMultiprocessor,
+            .maxGridSize = {prop.maxGridSize[0], prop.maxGridSize[1],
+                            prop.maxGridSize[2]},
+            .l2CacheSize = prop.l2CacheSize,
+            .persistingL2CacheMaxSize = prop.persistingL2CacheMaxSize,
+            .peakFp32Flops = peak,
+            .memBandwidth = formatBandwidth(bandwidth)};
   }();
+  if (!result.isAvailable) {
+    status->err = novaDeviceNotAvailable;
+    status->message = nova_get_error_msg(status->err, nullptr);
+    return result;
+  }
 
   status->err = novaSuccess;
   status->message = nova_get_error_msg(status->err, nullptr);
@@ -186,6 +246,41 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
 }
 
 } // namespace
+
+/**
+ * @brief Retrieve auxiliary device attributes.
+ *
+ * @details
+ * Queries the resident-threads-per-CU figure via
+ * @c hipDeviceGetAttribute, covering the documented zero-returning
+ * @c hipGetDeviceProperties query for the same field. Runs on the
+ * detected device, defaulting to device 0 before detection ran. The
+ * result is cached in a @c static local variable; later calls pay no
+ * runtime cost. A failed query degrades the field to 0 without failing.
+ * Query after detection: the device id is captured on the first call,
+ * so a later device switch keeps returning the first device attrs
+ * until process restart.
+ *
+ * @param[out] status  Receives @c novaSuccess.
+ *
+ * @return Cached attributes (zeros where unknown).
+ */
+hipDetectedDeviceAttrs_t getHipDeviceAttributes(novaStatus_t *status) noexcept {
+  static const hipDetectedDeviceAttrs_t attrs = [] {
+    const int deviceId = was_device_detection_done() ? getHipDeviceId() : 0;
+    int maxThreadsPerMP = 0;
+    if (hipDeviceGetAttribute(&maxThreadsPerMP,
+                              hipDeviceAttributeMaxThreadsPerMultiProcessor,
+                              deviceId) != hipSuccess) {
+      maxThreadsPerMP = 0;
+    }
+    return hipDetectedDeviceAttrs_t{.maxThreadsPerMultiProcessor =
+                                        maxThreadsPerMP};
+  }();
+  status->err = novaSuccess;
+  status->message = nova_get_error_msg(status->err, nullptr);
+  return attrs;
+}
 
 /**
  * @brief Print HIP device properties to stdout.
@@ -230,6 +325,9 @@ novaStatus_t printHipDeviceInfo(bool verbose) {
               << NCORE_LOG_RESET << NCORE_LOG_PREFIX
               << "   Total Global Memory:   " << NCORE_LOG_VALUE
               << result.totalGlobalMem << "\n"
+              << NCORE_LOG_RESET << NCORE_LOG_PREFIX
+              << "   Memory Bandwidth:      " << NCORE_LOG_VALUE
+              << result.memBandwidth << "\n"
               << NCORE_LOG_RESET << NCORE_LOG_PREFIX
               << "   CUs:                   " << NCORE_LOG_VALUE
               << result.multiProcessorCount << "\n"

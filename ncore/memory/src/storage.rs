@@ -9,7 +9,7 @@
 //! [`RustStorage::deallocate`] explicitly on the final release so backend
 //! failures can be returned to the caller; [`Drop`] is retained as a final
 //! cleanup path for unwinding and registry teardown.
-
+//!
 use crate::counter::AtomicRefCounter;
 use crate::error::StorageError;
 use crate::ffi::cpp::{
@@ -122,7 +122,7 @@ impl RustStorage {
     ///
     /// When `pin_memory` is `true` the memory is allocated as page-locked
     /// host memory via the active GPU backend; otherwise it is allocated
-    /// on the GPU device itself.
+    /// on the GPU device itself. Alignment is determined by the backend.
     ///
     /// # Arguments
     ///
@@ -331,17 +331,24 @@ impl RustStorage {
         self.ptr
     }
 
+    /// Largest power of two dividing the pointer address; null yields 1.
+    fn proven_alignment(ptr: *const u8) -> usize {
+        if ptr.is_null() {
+            return 1;
+        }
+        let addr = ptr as usize;
+        let low = addr & addr.wrapping_neg();
+        if low == 0 { 1 } else { low }
+    }
+
     /// Returns the alignment associated with the allocation.
+    ///
+    /// CPU memory reports the requested layout alignment; device and
+    /// pinned host memory report the backend alignment.
     pub fn align(&self) -> usize {
         match &self.alloc {
             Allocation::Cpu { layout } => layout.align(),
-            Allocation::Gpu { device_buf } => {
-                if device_buf.is_pinned {
-                    64
-                } else {
-                    512
-                }
-            }
+            Allocation::Gpu { .. } => Self::proven_alignment(self.ptr as *const u8),
         }
     }
 

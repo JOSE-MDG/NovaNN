@@ -417,6 +417,58 @@ bool is_contiguous(const Tensor *restrict ten);
 Tensor contiguous(const Tensor *restrict ten, novaStatus_t *status);
 
 /**
+ * @brief Swap two dimensions of a tensor, returning a view.
+ *
+ * @details
+ * Shares @p ten's storage without copying: shape and strides of both
+ * dimensions come from the source, so element @c [i, j] of the result
+ * aliases @c [j, i] of the source. Negative indices count from the
+ * last dimension.
+ *
+ * @param[in]  ten   Source tensor. Must not be @c nullptr.
+ * @param[out] st    Receives the operation result.
+ * @param[in]  dim0  First dimension to swap. May be negative.
+ * @param[in]  dim1  Second dimension to swap. May be negative.
+ *
+ * @return View @c Tensor sharing @p ten's storage, or a collected
+ *         tensor on failure.
+ *
+ * @pre  @p ten must not be @c nullptr.
+ * @pre  @p st must not be @c nullptr.
+ *
+ * @see permute()      General dimension reordering.
+ * @see create_view()  Storage sharing behind the result.
+ */
+Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1);
+
+/**
+ * @brief Reorder tensor dimensions following an explicit permutation.
+ *
+ * @details
+ * Shares @p ten's storage without copying: dimension @c i of the
+ * result takes the shape and stride of source dimension @c dims[i].
+ * Every source dimension must appear exactly once; out-of-range
+ * indices and duplicates fail with @ref novaInvalidValue. Negative
+ * entries count from the last dimension.
+ *
+ * @param[in]  ten   Source tensor. Must not be @c nullptr.
+ * @param[out] st    Receives the operation result.
+ * @param[in]  dims  Permutation of @c [0, ndims). Only the first
+ *                   @c ndims entries are read.
+ *
+ * @return View @c Tensor sharing @p ten's storage, or a collected
+ *         tensor on failure.
+ *
+ * @pre  @p ten must not be @c nullptr.
+ * @pre  @p st must not be @c nullptr.
+ *
+ * @see transpose()    Two-dimension swap.
+ * @see create_view()  Storage sharing behind the result.
+ */
+Tensor permute(const Tensor *ten, novaStatus_t *st,
+               const int dims[NOVA_MAX_DIMS]);
+
+/**
  * @brief Check whether a tensor is 0-dimensional (scalar).
  *
  * @details
@@ -444,47 +496,6 @@ bool is_scalar(const Tensor *ten);
  * @see is_scalar()  Tensor variant.
  */
 bool is_scalar_grad(TensorGrad grad);
-
-/**
- * @brief Check whether a tensor's data buffer is properly aligned.
- *
- * @details
- * Alignment requirements differ by device:
- * @li GPU (@c DEVICE_GPU): 512-byte alignment.
- * @li CPU (@c DEVICE_CPU): 64-byte alignment.
- * @li META (@c DEVICE_META): always returns @c true.
- *
- * The check selects the threshold based on @ref Tensor::device and
- * tests @c ten->storage->ptr.v modulo the threshold.
- *
- * @param[in] ten  Tensor to check.  Must not be @c nullptr.
- *
- * @return @c true if the data pointer meets the alignment
- *         requirement, @c false otherwise.
- *
- * @pre  @c ten->storage must not be @c nullptr (except META).
- *
- * @see is_grad_aligned()  Gradient variant.
- */
-bool is_aligned(const Tensor *ten);
-
-/**
- * @brief Check whether a gradient tensor's data buffer is aligned.
- *
- * @details
- * Same alignment logic as @ref is_aligned(): 512-byte for GPU,
- * 64-byte for CPU, and always @c true for META tensors.
- *
- * @param[in] grad  Gradient tensor to check.  Must not be @c nullptr.
- *
- * @return @c true if the gradient data pointer meets the alignment
- *         requirement, @c false otherwise.
- *
- * @pre  @p grad must not be @c nullptr.
- *
- * @see is_aligned()  Tensor variant.
- */
-bool is_grad_aligned(TensorGrad grad);
 
 /**
  * @brief Check whether a tensor has been collected (freed).

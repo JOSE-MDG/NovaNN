@@ -8,9 +8,10 @@
  * modes (normal vs. debug) and provides both heap-allocating
  * functions and convenience printing wrappers.
  *
- * All functions returning @c char* transfer ownership of the
- * heap-allocated memory to the caller. The caller is responsible
- * for calling @c free() on the result to prevent memory leaks.
+ * Every function returns @ref novaStatus_t: failures carry a reason
+ * instead of an ambiguous null. Functions producing a string take an
+ * output slot; on error the slot holds @c nullptr, on success a
+ * heap-allocated buffer the caller must @c free().
  *
  * @section typical-usage Typical Usage
  *
@@ -18,11 +19,12 @@
  *   Tensor t = create_tensor(...);
  *
  *   // Print to stdout immediately
- *   tensor_print(&t);
+ *   novaStatus_t st = tensor_print(&t);
  *
  *   // Or capture the string for logging
- *   char *s = tensor_repr(&t);
- *   if (s) {
+ *   char *s = nullptr;
+ *   st = tensor_repr(&t, &s);
+ *   if (st.err == novaSuccess) {
  *       LOG_INFO("Result: %s", s);
  *       free(s);
  *   }
@@ -36,6 +38,7 @@
 
 #pragma once
 
+#include <ncore/core/status.h>
 #include <ncore/repr/repr_options.h>
 #include <ncore/tensor.h>
 
@@ -51,13 +54,17 @@ extern "C" {
  * format. In this mode, a @c dtype suffix is only appended if the
  * tensor's data type is not the library default (@c Float32).
  *
- * @param[in] ten Pointer to the tensor to render. May be @c nullptr
- *                (returns @c nullptr).
+ * @param[in]  ten Pointer to the tensor to render.
+ * @param[out] out Slot for the heap-allocated null-terminated string.
  *
- * @return Heap-allocated null-terminated string on success, or
- *         @c nullptr on failure. The caller must @c free() the result.
+ * @return @c novaSuccess with @c *out owned by the caller, or the
+ *         failure reason with @c *out set to @c nullptr
+ *         (@c novaInvalidPointer for null arguments,
+ *         @c novaInvalidTensor for unallocated input,
+ *         @c novaOutOfMemory when the string cannot be built,
+ *         propagated transfer status for GPU tensors).
  */
-char *tensor_repr(const Tensor *ten);
+novaStatus_t tensor_repr(const Tensor *ten, char **out);
 
 /**
  * @brief Produce a debug-mode string representation of a tensor.
@@ -67,13 +74,12 @@ char *tensor_repr(const Tensor *ten);
  * footer containing the tensor's dtype, shape, device placement, and
  * autograd information (@c requires_grad or @c grad_fn).
  *
- * @param[in] ten Pointer to the tensor to render. May be @c nullptr
- *                (returns @c nullptr).
+ * @param[in]  ten Pointer to the tensor to render.
+ * @param[out] out Slot for the heap-allocated null-terminated string.
  *
- * @return Heap-allocated null-terminated string on success, or
- *         @c nullptr on failure. The caller must @c free() the result.
+ * @return Same contract as @ref tensor_repr().
  */
-char *tensor_repr_debug(const Tensor *ten);
+novaStatus_t tensor_repr_debug(const Tensor *ten, char **out);
 
 /**
  * @brief Produce a string representation with full control via
@@ -84,46 +90,47 @@ char *tensor_repr_debug(const Tensor *ten);
  * customize thresholds, precision, scientific notation, and other
  * formatting parameters.
  *
- * @param[in]  ten  Pointer to the tensor to render. May be @c nullptr
- *                  (returns @c nullptr).
+ * @param[in]  ten  Pointer to the tensor to render.
  * @param[in]  opts Pointer to a @ref ReprOptions struct. If
- *                  @c nullptr, library defaults are used (equivalent
- *                  to @ref tensor_repr()).
+ *                  @c nullptr, library defaults are used.
+ * @param[out] out  Slot for the heap-allocated null-terminated string.
  *
- * @return Heap-allocated null-terminated string on success, or
- *         @c nullptr on failure. The caller must @c free() the result.
+ * @return Same contract as @ref tensor_repr().
  *
  * @see repr_default_options()
  */
-char *tensor_repr_with_options(const Tensor *ten, const ReprOptions *opts);
+novaStatus_t tensor_repr_with_options(const Tensor *ten,
+                                      const ReprOptions *opts, char **out);
 
 /**
  * @brief Print a tensor's normal-mode representation to standard
  *        output.
  *
  * @details
- * Convenience wrapper that internally calls @ref tensor_repr(),
- * writes the result to @c stdout followed by a newline, and
- * automatically frees the allocated memory.
+ * Convenience wrapper that renders, writes the result to @c stdout
+ * followed by a newline, and frees the allocated memory.
  *
- * @param[in] ten Pointer to the tensor to print. May be @c nullptr
- *                (no-op).
+ * @param[in] ten Pointer to the tensor to print.
+ *
+ * @return @c novaSuccess, or the rendering failure reason. A
+ *         @c printf failure reports @c novaRuntimeError.
  */
-void tensor_print(const Tensor *ten);
+novaStatus_t tensor_print(const Tensor *ten);
 
 /**
  * @brief Print a tensor's debug-mode representation to standard
  *        output.
  *
  * @details
- * Convenience wrapper that internally calls @ref tensor_repr_debug(),
- * writes the result to @c stdout followed by a newline, and
- * automatically frees the allocated memory.
+ * Convenience wrapper that renders in debug mode, writes the result
+ * to @c stdout followed by a newline, and frees the allocated
+ * memory.
  *
- * @param[in] ten Pointer to the tensor to print. May be @c nullptr
- *                (no-op).
+ * @param[in] ten Pointer to the tensor to print.
+ *
+ * @return Same contract as @ref tensor_print().
  */
-void tensor_print_debug(const Tensor *ten);
+novaStatus_t tensor_print_debug(const Tensor *ten);
 
 #ifdef __cplusplus
 }

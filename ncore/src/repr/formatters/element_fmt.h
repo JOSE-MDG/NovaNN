@@ -68,9 +68,13 @@ extern element_formatter_t g_element_formatters[NUM_DTYPES];
  * @param[in]  ten      Parent tensor.
  * @param[in]  ctx      Active representation context.
  *
- * @return Number of characters written (excluding null-terminator).
+ * @return Number of characters written (excluding null-terminator),
+ *         or -1 for an out-of-range dtype (no handler runs).
  */
 static inline int format_element(char *buf, size_t buf_size, const void *ptr,
                                  const Tensor *ten, const ReprContext *ctx) {
+  if (ten->dtype >= NUM_DTYPES) {
+    return -1;
+  }
   return g_element_formatters[ten->dtype](buf, buf_size, ptr, ten, ctx);
 }

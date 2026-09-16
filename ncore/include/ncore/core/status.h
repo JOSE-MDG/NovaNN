@@ -57,6 +57,7 @@ typedef enum novaError_t : uint8_t {
   novaInvalidShape,
   novaInvalidIndex,
   novaInvalidNumThreads,
+  novaInvalidParallelGroup,
   novaInvalidHandle,
 
   /* Memory */
@@ -98,6 +99,9 @@ typedef enum novaError_t : uint8_t {
   /* General */
   novaRuntimeError,
 
+  /* Threads */
+  novaThreadNotInitialized,
+
 } novaError_t;
 
 /**
@@ -132,7 +136,8 @@ extern "C" {
  *
  * @see novaError_t
  */
-const char *nova_get_error_msg(novaError_t err, const char *fallback);
+NCORE_HOST_DEVICE const char *nova_get_error_msg(novaError_t err,
+                                                 const char *fallback);
 #ifdef __cplusplus
 }
 #endif

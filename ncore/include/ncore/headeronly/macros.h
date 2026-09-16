@@ -147,11 +147,11 @@
  * @details
  * Counts @c novaSuccess plus every error code across all categories
  * (parameters, memory, transfers, device/backend, OS, dtype/cast, GPU,
- * internal and general). Use it to size arrays indexed by error code.
+ * internal, general and threads). Use it to size arrays indexed by error code.
  *
  * @see novaError_t in status.h.
  */
-#define NUM_ERRORS 36
+#define NUM_ERRORS 38
 
 /**
  * @def NUM_PARALLEL_GROUPS
@@ -373,6 +373,9 @@ inline void nova_internal_assert_deprecated_marker() {}
  * @li Green prefix (@c --): status messages.
  * @li Cyan values: highlighted data (device names, sizes).
  * @li Bold: section headings or emphasis.
+ * @li Dim: field labels and secondary text.
+ * @li Yellow: pending or uninitialized states.
+ * @li Red: errors and failures.
  * @li Reset: restores default terminal colour.
  */
 
@@ -399,6 +402,27 @@ inline void nova_internal_assert_deprecated_marker() {}
  * @brief Cyan colour for highlighted values.
  */
 #define NCORE_LOG_VALUE "\033[36m"
+
+/**
+ * @def NCORE_LOG_DIM
+ * @brief Dim colour for field labels and secondary text.  Must be
+ *        paired with @ref NCORE_LOG_RESET.
+ */
+#define NCORE_LOG_DIM "\033[2m"
+
+/**
+ * @def NCORE_LOG_YELLOW
+ * @brief Yellow colour for pending or uninitialized states.  Must be
+ *        paired with @ref NCORE_LOG_RESET.
+ */
+#define NCORE_LOG_YELLOW "\033[33m"
+
+/**
+ * @def NCORE_LOG_RED
+ * @brief Red colour for errors and failures.  Must be paired with
+ *        @ref NCORE_LOG_RESET.
+ */
+#define NCORE_LOG_RED "\033[31m"
 
 /**
  * @def NCORE_LOG_RESET

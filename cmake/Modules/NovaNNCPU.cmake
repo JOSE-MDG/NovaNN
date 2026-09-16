@@ -58,7 +58,5 @@ function(nova_configure_cpu_target TARGET)
         endif()
 
         target_compile_definitions(${TARGET} PRIVATE NOVA_OPENMP=1)
-    else()
-        target_compile_definitions(${TARGET} PRIVATE NOVA_OPENMP=0)
     endif()
 endfunction()

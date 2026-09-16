@@ -61,7 +61,10 @@ namespace {
  *
  * @tparam BufKind      Backend buffer type (@c cudaBuffer_t or
  *                      @c hipBuffer_t).
- * @tparam funcKind     Backend allocator function pointer.
+ * @tparam funcKind     Backend allocator function pointer. Invoked
+ *                      with a null stream so the synchronous internal
+ *                      path is used; async chaining is only available
+ *                      to direct backend callers.
  * @tparam DeviceKind   The @c deviceKind_t value for this backend.
  *
  * @param[in]  bytes  Requested allocation size.
@@ -80,7 +83,7 @@ constexpr void deviceReserveDispatch(std::size_t bytes, bool pinned,
     *dbuf = deviceBuffer_t{};
     return;
   }
-  novaStatus_t dstatus = funcKind(bytes, pinned, buf.get());
+  novaStatus_t dstatus = funcKind(bytes, pinned, buf.get(), nullptr);
 
   status->err = dstatus.err;
   status->message = dstatus.message;
@@ -192,22 +195,28 @@ novaStatus_t deviceRelease(deviceBuffer_t *buf) {
   novaStatus_t status = {};
   if (buf->deviceKind == deviceKind_t::DeviceCUDA) {
 #ifdef NOVA_HAS_CUDA
-    auto backendBuf = std::unique_ptr<cudaBuffer_t>(
-        static_cast<cudaBuffer_t *>(buf->deviceBufPtr));
-    novaStatus_t cstatus = cudaRelease(backendBuf.get());
+    auto *backendBuf = static_cast<cudaBuffer_t *>(buf->deviceBufPtr);
+    novaStatus_t cstatus = cudaRelease(backendBuf);
     status.err = cstatus.err;
     status.message = cstatus.message;
+    if (status.err != novaSuccess) {
+      return status;
+    }
+    delete backendBuf;
 #else
     status.err = novaBackendNotCompiled;
     status.message = "CUDA support is not available in this build";
 #endif
   } else if (buf->deviceKind == deviceKind_t::DeviceHIP) {
 #ifdef NOVA_HAS_HIP
-    auto backendBuf = std::unique_ptr<hipBuffer_t>(
-        static_cast<hipBuffer_t *>(buf->deviceBufPtr));
-    novaStatus_t hstatus = hipRelease(backendBuf.get());
+    auto *backendBuf = static_cast<hipBuffer_t *>(buf->deviceBufPtr);
+    novaStatus_t hstatus = hipRelease(backendBuf);
     status.err = hstatus.err;
     status.message = hstatus.message;
+    if (status.err != novaSuccess) {
+      return status;
+    }
+    delete backendBuf;
 #else
     status.err = novaBackendNotCompiled;
     status.message = "HIP support is not available in this build";
@@ -311,8 +320,7 @@ novaStatus_t deviceTransfer(const void *src, void *dst, TransferKind kind,
                             size_t bytes) {
   novaStatus_t status = {};
 
-  if (kind != deviceMemcpyHostToDevice &&
-      kind != deviceMemcpyDeviceToHost &&
+  if (kind != deviceMemcpyHostToDevice && kind != deviceMemcpyDeviceToHost &&
       kind != deviceMemcpyDeviceToDevice) {
     status.err = novaInvalidTransfDirection;
     status.message = "Unknown transfer direction";

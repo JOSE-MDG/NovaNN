@@ -28,6 +28,9 @@
  * @see storage.h  retain() / release() reference-count operations.
  */
 
+#include <stdio.h>
+#include <string.h>
+
 #include <ncore/core/alloc.h>
 #include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
@@ -35,8 +38,9 @@
 #include <ncore/core/storage.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/tensor_utils.h>
+#include <ncore/native/cpu/layout/contiguous.h>
+#include <ncore/native/kernels/contiguous.h>
 #include <ncore/tensor.h>
-#include <string.h>
 
 /**
  * @brief Create a fully allocated n-dimensional tensor.
@@ -377,6 +381,9 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
     }
   }
 
+  status->err = novaSuccess;
+  status->message = nova_get_error_msg(status->err, nullptr);
+
   return dst;
 }
 
@@ -455,21 +462,235 @@ Tensor contiguous(const Tensor *restrict ten, novaStatus_t *status) {
     return create_view(ten, ten->shape, ten->ndims, status);
   }
 
+  shape_t logical_shape = {};
+  memcpy(logical_shape, ten->shape, ten->ndims * sizeof(size_t));
+  const size_t packing = dtype_packing_factor(ten->dtype);
+  if (packing > 1 && ten->ndims > 0) {
+    logical_shape[ten->ndims - 1] *= packing;
+  }
+
   Tensor dst =
       (int)is_scalar(ten)
           ? create_scalar_tensor(ten->dtype, ten->device, ten->requires_grad_,
                                  ten->is_pinned_, status)
 
-          : create_tensor(ten->shape, ten->dtype, ten->device,
+          : create_tensor(logical_shape, ten->dtype, ten->device,
                           ten->requires_grad_, ten->is_pinned_, ten->ndims,
                           status);
 
   if (status->err != novaSuccess) {
-    return dst; // zeroaed tensor
+    return dst;
   }
 
-  // TODO: Implement dispatching contiguous operation
+  if (on_device(ten)) {
+    *status = launchContiguousKernel(ten, &dst);
+    if (status->err != novaSuccess) {
+      collect(&dst);
+    }
+  } else if (on_host(ten)) {
+    *status = contiguous_cpu_impl(ten, &dst);
+    if (status->err != novaSuccess) {
+      collect(&dst);
+    }
+  }
 
+  return dst;
+}
+
+/**
+ * @var err_msg_buf
+ * @brief Scratch space for formatted error messages.
+ *
+ * @details Thread-local so concurrent failures never clobber each
+ * other, mirroring the Rust side (@c STATUS_MESSAGE in
+ * @c status.rs). Valid until the next formatted error on the same
+ * thread; callers consume it immediately through @c status.message.
+ */
+static thread_local char err_msg_buf[512];
+
+/**
+ * @brief Swap two dimensions of a tensor, returning a view.
+ *
+ * @details
+ * Builds a view sharing @p ten's storage (no data is copied) with
+ * the two dimensions exchanged. Both shape and strides come from the
+ * source, so the result is a genuine transposed view: element
+ * @c [i, j] of the result aliases @c [j, i] of the source, and the
+ * result is generally not contiguous. Swapping a dimension with
+ * itself is a no-op. Negative indices count from the last dimension
+ * (@c -1 is the innermost), matching the usual convention. Packed
+ * dtypes (packing factor above 1) may not move the last dimension:
+ * swapping it with another fails with @ref novaInvalidMemoryLayout.
+ *
+ * @param[in]  ten   Source tensor. Must not be @c nullptr.
+ * @param[out] st    Receives the operation result.
+ * @param[in]  dim0  First dimension to swap. May be negative.
+ * @param[in]  dim1  Second dimension to swap. May be negative.
+ *
+ * @return View @c Tensor sharing @p ten's storage, or a collected
+ *         tensor on failure.
+ *
+ * @pre  @p ten must not be @c nullptr.
+ * @pre  @p st must not be @c nullptr.
+ * @post On success, the result has @c is_view_ == true and swapped
+ *       shape and strides at @p dim0 and @p dim1.
+ *
+ * @see permute()      General dimension reordering.
+ * @see create_view()  Storage sharing behind the result.
+ */
+Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
+
+  auto dst = create_view(ten, ten->shape, ten->ndims, st);
+
+  if (st->err != novaSuccess) {
+    return dst;
+  }
+
+  const int ndims = (int)ten->ndims;
+  const int d0 = dim0 < 0 ? ndims + dim0 : dim0;
+  const int d1 = dim1 < 0 ? ndims + dim1 : dim1;
+
+  if ((d0 < 0 || d0 >= ndims) || (d1 < 0 || d1 >= ndims)) {
+    st->err = novaInvalidValue;
+    snprintf(err_msg_buf, sizeof(err_msg_buf),
+             "transpose(): dims (%d, %d) out of range for tensor with %d dims",
+             dim0, dim1, ndims);
+    st->message = err_msg_buf;
+    collect(&dst);
+    return dst;
+  }
+
+  if (ten->ndims > 0 && dtype_packing_factor(ten->dtype) > 1) {
+    // Packed dtypes store several logical values per storage byte along the
+    // last dimension, so moving it would split values across rows, which byte
+    // strides cannot express. Swapping the dimension with itself is a no-op
+    // and stays allowed.
+    const size_t packing = dtype_packing_factor(ten->dtype);
+    const int last = ndims - 1;
+    if ((d0 == last) != (d1 == last)) {
+      st->err = novaInvalidMemoryLayout;
+      snprintf(err_msg_buf, sizeof(err_msg_buf),
+               "transpose(): cannot move the packed last dim\n(packing "
+               "factor %zu, several logical values share one storage "
+               "byte):\nswapping dims (%d, %d) would split values across "
+               "rows,\nwhich byte strides cannot express.\nTranspose dims "
+               "that exclude the last one.\n",
+               packing, dim0, dim1);
+      st->message = err_msg_buf;
+      collect(&dst);
+      return dst;
+    }
+  }
+
+  memcpy(dst.strides, ten->strides, (size_t)ndims * sizeof(size_t));
+
+  dst.shape[d0] = ten->shape[d1];
+  dst.shape[d1] = ten->shape[d0];
+  dst.strides[d0] = ten->strides[d1];
+  dst.strides[d1] = ten->strides[d0];
+
+  st->err = novaSuccess;
+  st->message = nova_get_error_msg(st->err, nullptr);
+  return dst;
+}
+
+/**
+ * @brief Reorder tensor dimensions following an explicit permutation.
+ *
+ * @details
+ * Builds a view sharing @p ten's storage (no data is copied) whose
+ * @c i-th dimension takes the shape and stride of source dimension
+ * @c dims[i]. Negative entries count from the last dimension. Every
+ * source dimension must appear exactly once: out-of-range indices
+ * and duplicates are rejected before anything is written, so a
+ * failed call leaves no half-permuted tensor behind. Packed dtypes
+ * (packing factor above 1) must keep the last dimension innermost:
+ * anything else fails with @ref novaInvalidMemoryLayout.
+ *
+ * Only the first @p ndims entries of @p dims are read; the rest of
+ * the @c NOVA_MAX_DIMS array is ignored.
+ *
+ * @param[in]  ten   Source tensor. Must not be @c nullptr.
+ * @param[out] st    Receives the operation result.
+ * @param[in]  dims  Permutation of @c [0, ndims). Negative entries
+ *                   count from the last dimension.
+ *
+ * @return View @c Tensor sharing @p ten's storage, or a collected
+ *         tensor on failure.
+ *
+ * @pre  @p ten must not be @c nullptr.
+ * @pre  @p st must not be @c nullptr.
+ * @pre  @p dims holds each index in @c [0, ndims) exactly once
+ *       (negatives allowed).
+ * @post On success, the result has @c is_view_ == true with shape
+ *       and strides permuted after @p dims.
+ *
+ * @see transpose()    Two-dimension swap.
+ * @see create_view()  Storage sharing behind the result.
+ */
+Tensor permute(const Tensor *ten, novaStatus_t *st,
+               const int dims[NOVA_MAX_DIMS]) {
+  Tensor dst = create_view(ten, ten->shape, ten->ndims, st);
+
+  if (st->err != novaSuccess) {
+    return dst;
+  }
+  const int ndims = (int)ten->ndims;
+
+  shape_t tmp_shape;
+  strides_t tmp_strides;
+  memcpy(tmp_shape, ten->shape, (size_t)ndims * sizeof(size_t));
+  memcpy(tmp_strides, ten->strides, (size_t)ndims * sizeof(size_t));
+
+  bool seen[NOVA_MAX_DIMS] = {false};
+  for (int i = 0; i < ndims; ++i) {
+    const int dim = dims[i] < 0 ? ndims + dims[i] : dims[i];
+    if (dim < 0 || dim >= ndims) {
+      st->err = novaInvalidValue;
+      snprintf(err_msg_buf, sizeof(err_msg_buf),
+               "permute(): dims[%d] = %d out of range for tensor with %d dims",
+               i, dims[i], ndims);
+      st->message = err_msg_buf;
+      collect(&dst);
+      return dst;
+    }
+    if (seen[dim]) {
+      st->err = novaInvalidValue;
+      snprintf(err_msg_buf, sizeof(err_msg_buf),
+               "permute(): duplicate dimension %d in permutation", dim);
+      st->message = err_msg_buf;
+      collect(&dst);
+      return dst;
+    }
+    seen[dim] = true;
+    dst.shape[i] = tmp_shape[dim];
+    dst.strides[i] = tmp_strides[dim];
+  }
+
+  if (ten->ndims > 0 && dtype_packing_factor(ten->dtype) > 1) {
+    // Same constraint as transpose(): the packed last dimension must stay
+    // innermost, otherwise values would split across rows. dims[] was
+    // validated in range above, so normalizing the innermost entry is safe.
+    const size_t packing = dtype_packing_factor(ten->dtype);
+    const int last = ndims - 1;
+    const int inner = dims[last] < 0 ? ndims + dims[last] : dims[last];
+    if (inner != last) {
+      st->err = novaInvalidMemoryLayout;
+      snprintf(err_msg_buf, sizeof(err_msg_buf),
+               "permute(): cannot move the packed last dim\n(packing factor "
+               "%zu, several logical values share one storage byte):\nthe "
+               "permutation takes it out of the innermost position,\nwhich "
+               "byte strides cannot express.\nKeep the last dim "
+               "innermost.\n",
+               packing);
+      st->message = err_msg_buf;
+      collect(&dst);
+      return dst;
+    }
+  }
+
+  st->err = novaSuccess;
+  st->message = nova_get_error_msg(st->err, nullptr);
   return dst;
 }
 
@@ -601,66 +822,6 @@ bool is_scalar(const Tensor *ten) {
 bool is_scalar_grad(TensorGrad grad) {
   return (bool)(grad->shape[0] == 0 && grad->strides[0] == 0 &&
                 grad->size == 1 && grad->ndims == 0);
-}
-
-/**
- * @brief Check whether a tensor's data buffer is properly aligned.
- *
- * @details
- * Alignment requirements differ by device:
- * @li GPU (@c DEVICE_GPU): 512-byte alignment.
- * @li CPU (@c DEVICE_CPU): 64-byte alignment.
- * @li META (@c DEVICE_META): always returns @c true.
- *
- * The check reads @c ten->device to select the threshold and
- * tests @c ten->storage->ptr.v modulo the threshold.
- *
- * @param[in] ten  Tensor to check.  Must not be @c nullptr.
- *
- * @return @c true if the data pointer meets the alignment
- *         requirement, @c false otherwise.
- *
- * @pre  @c ten->storage must not be @c nullptr (except META).
- *
- * @see is_grad_aligned()  Gradient variant.
- */
-bool is_aligned(const Tensor *ten) {
-  if (ten->device == DEVICE_META) {
-    return true;
-  }
-  return (bool)(ten->device == DEVICE_GPU
-                    ? (((uintptr_t)ten->storage->ptr.v % 512) ==
-                       0) // Aligned by default to 512 bytes (GPU)
-                    : (((uintptr_t)ten->storage->ptr.v % 64) ==
-                       0)); // Aligned by default to 64 bytes (CPU)
-}
-
-/**
- * @brief Check whether a gradient tensor's data buffer is properly
- *        aligned.
- *
- * @details
- * Same alignment logic as @c is_aligned() — 512-byte for GPU,
- * 64-byte for CPU, and always @c true for META tensors.
- *
- * @param[in] grad  Gradient tensor to check.  Must not be @c nullptr.
- *
- * @return @c true if the gradient data pointer meets the alignment
- *         requirement, @c false otherwise.
- *
- * @pre  @p grad must not be @c nullptr.
- *
- * @see is_aligned()  Tensor variant.
- */
-bool is_grad_aligned(TensorGrad grad) {
-  if (grad->device == DEVICE_META) {
-    return true;
-  }
-  return (grad->device == DEVICE_GPU
-              ? (((uintptr_t)grad->storage->ptr.v % 512) ==
-                 0) // Aligned by default to 512 bytes (GPU)
-              : (((uintptr_t)grad->storage->ptr.v % 64) == 0)) !=
-         0; // Aligned by default to 64 bytes (CPU)
 }
 
 /**
@@ -825,26 +986,24 @@ bool on_device(const Tensor *ten) {
  * @brief Check whether a tensor's data resides in CPU host memory.
  *
  * @details
- * A tensor is considered to be "on host" when all three conditions
- * hold:
- * @li @c is_allocated(ten) — the tensor has valid backing storage.
- * @li @c ten->device == @c DEVICE_CPU — the tensor is host-resident.
- * @li @c !is_device_memory_handle(&ten->storage->handle) — the storage
- *   is NOT backed by device-managed memory (i.e., plain host
- *   allocation, not pinned memory).
+ * A tensor is considered to be "on host" when it is allocated and
+ * host-resident. Pinned host memory counts: it is still CPU
+ * memory, directly addressable by host kernels, additionally
+ * reachable by DMA. Only the placement field decides, never the
+ * handle kind.
  *
  * @param[in] ten  Tensor to check.  Must not be @c nullptr.
  *
- * @return @c true if the tensor is allocated, host-resident, and
- *         backed by plain host memory, @c false otherwise.
+ * @return @c true if the tensor is allocated and host-resident,
+ *         @c false otherwise.
  *
  * @see on_device()                   Complementary check.
  * @see is_allocated()                Allocation precondition.
- * @see is_device_memory_handle()     Storage backing check.
+ * @see is_device_memory_handle()     DMA-reachability check, used
+ *                                    by transfers and repr, not here.
  */
 bool on_host(const Tensor *ten) {
-  return (bool)(is_allocated(ten) && ten->device == DEVICE_CPU &&
-                !is_device_memory_handle(&ten->storage->handle));
+  return (bool)(is_allocated(ten) && ten->device == DEVICE_CPU);
 }
 
 /**
@@ -862,17 +1021,17 @@ bool on_host(const Tensor *ten) {
  *
  * @return @ref novaStatus_t describing the outcome.
  */
-static inline novaStatus_t transf_tensor_commom(const Tensor *restrict src,
+static inline novaStatus_t transf_tensor_common(const Tensor *restrict src,
                                                 Tensor *restrict dst,
                                                 bool condition) {
-  novaStatus_t status;
   if (condition) {
-    status.err = novaTransferError;
-    status.message = nova_get_error_msg(status.err, nullptr);
-    return status;
+    return (novaStatus_t){.err = novaTransferError,
+                          .message =
+                              nova_get_error_msg(novaTransferError, nullptr)};
   }
-  return transfer_to(src->device, dst->device, (const void *)src->data.v,
-                     dst->data.v, src->storage->size_bytes);
+
+  return transfer_to(src->device, dst->device, src->data.v, dst->data.v,
+                     src->storage->size_bytes);
 }
 
 /**
@@ -882,21 +1041,20 @@ static inline novaStatus_t transf_tensor_commom(const Tensor *restrict src,
  * @details
  * Validates that @p src is GPU-resident with device-backed storage
  * and that @p dst is an allocated CPU tensor.  Delegates to
- * @ref transf_tensor_commom() for the actual transfer.
+ * @ref transf_tensor_common() for the actual transfer.
  *
  * @param[in]     src  Source tensor on GPU.
  * @param[in,out] dst  Destination tensor on CPU.
  * @return @ref novaStatus_t with the result of the transfer.
  */
 novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
-                                        Tensor *restrict dst) {
+                                       Tensor *restrict dst) {
 
-  bool condition =
-      (bool)((src->device != DEVICE_GPU || !is_allocated(src) ||
-              !is_device_memory_handle(&src->storage->handle) ||
-              (dst->device != DEVICE_CPU || !is_allocated(dst))));
+  bool condition = (bool)((src->device != DEVICE_GPU || !is_allocated(src) ||
+                           !is_device_memory_handle(&src->storage->handle) ||
+                           (dst->device != DEVICE_CPU || !is_allocated(dst))));
 
-  return transf_tensor_commom(src, dst, condition);
+  return transf_tensor_common(src, dst, condition);
 }
 
 /**
@@ -906,18 +1064,17 @@ novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
  * @details
  * Validates that @p src is an allocated CPU tensor and that @p dst
  * is GPU-resident with device-backed storage.  Delegates to
- * @ref transf_tensor_commom() for the actual transfer.
+ * @ref transf_tensor_common() for the actual transfer.
  *
  * @param[in]     src  Source tensor on CPU.
  * @param[in,out] dst  Destination tensor on GPU.
  * @return @ref novaStatus_t with the result of the transfer.
  */
 novaStatus_t transf_tensor_from_host(const Tensor *restrict src,
-                                      Tensor *restrict dst) {
-  bool condition =
-      (bool)((src->device != DEVICE_CPU || !is_allocated(src) ||
-              (dst->device != DEVICE_GPU || !is_allocated(dst) ||
-               !is_device_memory_handle(&dst->storage->handle))));
+                                     Tensor *restrict dst) {
+  bool condition = (bool)((src->device != DEVICE_CPU || !is_allocated(src) ||
+                           (dst->device != DEVICE_GPU || !is_allocated(dst) ||
+                            !is_device_memory_handle(&dst->storage->handle))));
 
-  return transf_tensor_commom(src, dst, condition);
+  return transf_tensor_common(src, dst, condition);
 }

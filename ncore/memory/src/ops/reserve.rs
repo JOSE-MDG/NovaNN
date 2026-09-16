@@ -23,7 +23,7 @@ use crate::storage::RustStorage;
 ///                  `"device"` for GPU VRAM.
 /// * `pin_memory` - If `true`, allocate page-locked host memory.
 ///                  Only valid when `device` is `"cpu"`.
-/// * `align`      - Required memory alignment. Must be a power of two.
+/// * `align` - Required memory alignment. Must be a power of two. Ignored for device and pinned host allocations.
 ///
 /// # Errors
 ///
@@ -37,8 +37,7 @@ use crate::storage::RustStorage;
 /// A valid [`RustHandle`] on success.
 ///
 /// The handle owns one reference to the newly inserted registry entry. Its
-/// cached size is taken from the actual storage object, while its alignment
-/// field records the alignment supplied by the caller.
+/// cached size and alignment are taken from the actual storage object.
 pub fn reserve_op(
     size: usize,
     device: &str,
@@ -55,6 +54,7 @@ pub fn reserve_op(
 
     let id = next_id();
     let size_bytes = storage.size_bytes;
+    let effective_align = storage.align();
     StorageManager::insert(id, storage)?;
-    Ok(RustHandle::new(id, size_bytes, align))
+    Ok(RustHandle::new(id, size_bytes, effective_align))
 }

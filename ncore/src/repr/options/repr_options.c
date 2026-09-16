@@ -27,7 +27,6 @@ ReprOptions repr_default_options(void) {
   opts.mode = ReprModeNormal;
   opts.threshold = 1000;
   opts.edge_items = 3;
-  opts.linewidth = 80;
   opts.precision = 4;
   opts.sci_mode = false;
   opts.sci_mode_auto = true;
