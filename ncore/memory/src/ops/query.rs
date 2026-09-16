@@ -39,8 +39,7 @@ pub fn is_valid_op(handle: &RustHandle) -> bool {
 /// Returns the alignment used by the storage referenced by `handle`.
 ///
 /// CPU storage reports the [`std::alloc::Layout`] alignment used for the
-/// allocation. Device-backed storage reports the alignment requested through
-/// the device allocation path.
+/// allocation. Device-backed storage reports the backend alignment.
 ///
 /// # Errors
 ///

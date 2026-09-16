@@ -158,7 +158,8 @@ typedef struct {
  *                        allocate page-locked host memory.  Must be
  *                        @c false when @p device is @c device.
  * @param[in]  align      Required alignment in bytes (must be a
- *                        power of two).
+ *                        power of two). Ignored for device and
+ *                        pinned host allocations.
  * @param[out] status     Receives the operation result. Must not be
  *                        @c nullptr.
  *
@@ -167,7 +168,7 @@ typedef struct {
  *
  * @pre  @c size must be > 0.
  * @pre  If non-null, @c device must be @c cpu or @c device.
- * @pre  @c align must be a power of two.
+ * @pre  For CPU allocations, @c align must be a power of two.
  * @post On success, the returned handle has @c id != 0 and the
  *       caller owns one reference.
  * @post @p status describes the result of the operation.

@@ -37,6 +37,8 @@ pub enum NovaError {
     InvalidIndex,
     /// A requested thread count is invalid.
     InvalidNumThreads,
+    /// A requested thread group is invalid.
+    InvalidParallelGroup,
     /// The handle used is valid or has expired.
     InvalidHandle,
     /// An operation would exceed a buffer boundary.
@@ -85,6 +87,8 @@ pub enum NovaError {
     InternalError,
     /// An unspecified runtime failure occurred.
     RuntimeError,
+    /// The thread configuration has not been initialized.
+    ThreadNotInitialized,
 }
 
 /// C-compatible status containing an error code and diagnostic message.

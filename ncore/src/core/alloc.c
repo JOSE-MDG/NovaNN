@@ -22,12 +22,6 @@
  *    attaches it to the tensor pointed to by @p ten.  The tensor's
  *    @c storage, @c data, and @c is_allocated_ fields are populated.
  *
- * @section alignment Alignment
- *
- * Buffer alignment is selected automatically:
- * @li GPU: 512 bytes (coalesced memory access).
- * @li CPU / other: 64 bytes (cache-line aligned).
- *
  * @section thread-safety Thread Safety
  *
  * All functions are thread-safe.  The underlying Rust allocator
@@ -128,7 +122,13 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
     return status;
   }
 
-  const size_t align = (int)on_device(ten) ? 512 : (int)pin_memory ? 4096 : 64;
+  /**
+   * @note
+   * Specifying whether a tensor is aligned on the device
+   * or pinned in host memory is irrelevant, since the driver
+   * does not specify an alignment parameter.
+   */
+  const size_t align = 64;
   if (!create_storage) {
     *handle =
         reserve(bytes, map_device2string(device), pin_memory, align, &status);

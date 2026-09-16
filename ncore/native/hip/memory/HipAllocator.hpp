@@ -22,8 +22,16 @@
  *
  * @section stream-lifecycle Stream Lifecycle
  *
- * Device-memory operations use a temporary HIP stream when memory pools are
- * available and fall back to synchronous HIP allocation APIs otherwise.
+ * Device-memory operations (reserve, release, resize) run on a HIP
+ * stream selected per call:
+ * @li @c stream == nullptr (default) — a temporary stream is created,
+ *   the operation runs on it, the stream is synchronized, and the
+ *   stream is destroyed before returning. Synchronous contract.
+ * @li @c stream != nullptr — the operation is enqueued on the caller
+ *   stream with no synchronization and no stream destruction. The
+ *   caller owns ordering: every access to the buffer must be ordered
+ *   after the allocation and before the free in stream order, per the
+ *   stream-ordered allocator rules. Pinned-host paths ignore @p stream.
  *
  * This header is the HIP counterpart of @c CudaAllocator.hpp and
  * provides an identical API surface.  The dispatch layer in
@@ -38,6 +46,13 @@
 
 #include <cstddef>
 #include <ncore/core/status.h>
+
+#if defined(NOVA_HAS_HIP) && __has_include(<hip/hip_runtime_api.h>)
+#include <hip/hip_runtime_api.h>
+#else
+struct ihipStream_t;
+using hipStream_t = ihipStream_t *;
+#endif
 
 /**
  * @struct hipBuffer_t
@@ -66,54 +81,74 @@ const inline novaStatus_t HIP_OK{
  * @brief Allocate a HIP memory buffer.
  *
  * @details
- * For pinned memory, calls @c hipHostMalloc.  For device memory,
- * creates a temporary stream, calls @c hipMallocAsync,
- * synchronizes, and destroys the stream.
+ * For pinned memory, calls @c hipHostMalloc (synchronous; @p stream
+ * is ignored).  For device memory with memory pools, calls
+ * @c hipMallocAsync on @p stream when given, or on a temporary
+ * synchronized stream when @p stream is null.  Without memory pools,
+ * falls back to @c hipMalloc (synchronous; @p stream is ignored).
  *
  * @param[in]  bytes  Requested allocation size in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
  * @param[out] out    Receives the buffer descriptor on success.
+ * @param[in]  stream Caller stream for chaining, or null for the
+ *                    synchronous internal path. Never destroyed here.
  *
  * @return @ref HIP_OK on success, or an error status with a
  *         descriptive message.
  *
  * @pre  @p bytes must be greater than zero.
  * @pre  @p out must not be null.
- * @post On success, @p out->ptr points to a valid HIP memory
- *       region of at least @p bytes.
+ * @post On success with @p stream == null, @p out->ptr points to a
+ *       valid HIP memory region of at least @p bytes usable from
+ *       any stream.
+ * @post On success with @p stream != null, @p out->ptr is valid only
+ *       in @p stream order (ordered after this call).
+ *
+ * @warning With @p stream != null there is no synchronization: any
+ *          access outside @p stream order is undefined behavior.
  *
  * @see hipRelease()  Frees a buffer allocated by this function.
  * @see hipResize()   Resizes an existing buffer.
  */
-novaStatus_t hipReserve(std::size_t bytes, bool pinned, hipBuffer_t *out);
+novaStatus_t hipReserve(std::size_t bytes, bool pinned, hipBuffer_t *out,
+                        hipStream_t stream = nullptr);
 
 /**
  * @brief Free a HIP memory buffer previously allocated by
  *        @ref hipReserve.
  *
  * @details
- * For pinned memory, calls @c hipFreeHost.  For device memory,
- * creates a temporary stream, calls @c hipFreeAsync, synchronizes,
- * and destroys the stream.  On success, the buffer descriptor
- * is zeroed.
+ * For pinned memory, calls @c hipFreeHost (synchronous; @p stream
+ * is ignored).  For device memory with memory pools, calls
+ * @c hipFreeAsync on @p stream when given, or on a temporary
+ * synchronized stream when @p stream is null.  On success, the
+ * buffer descriptor is zeroed.
  *
- * @param[in,out] buf  Pointer to the buffer descriptor to free.
- *                     Must not be null, and @p buf->ptr must be
- *                     valid.
+ * @param[in,out] buf    Pointer to the buffer descriptor to free.
+ *                       Must not be null, and @p buf->ptr must be
+ *                       valid.
+ * @param[in]     stream Caller stream for chaining, or null for the
+ *                       synchronous internal path. Never destroyed here.
  *
  * @return @ref HIP_OK on success, or an error status.
  *
  * @pre  @p buf must point to a valid @ref hipBuffer_t whose
  *       @ref ptr member was returned by @ref hipReserve.
+ * @pre  With @p stream != null, every prior access to @p buf->ptr
+ *       must be ordered before this call in @p stream order.
  * @post On success, @p buf is zeroed (ptr = nullptr, bytes = 0,
  *       isPinned = false).
  *
  * @note Safe to call with a null @p buf or null @p buf->ptr;
  *       returns a non-zero status without crashing.
  *
+ * @warning With @p stream != null there is no synchronization: the
+ *          memory must not be accessed after this call in any stream
+ *          unless reordered with events.
+ *
  * @see hipReserve()  Allocates the buffer freed here.
  */
-novaStatus_t hipRelease(hipBuffer_t *buf);
+novaStatus_t hipRelease(hipBuffer_t *buf, hipStream_t stream = nullptr);
 
 /**
  * @brief Resize an existing HIP memory buffer.
@@ -128,6 +163,10 @@ novaStatus_t hipRelease(hipBuffer_t *buf);
  * @param[in,out] buf       Pointer to the buffer descriptor to
  *                          resize.  Must not be null.
  * @param[in]     new_bytes New size in bytes.
+ * @param[in]     stream    Caller stream for chaining, or null for
+ *                          the synchronous internal path. The alloc,
+ *                          copy, and free all run on this stream.
+ *                          Never destroyed here.
  *
  * @return @ref HIP_OK on success, or an error status.
  *
@@ -143,4 +182,5 @@ novaStatus_t hipRelease(hipBuffer_t *buf);
  * @see hipReserve()  Initial allocation.
  * @see hipRelease()  Explicit deallocation.
  */
-novaStatus_t hipResize(hipBuffer_t *buf, std::size_t new_bytes);
+novaStatus_t hipResize(hipBuffer_t *buf, std::size_t new_bytes,
+                        hipStream_t stream = nullptr);

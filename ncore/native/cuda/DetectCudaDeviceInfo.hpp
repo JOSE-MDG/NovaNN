@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <ncore/core/status.h>
 #include <string>
 
@@ -53,8 +56,61 @@ struct cudaDetectedDeviceProps_t {
   int warpSize;              ///< Warp size in threads.
   int maxThreadsPerBlock;    ///< Maximum threads per block.
   int maxThreadsPerMultiProcessor; ///< Maximum threads per SM.
+  int maxBlocksPerMultiProcessor; ///< Maximum resident blocks per SM.
+  int major;                         ///< Compute capability major.
+  int minor;                         ///< Compute capability minor.
+  int clockRate;                     ///< SM clock in kHz.
+  int memoryClockRate;               ///< DRAM clock in kHz.
+  int memoryBusWidth;                ///< DRAM bus width in bits.
+  size_t sharedMemPerBlock;          ///< Shared memory per block, bytes.
+  size_t sharedMemPerMultiprocessor; ///< Shared memory per SM, bytes.
+  int regsPerMultiprocessor; ///< 32-bit registers per SM.
+  std::array<int, 3> maxGridSize; ///< Max grid extent per axis.
+  int l2CacheSize;           ///< L2 capacity, bytes.
+  int persistingL2CacheMaxSize; ///< Max L2 persisting lines, bytes.
+  uint64_t peakFp32Flops;   ///< FP32 FMA peak, flop/s (0 when unknown).
+  std::string memBandwidth; ///< Theoretical bandwidth, formatted.
   explicit operator bool() const noexcept { return isAvailable; }
 };
+
+/**
+ * @struct cudaDetectedDeviceAttrs_t
+ * @brief Auxiliary device attributes absent from @c cudaDeviceProp.
+ *
+ * @details
+ * Carries the clock figures that current toolkits no longer report
+ * through @c cudaGetDeviceProperties, queried via
+ * @c cudaDeviceGetAttribute instead. Populated by
+ * @ref getCudaDeviceAttributes on the first call and cached thereafter.
+ * Each field degrades to 0 (unknown) on query failure without failing
+ * detection: attributes are auxiliary by contract.
+ */
+struct cudaDetectedDeviceAttrs_t {
+  int clockRate;       ///< SM peak clock in kHz (0 when unknown).
+  int memoryClockRate; ///< DRAM peak clock in kHz (0 when unknown).
+};
+
+/**
+ * @brief Retrieve auxiliary device attributes.
+ *
+ * @details
+ * Returns a cached @ref cudaDetectedDeviceAttrs_t populated on the
+ * first call. Subsequent calls return the cached value without
+ * additional runtime API calls. The status is always success:
+ * failed queries degrade individual fields to 0.
+ * Query after detection: the device id is captured on the first call,
+ * so a later device switch keeps returning the first device attrs
+ * until process restart.
+ *
+ * @param[out] status  Receives @c novaSuccess.
+ *
+ * @return Cached device attributes (zeros where unknown).
+ *
+ * @note Thread-safe.  The result is cached in a @c static local
+ *       variable initialised exactly once (C++11 guarantee).
+ */
+cudaDetectedDeviceAttrs_t
+getCudaDeviceAttributes(novaStatus_t *status) noexcept;
 
 /**
  * @brief Retrieve the properties of the detected CUDA device.

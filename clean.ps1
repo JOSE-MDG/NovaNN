@@ -6,7 +6,10 @@
 .DESCRIPTION
     Without --target, removes the complete build directory after an
     interactive confirmation. A directory target runs the CMake clean target,
-    preserving the configured build tree. The log targets remove all logs,
+    preserving the configured build tree. Codegen outputs live in the source
+    tree but are Ninja-tracked build outputs, so a plain clean would delete
+    them; the script snapshots them beforehand and restores them afterwards,
+    byte for byte. The log targets remove all logs,
     test logs, or configure/build logs respectively.
 
 .EXAMPLE
@@ -43,8 +46,9 @@ $($C_BOLD)Usage:$($C_RESET) $ScriptName [OPTIONS] [--target <path|logs|test-logs
 
 $($C_BOLD)Targets:$($C_RESET)
   <path>                Run cmake --build <path> --target clean.
-                        Configuration is kept. A bare preset name resolves
-                        to build/<preset> when that directory exists.
+                        Configuration is kept; source-tree codegen outputs
+                        are snapshotted and restored. A bare preset name
+                        resolves to build/<preset> when that directory exists.
   logs                  Delete build/logs entirely.
   test-logs             Delete build/logs/tests only.
   build-logs            Delete configure/build logs at build/logs/*.log.
@@ -92,6 +96,55 @@ while ($i -lt $args.Count) {
         }
     }
     $i++
+}
+
+function Backup-NovaCodegenOutputs {
+    # Codegen outputs live in the source tree (see
+    # cmake/Modules/NovaNNRuntime.cmake) but are declared as OUTPUTs of the
+    # nova_codegen custom command, so Ninja's clean deletes them together
+    # with the object files. Returns the backup directory path, or $null
+    # when there is nothing to preserve. Never throws: on any failure the
+    # caller simply cleans without a backup.
+    try {
+        $out = & uv run -q tools/codegen/generate.py gen --all --list-outputs 2>$null
+    }
+    catch {
+        return $null
+    }
+    if ($LASTEXITCODE -ne 0 -or $null -eq $out) {
+        return $null
+    }
+    $files = @()
+    foreach ($line in $out) {
+        $f = "$line".Trim()
+        if ($f -ne '' -and (Test-Path -LiteralPath $f -PathType Leaf)) {
+            $files += $f
+        }
+    }
+    if ($files.Count -eq 0) {
+        return $null
+    }
+    $backup = Join-Path ([System.IO.Path]::GetTempPath()) ('nova-clean-' + [System.IO.Path]::GetRandomFileName())
+    New-Item -ItemType Directory -Path $backup | Out-Null
+    foreach ($f in $files) {
+        $dest = Join-Path $backup $f
+        New-Item -ItemType Directory -Path (Split-Path $dest) -Force | Out-Null
+        Copy-Item -LiteralPath $f -Destination $dest -Force
+    }
+    return $backup
+}
+
+function Restore-NovaCodegenOutputs {
+    param([string]$BackupDir)
+
+    if ([string]::IsNullOrEmpty($BackupDir)) {
+        return
+    }
+    if (-not (Test-Path -LiteralPath $BackupDir -PathType Container)) {
+        return
+    }
+    Copy-Item -Path (Join-Path $BackupDir '*') -Destination $ProjectRoot -Recurse -Force
+    Remove-Item -LiteralPath $BackupDir -Recurse -Force
 }
 
 function Remove-NovaItem {
@@ -187,18 +240,21 @@ switch ($Target) {
         }
 
         if ($DryRun) {
-            Write-Host "$($C_CYAN)[dry-run]$($C_RESET) cmake --build '$buildDir' --target clean"
+            Write-Host "$($C_CYAN)[dry-run]$($C_RESET) cmake --build '$buildDir' --target clean (codegen outputs preserved)"
             exit 0
         }
 
         Write-Host "  $($C_CYAN)▸ cleaning$($C_RESET) $buildDir"
+        $backupDir = Backup-NovaCodegenOutputs
         try {
             & cmake --build $buildDir --target clean
             $rc = $LASTEXITCODE
         }
         catch {
+            Restore-NovaCodegenOutputs -BackupDir $backupDir
             Write-Die "cmake --build $buildDir --target clean failed: $($_.Exception.Message)"
         }
+        Restore-NovaCodegenOutputs -BackupDir $backupDir
         if ($rc -ne 0) {
             Write-Die "cmake --build $buildDir --target clean failed"
         }

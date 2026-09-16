@@ -15,6 +15,8 @@ Subdirectories
 - ``dtypes/`` — reduced-precision dtype tests.
 - ``core/`` — core runtime tests (status propagation, device
   detection, memory allocator, tensor copies/transfers).
+- ``heuristics/`` — kernel launch heuristic tests (tier routing,
+  Fast/Full geometry per pattern, shared clamps, Full cache).
 #]=======================================================================]
 
 if(BUILD_TESTING)
@@ -41,4 +43,5 @@ if(BUILD_TESTING)
     add_subdirectory(core)
     add_subdirectory(dtypeCasting)
     add_subdirectory(dtypes)
+    add_subdirectory(heuristics)
 endif()

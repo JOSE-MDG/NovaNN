@@ -76,7 +76,7 @@ Pretraining → SFT → DPO → Quantization (NF4, FP8) → PEFT (LoRA/QLoRA) �
           └── error → raises Python exception
 ```
 
-### 3. Backward (planned — autograd engine paused, not implemented)
+### 3. Backward (planned — autograd engine paused)
 
 ```
     loss = nova.mean(Z)
@@ -113,9 +113,10 @@ Manages the complete tensor lifecycle:
 - **DType**: system of 21 types (32/64-bit floats, low precision FP4/FP8/FP16/BF16, signed/unsigned/quantized integers).
 - **Dispatch**: selects the correct implementation based on dtype and backend.
 - **Copy**: copy between devices (CPU ↔ GPU).
+- **Threading**: stratified worker pools (compute, autograd, dtloader) split by dynastrat; manual per-group assignment and automatic distribution are mutually exclusive, with oversubscription warnings.
 
 ### Representation (Repr)
-Pipeline for serializing tensors to readable strings: scans data to determine optimal format, formats each element according to its dtype, renders the N-dimensional structure, and adds metadata (dtype, shape, device).
+Pipeline for serializing tensors to readable strings: scans data to determine a uniform format, formats each element according to its dtype, renders the N-dimensional structure with per-dimension truncation, and adds metadata (dtype, shape, device). Every entry point reports through `novaStatus_t`.
 
 #### **Example:**
 ```
@@ -132,9 +133,11 @@ tensor([[2.3474e-01, 4.6948e-01, 7.0422e-01, ..., 7.0422e+00, 7.2769e+00, 7.5117
 ### Dtypes (Reduced Types)
 Soft-float implementation for low-precision types (FP4 E2M1, FP8 E4M3/E5M2, FP16, BF16) with conversions to float32 and native compiler support when available (`_Float16`, `__bf16`).
 
-### Autograd (C++23, paused)
-Reverse-mode automatic differentiation engine. Destined to be implemented in C++23.
+### Launch Heuristics
+GPU grid/block sizing in `ncore/include/ncore/headeronly/heuristics/kernels/`: one strictly-typed parameter struct per execution pattern (element-wise, reduction, layout, scan, sort/histogram, stencil, GEMM, gather/scatter, fused) inheriting `LaunchParamsBase`, resolved through `resolveLaunchConfig()`.
 
+### Autograd (paused)
+Reverse-mode automatic differentiation engine.
 ---
 
 ## Hardware Backends
@@ -142,8 +145,8 @@ Reverse-mode automatic differentiation engine. Destined to be implemented in C++
 | Backend | Status | Current Capabilities |
 |---------|--------|---------------------|
 | **CPU** | Active | SIMD for dtype casting (SSE4.2 to AVX10.2). Layouts: contiguous implemented, others in progress. Arithmetic ops pending. |
-| **CUDA** | Active | Device detection, GPU allocator, host↔device transfers, dtype casting kernel f32→fp16. |
-| **HIP** | Active (Linux only) | Parallel to CUDA: detection, allocator, transfers, dtype casting kernel f32→fp16. Not available on Windows: RDNA 2/3 and CDNA consumer GPUs lack official Windows driver support. |
+| **CUDA** | Active | Device detection, GPU allocator, host↔device transfers, CUDA kernels. |
+| **HIP** | Active (Linux only) | Parallel to CUDA: detection, allocator, transfers, HIP kernels. Not available on Windows: RDNA 2/3 and CDNA consumer GPUs lack official Windows driver support. |
 | **cuDNN** | Placeholder | No implementation. |
 | **MIOpen** | Placeholder | No implementation. |
 | **oneDNN** | Placeholder | No implementation. |
@@ -160,6 +163,7 @@ The three main backends (CPU, CUDA, HIP) are developed in parallel. CUDA and HIP
 
 ```
 C/C++ calls:  reserve() / retain() / release() / resize()
+
                       │
                       ▼
               ┌────────────────┐
@@ -179,14 +183,16 @@ C/C++ calls:  reserve() / retain() / release() / resize()
               └──────────────────────────────────────────────────────────────────┘
 ```
 
+Backend primitives (`cudaReserve/Release/Resize/Transfer` and HIP mirrors) take a trailing nullable caller stream: null keeps the synchronous internal path (the FFI layer always passes null, so Rust is unaffected); a given stream enqueues without synchronizing so allocs, copies, and kernels chain in stream order, with the caller owning all ordering.
+
 ---
 
 ## Build System (CMake)
 
 | Aspect | Detail |
 |---------|--------|
-| **Standards** | C23 and C++23 mandatory |
-| **Compilers** | GCC ≥ 15.0 (Linux), Clang ≥ 20.1 (Linux and Windows, including clang-cl). **No MSVC/cl.exe support.** |
+| **Standards** | C23 and C++23 |
+| **Compilers** | GCC ≥ 15.0 (Linux), Clang ≥ 20.1 (Linux and Windows, including clang-cl). MSVC `cl.exe` is not a project compiler, but CUDA on Windows requires it as nvcc's host compiler via `CUDA_HOST_COMPILER`. |
 | **GPU Backends** | `-DUSE_CUDA=ON` (Windows/Linux) or `-DUSE_HIP=ON` (Linux only, mutually exclusive with CUDA) |
 | **SIMD** | Automatic detection: SSE4.2, AVX/AVX2, AVX-512, AVX10, AMX |
 | **Optimizations** | LTO enabled by default, hardening linker flags |
@@ -225,19 +231,19 @@ Examples: `cpu-release-linux`, `cpu-asan-test-debug-linux`, `cuda-test-release-w
 
 #### Option 1 — Workflow Presets
 
-Chain configure → build (→ test for `-test-*` presets) in one command:
+Chain configure → build (→ test for `-test-*` presets) with the helper scripts:
 
 ```bash
-cmake --workflow --preset cpu-release-linux      # configure + build
-cmake --workflow --preset cpu-test-debug-linux   # configure + build + ctest
+scripts/build-presets.sh cpu-release-linux && scripts/compile-presets.sh -j $(nproc) cpu-release-linux  # configure + build
+scripts/build-presets.sh cpu-test-debug-linux && scripts/compile-presets.sh -j $(nproc) cpu-test-debug-linux && scripts/run-tests.sh cpu-test-debug-linux  # configure + build + test
 ```
 
 #### Option 2 — Step by Step
 
 ```bash
-cmake --preset cpu-test-debug-linux           # 1. configure → build/cpu-test-debug-linux/
-cmake --build --preset cpu-test-debug-linux   # 2. compile
-ctest --preset cpu-test-debug-linux           # 3. run tests (-test-* presets only)
+scripts/build-presets.sh cpu-test-debug-linux                # 1. configure → build/cpu-test-debug-linux/
+scripts/compile-presets.sh -j $(nproc) cpu-test-debug-linux  # 2. compile
+scripts/run-tests.sh cpu-test-debug-linux                    # 3. run tests (-test-* presets only)
 ```
 
 Test presets print output on failure and error out when no tests are registered.
@@ -261,7 +267,9 @@ fail-fast. Arguments after `--` are forwarded to ctest, and each preset's
 complete output is saved under `build/logs/tests/`.
 
 `clean --target <build-directory>` invokes `cmake --build <dir> --target
-clean`, preserving the configured tree. `--target logs`, `test-logs`, and
+clean`, preserving the configured tree. Since the codegen outputs live in
+the source tree but are Ninja-tracked build outputs, the script snapshots
+them beforehand and restores them afterwards, byte for byte. `--target logs`, `test-logs`, and
 `build-logs` remove the corresponding log scope. Running `clean` without a
 target removes the whole `build/` directory and requires confirmation unless
 `--yes` is supplied.
@@ -279,7 +287,7 @@ scripts/run-tests.sh cuda -- -R 'MemoryAllocator.*'  # run a filtered test set
 - `--config` defaults to the value derived from the preset name (`*-debug*` → Debug, otherwise Release).
 - Both scripts abort on the first failure unless `--continue` is given. Exit status: `0` success · `1` failure · `2` usage error.
 - On Windows, configuring `cuda-*` presets requires the `CUDA_HOST_COMPILER` environment variable (e.g., pointing to MSVC's `cl.exe`); otherwise those presets are skipped.
-- Typical verification loop: `scripts/build-presets.sh <preset>` → `scripts/compile-presets.sh <preset>` → `ctest --preset <preset>`.
+- Typical verification loop: `scripts/build-presets.sh <preset>` → `scripts/compile-presets.sh <preset>` → `scripts/run-tests.sh <preset>`.
 
 ---
 
@@ -287,7 +295,7 @@ scripts/run-tests.sh cuda -- -R 'MemoryAllocator.*'  # run a filtered test set
 
 - **v5.0.0** in active development: complete core rewrite with C23/C++23/Rust.
 - **v4.0.4**: stable legacy version (Python + NumPy) published on PyPI. The current Python code in `nova/` belongs to this version and will be replaced by Cython bindings to the native core.
-- Core runtime (tensor, storage, device, dtype, repr) is advanced. CPU backends with complete SIMD for dtype casting. GPU backends with base infrastructure. Autograd and arithmetic ops are the main pending items.
+- Core runtime (tensor, storage, device, dtype, repr) is advanced. CPU backends with complete SIMD for dtype casting. GPU backends with base infrastructure plus tiered launch heuristics. Threading runs stratified worker pools with manual/auto modes; repr reports through `novaStatus_t`.
 - No CI/CD yet.
 
 ### Roadmap (overview)

@@ -9,15 +9,9 @@
     {
       "name": "openblas",
       "features": [
-        "openmp"
-      ]
-    },
-    {
-      "name": "openblas",
-      "features": [
+        "openmp",
         "threads"
-      ],
-      "platform": "windows"
+      ]
     }
   ],
   "features": {

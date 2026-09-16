@@ -7,7 +7,11 @@
 ## interactive confirmation when stdin is a TTY).  With a directory target the
 ## script performs the CMake-equivalent of a target clean —
 ## @c cmake --build <dir> --target clean — which removes build artifacts while
-## keeping the configuration intact.  Log targets remove what their names say:
+## keeping the configuration intact.  Codegen outputs live in the source tree
+## but are Ninja-tracked build outputs (see
+## @c cmake/Modules/NovaNNRuntime.cmake), so plain @c --target clean would
+## delete them; the script snapshots them beforehand and restores them
+## afterwards, byte for byte.  Log targets remove what their names say:
 ## @c logs deletes all of @c build/logs/, while @c test-logs and
 ## @c build-logs delete only their own subtree.
 ##
@@ -52,8 +56,9 @@ ${C_BOLD}Usage:${C_RESET} $0 [OPTIONS] [--target <path|logs|test-logs|build-logs
 ${C_BOLD}Targets:${C_RESET}
   <path>                CMake build directory: runs
                         'cmake --build <path> --target clean' (artifacts are
-                        removed, configuration is kept).  A bare preset name
-                        is resolved to build/<preset> when it exists.
+                        removed, configuration is kept, source-tree codegen
+                        outputs are snapshotted and restored).  A bare preset
+                        name is resolved to build/<preset> when it exists.
   logs                  Delete build/logs entirely.
   test-logs             Delete build/logs/tests only.
   build-logs            Delete build/logs/*.log (configure/build logs),
@@ -108,6 +113,32 @@ run_cmd() {
         return 0
     fi
     "$@"
+}
+
+# Codegen outputs live in the source tree (see
+# cmake/Modules/NovaNNRuntime.cmake) but are declared as OUTPUTs of the
+# nova_codegen custom command, so Ninja's clean deletes them together with
+# the object files. Snapshot them before a directory clean and put them
+# back afterwards, byte for byte.
+backup_codegen_outputs() {
+    local list backup_dir f
+    list="$(uv run -q tools/codegen/generate.py gen --all --list-outputs 2>/dev/null || true)"
+    [[ -z "$list" ]] && return 0
+    backup_dir="$(mktemp -d "${TMPDIR:-/tmp}/nova-clean.XXXXXXXX")"
+    while IFS= read -r f; do
+        if [[ -n "$f" && -f "$f" ]]; then
+            mkdir -p "$backup_dir/$(dirname -- "$f")"
+            cp -p "$f" "$backup_dir/$f"
+        fi
+    done <<<"$list"
+    printf '%s' "$backup_dir"
+}
+
+restore_codegen_outputs() {
+    [[ -n "${1:-}" ]] || return 0
+    [[ -d "$1" ]] || return 0
+    cp -rp "$1/." "$PROJECT_ROOT/"
+    rm -rf "$1"
 }
 
 printf '\n%sNovaNN — clean%s\n' "$C_BOLD" "$C_RESET"
@@ -180,14 +211,17 @@ case "$TARGET" in
             die "'$dir' is not a configured CMake build directory"
         fi
         if [[ "$DRY_RUN" -eq 1 ]]; then
-            printf '%s[dry-run]%s cmake --build %s --target clean\n' "$C_CYAN" "$C_RESET" "$dir"
+            printf '%s[dry-run]%s cmake --build %s --target clean (codegen outputs preserved)\n' "$C_CYAN" "$C_RESET" "$dir"
         else
             printf '  %s▸ cleaning%s %s\n' "$C_CYAN" "$C_RESET" "$dir"
-            if cmake --build "$dir" --target clean; then
-                printf '%s  ✔ cleaned%s %s\n' "$C_GREEN" "$C_RESET" "$dir"
-            else
+            backup_dir="$(backup_codegen_outputs)"
+            clean_rc=0
+            cmake --build "$dir" --target clean || clean_rc=$?
+            restore_codegen_outputs "$backup_dir"
+            if [[ "$clean_rc" -ne 0 ]]; then
                 die "cmake --build $dir --target clean failed"
             fi
+            printf '%s  ✔ cleaned%s %s\n' "$C_GREEN" "$C_RESET" "$dir"
         fi
         ;;
 esac
