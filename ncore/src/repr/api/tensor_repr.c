@@ -114,7 +114,7 @@ static inline novaStatus_t render_owned(const Tensor *ten,
     rten.device = DEVICE_CPU;
     st = transf_tensor_from_device(ten, &rten);
     if (st.err != novaSuccess) {
-      collect(&rten);
+      (void)collect(&rten);
       return st;
     }
     rten.device = DEVICE_GPU;
@@ -126,7 +126,7 @@ static inline novaStatus_t render_owned(const Tensor *ten,
   sb_init(&sb, 256);
   if (sb_get_status(&sb) != SbOk) {
     if (swapped) {
-      collect(&rten);
+      (void)collect(&rten);
     }
     return repr_status(novaOutOfMemory);
   }
@@ -163,10 +163,14 @@ static inline novaStatus_t render_owned(const Tensor *ten,
 
   if (swapped) {
     if (ten->requires_grad_) {
-      /* Note: Avoid releasing the original TensorGrad of source */
+      /* rten aliases ten's grad through memcpy; keep collect() from freeing it */
       rten.grad = nullptr;
     }
-    collect(&rten);
+    novaStatus_t collect_status = collect(&rten);
+    if (collect_status.err != novaSuccess) {
+      sb_free(&sb);
+      return collect_status;
+    }
   }
   if (sb_get_status(&sb) != SbOk) {
     sb_free(&sb);
