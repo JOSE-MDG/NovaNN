@@ -5,7 +5,7 @@
  * @details
  * Implements the full Tensor API: allocation through @ref safe_allocator(),
  * strided layout computation, view sharing with reference-counted storage,
- * META-tensor special cases, and recursive cleanup of gradient sub-graphs.
+ * META-tensor special cases, and cleanup of gradient chains.
  *
  * All creation and mutation functions receive an output
  * @ref novaStatus_t pointer.  On failure the returned tensor is zeroed
@@ -21,7 +21,7 @@
  * @li Views increment the Rust reference count via @c retain() and decrement
  *   it when @c collect() is called on the view. A failed release leaves the
  *   storage attached so cleanup can be retried.
- * @li @c collect() is safe to call with @c nullptr (no-op).
+ * @li @c collect() returns @c novaSuccess on @c nullptr.
  *
  * @see tensor.h   Public API declarations and struct documentation.
  * @see alloc.h    safe_allocator().
@@ -139,7 +139,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device_ device,
     tensor.grad = create_unallocated_grad_tensor(shape, dtype, device,
                                                  pin_memory, ndims, status);
     if (status->err != novaSuccess) {
-      collect(&tensor);
+      (void)collect(&tensor);
       memset(&tensor, 0, sizeof(Tensor));
       return tensor;
     }
@@ -231,7 +231,7 @@ Tensor create_scalar_tensor(DType_ dtype, Device_ device, bool requires_grad,
     tensor.grad = create_unallocated_scalar_grad_tensor(dtype, device,
                                                         pin_memory, status);
     if (status->err != novaSuccess) {
-      collect(&tensor);
+      (void)collect(&tensor);
       memset(&tensor, 0, sizeof(Tensor));
       return tensor;
     }
@@ -375,7 +375,7 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
                                        src->is_pinned_, new_ndims, status);
 
     if (status->err != novaSuccess) {
-      collect(&dst); // Decrease rust reference counter
+      (void)collect(&dst);
       memset(&dst, 0, sizeof(Tensor));
       return dst;
     }
@@ -485,12 +485,12 @@ Tensor contiguous(const Tensor *restrict ten, novaStatus_t *status) {
   if (on_device(ten)) {
     *status = launchContiguousKernel(ten, &dst);
     if (status->err != novaSuccess) {
-      collect(&dst);
+      (void)collect(&dst);
     }
   } else if (on_host(ten)) {
     *status = contiguous_cpu_impl(ten, &dst);
     if (status->err != novaSuccess) {
-      collect(&dst);
+      (void)collect(&dst);
     }
   }
 
@@ -527,8 +527,8 @@ static thread_local char err_msg_buf[512];
  * @param[in]  dim0  First dimension to swap. May be negative.
  * @param[in]  dim1  Second dimension to swap. May be negative.
  *
- * @return View @c Tensor sharing @p ten's storage, or a collected
- *         tensor on failure.
+ * @return View @c Tensor sharing @p ten's storage.  On failure the
+ *         result must not be used.
  *
  * @pre  @p ten must not be @c nullptr.
  * @pre  @p st must not be @c nullptr.
@@ -556,7 +556,7 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
              "transpose(): dims (%d, %d) out of range for tensor with %d dims",
              dim0, dim1, ndims);
     st->message = err_msg_buf;
-    collect(&dst);
+    (void)collect(&dst);
     return dst;
   }
 
@@ -577,7 +577,7 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
                "that exclude the last one.\n",
                packing, dim0, dim1);
       st->message = err_msg_buf;
-      collect(&dst);
+      (void)collect(&dst);
       return dst;
     }
   }
@@ -615,8 +615,8 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
  * @param[in]  dims  Permutation of @c [0, ndims). Negative entries
  *                   count from the last dimension.
  *
- * @return View @c Tensor sharing @p ten's storage, or a collected
- *         tensor on failure.
+ * @return View @c Tensor sharing @p ten's storage.  On failure the
+ *         result must not be used.
  *
  * @pre  @p ten must not be @c nullptr.
  * @pre  @p st must not be @c nullptr.
@@ -651,7 +651,7 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
                "permute(): dims[%d] = %d out of range for tensor with %d dims",
                i, dims[i], ndims);
       st->message = err_msg_buf;
-      collect(&dst);
+      (void)collect(&dst);
       return dst;
     }
     if (seen[dim]) {
@@ -659,7 +659,7 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
       snprintf(err_msg_buf, sizeof(err_msg_buf),
                "permute(): duplicate dimension %d in permutation", dim);
       st->message = err_msg_buf;
-      collect(&dst);
+      (void)collect(&dst);
       return dst;
     }
     seen[dim] = true;
@@ -684,7 +684,7 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
                "innermost.\n",
                packing);
       st->message = err_msg_buf;
-      collect(&dst);
+      (void)collect(&dst);
       return dst;
     }
   }
@@ -712,14 +712,31 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
  * @param[in,out] src  Source tensor (ownership transferred; @c src
  *                     becomes a hollow shell).
  *
+ * @return Operation status.  On @c collect() failure @p src is left
+ *         untouched.
+ *
  * @pre  @p dst and @p src must not be @c nullptr.
- * @post @p dst owns all resources previously held by @p src.
- * @post @p src is in a valid but unallocated state.
+ * @pre  @p dst and @p src must not be the same object.
+ * @post On success, @p dst owns all resources previously held by
+ *       @p src.
+ * @post On success, @p src is in a valid but unallocated state.
  *
  * @see collect()  Called on @c dst before the move.
  */
-void move_tensor(Tensor *restrict dst, Tensor *restrict src) {
-  collect(dst);
+novaStatus_t move_tensor(Tensor *restrict dst, Tensor *restrict src) {
+  if (dst == nullptr || src == nullptr) {
+    return (novaStatus_t){.err = novaInvalidPointer,
+                          .message =
+                              nova_get_error_msg(novaInvalidPointer, nullptr)};
+  }
+  if (dst == src) {
+    return (novaStatus_t){.err = novaSuccess,
+                          .message = nova_get_error_msg(novaSuccess, nullptr)};
+  }
+  novaStatus_t st = collect(dst);
+  if (st.err != novaSuccess) {
+    return st;
+  }
 
   *dst = *src;
   src->storage = nullptr;
@@ -727,45 +744,51 @@ void move_tensor(Tensor *restrict dst, Tensor *restrict src) {
   src->grad = nullptr;
   src->grad_fn_ = nullptr;
   src->is_allocated_ = false;
+  return (novaStatus_t){.err = novaSuccess,
+                        .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 /**
- * @brief Recursively release tensor memory and gradients.
+ * @brief Release tensor memory and gradients.
  *
  * @details
- * @li 1. If @c ten is @c nullptr, returns immediately (no-op).
+ * @li 1. If @c ten is @c nullptr, returns @c novaSuccess.
  * @li 2. If @c ten->storage is non-nullptr, calls @c release() to
  *    decrement the Rust reference count.
  * @li 3. If @c release() succeeds and returns @c true (count reached zero),
  *    frees the @c TensorStorage with @c free() and nullifies @c storage,
  *    @c data, and @c is_allocated_. On release failure, storage remains
  *    attached for a later cleanup attempt.
- * @li 4. If @c ten->grad is non-nullptr, recursively calls @c collect()
- *    on the gradient, then frees the gradient @c Tensor with
- *    @c free() and nullifies @c grad.
- *
- * This ensures the full gradient sub-graph is freed, not just
- * the top-level tensor.
+ * @li 4. Walks the @c grad chain iteratively, releasing each node's
+ *    storage the same way and freeing the node.  A node whose release
+ *    fails stays linked under @c ten->grad with the remainder of the
+ *    chain for retry.
  *
  * @param[in,out] ten  Tensor to collect.  May be @c nullptr.
+ *
+ * @return First release error encountered, or @c novaSuccess.
  *
  * @post @c ten->storage reference count is decremented.
  * @post If the count reaches zero, @c storage and @c data are set
  *       to nullptr and @c is_allocated_ to @c false.
- * @post The gradient sub-graph is recursively freed.
+ * @post @c ten->grad is nullptr unless a gradient release failed.
  *
  * @see release()       Decrements the Rust reference count.
  * @see is_collected()  Query predicate after collection.
  */
-void collect(Tensor *ten) {
+novaStatus_t collect(Tensor *ten) {
+  novaStatus_t st = {.err = novaSuccess,
+                     .message = nova_get_error_msg(novaSuccess, nullptr)};
   if (ten == nullptr) {
-    return;
+    return st;
   }
 
   if (ten->storage != nullptr) {
     novaStatus_t release_status = {};
     bool should_free = release(&ten->storage->handle, &release_status);
-    if (release_status.err == novaSuccess && should_free) {
+    if (release_status.err != novaSuccess) {
+      st = release_status;
+    } else if (should_free) {
       free(ten->storage);
       ten->storage = nullptr;
       ten->data.data = nullptr;
@@ -773,11 +796,37 @@ void collect(Tensor *ten) {
     }
   }
 
-  if (ten->grad != nullptr) {
-    collect(ten->grad);
-    free(ten->grad);
-    ten->grad = nullptr;
+  TensorGrad failed = nullptr;
+  auto cur = ten->grad;
+  ten->grad = nullptr;
+  while (cur != nullptr) {
+    auto nxt = cur->grad;
+    cur->grad = nullptr;
+    if (cur->storage != nullptr) {
+      novaStatus_t release_status = {};
+      bool should_free = release(&cur->storage->handle, &release_status);
+      if (release_status.err != novaSuccess) {
+        if (st.err == novaSuccess) {
+          st = release_status;
+        }
+        cur->grad = nxt;
+        failed = cur;
+        break;
+      }
+      if (should_free) {
+        free(cur->storage);
+        cur->storage = nullptr;
+        cur->data.data = nullptr;
+        cur->is_allocated_ = false;
+      }
+    }
+    free(cur);
+    cur = nxt;
   }
+  if (failed != nullptr) {
+    ten->grad = failed;
+  }
+  return st;
 }
 
 /**

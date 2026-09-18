@@ -33,7 +33,7 @@
  * @li 1. Create via @ref create_tensor() or @ref create_scalar_tensor().
  * @li 2. Use in computations; views share storage via @ref create_view().
  * @li 3. Release via @ref collect() — decrements reference count and
- *    recursively frees gradients.
+ *    frees gradients.
  *
  * @see dtype.h      Data-type definitions and DType_ enum.
  * @see storage.h    TensorStorage, RustHandle, and FFI allocation.
@@ -330,44 +330,54 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
  * Collects any existing resources in @p dst, then performs a
  * bitwise copy of @p src into @p dst.  @p src is then zeroed
  * (storage, data, grad, grad_fn_ set to nullptr) so that a
- * subsequent @ref collect() on @p src is a no-op.
+ * subsequent @ref collect() on @p src is a no-op.  If releasing
+ * @p dst fails, @p src is left untouched and the error is returned.
  *
  * @param[in,out] dst  Destination tensor (previous resources are
  *                     freed via @ref collect()).
  * @param[in,out] src  Source tensor (ownership transferred; @p src
  *                     becomes a hollow shell).
  *
- * @pre  @p dst and @p src must not be @c nullptr.
- * @post @p dst owns all resources previously held by @p src.
- * @post @p src is in a valid but unallocated state.
+ * @return @ref novaStatus_t with @c novaSuccess on success, or the
+ *         release error from @ref collect().  @c novaInvalidPointer
+ *         when @p dst or @p src is @c nullptr.
+ *
+ * @pre  @p dst and @p src must not be the same object.
+ * @post On success, @p dst owns all resources previously held by
+ *       @p src.
+ * @post On success, @p src is in a valid but unallocated state.
  *
  * @see collect()  Frees the destination before the move.
  */
-void move_tensor(Tensor *restrict dst, Tensor *restrict src);
+novaStatus_t move_tensor(Tensor *restrict dst, Tensor *restrict src);
 
 /**
- * @brief Recursively release tensor memory and gradients.
+ * @brief Release tensor memory and gradients.
  *
  * @details
  * Decrements the reference count of the tensor's storage via
  * @ref release().  When the count reaches zero and release succeeds,
  * the @c TensorStorage descriptor is freed with @c free().  The gradient
- * sub-graph is then traversed and freed recursively via self-recursive calls.
- * If release reports an error, the storage descriptor remains attached.
+ * chain is then traversed and freed iteratively.
+ * If release reports an error, the storage descriptor remains attached
+ * for retry.
  *
- * Safe to call with @c nullptr (no-op).
+ * Safe to call with @c nullptr (returns @c novaSuccess).
  *
  * @param[in,out] ten  Tensor to collect.  May be @c nullptr.
+ *
+ * @return @ref novaStatus_t with @c novaSuccess on success, or the
+ *         first release error encountered.
  *
  * @post @p ten's storage reference count is decremented.
  * @post If the count reaches zero and release succeeds, @c storage and
  *       @c data are set to nullptr and @c is_allocated_ to @c false.
- * @post The gradient sub-graph is recursively freed.
+ * @post The gradient chain is freed.
  *
  * @see release()       Decrements the Rust reference count.
  * @see is_collected()  Query predicate after collection.
  */
-void collect(Tensor *ten);
+novaStatus_t collect(Tensor *ten);
 
 /**
  * @brief Check whether a tensor is contiguous in memory.
@@ -430,8 +440,8 @@ Tensor contiguous(const Tensor *restrict ten, novaStatus_t *status);
  * @param[in]  dim0  First dimension to swap. May be negative.
  * @param[in]  dim1  Second dimension to swap. May be negative.
  *
- * @return View @c Tensor sharing @p ten's storage, or a collected
- *         tensor on failure.
+ * @return View @c Tensor sharing @p ten's storage.  On failure the
+ *         result must not be used.
  *
  * @pre  @p ten must not be @c nullptr.
  * @pre  @p st must not be @c nullptr.
@@ -456,8 +466,8 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1);
  * @param[in]  dims  Permutation of @c [0, ndims). Only the first
  *                   @c ndims entries are read.
  *
- * @return View @c Tensor sharing @p ten's storage, or a collected
- *         tensor on failure.
+ * @return View @c Tensor sharing @p ten's storage.  On failure the
+ *         result must not be used.
  *
  * @pre  @p ten must not be @c nullptr.
  * @pre  @p st must not be @c nullptr.
