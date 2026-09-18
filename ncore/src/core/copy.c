@@ -368,14 +368,14 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
                   src->grad->is_pinned_, src->grad->ndims, status);
 
     if (status->err != novaSuccess) {
-      collect(dst);
+      (void)collect(dst);
       return;
     }
 
     dst->grad = new_grad;
     deepcopy(src->grad, dst->grad, status);
     if (status->err != novaSuccess) {
-      collect(dst);
+      (void)collect(dst);
       return;
     }
   } else {
