@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <utility>
 
 #include <ncore/core/device.h>
@@ -57,7 +57,7 @@ namespace ncore::dispatch {
  *       keeps no state and only reads the detection cache.
  */
 template <typename KernelFn, typename... Args>
-novaStatus_t launch(const std::map<DeviceKind, KernelFn> &table,
+novaStatus_t launch(const std::unordered_map<DeviceKind, KernelFn> &table,
                     Args &&...args) {
   novaStatus_t status;
 
