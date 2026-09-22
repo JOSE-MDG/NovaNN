@@ -399,13 +399,14 @@ inline uint32_t fp16_ieee_to_fp32_bits(uint16_t h) {
    * making it normalized (implicit leading 1 removed).
    *
    * Host/device/compiler dispatch mirrors fp8_e4m3fn.hh: device uses
-   * __clz, pure MSVC uses _BitScanReverse, otherwise std::countl_zero
-   * (C++20 <bit>). This keeps the header compilable under nvcc/hipcc
-   * (which cannot lower <bit>) and under pure MSVC that lacks the
-   * builtin.
+   * __builtin_clz, pure MSVC uses _BitScanReverse, otherwise
+   * std::countl_zero (C++20 <bit>). This keeps the header compilable
+   * under nvcc/hipcc (which cannot lower <bit>) and under pure MSVC
+   * that lacks the builtin.
    */
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-  uint32_t renormShift = static_cast<uint32_t>(__clz(nonsign));
+  uint32_t renormShift =
+      static_cast<uint32_t>(__builtin_clz(static_cast<unsigned int>(nonsign)));
 #elif defined(_MSC_VER) && !defined(__clang__)
   unsigned long nonsignBsr;
   _BitScanReverse(&nonsignBsr, static_cast<unsigned long>(nonsign));
