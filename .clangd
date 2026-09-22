@@ -105,7 +105,6 @@ Diagnostics:
       readability-identifier-naming.MemberCase: "lower_case"
       readability-identifier-naming.ConstVariableCase: "lower_case"
       readability-braces-around-statements.ShortStatementLines: 1
-      bugprone-assert-side-effect.AssertMacros: "NOVA_INTERNAL_ASSERT"
 ---
 If:
   PathMatch: .*\.(cpp|hpp|cc|cxx|cu|cuh)$
