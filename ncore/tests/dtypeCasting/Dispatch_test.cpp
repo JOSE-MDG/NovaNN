@@ -187,7 +187,9 @@ TEST(Dispatch, CastWritesExpectedValuesPerFamily) {
     ASSERT_TRUE(pair.ok);
 
     writeRaw(pair.src.mutableCTensor(), 0, sample.srcPattern);
-    cast(&pair.src.mutableCTensor(), &pair.dst.mutableCTensor(), sample.dst);
+    const novaStatus_t st = cast(&pair.src.mutableCTensor(),
+                                 &pair.dst.mutableCTensor(), sample.dst);
+    ASSERT_EQ(st.err, novaSuccess);
 
     EXPECT_EQ(readRaw(pair.dst.getCTensor(), 0), sample.dstPattern)
         << sample.label;
@@ -204,8 +206,9 @@ TEST(Dispatch, CastPreservesMetadataAndLogicalSize) {
     auto pair = makePair(DType_::Float32, DType_::Float16, 8, 1U);
     ASSERT_TRUE(pair.ok);
 
-    cast(&pair.src.mutableCTensor(), &pair.dst.mutableCTensor(),
-         DType_::Float16);
+    const novaStatus_t st = cast(&pair.src.mutableCTensor(),
+                                 &pair.dst.mutableCTensor(), DType_::Float16);
+    ASSERT_EQ(st.err, novaSuccess);
 
     const Tensor view = pair.dst.getCTensor();
     EXPECT_TRUE(is_allocated(&view));
@@ -222,8 +225,10 @@ TEST(Dispatch, CastPreservesMetadataAndLogicalSize) {
     ASSERT_TRUE(pair.ok);
     ASSERT_EQ(pair.dst.getSize(), size_t{4}); // Packed storage units.
 
-    cast(&pair.src.mutableCTensor(), &pair.dst.mutableCTensor(),
-         DType_::Float4E2M1fn);
+    const novaStatus_t st =
+        cast(&pair.src.mutableCTensor(), &pair.dst.mutableCTensor(),
+             DType_::Float4E2M1fn);
+    ASSERT_EQ(st.err, novaSuccess);
 
     const Tensor view = pair.dst.getCTensor();
     EXPECT_TRUE(is_allocated(&view));
