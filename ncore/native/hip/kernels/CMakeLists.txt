@@ -33,6 +33,7 @@ set_target_properties(hip_kernels_obj PROPERTIES
 
 target_include_directories(hip_kernels_obj
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
+    PRIVATE ${CMAKE_BINARY_DIR}
     PRIVATE ${CMAKE_SOURCE_DIR}/ncore/memory/csrc
     PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/hip/memory
     PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/hip
