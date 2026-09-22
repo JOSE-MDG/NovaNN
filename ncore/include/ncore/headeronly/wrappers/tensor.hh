@@ -827,7 +827,7 @@ inline TensorCXX TensorCXX::to(DType_ dtype, novaStatus_t &st) const noexcept {
     TensorCXX out(this->shape, dtype, getDevice(), c_tensor.requires_grad_,
                   c_tensor.is_pinned_, &st);
     if (st.err == novaSuccess) {
-      cast(&c_tensor, &out.c_tensor, dtype);
+      st = cast(&c_tensor, &out.c_tensor, dtype);
     }
     return out;
   }
