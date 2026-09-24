@@ -6,9 +6,5 @@ Language: Cpp
 ReflowComments: Never
 AttributeMacros:
   - __capability
-  - ALIGN
   - ATTR
   - __attribute__
-StatementAttributeLikeMacros:
-  - Q_EMIT
-  - ATTR

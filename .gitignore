@@ -45,3 +45,6 @@ Testing/
 
 # Agents
 agents-memory/
+
+# Local implementation specs
+specs/

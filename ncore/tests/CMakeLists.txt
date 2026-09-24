@@ -12,6 +12,8 @@ Subdirectories
 
 - ``dtypeCasting/`` — dtype casting tests (oracle utilities, cast
   table counts, kernel dispatch).  Registered in W0 of the rewrite.
+- ``dtypeCastingGpu/`` — on-device dtype casting tests (GPU dispatch,
+  bitwise equivalence, saturation, special values).
 - ``dtypes/`` — reduced-precision dtype tests.
 - ``core/`` — core runtime tests (status propagation, device
   detection, memory allocator, tensor copies/transfers).
@@ -42,6 +44,7 @@ if(BUILD_TESTING)
 
     add_subdirectory(core)
     add_subdirectory(dtypeCasting)
+    add_subdirectory(dtypeCastingGpu)
     add_subdirectory(dtypes)
     add_subdirectory(heuristics)
 endif()

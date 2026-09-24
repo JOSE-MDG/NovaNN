@@ -13,7 +13,7 @@
  * @li HIP — @ref launchHipDtypeCastingKernel (compiled from
  *   @c DtypeCastingKernel.hip).
  *
- * The dispatch uses a static @c std::map<DeviceKind, kernel_t> lookup
+ * The dispatch uses a static @c std::unordered_map<DeviceKind, kernel_t> lookup
  * table populated at compile time based on which backends are enabled
  * (@c NOVA_HAS_CUDA, @c NOVA_HAS_HIP). The detection flow itself
  * (cached kind, probe, exactly-one-backend) lives in
@@ -25,7 +25,7 @@
  * @see DtypeCastingKernel.hip  HIP kernel implementation.
  */
 
-#include <map>
+#include <unordered_map>
 
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
@@ -98,7 +98,7 @@ using kernel_t = novaStatus_t (*)(const Tensor *restrict, Tensor *restrict);
  * Populated at compile time. Entries for unavailable backends are
  * set to @c nullptr. Consumed by @ref ncore::dispatch::launch().
  */
-const std::map<DeviceKind, kernel_t> KERNEL_DISPATCHER = {
+const std::unordered_map<DeviceKind, kernel_t> KERNEL_DISPATCHER = {
 #if defined(NOVA_HAS_CUDA) && !defined(NOVA_HAS_HIP)
     {CUDA_DEVICE, launchCudaDtypeCastingKernel},
     {HIP_DEVICE, nullptr},

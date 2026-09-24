@@ -175,12 +175,12 @@ NCORE_HOST_DEVICE inline float fp8e4m3fn_to_fp32_value(uint8_t input) {
    * NovaNN's compiler floor (GCC 14+ / Clang 17+, see
    * CheckCompilerVersion.cmake — MSVC is rejected outright) guarantees a
    * real <bit> implementation there. On device, nvcc/hipcc are not
-   * guaranteed to lower <bit> through to a device-valid intrinsic, so the
-   * compiler-provided __clz/__builtin_clz is used instead, matching the
-   * dispatch NovaNN's own CUDA/HIP backends rely on elsewhere.
+   * guaranteed to lower <bit> through to a device-valid intrinsic, so
+   * __builtin_clz is used instead (__clz exists only under nvcc).
    */
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-  uint32_t renormShift = static_cast<uint32_t>(__clz(nonsign));
+  uint32_t renormShift =
+      static_cast<uint32_t>(__builtin_clz(static_cast<unsigned int>(nonsign)));
 #elif defined(_MSC_VER) && !defined(__clang__)
   unsigned long nonsignBsr;
   _BitScanReverse(&nonsignBsr, static_cast<unsigned long>(nonsign));

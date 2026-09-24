@@ -589,7 +589,7 @@ inline TensorCXX::TensorCXX(const std::vector<size_t> &shape, DType_ dtype,
 }
 
 /// @brief Releases the underlying tensor buffer via the C core.
-inline TensorCXX::~TensorCXX() { collect(&c_tensor); }
+inline TensorCXX::~TensorCXX() { (void)collect(&c_tensor); }
 
 inline TensorCXX::TensorCXX(std::initializer_list<size_t> shape, DType_ dtype,
                             Device_ device, bool requires_grad, bool pin_memory,
@@ -603,7 +603,9 @@ inline TensorCXX::TensorCXX(const TensorCXX &ten) {
   Tensor tmp = create_tensor_like(&ten.c_tensor, &st);
   if (st.err == novaSuccess) {
     deepcopy(&ten.c_tensor, &tmp, &st);
-    move_tensor(&c_tensor, &tmp);
+    if (st.err == novaSuccess) {
+      st = move_tensor(&c_tensor, &tmp);
+    }
   }
   shape = ten.shape;
   size = c_tensor.size;
@@ -619,7 +621,9 @@ inline TensorCXX::TensorCXX(DType_ dtype, Device_ device, bool requires_grad,
   Tensor ten =
       create_scalar_tensor(dtype, device, requires_grad, pin_memory, st);
 
-  move_tensor(&c_tensor, &ten);
+  if (st->err == novaSuccess) {
+    *st = move_tensor(&c_tensor, &ten);
+  }
   shape = {0};
   size = c_tensor.size;
   ndims = c_tensor.ndims;
@@ -646,7 +650,7 @@ inline TensorCXX &TensorCXX::operator=(const TensorCXX &ten) {
 
 /// @brief Move constructor. Transfers ownership; source is left empty.
 inline TensorCXX::TensorCXX(TensorCXX &&ten) noexcept {
-  move_tensor(&c_tensor, &ten.c_tensor);
+  (void)move_tensor(&c_tensor, &ten.c_tensor);
   shape = std::move(ten.shape);
   size = ten.size;
   ndims = ten.ndims;
@@ -663,7 +667,7 @@ inline TensorCXX::TensorCXX(TensorCXX &&ten) noexcept {
 
 /// @brief Move assignment. Transfers ownership; source is left empty.
 inline TensorCXX &TensorCXX::operator=(TensorCXX &&ten) noexcept {
-  move_tensor(&c_tensor, &ten.c_tensor);
+  (void)move_tensor(&c_tensor, &ten.c_tensor);
   shape = std::move(ten.shape);
   size = ten.size;
   ndims = ten.ndims;
@@ -823,7 +827,7 @@ inline TensorCXX TensorCXX::to(DType_ dtype, novaStatus_t &st) const noexcept {
     TensorCXX out(this->shape, dtype, getDevice(), c_tensor.requires_grad_,
                   c_tensor.is_pinned_, &st);
     if (st.err == novaSuccess) {
-      cast(&c_tensor, &out.c_tensor, dtype);
+      st = cast(&c_tensor, &out.c_tensor, dtype);
     }
     return out;
   }
@@ -860,7 +864,10 @@ inline TensorCXX TensorCXX::transpose(int dim0, int dim1,
   if (st.err != novaSuccess) {
     return out;
   }
-  move_tensor(&out.c_tensor, &tmp);
+  st = move_tensor(&out.c_tensor, &tmp);
+  if (st.err != novaSuccess) {
+    return out;
+  }
   out.shape.assign(out.c_tensor.shape, out.c_tensor.shape + out.c_tensor.ndims);
   out.size = out.c_tensor.size;
   out.ndims = out.c_tensor.ndims;
@@ -883,7 +890,10 @@ inline TensorCXX TensorCXX::permute(const std::vector<int> &dims,
   if (st.err != novaSuccess) {
     return out;
   }
-  move_tensor(&out.c_tensor, &tmp);
+  st = move_tensor(&out.c_tensor, &tmp);
+  if (st.err != novaSuccess) {
+    return out;
+  }
   out.shape.assign(out.c_tensor.shape, out.c_tensor.shape + out.c_tensor.ndims);
   out.size = out.c_tensor.size;
   out.ndims = out.c_tensor.ndims;
@@ -906,7 +916,10 @@ inline TensorCXX TensorCXX::contiguous(novaStatus_t &st) const noexcept {
   if (st.err != novaSuccess) {
     return out;
   }
-  move_tensor(&out.c_tensor, &tmp);
+  st = move_tensor(&out.c_tensor, &tmp);
+  if (st.err != novaSuccess) {
+    return out;
+  }
   out.shape.assign(out.c_tensor.shape, out.c_tensor.shape + out.c_tensor.ndims);
   out.size = out.c_tensor.size;
   out.ndims = out.c_tensor.ndims;
@@ -940,7 +953,9 @@ inline TensorCXX::TensorCXX(UnallocatedTag, DType_ dtype, Device_ device,
                             novaStatus_t *st) {
   Tensor ten = create_unallocated_scalar_tensor(dtype, device, requires_grad,
                                                 pin_memory, st);
-  move_tensor(&c_tensor, &ten);
+  if (st->err == novaSuccess) {
+    *st = move_tensor(&c_tensor, &ten);
+  }
 
   shape = {0};
   size = c_tensor.size;

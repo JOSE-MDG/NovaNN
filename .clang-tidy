@@ -38,8 +38,6 @@ HeaderFilterRegex: "ncore/.*"
 FormatStyle: file
 
 CheckOptions:
-  # Asserts
-  bugprone-assert-side-effect.AssertMacros: "NOVA_INTERNAL_ASSERT"
   bugprone-suspicious-string-compare.WarnOnImplicitComparison: false
 
   # C23 modernization — flag remaining NULL usage

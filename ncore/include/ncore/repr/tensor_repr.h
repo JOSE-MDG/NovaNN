@@ -29,7 +29,7 @@
  *       free(s);
  *   }
  *
- *   collect(&t);
+ *   st = collect(&t);
  * @endcode
  *
  * @see ReprOptions  Configuration for formatting behavior.
