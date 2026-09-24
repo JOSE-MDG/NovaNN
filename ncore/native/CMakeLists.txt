@@ -63,9 +63,7 @@ if(NOVA_HAS_HIP)
     add_subdirectory(hip)
 endif()
 
-if(TARGET ncore::native::obj::cpu)
-    list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::cpu>)
-endif()
+list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::cpu>)
 
 if(TARGET ncore::native::obj::cuda::kernels)
     list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::cuda::kernels>)
@@ -85,10 +83,6 @@ endif()
 
 if(TARGET ncore::native::obj::kernels)
     list(APPEND NATIVE_SOURCES $<TARGET_OBJECTS:ncore::native::obj::kernels>)
-endif()
-
-if(NOT NATIVE_SOURCES)
-    set(NATIVE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/native_stub.c")
 endif()
 
 add_library(native STATIC ${NATIVE_SOURCES})

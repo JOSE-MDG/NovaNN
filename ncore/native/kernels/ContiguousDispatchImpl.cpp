@@ -13,7 +13,7 @@
  * @li HIP — @ref launchHipContiguousKernel (compiled from
  *   @c ContiguousLayoutKernel.hip ).
  *
- * The dispatch uses a static @c std::map<DeviceKind , kernel_t> lookup
+ * The dispatch uses a static @c std::unordered_map<DeviceKind , kernel_t> lookup
  * table populated at compile time based on which backends are
  * enabled (@c NOVA_HAS_CUDA, @c NOVA_HAS_HIP ). The detection flow
  * itself lives in @ref ncore::dispatch::launch(), shared with every
@@ -25,7 +25,7 @@
  * @see ContiguousLayoutKernel.hip  HIP kernel implementation.
  */
 
-#include <map>
+#include <unordered_map>
 
 #include <ncore/core/status.h>
 #include <ncore/headeronly/macros.h>
@@ -96,7 +96,7 @@ using kernel_t = novaStatus_t (*)(const Tensor *restrict, Tensor *restrict);
  * Populated at compile time. Entries for unavailable backends are
  * set to @c nullptr. Consumed by @ref ncore::dispatch::launch().
  */
-const std::map<DeviceKind, kernel_t> KERNEL_DISPATCHER = {
+const std::unordered_map<DeviceKind, kernel_t> KERNEL_DISPATCHER = {
 #if defined(NOVA_HAS_CUDA) && !defined(NOVA_HAS_HIP)
     {CUDA_DEVICE, launchCudaContiguousKernel},
     {HIP_DEVICE, nullptr},

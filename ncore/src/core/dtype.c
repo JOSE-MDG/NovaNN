@@ -39,7 +39,9 @@
  */
 
 #include <ncore/core/dtype.h>
+#include <ncore/core/status.h>
 #include <ncore/headeronly/cast.h>
+#include <ncore/native/kernels/casting.h>
 #include <ncore/tables/dtype_tables.h>
 #include <ncore/tensor.h>
 
@@ -221,10 +223,12 @@ bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
  * @brief Cast a tensor's data to a different dtype.
  *
  * @details
- * Dispatches through the @ref cast_dispatch table to select the
- * correct element-wise conversion kernel.  The source tensor's
- * @c dtype field determines the source type, and @p target_dtype
- * determines the destination type.
+ * Tensors on the compute device dispatch to the GPU casting kernels
+ * and report the launch status.  All other tensors dispatch through
+ * the @ref cast_dispatch table to select the correct element-wise
+ * conversion kernel.  The source tensor's @c dtype field determines
+ * the source type, and @p target_dtype determines the destination
+ * type.
  *
  * The destination tensor must be pre-allocated with the target
  * dtype and a shape compatible with the source.  This function
@@ -239,6 +243,10 @@ bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
  *                           Must not be @c nullptr.
  * @param[in]  target_dtype  Desired output @ref DType_.
  *
+ * @return @ref novaSuccess with @p dst holding the type-converted
+ *         copy of @p src's data, or an error status describing the
+ *         failure.
+ *
  * @pre  @p dst must have been created via
  *       @c create_unallocated_tensor() with the correct shape and
  *       the target dtype.
@@ -250,10 +258,20 @@ bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
  *                     pairs to cast kernels.
  * @see DType_         Runtime data-type identifier.
  */
-void cast(const Tensor *restrict src, Tensor *restrict dst,
-          DType_ target_dtype) {
+novaStatus_t cast(const Tensor *restrict src, Tensor *restrict dst,
+                  DType_ target_dtype) {
+  if (on_device(src)) {
+    return launchDtypeCastingKernel(src, dst);
+  }
   CastFn func = cast_dispatch[src->dtype][target_dtype];
+  if (func == nullptr) {
+    return (novaStatus_t){
+        .err = novaCastNotSupported,
+        .message = nova_get_error_msg(novaCastNotSupported, nullptr)};
+  }
   func(src, dst);
+  return (novaStatus_t){.err = novaSuccess,
+                        .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 /**

@@ -7,6 +7,8 @@
 ![coverage](https://img.shields.io/badge/coverage-87%25-success)
 ![v5](https://img.shields.io/badge/v5.0.0-desarrollo%20activo-orange)
 
+> **NovaNN v5.0.0 está en desarrollo activo.** La documentación siguiente describe la versión estable actual (v4.0.4). Para una visión general a grandes rasgos de lo que traerá la v5.0.0, consulta [v5-notes.md](./v5-notes.md).
+
 ## Idiomas disponibles
 
 - [English](README.md)

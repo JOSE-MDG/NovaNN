@@ -186,6 +186,25 @@ namespace detail {
  * @return The single-precision float value.
  */
 NCORE_HOST_DEVICE inline float fp4e2m1fn_to_fp32_value(uint8_t nibble) {
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+  // Device branch: the host lookup table below indexes a constexpr
+  // std::array, which nvcc/hipcc cannot lower to device code, so the
+  // same eight magnitudes are decoded arithmetically instead. Values
+  // match the table entry by entry: e == 0 gives 0.0/0.5, otherwise
+  // 2^(e-1) * (1 + m/2) gives 1.0, 1.5, 2.0, 3.0, 4.0, 6.0.
+  const uint32_t wide = static_cast<uint32_t>(nibble);
+  const uint32_t s = (wide >> 3U) & 1U;
+  const uint32_t e = (wide >> 1U) & 3U;
+  const uint32_t m = wide & 1U;
+  float magnitude = 0.0F;
+  if (e == 0U) {
+    magnitude = (m == 0U) ? 0.0F : 0.5F;
+  } else {
+    magnitude = static_cast<float>(1U << (e - 1U)) *
+                (1.0F + 0.5F * static_cast<float>(m));
+  }
+  return (s == 0U) ? magnitude : -magnitude;
+#else
   // Indexed by the 3-bit magnitude (2 exponent bits << 1 | 1 mantissa bit).
   constexpr std::array<float, 8> kMagnitudes = {0.0f, 0.5f, 1.0f, 1.5f,
                                                 2.0f, 3.0f, 4.0f, 6.0f};
@@ -194,6 +213,7 @@ NCORE_HOST_DEVICE inline float fp4e2m1fn_to_fp32_value(uint8_t nibble) {
   const uint8_t mag = nibble & 0x7;
   const float magnitude = kMagnitudes[mag];
   return (sign != 0u) ? -magnitude : magnitude;
+#endif
 }
 
 /**
@@ -680,7 +700,8 @@ struct alignas(1) Float4_e2m1fn_x2 {
    * @param[in] lo The value to store in the low nibble (val0).
    * @param[in] hi The value to store in the high nibble (val1).
    */
-  inline NCORE_HOST_DEVICE Float4_e2m1fn_x2(Float4_e2m1fn lo, Float4_e2m1fn hi);
+  constexpr NCORE_HOST_DEVICE Float4_e2m1fn_x2(Float4_e2m1fn lo,
+                                               Float4_e2m1fn hi);
 
   /**
    * @brief Constructs a @ref Float4_e2m1fn_x2 by converting and packing two
@@ -736,8 +757,8 @@ inline std::ostream &operator<<(std::ostream &out,
 // Float4_e2m1fn_x2 — pack/unpack inline definitions
 // ============================================================
 
-inline NCORE_HOST_DEVICE Float4_e2m1fn_x2::Float4_e2m1fn_x2(Float4_e2m1fn lo,
-                                                            Float4_e2m1fn hi)
+constexpr NCORE_HOST_DEVICE Float4_e2m1fn_x2::Float4_e2m1fn_x2(Float4_e2m1fn lo,
+                                                               Float4_e2m1fn hi)
     : val_(static_cast<uint8_t>((hi.x << 4) | (lo.x & 0x0F))) {}
 
 inline NCORE_HOST_DEVICE Float4_e2m1fn_x2::Float4_e2m1fn_x2(float lo, float hi)
@@ -1079,6 +1100,10 @@ inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 operator/(int64_t a,
 // ============================================================
 // std::numeric_limits<Float4_e2m1fn_x2> specialization
 // ============================================================
+// Host only: numeric traits have no device callers, and clang's
+// device frontend rejects the value-returning members as invalid
+// constexpr. The conversion helpers above stay available on device.
+#if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
 namespace std {
 
 /**
@@ -1169,6 +1194,7 @@ public:
 };
 
 } // namespace std
+#endif // !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(pop)
