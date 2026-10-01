@@ -235,11 +235,10 @@ NCORE_HOST_DEVICE inline uint8_t fp4e2m1fn_from_fp32_value(float f) {
   const uint8_t sign = static_cast<uint8_t>((bits >> 31) & 0x1);
 
   uint8_t mag;
-  if (std::isnan(f)) {
-    // No NaN encoding available; saturate to the largest finite magnitude.
+  if ((bits & 0x7FFFFFFFU) > 0x7F800000U) {
     mag = 0b111;
   } else {
-    const float absVal = std::fabs(f);
+    const float absVal = fp32_from_bits(bits & 0x7FFFFFFFU);
     if (absVal > 5.0f) {
       mag = 0b111; // 6.0 (also covers +/-inf and any other overflow).
     } else if (absVal >= 3.5f) {
