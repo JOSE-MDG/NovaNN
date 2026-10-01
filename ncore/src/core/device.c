@@ -50,7 +50,8 @@
  * @section one-shot-caching One-shot Caching
  *
  * Device detection is performed once and cached in the module-level
- * variables @ref device_detection_done and @ref detected_device_kind.
+ * variables @ref atomic_device_detection_done and
+ * @ref atomic_detected_device_kind.
  * This avoids repeated runtime API calls during training, where only
  * a single GPU vendor (CUDA or HIP) is ever used.  The cache is
  * protected by a platform-specific mutex and one-shot initialisation
@@ -65,6 +66,8 @@
  * @see status.h              novaStatus_t struct.
  * @see ffi.hpp               C-callable deviceTransfer() wrapper.
  */
+
+#include <stdatomic.h>
 
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
@@ -94,7 +97,7 @@ extern novaStatus_t deviceTransfer(const void *src, void *dst,
 
 #ifdef __linux__
 #include <threads.h>
-#elif defined(_WIN64)
+#elifdef _WIN64
 #include <windows.h>
 #endif
 
@@ -199,7 +202,7 @@ extern novaStatus_t printHipDeviceInfo(bool verbose);
 #endif /* NOVA_HAS_HIP */
 
 /**
- * @var device_detection_done
+ * @var atomic_device_detection_done
  * @brief @c true after the first successful call to a detection
  *        function ( @ref is_device_available, @ref is_cuda_available,
  *        or @ref is_hip_available).
@@ -209,18 +212,18 @@ extern novaStatus_t printHipDeviceInfo(bool verbose);
  * immediately from the cache without querying the runtime API.
  * Protected by @ref runtime_flags_mtx for thread safety.
  */
-static bool device_detection_done = false;
+static _Atomic bool atomic_device_detection_done = false;
 
 /**
- * @var detected_device_kind
+ * @var atomic_detected_device_kind
  * @brief The @ref DeviceKind detected during the first probe.
  *
  * @details
  * Holds @c CUDA_DEVICE, @c HIP_DEVICE, or @c NULL_DEVICE (if no GPU
  * was found).  Written once under @ref runtime_flags_mtx and
- * read thereafter without locking (single-writer guarantee).
+ * read thereafter via acquire loads.
  */
-static DeviceKind detected_device_kind = NULL_DEVICE;
+static _Atomic DeviceKind atomic_detected_device_kind = NULL_DEVICE;
 
 #ifdef __linux__
 /**
@@ -229,7 +232,7 @@ static DeviceKind detected_device_kind = NULL_DEVICE;
  *        initialised exactly once, even under concurrent access.
  */
 static once_flag runtime_flags_once = {};
-#elif defined(_WIN64)
+#elifdef _WIN64
 /**
  * @var runtime_flags_once
  * @brief Windows one-time initialisation guard ensuring
@@ -241,8 +244,8 @@ static INIT_ONCE runtime_flags_once = INIT_ONCE_STATIC_INIT;
 #ifdef __linux__
 /**
  * @var runtime_flags_mtx
- * @brief Mutex protecting writes to @ref device_detection_done and
- *        @ref detected_device_kind.
+ * @brief Mutex protecting writes to @ref atomic_device_detection_done and
+ *        @ref atomic_detected_device_kind.
  *
  * @details
  * Initialised lazily via @ref init_runtime_flags_lock() through
@@ -250,11 +253,11 @@ static INIT_ONCE runtime_flags_once = INIT_ONCE_STATIC_INIT;
  * safe without locking due to the single-writer pattern.
  */
 static mtx_t runtime_flags_mtx;
-#elif defined(_WIN64)
+#elifdef _WIN64
 /**
  * @var runtime_flags_mtx
  * @brief Critical section protecting writes to
- *        @ref device_detection_done and @ref detected_device_kind.
+ *        @ref atomic_device_detection_done and @ref atomic_detected_device_kind.
  *
  * @details
  * Initialised lazily via @ref init_runtime_flags_lock() through
@@ -278,7 +281,7 @@ static CRITICAL_SECTION runtime_flags_mtx;
 static void init_runtime_flags_lock(void) {
   (void)mtx_init(&runtime_flags_mtx, mtx_plain);
 }
-#elif defined(_WIN64)
+#elifdef _WIN64
 /**
  * @brief Lazy initialiser for @ref runtime_flags_mtx.
  *
@@ -379,8 +382,8 @@ INITIALIZE(init_transf_dispatch) {
  * @section one-shot-caching-2 One-shot caching
  *
  * The first call to this function performs the actual runtime probe
- * and stores the result in @ref device_detection_done and
- * @ref detected_device_kind.  Subsequent calls return immediately
+ * and stores the result in @ref atomic_device_detection_done and
+ * @ref atomic_detected_device_kind.  Subsequent calls return immediately
  * from the cache.  This eliminates redundant runtime API calls in
  * long-running processes (e.g., training loops).
  *
@@ -404,12 +407,16 @@ INITIALIZE(init_transf_dispatch) {
  * @see DeviceKind                   Enum identifying backends.
  */
 bool is_device_available(DeviceKind kind, bool verbose) {
-  if (device_detection_done && detected_device_kind != NULL_DEVICE) {
-    return (kind == detected_device_kind);
+  if (atomic_load_explicit(&atomic_device_detection_done,
+                           memory_order_acquire) &&
+      atomic_load_explicit(&atomic_detected_device_kind,
+                           memory_order_acquire) != NULL_DEVICE) {
+    return (kind == atomic_load_explicit(&atomic_detected_device_kind,
+                                         memory_order_acquire));
   }
 #ifdef __linux__
   call_once(&runtime_flags_once, init_runtime_flags_lock);
-#elif defined(_WIN64)
+#elifdef _WIN64
   InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, nullptr,
                       nullptr);
 #endif
@@ -420,13 +427,17 @@ bool is_device_available(DeviceKind kind, bool verbose) {
     if (isCudaDeviceAvailable(verbose, verbose)) {
 #ifdef __linux__
       mtx_lock(&runtime_flags_mtx);
-      device_detection_done = true;
-      detected_device_kind = CUDA_DEVICE;
+      atomic_store_explicit(&atomic_device_detection_done, true,
+                            memory_order_release);
+      atomic_store_explicit(&atomic_detected_device_kind, CUDA_DEVICE,
+                            memory_order_release);
       mtx_unlock(&runtime_flags_mtx);
-#elif defined(_WIN64)
+#elifdef _WIN64
       EnterCriticalSection(&runtime_flags_mtx);
-      device_detection_done = true;
-      detected_device_kind = CUDA_DEVICE;
+      atomic_store_explicit(&atomic_device_detection_done, true,
+                            memory_order_release);
+      atomic_store_explicit(&atomic_detected_device_kind, CUDA_DEVICE,
+                            memory_order_release);
       LeaveCriticalSection(&runtime_flags_mtx);
 #endif
       return true;
@@ -439,13 +450,17 @@ bool is_device_available(DeviceKind kind, bool verbose) {
     if (isHipDeviceAvailable(false, false)) {
 #ifdef __linux__
       mtx_lock(&runtime_flags_mtx);
-      device_detection_done = true;
-      detected_device_kind = HIP_DEVICE;
+      atomic_store_explicit(&atomic_device_detection_done, true,
+                            memory_order_release);
+      atomic_store_explicit(&atomic_detected_device_kind, HIP_DEVICE,
+                            memory_order_release);
       mtx_unlock(&runtime_flags_mtx);
-#elif defined(_WIN64)
+#elifdef _WIN64
       EnterCriticalSection(&runtime_flags_mtx);
-      device_detection_done = true;
-      detected_device_kind = HIP_DEVICE;
+      atomic_store_explicit(&atomic_device_detection_done, true,
+                            memory_order_release);
+      atomic_store_explicit(&atomic_detected_device_kind, HIP_DEVICE,
+                            memory_order_release);
       LeaveCriticalSection(&runtime_flags_mtx);
 #endif
       return true;
@@ -486,15 +501,19 @@ bool is_device_available(DeviceKind kind, bool verbose) {
  * @see is_device_available()
  * @see DeviceKind
  */
-bool is_cuda_available(void) {
+bool is_cuda_available() {
 
-  if (device_detection_done && detected_device_kind != NULL_DEVICE) {
-    return (CUDA_DEVICE == detected_device_kind);
+  if (atomic_load_explicit(&atomic_device_detection_done,
+                           memory_order_acquire) &&
+      atomic_load_explicit(&atomic_detected_device_kind,
+                           memory_order_acquire) != NULL_DEVICE) {
+    return (CUDA_DEVICE == atomic_load_explicit(&atomic_detected_device_kind,
+                                                memory_order_acquire));
   }
 
 #ifdef __linux__
   call_once(&runtime_flags_once, init_runtime_flags_lock);
-#elif defined(_WIN64)
+#elifdef _WIN64
   InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, nullptr,
                       nullptr);
 #endif
@@ -503,13 +522,17 @@ bool is_cuda_available(void) {
   if (isCudaDeviceAvailable(false, false)) {
 #ifdef __linux__
     mtx_lock(&runtime_flags_mtx);
-    device_detection_done = true;
-    detected_device_kind = CUDA_DEVICE;
+    atomic_store_explicit(&atomic_device_detection_done, true,
+                          memory_order_release);
+    atomic_store_explicit(&atomic_detected_device_kind, CUDA_DEVICE,
+                          memory_order_release);
     mtx_unlock(&runtime_flags_mtx);
-#elif defined(_WIN64)
+#elifdef _WIN64
     EnterCriticalSection(&runtime_flags_mtx);
-    device_detection_done = true;
-    detected_device_kind = CUDA_DEVICE;
+    atomic_store_explicit(&atomic_device_detection_done, true,
+                          memory_order_release);
+    atomic_store_explicit(&atomic_detected_device_kind, CUDA_DEVICE,
+                          memory_order_release);
     LeaveCriticalSection(&runtime_flags_mtx);
 #endif
     return true;
@@ -545,15 +568,19 @@ bool is_cuda_available(void) {
  * @see is_device_available()
  * @see DeviceKind
  */
-bool is_hip_available(void) {
+bool is_hip_available() {
 
-  if (device_detection_done && detected_device_kind != NULL_DEVICE) {
-    return (HIP_DEVICE == detected_device_kind);
+  if (atomic_load_explicit(&atomic_device_detection_done,
+                           memory_order_acquire) &&
+      atomic_load_explicit(&atomic_detected_device_kind,
+                           memory_order_acquire) != NULL_DEVICE) {
+    return (HIP_DEVICE == atomic_load_explicit(&atomic_detected_device_kind,
+                                               memory_order_acquire));
   }
 
 #ifdef __linux__
   call_once(&runtime_flags_once, init_runtime_flags_lock);
-#elif defined(_WIN64)
+#elifdef _WIN64
   InitOnceExecuteOnce(&runtime_flags_once, init_runtime_flags_lock, nullptr,
                       nullptr);
 #endif
@@ -562,13 +589,17 @@ bool is_hip_available(void) {
   if (isHipDeviceAvailable(false, false)) {
 #ifdef __linux__
     mtx_lock(&runtime_flags_mtx);
-    device_detection_done = true;
-    detected_device_kind = HIP_DEVICE;
+    atomic_store_explicit(&atomic_device_detection_done, true,
+                          memory_order_release);
+    atomic_store_explicit(&atomic_detected_device_kind, HIP_DEVICE,
+                          memory_order_release);
     mtx_unlock(&runtime_flags_mtx);
-#elif defined(_WIN64)
+#elifdef _WIN64
     EnterCriticalSection(&runtime_flags_mtx);
-    device_detection_done = true;
-    detected_device_kind = HIP_DEVICE;
+    atomic_store_explicit(&atomic_device_detection_done, true,
+                          memory_order_release);
+    atomic_store_explicit(&atomic_detected_device_kind, HIP_DEVICE,
+                          memory_order_release);
     LeaveCriticalSection(&runtime_flags_mtx);
 #endif
     return true;
@@ -678,7 +709,7 @@ novaStatus_t transfer_to(Device_ src, Device_ dst, const void *src_buf,
  * @see getCudaDeviceId()  CUDA-specific device id accessor.
  * @see getHipDeviceId()   HIP-specific device id accessor.
  */
-int get_device_id(void) {
+int get_device_id() {
 
   if (is_cuda_available()) {
 #ifdef NOVA_HAS_CUDA
@@ -761,14 +792,17 @@ novaStatus_t print_device_info(DeviceKind kind, bool verbose) {
  * @see was_device_detection_done()
  * @see is_device_available()
  */
-DeviceKind get_detected_device_kind(void) { return detected_device_kind; }
+DeviceKind get_detected_device_kind() {
+  return atomic_load_explicit(&atomic_detected_device_kind,
+                              memory_order_acquire);
+}
 
 /**
  * @brief Check whether device detection has already been performed.
  *
  * @details
  * Returns @c true only when the first detection call found a device
- * (i.e., @ref device_detection_done is set).  A probe that finds no
+ * (i.e., @ref atomic_device_detection_done is set).  A probe that finds no
  * device leaves the flag unset.  Useful for guarding one-time
  * initialisation that depends on a detected backend.
  *
@@ -778,4 +812,7 @@ DeviceKind get_detected_device_kind(void) { return detected_device_kind; }
  * @see get_detected_device_kind()
  * @see is_device_available()
  */
-bool was_device_detection_done(void) { return device_detection_done; }
+bool was_device_detection_done() {
+  return atomic_load_explicit(&atomic_device_detection_done,
+                              memory_order_acquire);
+}
