@@ -269,7 +269,7 @@ static CRITICAL_SECTION runtime_flags_mtx;
 
 #ifdef __linux__
 /**
- * @brief Lazy initialiser for @ref runtime_flags_mtx.
+ * @brief Lazy initializer for @ref runtime_flags_mtx.
  *
  * @details
  * Passed to C11 @c call_once so that the mutex is created exactly
@@ -322,7 +322,7 @@ static BOOL CALLBACK init_runtime_flags_lock(PINIT_ONCE once, PVOID param,
  * @li @c DEVICE_GPU — @c DEVICE_GPU — @c deviceMemcpyDeviceToDevice
  *
  * All other entries remain @c 0 (zero-initialised).  Calling
- * @ref transfer_to() with an uninitialised pair (e.g.,
+ * @ref transfer_to() with an uninitialized pair (e.g.,
  * @c DEVICE_CPU → @c DEVICE_CPU) is reported as
  * @ref novaInvalidTransfDirection.
  *
@@ -330,7 +330,7 @@ static BOOL CALLBACK init_runtime_flags_lock(PINIT_ONCE once, PVOID param,
  * @see transfer_to()
  * @see TransferKind
  */
-TransferKind transf_dispatch[3][3] = {};
+static TransferKind transf_dispatch[3][3] = {};
 
 /**
  * @brief Populate the transfer dispatch table at program startup.
