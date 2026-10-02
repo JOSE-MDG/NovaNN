@@ -134,7 +134,7 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
         reserve(bytes, map_device2string(device), pin_memory, align, &status);
     return status;
   } else {
-    if (ten == nullptr || (is_allocated(ten))) {
+    if (ten == nullptr || is_allocated(ten)) {
       status.err = novaInvalidPointer;
       status.message = nova_get_error_msg(status.err, nullptr);
       return status;
