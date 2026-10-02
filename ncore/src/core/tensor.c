@@ -1099,9 +1099,9 @@ static inline novaStatus_t transf_tensor_common(const Tensor *restrict src,
 novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
                                        Tensor *restrict dst) {
 
-  bool condition = ((src->device != DEVICE_GPU || !is_allocated(src) ||
-                     !is_device_memory_handle(&src->storage->handle) ||
-                     (dst->device != DEVICE_CPU || !is_allocated(dst)))) != 0;
+  bool condition = (src->device != DEVICE_GPU || !is_allocated(src) ||
+                    !is_device_memory_handle(&src->storage->handle) ||
+                    (dst->device != DEVICE_CPU || !is_allocated(dst))) != 0;
 
   return transf_tensor_common(src, dst, condition);
 }
@@ -1121,9 +1121,9 @@ novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
  */
 novaStatus_t transf_tensor_from_host(const Tensor *restrict src,
                                      Tensor *restrict dst) {
-  bool condition = ((src->device != DEVICE_CPU || !is_allocated(src) ||
-                     (dst->device != DEVICE_GPU || !is_allocated(dst) ||
-                      !is_device_memory_handle(&dst->storage->handle)))) != 0;
+  bool condition = (src->device != DEVICE_CPU || !is_allocated(src) ||
+                    (dst->device != DEVICE_GPU || !is_allocated(dst) ||
+                     !is_device_memory_handle(&dst->storage->handle))) != 0;
 
   return transf_tensor_common(src, dst, condition);
 }
