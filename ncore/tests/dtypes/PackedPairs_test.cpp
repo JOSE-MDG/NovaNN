@@ -208,7 +208,8 @@ TEST(PackedPairs, AllocationSizeMatchesStorageUnits) {
     ASSERT_TRUE(is_allocated(&view));
     ASSERT_NE(view.storage, nullptr);
     const size_t needed = view.size * view.item_size;
-    EXPECT_GE(view.storage->handle.size_bytes, needed);
+    EXPECT_EQ(view.storage->handle.requested_bytes, needed);
+    EXPECT_GE(view.storage->handle.bytes, needed);
 
     for (size_t i = 0; i < view.size; ++i) {
       view.data.fp4e2m1fn_x2[i] = static_cast<uint8_t>(i + 1U);
