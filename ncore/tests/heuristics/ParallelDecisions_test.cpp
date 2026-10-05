@@ -92,8 +92,8 @@ SortWork PlainSort(size_t total) { return {.total = total, .valid = true}; }
  * @brief Stack tensor with wired storage for helper-builder tests.
  *
  * Only metadata is read by make_elementwise_work and make_layout_work,
- * so the small backing buffer is never dereferenced; size_bytes carries
- * the logical byte count under test.
+ * so the small backing buffer is never dereferenced; requested_bytes
+ * carries the logical byte count under test.
  */
 struct FakeTensor {
   Tensor ten{};
@@ -103,7 +103,8 @@ struct FakeTensor {
   FakeTensor(DType_ dtype, Device_ device, size_t ndims, size_t size,
              size_t logical, size_t item, size_t bytes) {
     storage.ptr.data = backing.data();
-    storage.size_bytes = bytes;
+    storage.handle.requested_bytes = bytes;
+    storage.handle.bytes = bytes;
     ten.dtype = dtype;
     ten.device = device;
     ten.ndims = ndims;
