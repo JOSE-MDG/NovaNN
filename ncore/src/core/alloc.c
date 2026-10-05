@@ -52,7 +52,7 @@
  * @return @c "cpu" for @c DEVICE_CPU, @c "device" for @c DEVICE_GPU,
  *         or @c "none" as a fallback for META / unknown values.
  */
-static const char *map_device2string(Device_ device) {
+static inline const char *map_device2string(Device_ device) {
   switch (device) {
   case DEVICE_CPU:
     return "cpu";
@@ -68,16 +68,18 @@ static const char *map_device2string(Device_ device) {
  *        storage.
  *
  * @details
- * Delegates to @ref reserve() through the Rust FFI to obtain a
- * @ref RustHandle.  Alignment is selected automatically: 512 bytes
- * for GPU, 64 bytes otherwise.
+ * Resolves the theoretical @p bytes to its size class through
+ * @ref resolve_rounded_bytes() and delegates to @ref reserve() through
+ * the Rust FFI to obtain a @ref RustHandle carrying both the theoretical
+ * and the real reservation sizes.  Alignment is selected automatically:
+ * 512 bytes for GPU, 64 bytes otherwise.
  *
  * When @p create_storage is @c false, only a raw @ref RustHandle is
  * returned via @p handle.  When @c true, a @ref TensorStorage is
  * heap-allocated, populated with the handle and data pointer, and
  * attached to the tensor pointed to by @p ten.
  *
- * @param[in]  bytes          Requested allocation size in bytes.
+ * @param[in]  bytes          Theoretical allocation size in bytes.
  * @param[in]  device         Target device (@c DEVICE_CPU, @c DEVICE_GPU,
  *                            or @c DEVICE_META).
  * @param[in]  pin_memory     If @c true, request page-locked host memory
@@ -97,7 +99,7 @@ static const char *map_device2string(Device_ device) {
  * @retval novaInvalidPointer  @p ten is @c nullptr when @p create_storage is
  *                             @c true, or @p ten is already allocated.
  * @retval novaSuccess         META device or successful allocation.
- * @retval ...                 Forwarded from @ref reserve().
+ * @retval ...                 Forwarded from @ref reserve() or the rounding.
  *
  * @pre  @p bytes must be greater than zero.
  * @pre  Exactly one of @p handle or @p ten must be non-nullptr,
@@ -116,9 +118,34 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
                             bool create_storage) {
 
   novaStatus_t status;
+  if (!create_storage && handle == nullptr) {
+    status.err = novaInvalidHandle;
+    status.message = nova_get_error_msg(status.err, nullptr);
+    return status;
+  }
   if (device == DEVICE_META) {
+    if (!create_storage) {
+      *handle = (RustHandle){0};
+    } else if (ten == nullptr || is_allocated(ten)) {
+      status.err = novaInvalidPointer;
+      status.message = nova_get_error_msg(status.err, nullptr);
+      return status;
+    }
     status.err = novaSuccess;
     status.message = nova_get_error_msg(status.err, nullptr);
+    return status;
+  }
+
+  if (bytes == 0) {
+    status.err = novaInvalidValue;
+    status.message = nova_get_error_msg(status.err, nullptr);
+    return status;
+  }
+
+  const bool is_device = (device == DEVICE_GPU);
+  const size_t rounded =
+      resolve_rounded_bytes(bytes, is_device, pin_memory, &status);
+  if (status.err != novaSuccess) {
     return status;
   }
 
@@ -130,8 +157,8 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
    */
   const size_t align = 64;
   if (!create_storage) {
-    *handle =
-        reserve(bytes, map_device2string(device), pin_memory, align, &status);
+    *handle = reserve(rounded, bytes, map_device2string(device), pin_memory,
+                      align, &status);
     return status;
   } else {
     if (ten == nullptr || is_allocated(ten)) {
@@ -156,8 +183,8 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
     }
 
     RustHandle storage_handle = {};
-    storage_handle =
-        reserve(bytes, map_device2string(device), pin_memory, align, &status);
+    storage_handle = reserve(rounded, bytes, map_device2string(device),
+                             pin_memory, align, &status);
 
     if (status.err != novaSuccess) {
       free(storage);
@@ -165,9 +192,7 @@ novaStatus_t safe_allocator(size_t bytes, Device_ device, bool pin_memory,
     }
 
     storage->ptr.data = (unsigned char *)get_data_from(&storage_handle);
-    storage->align = storage_handle.align;
     storage->handle = storage_handle;
-    storage->size_bytes = storage_handle.size_bytes;
 
     ten->storage = storage;
     ten->data = storage->ptr;
