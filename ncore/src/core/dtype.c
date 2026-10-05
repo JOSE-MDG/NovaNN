@@ -260,7 +260,7 @@ bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
  */
 novaStatus_t cast(const Tensor *restrict src, Tensor *restrict dst,
                   DType_ target_dtype) {
-  if (on_device(src)) {
+  if (in_device(src)) {
     return launchDtypeCastingKernel(src, dst);
   }
   CastFn func = cast_dispatch[src->dtype][target_dtype];
