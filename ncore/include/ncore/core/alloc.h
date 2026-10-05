@@ -39,15 +39,16 @@ extern "C" {
  *
  * @details
  * Delegates to @ref reserve() through the Rust FFI to obtain a
- * @ref RustHandle.  Alignment is selected automatically: 512 bytes
- * for GPU, 64 bytes otherwise.
+ * @ref RustHandle carrying both the theoretical and the real reservation
+ * sizes.  The theoretical size is first resolved to its size class
+ * (device and pinned reservations round up while plain host is identity).
  *
  * When @p create_storage is @c false, only a raw @ref RustHandle is
  * returned via @p handle.  When @c true, a @ref TensorStorage is
  * heap-allocated, populated with the handle and data pointer, and
  * attached to the tensor pointed to by @p ten.
  *
- * @param[in]  bytes          Requested allocation size in bytes.
+ * @param[in]  bytes          Theoretical allocation size in bytes.
  * @param[in]  device         Target device (@c DEVICE_CPU, @c DEVICE_GPU,
  *                            or @c DEVICE_META).
  * @param[in]  pin_memory     If @c true, request page-locked host memory
