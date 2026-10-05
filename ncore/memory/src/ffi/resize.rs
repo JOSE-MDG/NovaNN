@@ -10,27 +10,29 @@ use crate::status::NovaStatus;
 
 /// Resizes the storage associated with the handle.
 ///
-/// On success the handle's cached `size_bytes` is updated.
+/// The input is the new theoretical size. Device-backed storage rounds it to
+/// its size class with the same rules as the initial reservation. On success
+/// the handle's cached `requested_bytes` and `bytes` are updated.
 ///
 /// Returns a [`NovaStatus`] describing success or failure.
 ///
 /// # Arguments
 ///
 /// * `handle` - Mutable pointer to the handle whose allocation is resized.
-/// * `new_size` - New allocation size in bytes. Must be non-zero.
+/// * `requested` - New theoretical size in bytes. Must be non-zero.
 ///
 /// # Safety
 ///
 /// `handle` must be non-null and point to a valid [`RustHandle`].
-/// The handle remains valid on a normal validation or allocation failure;
-/// callers must still treat backend-specific resize failures as terminal
+/// The handle remains valid on a normal validation or allocation failure.
+/// Callers must still treat backend-specific resize failures as terminal
 /// until the backend reports that the buffer is usable again.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resize(handle: *mut RustHandle, new_size: usize) -> NovaStatus {
+pub unsafe extern "C" fn resize(handle: *mut RustHandle, requested: usize) -> NovaStatus {
     if handle.is_null() {
         return NovaStatus::from_error(&StorageError::NullPointer);
     }
-    match resize_op(unsafe { &mut *handle }, new_size) {
+    match resize_op(unsafe { &mut *handle }, requested) {
         Ok(()) => NovaStatus::success(),
         Err(error) => NovaStatus::from_error(&error),
     }
