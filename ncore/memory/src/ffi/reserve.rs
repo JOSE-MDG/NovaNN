@@ -14,9 +14,16 @@ use std::ffi::{CStr, c_char};
 
 /// Allocates storage on the specified device.
 ///
+/// Callers must pre-round `size` to its size class (see
+/// `resolve_rounded_bytes` in `ncore/core/storage.h`). This layer trusts
+/// but re-validates the `requested <= size` contract.
+///
 /// # Arguments
 ///
-/// * `size`       - Number of bytes to allocate. Must be non-zero.
+/// * `size`       - Reservation size in bytes, already rounded to its size
+///                  class by the caller. Must be non-zero.
+/// * `requested`  - Theoretical size asked by the caller. Must be non-zero
+///                  and not greater than `size`.
 /// * `device`     - C string: `"cpu"` for host RAM, `"device"` for GPU VRAM.
 ///                  A null pointer is treated as `"cpu"` for compatibility
 ///                  with the native allocator wrapper.
@@ -40,6 +47,7 @@ use std::ffi::{CStr, c_char};
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn reserve(
     size: usize,
+    requested: usize,
     device: *const c_char,
     pin_memory: bool,
     align: usize,
@@ -70,7 +78,7 @@ pub unsafe extern "C" fn reserve(
             }
         }
     };
-    match reserve_op(size, dev, pin_memory, align) {
+    match reserve_op(size, requested, dev, pin_memory, align) {
         Ok(handle) => handle,
         Err(e) => {
             unsafe {
