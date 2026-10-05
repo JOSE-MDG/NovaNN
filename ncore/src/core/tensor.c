@@ -482,12 +482,12 @@ Tensor contiguous(const Tensor *restrict ten, novaStatus_t *status) {
     return dst;
   }
 
-  if (on_device(ten)) {
+  if (in_device(ten)) {
     *status = launchContiguousKernel(ten, &dst);
     if (status->err != novaSuccess) {
       (void)collect(&dst);
     }
-  } else if (on_host(ten)) {
+  } else if (in_host(ten)) {
     *status = contiguous_cpu_impl(ten, &dst);
     if (status->err != novaSuccess) {
       (void)collect(&dst);
@@ -1006,7 +1006,7 @@ bool is_grad_view(TensorGrad grad) { return grad->is_view_; }
  * @brief Check whether a tensor's data resides in GPU device memory.
  *
  * @details
- * A tensor is considered to be "on device" when all three conditions
+ * A tensor is considered to be "in device" when all three conditions
  * hold:
  * @li @c is_allocated(ten) — the tensor has valid backing storage.
  * @li @c ten->device == @c DEVICE_GPU — the tensor is GPU-resident.
@@ -1022,11 +1022,11 @@ bool is_grad_view(TensorGrad grad) { return grad->is_view_; }
  * @return @c true if the tensor is allocated, GPU-resident, and
  *         device-backed, @c false otherwise.
  *
- * @see on_host()                    Complementary check.
+ * @see in_host()                    Complementary check.
  * @see is_allocated()               Allocation precondition.
  * @see is_device_memory_handle()    Storage backing check.
  */
-bool on_device(const Tensor *ten) {
+bool in_device(const Tensor *ten) {
   return (bool)(is_allocated(ten) && ten->device == DEVICE_GPU &&
                 is_device_memory_handle(&ten->storage->handle));
 }
@@ -1035,7 +1035,7 @@ bool on_device(const Tensor *ten) {
  * @brief Check whether a tensor's data resides in CPU host memory.
  *
  * @details
- * A tensor is considered to be "on host" when it is allocated and
+ * A tensor is considered to be "in host" when it is allocated and
  * host-resident. Pinned host memory counts: it is still CPU
  * memory, directly addressable by host kernels, additionally
  * reachable by DMA. Only the placement field decides, never the
@@ -1046,12 +1046,12 @@ bool on_device(const Tensor *ten) {
  * @return @c true if the tensor is allocated and host-resident,
  *         @c false otherwise.
  *
- * @see on_device()                   Complementary check.
+ * @see in_device()                   Complementary check.
  * @see is_allocated()                Allocation precondition.
  * @see is_device_memory_handle()     DMA-reachability check, used
  *                                    by transfers and repr, not here.
  */
-bool on_host(const Tensor *ten) {
+bool in_host(const Tensor *ten) {
   return (bool)(is_allocated(ten) && ten->device == DEVICE_CPU);
 }
 
@@ -1080,7 +1080,7 @@ static inline novaStatus_t transf_tensor_common(const Tensor *restrict src,
   }
 
   return transfer_to(src->device, dst->device, src->data.data + src->offset,
-                     dst->data.data, src->storage->size_bytes);
+                     dst->data.data, src->storage->handle.requested_bytes);
 }
 
 /**

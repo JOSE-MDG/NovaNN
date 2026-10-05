@@ -610,7 +610,7 @@ bool is_grad_view(TensorGrad grad);
  * @brief Check whether a tensor's data resides in GPU device memory.
  *
  * @details
- * A tensor is considered to be "on device" when all three conditions
+ * A tensor is considered to be "in device" when all three conditions
  * hold:
  * @li @c is_allocated(ten) — the tensor has valid backing storage.
  * @li @c ten->device == @c DEVICE_GPU — the tensor is GPU-resident.
@@ -626,17 +626,17 @@ bool is_grad_view(TensorGrad grad);
  * @return @c true if the tensor is allocated, GPU-resident, and
  *         device-backed, @c false otherwise.
  *
- * @see on_host()                    Complementary check.
+ * @see in_host()                    Complementary check.
  * @see is_allocated()               Allocation precondition.
  * @see is_device_memory_handle()    Storage backing check.
  */
-bool on_device(const Tensor *ten);
+bool in_device(const Tensor *ten);
 
 /**
  * @brief Check whether a tensor's data resides in CPU host memory.
  *
  * @details
- * A tensor is considered to be "on host" when all three conditions
+ * A tensor is considered to be "in host" when all three conditions
  * hold:
  * @li @c is_allocated(ten) — the tensor has valid backing storage.
  * @li @c ten->device == @c DEVICE_CPU — the tensor is host-resident.
@@ -649,11 +649,11 @@ bool on_device(const Tensor *ten);
  * @return @c true if the tensor is allocated, host-resident, and
  *         backed by plain host memory, @c false otherwise.
  *
- * @see on_device()                   Complementary check.
+ * @see in_device()                   Complementary check.
  * @see is_allocated()                Allocation precondition.
  * @see is_device_memory_handle()     Storage backing check.
  */
-bool on_host(const Tensor *ten);
+bool in_host(const Tensor *ten);
 
 /**
  * @brief Transfer tensor data from GPU device memory to CPU host
