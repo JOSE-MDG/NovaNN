@@ -32,8 +32,12 @@ extern "C" {
  * @brief Cast function pointer type.
  * @param[in]  src Source tensor (read-only)
  * @param[out] dst Destination tensor (write-only, must be same size as src)
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-typedef void (*CastFn)(const Tensor *restrict, Tensor *restrict);
+typedef void (*CastFn)(const Tensor *restrict, Tensor *restrict,
+                       novaStatus_t *status);
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to float8_e4m3fn conversions.
