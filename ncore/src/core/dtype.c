@@ -243,9 +243,9 @@ bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
  *                           Must not be @c nullptr.
  * @param[in]  target_dtype  Desired output @ref DType_.
  *
- * @return @ref novaSuccess with @p dst holding the type-converted
- *         copy of @p src's data, or an error status describing the
- *         failure.
+ * @return The selected kernel's status with @p dst holding the
+ *         type-converted copy of @p src's data on success, or an error
+ *         status describing the failure.
  *
  * @pre  @p dst must have been created via
  *       @c create_unallocated_tensor() with the correct shape and
@@ -263,15 +263,15 @@ novaStatus_t cast(const Tensor *restrict src, Tensor *restrict dst,
   if (in_device(src)) {
     return launchDtypeCastingKernel(src, dst);
   }
-  CastFn func = cast_dispatch[src->dtype][target_dtype];
+  const CastFn func = cast_dispatch[src->dtype][target_dtype];
   if (func == nullptr) {
     return (novaStatus_t){
         .err = novaCastNotSupported,
         .message = nova_get_error_msg(novaCastNotSupported, nullptr)};
   }
-  func(src, dst);
-  return (novaStatus_t){.err = novaSuccess,
-                        .message = nova_get_error_msg(novaSuccess, nullptr)};
+  novaStatus_t st;
+  func(src, dst, &st);
+  return st;
 }
 
 /**
@@ -302,8 +302,7 @@ novaStatus_t cast(const Tensor *restrict src, Tensor *restrict dst,
  * @see CastFn         Function pointer type.
  */
 CastFn get_dispatched_cast_func(DType_ src_dtype, DType_ target_dtype) {
-  CastFn fn = cast_dispatch[src_dtype][target_dtype];
-  return fn;
+  return cast_dispatch[src_dtype][target_dtype];
 }
 
 /**

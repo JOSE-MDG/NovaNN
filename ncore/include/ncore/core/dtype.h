@@ -29,7 +29,6 @@
 
 #pragma once
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -120,7 +119,8 @@ typedef uint64_t uint64;
  * @param[in]  src Source tensor (read-only)
  * @param[out] dst Destination tensor (write-only, must be same size as src)
  */
-typedef void (*CastFn)(const Tensor *restrict, Tensor *restrict);
+typedef void (*CastFn)(const Tensor *restrict, Tensor *restrict,
+                       novaStatus_t *status);
 
 /**
  * @enum DType_
@@ -304,21 +304,21 @@ bool is_quantizable_dtype(DType_ dtype);
  * @brief Cast a tensor's data to a different dtype.
  *
  * @details
- * Tensors on the compute device dispatch to the GPU casting kernels;
- *  the @c cast_dispatch table
- * (defined in @ref dtype.c) to select the correct element-wise
- * conversion.  The destination tensor must be pre-allocated with
- * the target dtype and matching shape.
+ * Tensors on the compute device dispatch to the GPU casting kernels, which
+ * report their own launch status. All other tensors dispatch through the
+ * @c cast_dispatch table (defined in @ref dtype.c) to select the correct
+ * element-wise conversion kernel, whose status is returned as-is. The
+ * destination tensor must be pre-allocated with the target dtype and
+ * matching shape.
  *
  * @param[in]  src           Source tensor.  Must not be @c nullptr.
  * @param[out] dst           Destination tensor (must be
  *                           pre-allocated).  Must not be @c nullptr.
  * @param[in]  target_dtype  Desired output @ref DType_.
  *
- * @return @ref novaSuccess with @p dst holding the type-converted
- *         copy of @p src, or an error status describing the
- *         failure (unsupported pair, shape mismatch, or a GPU
- *         launch error).all other tensors dispatch through
+ * @return The selected kernel's status with @p dst holding the type-converted
+ *         copy of @p src on success, or an error status describing the
+ *         failure (unsupported pair or a GPU launch error).
  *
  * @pre  @p dst must have been created via
  *       @c create_unallocated_tensor() with the correct shape.
