@@ -2,7 +2,7 @@
   "rules": {
     "funcs": {
       "return": "void",
-      "arguments": "const Tensor *restrict src, Tensor *restrict dst",
+      "arguments": "const Tensor *restrict src, Tensor *restrict dst, novaStatus_t *status",
       "types": {
         "floating_to_floating": [
           {

@@ -1,7 +1,12 @@
 {
     "funcs": {
-        "arguments": "const Tensor *restrict src, Tensor *restrict dst",
+        "arguments": "const Tensor *restrict src, Tensor *restrict dst, novaStatus_t *status",
         "return": "void",
+        "parallel": {
+            "pattern": "elementwise",
+            "group": "ParallelComputeGroup",
+            "enabled": true
+        },
         "integers_bound": {
             "_comment": "Bounds are split per source-intermediate precision (f32 vs f64) because INT32_MAX/UINT32_MAX/INT64_MAX/UINT64_MAX are not exactly representable in either IEEE-754 float or double. Each 'max' below is the largest value exactly representable in that precision that is still <= the true destination-type max, so `v > max` in generated C code can never let an out-of-range value slip through the clamp. Values are stored as JSON strings, not numbers: a bare JSON number is parsed as a double by every standard JSON parser (including Python's json module), which would silently re-round 63/64-bit integer bounds before this table is even read. 'min' bounds are always exact powers of two (or 0) in both precisions, so f32 and f64 share the same min values.",
             "f32": {

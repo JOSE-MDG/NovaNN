@@ -99,11 +99,6 @@ def build_rules() -> dict:
     with open(DTYPE_CASTING_RULES) as f:
         dtype_casting = json.load(f)
 
-    scalar_names = set()
-    for cat_data in dtype_casting.get("funcs", {}).get("types", {}).values():
-        for sig in cat_data.get("signatures", []):
-            scalar_names.add(sig["name"])
-
     categorized: dict[str, list] = {}
 
     for table in cast_tables.get("tables", []):
@@ -143,8 +138,8 @@ def build_rules() -> dict:
     return {
         "rules": {
             "funcs": {
-                "return": "void",
-                "arguments": "const Tensor *restrict src, Tensor *restrict dst",
+                "return": dtype_casting["funcs"]["return"],
+                "arguments": dtype_casting["funcs"]["arguments"],
                 "types": categorized,
             }
         }
