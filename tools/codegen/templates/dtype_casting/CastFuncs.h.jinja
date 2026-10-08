@@ -370,7 +370,8 @@
  * Expands to:
  * @code
  * static inline void t{from}_to_{to}(const Tensor *restrict src,
- *                                     Tensor *restrict dst);
+ *                                     Tensor *restrict dst,
+ *                                     novaStatus_t *status);
  * @endcode
  *
  * Called via the X-macro families to declare all 210 cast
@@ -381,7 +382,8 @@
  */
 #define DECL_CAST(from, to)                                                    \
   static inline void t##from##_to_##to(const Tensor *restrict src,             \
-                                       Tensor *restrict dst);
+                                       Tensor *restrict dst, \
+                                       novaStatus_t *status);
 
 CAST_FP_TYPES(DECL_CAST)
 CAST_FP_TO_INT(DECL_CAST)
@@ -414,18 +416,18 @@ CAST_UINT_TO_SINT(DECL_CAST)
 {%- macro emit_dispatch(entry) -%}
 {%- set scalar_variant = entry.lookup_table.funcs | last -%}
 {%- if entry.scalar_only -%}
-  {{ entry.lookup_table.name }}[{{ scalar_variant.idx }}](src, dst);
+  {{ entry.lookup_table.name }}[{{ scalar_variant.idx }}](src, dst, status);
 {%- else -%}
 #ifdef _GNUC_CLANG_
 {%- for variant in entry.lookup_table.funcs if not variant.is_scalar %}
   if ({{ variant.condition }}) {
-    {{ entry.lookup_table.name }}[{{ variant.idx }}](src, dst);
+    {{ entry.lookup_table.name }}[{{ variant.idx }}](src, dst, status);
     return;
   }
 {%- endfor %}
-  {{ entry.lookup_table.name }}[{{ scalar_variant.idx }}](src, dst);
+  {{ entry.lookup_table.name }}[{{ scalar_variant.idx }}](src, dst, status);
 #else
-  {{ entry.lookup_table.name }}[{{ scalar_variant.idx }}](src, dst);
+  {{ entry.lookup_table.name }}[{{ scalar_variant.idx }}](src, dst, status);
 #endif
 {%- endif -%}
 {%- endmacro -%}
@@ -442,6 +444,9 @@ CAST_UINT_TO_SINT(DECL_CAST)
  * @brief Casts {{ c_type(src_abbr) }} tensor to {{ c_type(dst_abbr) }}.
  * @param[in]  src Source tensor ({{ src_abbr }}).
  * @param[out] dst Destination tensor ({{ dst_abbr }}).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void {{ entry.name }}({{ rules.rules.funcs.arguments }}) {
 {{ emit_dispatch(entry) }}
