@@ -81,10 +81,14 @@ void expectWrapperMatchesScalar(DType_ src, DType_ dst, size_t count,
   ASSERT_TRUE(scalarPair.ok) << label;
   ASSERT_TRUE(wrapperPair.ok) << label;
 
+  novaStatus_t scalarSt;
+  novaStatus_t wrapperSt;
   pair->scalar(&scalarPair.src.mutableCTensor(),
-               &scalarPair.dst.mutableCTensor());
+               &scalarPair.dst.mutableCTensor(), &scalarSt);
   pair->wrapper(&wrapperPair.src.mutableCTensor(),
-                &wrapperPair.dst.mutableCTensor());
+                &wrapperPair.dst.mutableCTensor(), &wrapperSt);
+  EXPECT_EQ(scalarSt.err, novaSuccess) << label;
+  EXPECT_EQ(wrapperSt.err, novaSuccess) << label;
 
   expectEqualSkippingSrcNan(scalarPair.src.getCTensor(),
                             scalarPair.dst.getCTensor(),
@@ -374,12 +378,18 @@ TEST(ISAEquivalence, DirectVariantLadderMatchesScalarAndWrapper) {
     ASSERT_TRUE(scalarPair.ok);
     ASSERT_TRUE(wrapperPair.ok);
 
+    novaStatus_t variantSt;
+    novaStatus_t scalarSt;
+    novaStatus_t wrapperSt;
     entry.variant(&variantPair.src.mutableCTensor(),
-                  &variantPair.dst.mutableCTensor());
+                  &variantPair.dst.mutableCTensor(), &variantSt);
     owner->scalar(&scalarPair.src.mutableCTensor(),
-                  &scalarPair.dst.mutableCTensor());
+                  &scalarPair.dst.mutableCTensor(), &scalarSt);
     owner->wrapper(&wrapperPair.src.mutableCTensor(),
-                   &wrapperPair.dst.mutableCTensor());
+                   &wrapperPair.dst.mutableCTensor(), &wrapperSt);
+    ASSERT_EQ(variantSt.err, novaSuccess) << entry.label;
+    ASSERT_EQ(scalarSt.err, novaSuccess) << entry.label;
+    ASSERT_EQ(wrapperSt.err, novaSuccess) << entry.label;
 
     expectEqualSkippingSrcNan(variantPair.src.getCTensor(),
                               variantPair.dst.getCTensor(),

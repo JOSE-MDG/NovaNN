@@ -196,7 +196,9 @@ inline novaStatus_t castOnDevice(GpuCastPair &pair, DType_ target) {
 inline void scalarRef(GpuCastPair &pair, const tests::casting::PairInfo *info) {
   Tensor src = pair.host.src.mutableCTensor();
   Tensor dst = pair.host.dst.mutableCTensor();
-  info->scalar(&src, &dst);
+  novaStatus_t st;
+  info->scalar(&src, &dst, &st);
+  EXPECT_EQ(st.err, novaSuccess);
 }
 
 /**

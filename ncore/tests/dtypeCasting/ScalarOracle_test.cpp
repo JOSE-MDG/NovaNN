@@ -324,7 +324,10 @@ TEST(ScalarOracle, FpToFpMatchesOracle) {
     for (size_t i = 0; i < candidates.size(); ++i) {
       writeFloatValue(pairFix.src.mutableCTensor(), i, candidates[i]);
     }
-    pair.scalar(&pairFix.src.mutableCTensor(), &pairFix.dst.mutableCTensor());
+    novaStatus_t st;
+    pair.scalar(&pairFix.src.mutableCTensor(), &pairFix.dst.mutableCTensor(),
+                &st);
+    ASSERT_EQ(st.err, novaSuccess) << pair.label;
 
     for (size_t i = 0; i < candidates.size(); ++i) {
       const double decoded = quantizeToSource(pair.src, candidates[i]);
@@ -354,7 +357,10 @@ TEST(ScalarOracle, FpToIntMatchesOracle) {
     for (size_t i = 0; i < candidates.size(); ++i) {
       writeFloatValue(pairFix.src.mutableCTensor(), i, candidates[i]);
     }
-    pair.scalar(&pairFix.src.mutableCTensor(), &pairFix.dst.mutableCTensor());
+    novaStatus_t st;
+    pair.scalar(&pairFix.src.mutableCTensor(), &pairFix.dst.mutableCTensor(),
+                &st);
+    ASSERT_EQ(st.err, novaSuccess) << pair.label;
 
     tests::casting::withIntType(pair.dst, [&]<typename D>() {
       for (size_t i = 0; i < candidates.size(); ++i) {
@@ -391,7 +397,10 @@ TEST(ScalarOracle, IntToFpMatchesOracle) {
                 : static_cast<uint64_t>(candidates[i]);
         writeRaw(pairFix.src.mutableCTensor(), i, bits);
       }
-      pair.scalar(&pairFix.src.mutableCTensor(), &pairFix.dst.mutableCTensor());
+      novaStatus_t st;
+      pair.scalar(&pairFix.src.mutableCTensor(), &pairFix.dst.mutableCTensor(),
+                  &st);
+      ASSERT_EQ(st.err, novaSuccess) << pair.label;
 
       for (size_t i = 0; i < candidates.size(); ++i) {
         // Kernels narrow through float before reduced encodes.
@@ -446,8 +455,10 @@ TEST(ScalarOracle, IntToIntMatchesOracle) {
                   : static_cast<uint64_t>(candidates[i]);
           writeRaw(pairFix.src.mutableCTensor(), i, bits);
         }
+        novaStatus_t st;
         pair.scalar(&pairFix.src.mutableCTensor(),
-                    &pairFix.dst.mutableCTensor());
+                    &pairFix.dst.mutableCTensor(), &st);
+        ASSERT_EQ(st.err, novaSuccess) << pair.label;
 
         for (size_t i = 0; i < candidates.size(); ++i) {
           EXPECT_EQ(readAs<D>(pairFix.dst.getCTensor(), i),
@@ -478,7 +489,10 @@ TEST(ScalarOracle, LcgPatternsMatchOracleForFpToFp) {
     auto pairFix = makePair(pair.src, pair.dst, kCount, 0xDEADBEEFU);
     ASSERT_TRUE(pairFix.ok) << pair.label;
 
-    pair.scalar(&pairFix.src.mutableCTensor(), &pairFix.dst.mutableCTensor());
+    novaStatus_t st;
+    pair.scalar(&pairFix.src.mutableCTensor(), &pairFix.dst.mutableCTensor(),
+                &st);
+    ASSERT_EQ(st.err, novaSuccess) << pair.label;
 
     for (size_t i = 0; i < kCount; ++i) {
       const uint64_t raw = readRaw(pairFix.src.getCTensor(), i);
