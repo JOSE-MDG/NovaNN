@@ -15,13 +15,14 @@
  *    management is performed through @c retain() / @c release().
  *
  * @li 3. TensorStorage — A composite descriptor that bundles the
- *    typed pointer, byte count, alignment, and Rust handle into a
- *    single struct suitable for embedding in the @c Tensor struct.
+ *    typed pointer and the Rust handle into a single struct suitable
+ *    for embedding in the @c Tensor struct.  The handle carries both
+ *    the theoretical and the real reservation sizes.
  *
  * @section memory-lifecycle Memory Lifecycle
  *
  * @code
- * allocate:  reserve()  → RustHandle { id, size, align } + novaStatus_t
+ * allocate:  reserve()  → RustHandle { id, requested, bytes, align } + novaStatus_t
  * share:     retain()   → increment refcount
  * free:      release()  → decrement refcount; free when zero + novaStatus_t
  * resize:    resize()   → may relocate the buffer + novaStatus_t
@@ -61,7 +62,7 @@ extern "C" {
  * @brief Typed pointer union for tensor data buffers.
  *
  * @details
- * All 14 members point to the same memory address; the active member
+ * All 14 members point to the same memory address. The active member
  * is determined by the tensor's @ref DType_ at runtime.  Using the
  * correct member eliminates casts and enables natural pointer
  * arithmetic (e.g., @c ptr.f32[i] for a Float32 tensor).
@@ -108,23 +109,26 @@ typedef union {
  * @details
  * Returned by @c reserve() and passed to @c retain() / @c release() for
  * reference-counted lifetime management.  The actual allocation lives
- * on the Rust side; this struct is a thin FFI bridge.
+ * on the Rust side. This struct is a thin FFI bridge.
  *
  * @section fields Fields
  *
  * @li @c id — Unique identifier for the allocation.  A value of @c 0
  *   indicates an invalid / failed allocation.
- * @li @c size_bytes — Usable size of the allocation in bytes.  May be
- *   larger than the requested size due to alignment rounding.
+ * @li @c requested_bytes — Theoretical size asked by the caller, in bytes.
+ * @li @c bytes — Real backend reservation in bytes.  Greater than or equal
+ *   to @c requested_bytes. It may be larger due to size-class rounding.
  * @li @c align — Alignment constraint in bytes (e.g., 64 for
  *   cache-line alignment).
  *
  * @section validity Validity
  *
- * A handle is structurally valid when @c id != 0.  Use
+ * A handle is structurally valid when @c id != 0 and @c bytes != 0.  Use
  * @c is_valid_handle() to check whether that ID is also registered. Query
  * functions tolerate null or invalid handles by returning their documented
  * sentinel values; lifecycle and resize functions require a live handle.
+ * @c gt_bytes() performs the structural check only: callers holding a
+ * stale copy after the final release must not read it.
  *
  * @see reserve()        Creates a RustHandle.
  * @see retain()         Increments the reference count.
@@ -133,9 +137,10 @@ typedef union {
  * @see TensorStorage    Embeds a RustHandle as its @c handle field.
  */
 typedef struct {
-  uint64_t id;       ///< Unique identifier for the allocation.
-  size_t size_bytes; ///< Usable size of the allocation in bytes.
-  size_t align; ///< Alignment constraint (e.g., 64 for cache-line alignment).
+  uint64_t id;            ///< Unique identifier for the allocation.
+  size_t requested_bytes; ///< Theoretical size asked by the caller, in bytes.
+  size_t bytes;           ///< Real backend reservation in bytes.
+  size_t align;           ///< Alignment constraint.
 } RustHandle;
 
 /**
@@ -151,7 +156,10 @@ typedef struct {
  *
  * On failure, @p status receives the error code and detailed message.
  *
- * @param[in]  size       Requested size in bytes.  Must be > 0.
+ * @param[in]  size       Reservation size in bytes, already rounded to
+ *                         its size class by the caller.  Must be > 0.
+ * @param[in]  requested  Theoretical size asked by the caller.  Must be
+ *                         > 0 and not greater than @p size.
  * @param[in]  device     Target device: @c cpu or @c device.
  *                         A null pointer selects @c cpu.
  * @param[in]  pin_memory If @c true and @p device is @c cpu,
@@ -167,6 +175,7 @@ typedef struct {
  *         @c id == 0 on failure.
  *
  * @pre  @c size must be > 0.
+ * @pre  @c requested must be > 0 and <= @c size.
  * @pre  If non-null, @c device must be @c cpu or @c device.
  * @pre  For CPU allocations, @c align must be a power of two.
  * @post On success, the returned handle has @c id != 0 and the
@@ -177,8 +186,8 @@ typedef struct {
  * @see release()          Decrements the reference count.
  * @see TensorStorage      Embeds the returned handle.
  */
-RustHandle reserve(size_t size, const char *device, bool pin_memory,
-                   size_t align, novaStatus_t *status);
+RustHandle reserve(size_t size, size_t requested, const char *device,
+                   bool pin_memory, size_t align, novaStatus_t *status);
 
 /**
  * @brief Increment the reference count of a Rust allocation.
@@ -200,7 +209,7 @@ RustHandle reserve(size_t size, const char *device, bool pin_memory,
 novaStatus_t retain(RustHandle *handle);
 
 /**
- * @brief Decrement the reference count; free memory when it reaches zero.
+ * @brief Decrement the reference count and free memory at zero.
  *
  * @details
  * Releases one owner reference.  If the count reaches zero, the
@@ -231,17 +240,21 @@ bool release(RustHandle *handle, novaStatus_t *status);
  * @brief Resize an existing allocation (may relocate).
  *
  * @details
- * Attempts to grow or shrink the allocation while preserving existing data.
- * The active allocator may relocate the buffer. The handle's cached
- * @c size_bytes field is updated after a successful resize.
+ * Attempts to grow or shrink the allocation to a new theoretical size while
+ * preserving existing data.  Device-backed storage rounds the request to its
+ * size class with the same rules as the initial reservation.  The active
+ * allocator may relocate the buffer.  The handle's cached @c requested_bytes
+ * and @c bytes fields are updated after a successful resize.
  *
- * @param[in,out] handle   Pointer to the @ref RustHandle to resize.
- *                         Must not be @c nullptr.
- * @param[in]     new_size New size in bytes.  Must be > 0.
+ * @param[in,out] handle    Pointer to the @ref RustHandle to resize.
+ *                          Must not be @c nullptr.
+ * @param[in]     requested New theoretical size in bytes.  Must be > 0.
  *
  * @pre  @p handle must point to a valid RustHandle (@c id != 0).
- * @pre  @c new_size must be > 0.
- * @post On success, @c handle->size_bytes == @p new_size.
+ * @pre  @c requested must be > 0.
+ * @post On success, @c handle->requested_bytes == @p requested and
+ *       @c handle->bytes is its rounded reservation.  The cached
+ *       @c align may change when the backend relocates the buffer.
  * @post On ordinary validation or allocation failure, the handle cache is
  *       unchanged. A backend-specific failure must be treated according to
  *       its returned status and message.
@@ -251,7 +264,7 @@ bool release(RustHandle *handle, novaStatus_t *status);
  * @see reserve()   Creates a new allocation.
  * @see release()   Frees the allocation.
  */
-novaStatus_t resize(RustHandle *handle, size_t new_size);
+novaStatus_t resize(RustHandle *handle, size_t requested);
 /**
  * @brief Obtain the CPU-visible address of a Rust allocation.
  *
@@ -357,20 +370,19 @@ bool is_pinned_handle(RustHandle *handle);
  * @brief Complete tensor storage descriptor.
  *
  * @details
- * Bundles the typed pointer, byte count, alignment, and the
- * Rust-side handle so that the @c Tensor struct can manage memory
- * transparently.  A @c Tensor owns a @c TensorStorage that holds
- * the backing buffer; the @c TensorStorage in turn holds the
- * @c RustHandle that controls the allocation lifetime.
+ * Bundles the typed pointer and the Rust-side handle so that the @c Tensor
+ * struct can manage memory transparently.  A @c Tensor owns a
+ * @c TensorStorage that holds the backing buffer. The @c TensorStorage in
+ * turn holds the @c RustHandle that controls the allocation lifetime and
+ * carries both the theoretical and the real reservation sizes.
  *
  * @section fields Fields
  *
  * @li @c ptr — Typed pointer union for element access.  The active
  *   member matches the tensor's @ref DType_.
- * @li @c size_bytes — Total usable capacity in bytes.
- * @li @c align — Alignment of the buffer in bytes.
  * @li @c handle — Rust FFI handle for reference-counted lifetime
- *   management.
+ *   management.  Its @c requested_bytes is the theoretical size and its
+ *   @c bytes is the real reservation.
  *
  * @section lifecycle Lifecycle
  *
@@ -386,10 +398,99 @@ bool is_pinned_handle(RustHandle *handle);
  */
 typedef struct {
   data_ptr ptr;      ///< Typed pointer to the data buffer.
-  size_t size_bytes; ///< Total capacity in bytes.
-  size_t align;      ///< Alignment of the buffer.
   RustHandle handle; ///< Rust FFI handle for reference counting.
 } TensorStorage;
+
+/**
+ * @brief Round a byte count up to the small device step (512 bytes).
+ *
+ * @param[in]  n       Requested count.  Must be > 0.
+ * @param[out] status  Receives the operation result.  Must not be
+ *                     @c nullptr.
+ *
+ * @return Rounded count, or @c 0 with an error status on zero input
+ *         or overflow.
+ */
+size_t round_up_device_small(size_t n, novaStatus_t *status);
+
+/**
+ * @brief Round a byte count up to the large device step (2 MiB).
+ *
+ * @param[in]  n       Requested count.  Must be > 0.
+ * @param[out] status  Receives the operation result.  Must not be
+ *                     @c nullptr.
+ *
+ * @return Rounded count, or @c 0 with an error status on zero input
+ *         or overflow.
+ */
+size_t round_up_device_large(size_t n, novaStatus_t *status);
+
+/**
+ * @brief Round a byte count up to the small pinned step (4096 bytes).
+ *
+ * @param[in]  n       Requested count.  Must be > 0.
+ * @param[out] status  Receives the operation result.  Must not be
+ *                     @c nullptr.
+ *
+ * @return Rounded count, or @c 0 with an error status on zero input
+ *         or overflow.
+ */
+size_t round_up_pinned_small(size_t n, novaStatus_t *status);
+
+/**
+ * @brief Round a byte count up to the next pinned geometric class.
+ *
+ * @details
+ * Classes are 1x, 1.25x, 1.5x and 1.75x of each power of two, covering
+ * the request with waste bounded near 25%.
+ *
+ * @param[in]  n       Requested count.  Must be > 0.
+ * @param[out] status  Receives the operation result.  Must not be
+ *                     @c nullptr.
+ *
+ * @return Rounded count, or @c 0 with an error status on zero input
+ *         or overflow.
+ */
+size_t round_up_pinned_large(size_t n, novaStatus_t *status);
+
+/**
+ * @brief Resolve the real reservation size for a theoretical request.
+ *
+ * @details
+ * Device requests use the 512-byte step up to 10 MiB and the 2 MiB step
+ * above.  Pinned requests use the 4096-byte step up to 16 KiB and
+ * geometric classes above.  Plain host reservations are identity.
+ * Rounding applies only when a device backend is active. Otherwise the
+ * request is returned unchanged.
+ *
+ * @param[in]  requested Requested count.  Must be > 0.
+ * @param[in]  is_device @c true for GPU device reservations.
+ * @param[in]  is_pinned @c true for page-locked host reservations.
+ * @param[out] status    Receives the operation result.  Must not be
+ *                       @c nullptr.
+ *
+ * @return Rounded count, or @c 0 with an error status on zero input,
+ *         overflow, or a null status slot.
+ */
+size_t resolve_rounded_bytes(size_t requested, bool is_device, bool is_pinned,
+                             novaStatus_t *status);
+
+/**
+ * @brief Return the real reservation size backing a tensor.
+ *
+ * @details
+ * Validates the tensor, the status slot, and the tensor storage, then
+ * returns the handle's real reservation size.
+ *
+ * @param[in]  ten    Tensor to query.  Must be allocated.
+ * @param[out] status Receives the operation result.  Must not be
+ *                    @c nullptr.
+ *
+ * @return Real reservation size, or @c 0 with an error status when
+ *         @p ten or @p status is @c nullptr, the tensor storage is
+ *         @c nullptr, or the handle is invalid.
+ */
+size_t gt_bytes(const Tensor *ten, novaStatus_t *status);
 
 #ifdef __cplusplus
 } /* extern "C" */

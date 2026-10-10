@@ -164,10 +164,14 @@ TEST(Dispatch, ResolvedPointerMatchesDispatchWrapper) {
     ASSERT_TRUE(viaWrapper.ok);
     ASSERT_TRUE(viaResolved.ok);
 
+    novaStatus_t wrapperSt;
+    novaStatus_t resolvedSt;
     pair->wrapper(&viaWrapper.src.mutableCTensor(),
-                  &viaWrapper.dst.mutableCTensor());
+                  &viaWrapper.dst.mutableCTensor(), &wrapperSt);
     resolved(&viaResolved.src.mutableCTensor(),
-             &viaResolved.dst.mutableCTensor());
+             &viaResolved.dst.mutableCTensor(), &resolvedSt);
+    ASSERT_EQ(wrapperSt.err, novaSuccess) << sample.label;
+    ASSERT_EQ(resolvedSt.err, novaSuccess) << sample.label;
 
     size_t mismatch = 0;
     EXPECT_TRUE(payloadEqual(viaWrapper.dst.getCTensor(),

@@ -56,7 +56,7 @@ inline void fillPattern(void *buf, size_t bytes, uint32_t seed = kDefaultSeed) {
  */
 inline void fillTensor(Tensor &ten, uint32_t seed = kDefaultSeed) {
   EXPECT_TRUE(is_allocated(&ten));
-  fillPattern(ten.data.data, ten.storage->size_bytes, seed);
+  fillPattern(ten.data.data, ten.size * ten.item_size, seed);
 }
 
 /**

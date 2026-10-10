@@ -1,6 +1,4 @@
 ---
-# NovaNN native-core style — derived from ncore/ code conventions.
-# Based on the official LLVM style; only the deviations below are explicit.
 BasedOnStyle: LLVM
 Language: Cpp
 ReflowComments: Never

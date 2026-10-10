@@ -369,10 +369,14 @@ TEST_P(SpecialValueInvariant, DispatchAgreesWithScalarOnSpecials) {
                tests::casting::minNormalMagnitude(specOf(p.src)));
     }
 
+    novaStatus_t scalarSt;
+    novaStatus_t wrapperSt;
     info->scalar(&scalarPair.src.mutableCTensor(),
-                 &scalarPair.dst.mutableCTensor());
+                 &scalarPair.dst.mutableCTensor(), &scalarSt);
     info->wrapper(&wrapperPair.src.mutableCTensor(),
-                  &wrapperPair.dst.mutableCTensor());
+                  &wrapperPair.dst.mutableCTensor(), &wrapperSt);
+    ASSERT_EQ(scalarSt.err, novaSuccess);
+    ASSERT_EQ(wrapperSt.err, novaSuccess);
 
     const Tensor &srcView = scalarPair.src.getCTensor();
     const Tensor &scalarDst = scalarPair.dst.getCTensor();

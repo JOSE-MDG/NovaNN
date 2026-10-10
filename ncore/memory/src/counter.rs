@@ -31,7 +31,7 @@ impl AtomicRefCounter {
     /// would overflow.
     pub fn try_increase(&self) -> Option<usize> {
         self.count
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
                 value.checked_add(1)
             })
             .ok()
@@ -43,7 +43,7 @@ impl AtomicRefCounter {
     /// would underflow.
     pub fn try_decrease(&self) -> Option<usize> {
         self.count
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
                 value.checked_sub(1)
             })
             .ok()

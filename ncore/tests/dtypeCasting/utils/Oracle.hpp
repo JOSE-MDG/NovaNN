@@ -969,7 +969,9 @@ inline void runScalar(CastPair &c) {
     ADD_FAILURE() << "runScalar: no registered pair";
     return;
   }
-  p->scalar(&c.src.mutableCTensor(), &c.dst.mutableCTensor());
+  novaStatus_t st;
+  p->scalar(&c.src.mutableCTensor(), &c.dst.mutableCTensor(), &st);
+  EXPECT_EQ(st.err, novaSuccess);
 }
 
 /**
@@ -983,7 +985,9 @@ inline void runWrapper(CastPair &c) {
     ADD_FAILURE() << "runWrapper: no registered pair";
     return;
   }
-  p->wrapper(&c.src.mutableCTensor(), &c.dst.mutableCTensor());
+  novaStatus_t st;
+  p->wrapper(&c.src.mutableCTensor(), &c.dst.mutableCTensor(), &st);
+  EXPECT_EQ(st.err, novaSuccess);
 }
 
 /* ==========================================================================

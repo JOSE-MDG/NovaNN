@@ -162,7 +162,9 @@ NCORE_HOST_DEVICE inline float f32_from_bits(uint16_t src) {
   uint32_t tmp = src;
   tmp <<= 16;
 
-#if defined(NOVA_HAS_HIP) && defined(__HIPCC__)
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+  res = __uint_as_float(tmp);
+#elif defined(NOVA_HAS_HIP) && defined(__HIPCC__)
   float *tempRes;
 
   // We should be using memcpy in order to respect the strict aliasing rule
@@ -185,7 +187,9 @@ NCORE_HOST_DEVICE inline float f32_from_bits(uint16_t src) {
 NCORE_HOST_DEVICE inline uint16_t bits_from_f32(float src) {
   uint32_t res = 0;
 
-#if defined(NOVA_HAS_HIP) && defined(__HIPCC__)
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+  res = __float_as_uint(src);
+#elif defined(NOVA_HAS_HIP) && defined(__HIPCC__)
   // We should be using memcpy in order to respect the strict aliasing rule
   // but it fails in the HIP environment.
   uint32_t *tempRes = reinterpret_cast<uint32_t *>(&src);
@@ -207,13 +211,17 @@ NCORE_HOST_DEVICE inline uint16_t round_to_nearest_even(float src) {
 #if defined(NOVA_HAS_HIP) && defined(__HIPCC__)
   if (src != src) {
 #elif defined(_MSC_VER) && !defined(__clang__)
-  if (isnan(src)) {
+  if (src != src) {
 #else
   if (std::isnan(src)) {
 #endif
     return UINT16_C(0x7FC0);
   } else {
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+    const uint32_t u32 = __float_as_uint(src);
+#else
     const uint32_t u32 = std::bit_cast<uint32_t>(src);
+#endif
     uint32_t roundingBias = ((u32 >> 16) & 1) + UINT32_C(0x7FFF);
     return static_cast<uint16_t>((u32 + roundingBias) >> 16);
   }

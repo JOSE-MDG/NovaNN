@@ -100,6 +100,28 @@ makeDevicePair(DType_ from, DType_ to, size_t logicalCount, uint32_t seed) {
   if (!pair.host.ok) {
     return pair;
   }
+  // Signaling NaN source inputs are quietized in the staging buffer before
+  // anything runs, because no single bitwise answer exists for them. Who
+  // sets the quiet bit on widening depends on whoever lowers the
+  // conversion: g++'s runtime quietizes, clang++ preserves sNaN inside
+  // vectorized loops and quietizes it in scalar calls, and both GPU
+  // backends quietize like x86 hardware does. Sweeping all 65536 bf16
+  // patterns through every combination above leaves the 126 signaling
+  // NaN encodings as the only inputs without a portable result;
+  // everything else (quiet NaN payloads and subnormals included) is
+  // bit-identical everywhere. Forcing the quiet bit here keeps sign and
+  // payload, so the fill loses nothing that could ever pass.
+  if (from == DType_::BFloat16) {
+    Tensor staged = pair.host.src.mutableCTensor();
+    auto *words = reinterpret_cast<uint16_t *>(staged.data.data);
+    for (size_t i = 0; i < pair.host.src.getSize(); ++i) {
+      const uint32_t exp = (static_cast<uint32_t>(words[i]) >> 7U) & 0xFFU;
+      const uint32_t mant = static_cast<uint32_t>(words[i]) & 0x7FU;
+      if (exp == 0xFFU && mant != 0U) {
+        words[i] = static_cast<uint16_t>(words[i] | UINT16_C(0x40));
+      }
+    }
+  }
   novaStatus_t st{};
   size_t n = logicalCount;
   if (dtype_packing_factor(from) == 2 || dtype_packing_factor(to) == 2) {
@@ -174,7 +196,9 @@ inline novaStatus_t castOnDevice(GpuCastPair &pair, DType_ target) {
 inline void scalarRef(GpuCastPair &pair, const tests::casting::PairInfo *info) {
   Tensor src = pair.host.src.mutableCTensor();
   Tensor dst = pair.host.dst.mutableCTensor();
-  info->scalar(&src, &dst);
+  novaStatus_t st;
+  info->scalar(&src, &dst, &st);
+  EXPECT_EQ(st.err, novaSuccess);
 }
 
 /**

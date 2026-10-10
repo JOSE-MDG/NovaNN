@@ -1,9 +1,4 @@
 ---
-# clang-tidy configuration — NovaNN
-#
-# Used by standalone clang-tidy invocations.
-# For IDE integration, see .clangd diagnostics sections.
-
 Checks: >
   clang-diagnostic-*,
   clang-analyzer-*,
