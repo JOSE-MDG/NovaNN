@@ -57,1686 +57,2520 @@ extern "C" {
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 void tfp4e2m1_to_fp8e4m3_scalar(const Tensor *restrict src,
-                                Tensor *restrict dst);
+                                Tensor *restrict dst, novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 void tfp4e2m1_to_fp8e5m2_scalar(const Tensor *restrict src,
-                                Tensor *restrict dst);
+                                Tensor *restrict dst, novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to float16
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to bfloat16
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to float
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to double
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 void tfp8e4m3_to_fp4e2m1_scalar(const Tensor *restrict src,
-                                Tensor *restrict dst);
+                                Tensor *restrict dst, novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 void tfp8e4m3_to_fp8e5m2_scalar(const Tensor *restrict src,
-                                Tensor *restrict dst);
+                                Tensor *restrict dst, novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to float16
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to bfloat16
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to float
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to double
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 void tfp8e5m2_to_fp4e2m1_scalar(const Tensor *restrict src,
-                                Tensor *restrict dst);
+                                Tensor *restrict dst, novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 void tfp8e5m2_to_fp8e4m3_scalar(const Tensor *restrict src,
-                                Tensor *restrict dst);
+                                Tensor *restrict dst, novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to float16
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to bfloat16
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to float
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to double
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to float
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to double
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to bfloat16
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to float16
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to double
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to bfloat16
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to float16
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to float
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to double
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to float16
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to float
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to bfloat16
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to int8
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to int16
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to int32
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to int64
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to int8
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to int16
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to int32
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to int64
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to int8
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to int16
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to int32
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to int64
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to int8
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to int16
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to int32
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to int64
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to int8
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to int16
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to int32
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to int64
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to int8
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to int16
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to int32
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to int64
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to int8
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to int16
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to int32
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to int64
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to uint8
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to uint16
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to uint32
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float4_e2m1fn_x2 to uint64
  *
  * @param[in]  src  Source tensor with element type float4_e2m1fn_x2.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp4e2m1_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp4e2m1_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to uint8
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to uint16
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to uint32
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e4m3fn to uint64
  *
  * @param[in]  src  Source tensor with element type float8_e4m3fn.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e4m3_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e4m3_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to uint8
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to uint16
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to uint32
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float8_e5m2 to uint64
  *
  * @param[in]  src  Source tensor with element type float8_e5m2.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp8e5m2_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp8e5m2_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to uint8
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to uint16
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to uint32
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to uint64
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to uint8
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to uint16
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to uint32
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to uint64
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to uint8
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to uint16
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to uint32
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to uint64
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to uint8
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to uint16
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to uint32
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to uint64
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to float16
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to bfloat16
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to float
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to double
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to float16
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to bfloat16
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to float
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to double
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to float16
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to bfloat16
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to float
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to double
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to float16
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to bfloat16
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to float
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to double
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to int16
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to int32
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to int64
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to int8
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to int32
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to int64
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to int8
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to int16
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to int64
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to int8
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to int16
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to int32
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to uint8
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to uint16
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to uint32
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8 to uint64
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to uint8
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to uint16
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to uint32
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int16 to uint64
  *
  * @param[in]  src  Source tensor with element type int16.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts16_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts16_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to uint8
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to uint16
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to uint32
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32 to uint64
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to uint8
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to uint16
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to uint32
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64 to uint64
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                           novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to float16
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to bfloat16
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to float
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to double
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to float16
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to bfloat16
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to float
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to double
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to float16
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to bfloat16
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to float
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to double
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to float4_e2m1fn_x2
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type float4_e2m1fn_x2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_fp4e2m1_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to float8_e4m3fn
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type float8_e4m3fn.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_fp8e4m3_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to float8_e5m2
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type float8_e5m2.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_fp8e5m2_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to float16
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_fp16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to bfloat16
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to float
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to double
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_f64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to int8
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to int16
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to int32
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to int64
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to int8
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to int16
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to int32
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to int64
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to int8
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to int16
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to int32
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to int64
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to int8
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_s8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to int16
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type int16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_s16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to int32
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_s32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to int64
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_s64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to uint16
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to uint32
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8 to uint64
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to uint8
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to uint32
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint16 to uint64
  *
  * @param[in]  src  Source tensor with element type uint16.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu16_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu16_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to uint8
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to uint16
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32 to uint64
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_u64_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to uint8
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_u8_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to uint16
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type uint16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_u16_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64 to uint32
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /* SIMD kernels */
 #ifdef _GNUC_CLANG_
@@ -1745,1156 +2579,1728 @@ void tu64_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst);
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to float using AVX/AVX2+F16C.
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 void tfp16_to_f32_avx_avx2_fp16c(const Tensor *restrict src,
-                                 Tensor *restrict dst);
+                                 Tensor *restrict dst, novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to double using AVX-512F+FP16.
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to double using AVX/AVX2+F16C.
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 void tfp16_to_f64_avx_avx2_fp16c(const Tensor *restrict src,
-                                 Tensor *restrict dst);
+                                 Tensor *restrict dst, novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to bfloat16 using AVX-512F+BF16.
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to float16 using AVX-512FP16.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to float16 using AVX/AVX2+F16C.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 void tf32_to_fp16_avx_avx2_f16c(const Tensor *restrict src,
-                                Tensor *restrict dst);
+                                Tensor *restrict dst, novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to double using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to double using AVX/AVX2.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to double using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_f64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_f64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to bfloat16 using AVX-512BF16.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to float16 using AVX-512BF16+FP16.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 void tbf16_to_fp16_avx512bf16_fp16(const Tensor *restrict src,
-                                   Tensor *restrict dst);
+                                   Tensor *restrict dst, novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to float using AVX-512BF16.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_f32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_f32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to double using AVX-512BF16+VL.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_f64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_f64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to float16 using AVX-512FP16.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to float using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to float using AVX/AVX2.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to float using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_f32_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_f32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to bfloat16 using AVX-512BF16+VL.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to int8_t using AVX-512FP16+BW.
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_s8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_s8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to int32_t using AVX-512FP16+F.
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to int64_t using AVX-512FP16+VL.
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_s64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_s64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to uint8_t using AVX-512FP16+BW.
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_u8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_u8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to uint32_t using AVX-512FP16+F.
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float16 to uint64_t using AVX-512FP16+VL.
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to int8_t using AVX-512BF16+BW+F.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_s8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_s8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to int32_t using AVX-512BF16+F.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_s32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_s32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to int64_t using AVX-512F+BF16+VL+DQ.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_s64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_s64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to uint8_t using AVX-512BF16+BW+F.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_u8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_u8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to uint32_t using AVX-512BF16+F.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from bfloat16 to uint64_t using AVX-512F+BF16+VL+DQ.
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tbf16_to_u64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tbf16_to_u64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to int8_t using AVX-512F+BW.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to int8_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_s8_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_s8_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to int32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to int32_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to int32_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to int64_t using AVX-512F+DQ+VL.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to uint8_t using AVX-512F+BW+VL.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to uint8_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_u8_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_u8_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to uint32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from float to uint64_t using AVX-512F+DQ+VL.
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to int8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to int32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to int32_t using AVX/AVX2.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to int32_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to int64_t using AVX-512F+DQ.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to uint8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to uint32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from double to uint64_t using AVX-512F+DQ.
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tf64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tf64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to float16 using AVX-512F+FP16.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_fp16_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_fp16_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to float16 using AVX-512FP16.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to float16 using AVX-512FP16.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to float16 using AVX-512FP16.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to float16 using AVX-512FP16.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to float16 using AVX-512FP16.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to bfloat16 using AVX-512BF16.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to bfloat16 using AVX-512BF16.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to bfloat16 using AVX-512BF16.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to bfloat16 using AVX-512BF16.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to bfloat16 using AVX-512BF16.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to bfloat16 using AVX-512BF16.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to float using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to float using AVX2.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_f32_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_f32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to float using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to float using AVX/AVX2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to float using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_f32_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_f32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to float using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to float using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to float using AVX2.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_f32_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_f32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to float using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to float using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to double using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to double using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to double using AVX/AVX2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to double using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_f64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_f64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to double using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to double using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to double using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to double using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to int32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to int32_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to int32_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to int64_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to int64_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to int64_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to int8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to int64_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to int64_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to int64_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to int8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to int32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to uint32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to uint32_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_u32_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_u32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to uint64_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to uint64_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to uint64_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to uint8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to uint64_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to uint64_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to uint64_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to uint8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to uint32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to uint8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to uint8_t using AVX/AVX2.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u8_avx_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u8_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to uint8_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u8_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u8_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to int8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to int8_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s8_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s8_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                    novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to int8_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s8_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s8_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to uint32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to uint32_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u32_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to uint32_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u32_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int8_t to uint64_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int8_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts8_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts8_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to uint8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to uint8_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u8_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u8_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to uint8_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u8_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u8_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to uint32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to uint32_t using AVX/AVX2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to uint32_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u32_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to uint64_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to uint64_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from int32_t to uint64_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int32_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts32_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts32_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to uint8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to uint32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to uint64_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to uint64_t using AVX/AVX2.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from int64_t to uint64_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type int64_t.
  * @param[out] dst  Destination tensor with element type uint64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void ts64_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void ts64_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to int32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to int32_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to int32_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to int64_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to int64_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint8_t to int64_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type uint8_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu8_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tu8_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to int8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to int32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to int32_t using AVX/AVX2.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to int32_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to int64_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to int64_t using AVX2.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint32_t to int64_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type uint32_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu32_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tu32_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to int8_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int8_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to int32_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int32_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to int64_t using AVX-512F.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to int64_t using AVX/AVX2.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_s64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_s64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status);
 
 /**
  * @brief Convert every element from uint64_t to int64_t using SSE4.2.
  *
  * @param[in]  src  Source tensor with element type uint64_t.
  * @param[out] dst  Destination tensor with element type int64_t.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-void tu64_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst);
+void tu64_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status);
 #endif
 
 #ifdef __cplusplus

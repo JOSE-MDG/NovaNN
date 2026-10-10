@@ -109,7 +109,7 @@ void contiguousKernelOneDimTensor(const Tensor *restrict src,
     return;
   }
 
-  *st = cudaTransfer(src->storage->size_bytes,
+  *st = cudaTransfer(src->storage->handle.requested_bytes,
                      DeviceMemcpyKind::deviceMemcpyDeviceToDevice, src->data.v,
                      dst->data.v);
   if (st->err != novaSuccess) {
@@ -514,9 +514,9 @@ novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
   hp.arithmeticIntensity = 0.0F;
   hp.reuseAfter = false;
 
-  const size_t totalBytes = src->storage->size_bytes;
+  const size_t totalBytes = src->storage->handle.requested_bytes;
   if (cv.ndims == 1 && cv.strides[0] == src->item_size) {
-    st = cudaTransfer(src->storage->size_bytes,
+    st = cudaTransfer(src->storage->handle.requested_bytes,
                       DeviceMemcpyKind::deviceMemcpyDeviceToDevice,
                       src->data.data + src->offset, dst->data.v);
     return st;

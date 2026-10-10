@@ -173,7 +173,7 @@ TEST(TensorTransfer, HostDeviceRoundTrip) {
   st = transf_tensor_from_device(&dv, &bv);
   ASSERT_EQ(st.err, novaSuccess);
 
-  expectBytesEqual(hv.data.data, bv.data.data, hv.storage->size_bytes,
+  expectBytesEqual(hv.data.data, bv.data.data, hv.size * hv.item_size,
                    "round-trip payload");
 }
 
@@ -203,7 +203,7 @@ TEST(TensorTransfer, ByteSizeVarietyRoundTrip) {
     st = transf_tensor_from_device(&dv, &bv);
     ASSERT_EQ(st.err, novaSuccess);
 
-    expectBytesEqual(hv.data.data, bv.data.data, hv.storage->size_bytes,
+    expectBytesEqual(hv.data.data, bv.data.data, hv.size * hv.item_size,
                      "round-trip payload");
   }
 }
@@ -234,7 +234,7 @@ TEST(TensorTransfer, DtypeSubsetRoundTrip) {
     st = transf_tensor_from_device(&dv, &bv);
     ASSERT_EQ(st.err, novaSuccess);
 
-    expectBytesEqual(hv.data.data, bv.data.data, hv.storage->size_bytes,
+    expectBytesEqual(hv.data.data, bv.data.data, hv.size * hv.item_size,
                      "round-trip payload");
   }
 }
@@ -263,8 +263,8 @@ TEST(TensorTransfer, PinnedStagingBuffer) {
   st = transf_tensor_from_device(&dv, &pdv);
   ASSERT_EQ(st.err, novaSuccess);
 
-  expectBytesEqual(psv.data.data, pdv.data.data, psv.storage->size_bytes,
-                   "pinned staging payload");
+  expectBytesEqual(psv.data.data, pdv.data.data,
+                   psv.size * psv.item_size, "pinned staging payload");
 }
 
 /* With a fully valid GPU source, the rejection can only come from the

@@ -223,8 +223,10 @@ static inline void compute_tensor_size_(Tensor *ten, const shape_t shape) {
  * Packed dtypes (e.g. @c Float4E2M1fn) store @c packing logical
  * elements in a single storage unit along the innermost dimension.
  * The physical layout — @c shape, @c strides, @c size, and the
- * allocated byte count — is expressed in storage units, so the
+ * theoretical byte count — is expressed in storage units, so the
  * logical last dimension is divided by the dtype's packing factor.
+ * The backend reservation for that count may be larger after
+ * size-class rounding.
  *
  * The output shape is the caller-provided shape verbatim when the
  * dtype is not packed (@c packing == 1).

@@ -28,8 +28,8 @@ extern "C" {
  * @details
  * Every dtype that the framework supports has a dedicated copy
  * function matching this signature.  The function copies
- * @c src->storage->size_bytes from the source tensor's data buffer
- * into the destination tensor's data buffer.
+ * @c src->storage->handle.requested_bytes from the source tensor's
+ * data buffer into the destination tensor's data buffer.
  *
  * @param[in]  src     Source tensor (read-only).  Must have
  *                     @c is_allocated_ == true and a valid @c storage
@@ -42,7 +42,8 @@ extern "C" {
  *                     failure, set to the appropriate error code.
  *
  * @pre  Both @p src and @p dst must have non-nullptr, allocated storage.
- * @pre  @c dst->storage->size_bytes >= src->storage->size_bytes.
+ * @pre  @c dst->storage->handle.requested_bytes >=
+ *       @c src->storage->handle.requested_bytes.
  * @post On success, @c dst->data contains a bitwise copy of
  *       @c src->data and @p status is @ref novaSuccess.
  * @post On failure, @p status contains the error code.
@@ -87,8 +88,8 @@ typedef void (*CopyFn)(const Tensor *restrict src, Tensor *restrict dst,
  *                     appropriate error code.
  *
  * @pre  @p dst must be an unallocated tensor.
- * @pre  If @p src has a non-nullptr @c storage, its @c size_bytes must
- *       be > 0.
+ * @pre  If @p src has a non-nullptr @c storage, its @c requested_bytes
+ *       must be > 0.
  * @post On success, @p dst is a complete independent copy of
  *       @p src, including gradient history.
  * @post On failure, @p status contains the error code and @p dst

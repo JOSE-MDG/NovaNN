@@ -370,7 +370,8 @@
  * Expands to:
  * @code
  * static inline void t{from}_to_{to}(const Tensor *restrict src,
- *                                     Tensor *restrict dst);
+ *                                     Tensor *restrict dst,
+ *                                     novaStatus_t *status);
  * @endcode
  *
  * Called via the X-macro families to declare all 210 cast
@@ -380,8 +381,8 @@
  * @param to    Target dtype short name (e.g., @c f32, @c u64).
  */
 #define DECL_CAST(from, to)                                                    \
-  static inline void t##from##_to_##to(const Tensor *restrict src,             \
-                                       Tensor *restrict dst);
+  static inline void t##from##_to_##to(                                        \
+      const Tensor *restrict src, Tensor *restrict dst, novaStatus_t *status);
 
 CAST_FP_TYPES(DECL_CAST)
 CAST_FP_TO_INT(DECL_CAST)
@@ -415,231 +416,312 @@ CAST_UINT_TO_SINT(DECL_CAST)
  * @brief Casts float4_e2m1fn_x2 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_fp8e4m3(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_fp8e4m3[0](src, dst);
+                                       Tensor *restrict dst,
+                                       novaStatus_t *status) {
+  lookup_tfp4e2m1_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to float8_e5m2.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_fp8e5m2(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_fp8e5m2[0](src, dst);
+                                       Tensor *restrict dst,
+                                       novaStatus_t *status) {
+  lookup_tfp4e2m1_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to float16.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_fp16(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_fp16[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tfp4e2m1_to_fp16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to bfloat16.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_bf16(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_bf16[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tfp4e2m1_to_bf16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to float.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_f32(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_f32[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp4e2m1_to_f32[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to double.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_f64(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_f64[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp4e2m1_to_f64[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_fp4e2m1(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_fp4e2m1[0](src, dst);
+                                       Tensor *restrict dst,
+                                       novaStatus_t *status) {
+  lookup_tfp8e4m3_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to float8_e5m2.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_fp8e5m2(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_fp8e5m2[0](src, dst);
+                                       Tensor *restrict dst,
+                                       novaStatus_t *status) {
+  lookup_tfp8e4m3_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to float16.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_fp16(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_fp16[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tfp8e4m3_to_fp16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to bfloat16.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_bf16(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_bf16[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tfp8e4m3_to_bf16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to float.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_f32(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_f32[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e4m3_to_f32[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to double.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_f64(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_f64[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e4m3_to_f64[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_fp4e2m1(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_fp4e2m1[0](src, dst);
+                                       Tensor *restrict dst,
+                                       novaStatus_t *status) {
+  lookup_tfp8e5m2_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_fp8e4m3(const Tensor *restrict src,
-                                       Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_fp8e4m3[0](src, dst);
+                                       Tensor *restrict dst,
+                                       novaStatus_t *status) {
+  lookup_tfp8e5m2_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to float16.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_fp16(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_fp16[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tfp8e5m2_to_fp16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to bfloat16.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_bf16(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_bf16[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tfp8e5m2_to_bf16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to float.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_f32(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_f32[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e5m2_to_f32[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to double.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_f64(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_f64[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e5m2_to_f64[0](src, dst, status);
 }
 
 /**
  * @brief Casts float16 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_fp4e2m1(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tfp16_to_fp4e2m1[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tfp16_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts float16 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_fp8e4m3(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tfp16_to_fp8e4m3[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tfp16_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts float16 tensor to float8_e5m2.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_fp8e5m2(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tfp16_to_fp8e5m2[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tfp16_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts float16 tensor to float.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_f32(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tfp16_to_f32[0](src, dst);
+    lookup_tfp16_to_f32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_) && (SIMD->f16c_)) {
-    lookup_tfp16_to_f32[1](src, dst);
+    lookup_tfp16_to_f32[1](src, dst, status);
     return;
   }
-  lookup_tfp16_to_f32[2](src, dst);
+  lookup_tfp16_to_f32[2](src, dst, status);
 #else
-  lookup_tfp16_to_f32[2](src, dst);
+  lookup_tfp16_to_f32[2](src, dst, status);
 #endif
 }
 
@@ -647,21 +729,24 @@ static inline void tfp16_to_f32(const Tensor *restrict src,
  * @brief Casts float16 tensor to double.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_f64(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tfp16_to_f64[0](src, dst);
+    lookup_tfp16_to_f64[0](src, dst, status);
     return;
   }
   if ((SIMD->f16c_)) {
-    lookup_tfp16_to_f64[1](src, dst);
+    lookup_tfp16_to_f64[1](src, dst, status);
     return;
   }
-  lookup_tfp16_to_f64[2](src, dst);
+  lookup_tfp16_to_f64[2](src, dst, status);
 #else
-  lookup_tfp16_to_f64[2](src, dst);
+  lookup_tfp16_to_f64[2](src, dst, status);
 #endif
 }
 
@@ -669,17 +754,20 @@ static inline void tfp16_to_f64(const Tensor *restrict src,
  * @brief Casts float16 tensor to bfloat16.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_bf16(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_)) {
-    lookup_tfp16_to_bf16[0](src, dst);
+    lookup_tfp16_to_bf16[0](src, dst, status);
     return;
   }
-  lookup_tfp16_to_bf16[1](src, dst);
+  lookup_tfp16_to_bf16[1](src, dst, status);
 #else
-  lookup_tfp16_to_bf16[1](src, dst);
+  lookup_tfp16_to_bf16[1](src, dst, status);
 #endif
 }
 
@@ -687,51 +775,63 @@ static inline void tfp16_to_bf16(const Tensor *restrict src,
  * @brief Casts float tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tf32_to_fp4e2m1(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tf32_to_fp4e2m1[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tf32_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts float tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tf32_to_fp8e4m3(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tf32_to_fp8e4m3[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tf32_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts float tensor to float8_e5m2.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tf32_to_fp8e5m2(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tf32_to_fp8e5m2[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tf32_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts float tensor to float16.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tf32_to_fp16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tf32_to_fp16[0](src, dst);
+    lookup_tf32_to_fp16[0](src, dst, status);
     return;
   }
   if ((SIMD->f16c_)) {
-    lookup_tf32_to_fp16[1](src, dst);
+    lookup_tf32_to_fp16[1](src, dst, status);
     return;
   }
-  lookup_tf32_to_fp16[2](src, dst);
+  lookup_tf32_to_fp16[2](src, dst, status);
 #else
-  lookup_tf32_to_fp16[2](src, dst);
+  lookup_tf32_to_fp16[2](src, dst, status);
 #endif
 }
 
@@ -739,25 +839,28 @@ static inline void tf32_to_fp16(const Tensor *restrict src,
  * @brief Casts float tensor to double.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf32_to_f64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tf32_to_f64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tf32_to_f64[0](src, dst);
+    lookup_tf32_to_f64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_tf32_to_f64[1](src, dst);
+    lookup_tf32_to_f64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tf32_to_f64[2](src, dst);
+    lookup_tf32_to_f64[2](src, dst, status);
     return;
   }
-  lookup_tf32_to_f64[3](src, dst);
+  lookup_tf32_to_f64[3](src, dst, status);
 #else
-  lookup_tf32_to_f64[3](src, dst);
+  lookup_tf32_to_f64[3](src, dst, status);
 #endif
 }
 
@@ -765,18 +868,21 @@ static inline void tf32_to_f64(const Tensor *restrict src,
  * @brief Casts float tensor to bfloat16.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tf32_to_bf16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_bw_) &&
       (SIMD->avx512_vl_)) {
-    lookup_tf32_to_bf16[0](src, dst);
+    lookup_tf32_to_bf16[0](src, dst, status);
     return;
   }
-  lookup_tf32_to_bf16[1](src, dst);
+  lookup_tf32_to_bf16[1](src, dst, status);
 #else
-  lookup_tf32_to_bf16[1](src, dst);
+  lookup_tf32_to_bf16[1](src, dst, status);
 #endif
 }
 
@@ -784,47 +890,62 @@ static inline void tf32_to_bf16(const Tensor *restrict src,
  * @brief Casts bfloat16 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_fp4e2m1(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tbf16_to_fp4e2m1[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tbf16_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts bfloat16 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_fp8e4m3(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tbf16_to_fp8e4m3[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tbf16_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts bfloat16 tensor to float8_e5m2.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_fp8e5m2(const Tensor *restrict src,
-                                    Tensor *restrict dst) {
-  lookup_tbf16_to_fp8e5m2[0](src, dst);
+                                    Tensor *restrict dst,
+                                    novaStatus_t *status) {
+  lookup_tbf16_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts bfloat16 tensor to float16.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_fp16(const Tensor *restrict src,
-                                 Tensor *restrict dst) {
+                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_fp16_)) {
-    lookup_tbf16_to_fp16[0](src, dst);
+    lookup_tbf16_to_fp16[0](src, dst, status);
     return;
   }
-  lookup_tbf16_to_fp16[1](src, dst);
+  lookup_tbf16_to_fp16[1](src, dst, status);
 #else
-  lookup_tbf16_to_fp16[1](src, dst);
+  lookup_tbf16_to_fp16[1](src, dst, status);
 #endif
 }
 
@@ -832,17 +953,20 @@ static inline void tbf16_to_fp16(const Tensor *restrict src,
  * @brief Casts bfloat16 tensor to float.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_f32(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512_bf16_) && (SIMD->avx512f_)) {
-    lookup_tbf16_to_f32[0](src, dst);
+    lookup_tbf16_to_f32[0](src, dst, status);
     return;
   }
-  lookup_tbf16_to_f32[1](src, dst);
+  lookup_tbf16_to_f32[1](src, dst, status);
 #else
-  lookup_tbf16_to_f32[1](src, dst);
+  lookup_tbf16_to_f32[1](src, dst, status);
 #endif
 }
 
@@ -850,17 +974,20 @@ static inline void tbf16_to_f32(const Tensor *restrict src,
  * @brief Casts bfloat16 tensor to double.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_f64(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)) {
-    lookup_tbf16_to_f64[0](src, dst);
+    lookup_tbf16_to_f64[0](src, dst, status);
     return;
   }
-  lookup_tbf16_to_f64[1](src, dst);
+  lookup_tbf16_to_f64[1](src, dst, status);
 #else
-  lookup_tbf16_to_f64[1](src, dst);
+  lookup_tbf16_to_f64[1](src, dst, status);
 #endif
 }
 
@@ -868,47 +995,59 @@ static inline void tbf16_to_f64(const Tensor *restrict src,
  * @brief Casts double tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tf64_to_fp4e2m1(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tf64_to_fp4e2m1[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tf64_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts double tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tf64_to_fp8e4m3(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tf64_to_fp8e4m3[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tf64_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts double tensor to float8_e5m2.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tf64_to_fp8e5m2(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tf64_to_fp8e5m2[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tf64_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts double tensor to float16.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tf64_to_fp16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tf64_to_fp16[0](src, dst);
+    lookup_tf64_to_fp16[0](src, dst, status);
     return;
   }
-  lookup_tf64_to_fp16[1](src, dst);
+  lookup_tf64_to_fp16[1](src, dst, status);
 #else
-  lookup_tf64_to_fp16[1](src, dst);
+  lookup_tf64_to_fp16[1](src, dst, status);
 #endif
 }
 
@@ -916,25 +1055,28 @@ static inline void tf64_to_fp16(const Tensor *restrict src,
  * @brief Casts double tensor to float.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf64_to_f32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tf64_to_f32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tf64_to_f32[0](src, dst);
+    lookup_tf64_to_f32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_tf64_to_f32[1](src, dst);
+    lookup_tf64_to_f32[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tf64_to_f32[2](src, dst);
+    lookup_tf64_to_f32[2](src, dst, status);
     return;
   }
-  lookup_tf64_to_f32[3](src, dst);
+  lookup_tf64_to_f32[3](src, dst, status);
 #else
-  lookup_tf64_to_f32[3](src, dst);
+  lookup_tf64_to_f32[3](src, dst, status);
 #endif
 }
 
@@ -942,17 +1084,20 @@ static inline void tf64_to_f32(const Tensor *restrict src,
  * @brief Casts double tensor to bfloat16.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tf64_to_bf16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)) {
-    lookup_tf64_to_bf16[0](src, dst);
+    lookup_tf64_to_bf16[0](src, dst, status);
     return;
   }
-  lookup_tf64_to_bf16[1](src, dst);
+  lookup_tf64_to_bf16[1](src, dst, status);
 #else
-  lookup_tf64_to_bf16[1](src, dst);
+  lookup_tf64_to_bf16[1](src, dst, status);
 #endif
 }
 
@@ -962,138 +1107,177 @@ static inline void tf64_to_bf16(const Tensor *restrict src,
  * @brief Casts float4_e2m1fn_x2 tensor to int8.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_s8(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_s8[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp4e2m1_to_s8[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to int16.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_s16(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_s16[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp4e2m1_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to int32.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_s32(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_s32[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp4e2m1_to_s32[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to int64.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_s64(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_s64[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp4e2m1_to_s64[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to int8.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_s8(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_s8[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e4m3_to_s8[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to int16.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_s16(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_s16[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e4m3_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to int32.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_s32(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_s32[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e4m3_to_s32[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to int64.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_s64(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_s64[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e4m3_to_s64[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to int8.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_s8(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_s8[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e5m2_to_s8[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to int16.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_s16(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_s16[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e5m2_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to int32.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_s32(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_s32[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e5m2_to_s32[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to int64.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_s64(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_s64[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e5m2_to_s64[0](src, dst, status);
 }
 
 /**
  * @brief Casts float16 tensor to int8.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tfp16_to_s8(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tfp16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512_fp16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_) &&
       (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_s8[0](src, dst);
+    lookup_tfp16_to_s8[0](src, dst, status);
     return;
   }
-  lookup_tfp16_to_s8[1](src, dst);
+  lookup_tfp16_to_s8[1](src, dst, status);
 #else
-  lookup_tfp16_to_s8[1](src, dst);
+  lookup_tfp16_to_s8[1](src, dst, status);
 #endif
 }
 
@@ -1101,27 +1285,33 @@ static inline void tfp16_to_s8(const Tensor *restrict src,
  * @brief Casts float16 tensor to int16.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_s16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  lookup_tfp16_to_s16[0](src, dst);
+                                Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp16_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float16 tensor to int32.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_s32(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512_fp16_) && (SIMD->avx512f_) && (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_s32[0](src, dst);
+    lookup_tfp16_to_s32[0](src, dst, status);
     return;
   }
-  lookup_tfp16_to_s32[1](src, dst);
+  lookup_tfp16_to_s32[1](src, dst, status);
 #else
-  lookup_tfp16_to_s32[1](src, dst);
+  lookup_tfp16_to_s32[1](src, dst, status);
 #endif
 }
 
@@ -1129,17 +1319,20 @@ static inline void tfp16_to_s32(const Tensor *restrict src,
  * @brief Casts float16 tensor to int64.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_s64(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_s64[0](src, dst);
+    lookup_tfp16_to_s64[0](src, dst, status);
     return;
   }
-  lookup_tfp16_to_s64[1](src, dst);
+  lookup_tfp16_to_s64[1](src, dst, status);
 #else
-  lookup_tfp16_to_s64[1](src, dst);
+  lookup_tfp16_to_s64[1](src, dst, status);
 #endif
 }
 
@@ -1147,21 +1340,24 @@ static inline void tfp16_to_s64(const Tensor *restrict src,
  * @brief Casts float tensor to int8.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf32_to_s8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tf32_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_tf32_to_s8[0](src, dst);
+    lookup_tf32_to_s8[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tf32_to_s8[1](src, dst);
+    lookup_tf32_to_s8[1](src, dst, status);
     return;
   }
-  lookup_tf32_to_s8[2](src, dst);
+  lookup_tf32_to_s8[2](src, dst, status);
 #else
-  lookup_tf32_to_s8[2](src, dst);
+  lookup_tf32_to_s8[2](src, dst, status);
 #endif
 }
 
@@ -1169,35 +1365,41 @@ static inline void tf32_to_s8(const Tensor *restrict src,
  * @brief Casts float tensor to int16.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf32_to_s16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tf32_to_s16[0](src, dst);
+static inline void tf32_to_s16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tf32_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float tensor to int32.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf32_to_s32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tf32_to_s32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tf32_to_s32[0](src, dst);
+    lookup_tf32_to_s32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tf32_to_s32[1](src, dst);
+    lookup_tf32_to_s32[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tf32_to_s32[2](src, dst);
+    lookup_tf32_to_s32[2](src, dst, status);
     return;
   }
-  lookup_tf32_to_s32[3](src, dst);
+  lookup_tf32_to_s32[3](src, dst, status);
 #else
-  lookup_tf32_to_s32[3](src, dst);
+  lookup_tf32_to_s32[3](src, dst, status);
 #endif
 }
 
@@ -1205,17 +1407,20 @@ static inline void tf32_to_s32(const Tensor *restrict src,
  * @brief Casts float tensor to int64.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf32_to_s64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tf32_to_s64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_vl_)) {
-    lookup_tf32_to_s64[0](src, dst);
+    lookup_tf32_to_s64[0](src, dst, status);
     return;
   }
-  lookup_tf32_to_s64[1](src, dst);
+  lookup_tf32_to_s64[1](src, dst, status);
 #else
-  lookup_tf32_to_s64[1](src, dst);
+  lookup_tf32_to_s64[1](src, dst, status);
 #endif
 }
 
@@ -1223,17 +1428,20 @@ static inline void tf32_to_s64(const Tensor *restrict src,
  * @brief Casts bfloat16 tensor to int8.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tbf16_to_s8(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tbf16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512_bf16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_)) {
-    lookup_tbf16_to_s8[0](src, dst);
+    lookup_tbf16_to_s8[0](src, dst, status);
     return;
   }
-  lookup_tbf16_to_s8[1](src, dst);
+  lookup_tbf16_to_s8[1](src, dst, status);
 #else
-  lookup_tbf16_to_s8[1](src, dst);
+  lookup_tbf16_to_s8[1](src, dst, status);
 #endif
 }
 
@@ -1241,27 +1449,33 @@ static inline void tbf16_to_s8(const Tensor *restrict src,
  * @brief Casts bfloat16 tensor to int16.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_s16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  lookup_tbf16_to_s16[0](src, dst);
+                                Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tbf16_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts bfloat16 tensor to int32.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_s32(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512_bf16_) && (SIMD->avx512f_)) {
-    lookup_tbf16_to_s32[0](src, dst);
+    lookup_tbf16_to_s32[0](src, dst, status);
     return;
   }
-  lookup_tbf16_to_s32[1](src, dst);
+  lookup_tbf16_to_s32[1](src, dst, status);
 #else
-  lookup_tbf16_to_s32[1](src, dst);
+  lookup_tbf16_to_s32[1](src, dst, status);
 #endif
 }
 
@@ -1269,18 +1483,21 @@ static inline void tbf16_to_s32(const Tensor *restrict src,
  * @brief Casts bfloat16 tensor to int64.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_s64(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_) &&
       (SIMD->avx512_dq_)) {
-    lookup_tbf16_to_s64[0](src, dst);
+    lookup_tbf16_to_s64[0](src, dst, status);
     return;
   }
-  lookup_tbf16_to_s64[1](src, dst);
+  lookup_tbf16_to_s64[1](src, dst, status);
 #else
-  lookup_tbf16_to_s64[1](src, dst);
+  lookup_tbf16_to_s64[1](src, dst, status);
 #endif
 }
 
@@ -1288,17 +1505,20 @@ static inline void tbf16_to_s64(const Tensor *restrict src,
  * @brief Casts double tensor to int8.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf64_to_s8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tf64_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tf64_to_s8[0](src, dst);
+    lookup_tf64_to_s8[0](src, dst, status);
     return;
   }
-  lookup_tf64_to_s8[1](src, dst);
+  lookup_tf64_to_s8[1](src, dst, status);
 #else
-  lookup_tf64_to_s8[1](src, dst);
+  lookup_tf64_to_s8[1](src, dst, status);
 #endif
 }
 
@@ -1306,35 +1526,41 @@ static inline void tf64_to_s8(const Tensor *restrict src,
  * @brief Casts double tensor to int16.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf64_to_s16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tf64_to_s16[0](src, dst);
+static inline void tf64_to_s16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tf64_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts double tensor to int32.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf64_to_s32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tf64_to_s32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tf64_to_s32[0](src, dst);
+    lookup_tf64_to_s32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_tf64_to_s32[1](src, dst);
+    lookup_tf64_to_s32[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tf64_to_s32[2](src, dst);
+    lookup_tf64_to_s32[2](src, dst, status);
     return;
   }
-  lookup_tf64_to_s32[3](src, dst);
+  lookup_tf64_to_s32[3](src, dst, status);
 #else
-  lookup_tf64_to_s32[3](src, dst);
+  lookup_tf64_to_s32[3](src, dst, status);
 #endif
 }
 
@@ -1342,17 +1568,20 @@ static inline void tf64_to_s32(const Tensor *restrict src,
  * @brief Casts double tensor to int64.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf64_to_s64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tf64_to_s64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_tf64_to_s64[0](src, dst);
+    lookup_tf64_to_s64[0](src, dst, status);
     return;
   }
-  lookup_tf64_to_s64[1](src, dst);
+  lookup_tf64_to_s64[1](src, dst, status);
 #else
-  lookup_tf64_to_s64[1](src, dst);
+  lookup_tf64_to_s64[1](src, dst, status);
 #endif
 }
 
@@ -1362,138 +1591,177 @@ static inline void tf64_to_s64(const Tensor *restrict src,
  * @brief Casts float4_e2m1fn_x2 tensor to uint8.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_u8(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_u8[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp4e2m1_to_u8[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to uint16.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_u16(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_u16[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp4e2m1_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to uint32.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_u32(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_u32[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp4e2m1_to_u32[0](src, dst, status);
 }
 
 /**
  * @brief Casts float4_e2m1fn_x2 tensor to uint64.
  * @param[in]  src Source tensor (fp4e2m1).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp4e2m1_to_u64(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp4e2m1_to_u64[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp4e2m1_to_u64[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to uint8.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_u8(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_u8[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e4m3_to_u8[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to uint16.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_u16(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_u16[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e4m3_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to uint32.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_u32(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_u32[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e4m3_to_u32[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e4m3fn tensor to uint64.
  * @param[in]  src Source tensor (fp8e4m3).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e4m3_to_u64(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e4m3_to_u64[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e4m3_to_u64[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to uint8.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_u8(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_u8[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e5m2_to_u8[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to uint16.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_u16(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_u16[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e5m2_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to uint32.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_u32(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_u32[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e5m2_to_u32[0](src, dst, status);
 }
 
 /**
  * @brief Casts float8_e5m2 tensor to uint64.
  * @param[in]  src Source tensor (fp8e5m2).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp8e5m2_to_u64(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tfp8e5m2_to_u64[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e5m2_to_u64[0](src, dst, status);
 }
 
 /**
  * @brief Casts float16 tensor to uint8.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tfp16_to_u8(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tfp16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_bw_) &&
       (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_u8[0](src, dst);
+    lookup_tfp16_to_u8[0](src, dst, status);
     return;
   }
-  lookup_tfp16_to_u8[1](src, dst);
+  lookup_tfp16_to_u8[1](src, dst, status);
 #else
-  lookup_tfp16_to_u8[1](src, dst);
+  lookup_tfp16_to_u8[1](src, dst, status);
 #endif
 }
 
@@ -1501,27 +1769,33 @@ static inline void tfp16_to_u8(const Tensor *restrict src,
  * @brief Casts float16 tensor to uint16.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_u16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  lookup_tfp16_to_u16[0](src, dst);
+                                Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp16_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float16 tensor to uint32.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_u32(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_u32[0](src, dst);
+    lookup_tfp16_to_u32[0](src, dst, status);
     return;
   }
-  lookup_tfp16_to_u32[1](src, dst);
+  lookup_tfp16_to_u32[1](src, dst, status);
 #else
-  lookup_tfp16_to_u32[1](src, dst);
+  lookup_tfp16_to_u32[1](src, dst, status);
 #endif
 }
 
@@ -1529,17 +1803,20 @@ static inline void tfp16_to_u32(const Tensor *restrict src,
  * @brief Casts float16 tensor to uint64.
  * @param[in]  src Source tensor (fp16).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tfp16_to_u64(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_u64[0](src, dst);
+    lookup_tfp16_to_u64[0](src, dst, status);
     return;
   }
-  lookup_tfp16_to_u64[1](src, dst);
+  lookup_tfp16_to_u64[1](src, dst, status);
 #else
-  lookup_tfp16_to_u64[1](src, dst);
+  lookup_tfp16_to_u64[1](src, dst, status);
 #endif
 }
 
@@ -1547,21 +1824,24 @@ static inline void tfp16_to_u64(const Tensor *restrict src,
  * @brief Casts float tensor to uint8.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf32_to_u8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tf32_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bw_) && (SIMD->avx512_vl_)) {
-    lookup_tf32_to_u8[0](src, dst);
+    lookup_tf32_to_u8[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tf32_to_u8[1](src, dst);
+    lookup_tf32_to_u8[1](src, dst, status);
     return;
   }
-  lookup_tf32_to_u8[2](src, dst);
+  lookup_tf32_to_u8[2](src, dst, status);
 #else
-  lookup_tf32_to_u8[2](src, dst);
+  lookup_tf32_to_u8[2](src, dst, status);
 #endif
 }
 
@@ -1569,27 +1849,33 @@ static inline void tf32_to_u8(const Tensor *restrict src,
  * @brief Casts float tensor to uint16.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf32_to_u16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tf32_to_u16[0](src, dst);
+static inline void tf32_to_u16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tf32_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts float tensor to uint32.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf32_to_u32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tf32_to_u32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tf32_to_u32[0](src, dst);
+    lookup_tf32_to_u32[0](src, dst, status);
     return;
   }
-  lookup_tf32_to_u32[1](src, dst);
+  lookup_tf32_to_u32[1](src, dst, status);
 #else
-  lookup_tf32_to_u32[1](src, dst);
+  lookup_tf32_to_u32[1](src, dst, status);
 #endif
 }
 
@@ -1597,17 +1883,20 @@ static inline void tf32_to_u32(const Tensor *restrict src,
  * @brief Casts float tensor to uint64.
  * @param[in]  src Source tensor (f32).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf32_to_u64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tf32_to_u64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_vl_)) {
-    lookup_tf32_to_u64[0](src, dst);
+    lookup_tf32_to_u64[0](src, dst, status);
     return;
   }
-  lookup_tf32_to_u64[1](src, dst);
+  lookup_tf32_to_u64[1](src, dst, status);
 #else
-  lookup_tf32_to_u64[1](src, dst);
+  lookup_tf32_to_u64[1](src, dst, status);
 #endif
 }
 
@@ -1615,17 +1904,20 @@ static inline void tf32_to_u64(const Tensor *restrict src,
  * @brief Casts bfloat16 tensor to uint8.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tbf16_to_u8(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tbf16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512_bf16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_)) {
-    lookup_tbf16_to_u8[0](src, dst);
+    lookup_tbf16_to_u8[0](src, dst, status);
     return;
   }
-  lookup_tbf16_to_u8[1](src, dst);
+  lookup_tbf16_to_u8[1](src, dst, status);
 #else
-  lookup_tbf16_to_u8[1](src, dst);
+  lookup_tbf16_to_u8[1](src, dst, status);
 #endif
 }
 
@@ -1633,27 +1925,33 @@ static inline void tbf16_to_u8(const Tensor *restrict src,
  * @brief Casts bfloat16 tensor to uint16.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_u16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  lookup_tbf16_to_u16[0](src, dst);
+                                Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tbf16_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts bfloat16 tensor to uint32.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_u32(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512_bf16_) && (SIMD->avx512f_)) {
-    lookup_tbf16_to_u32[0](src, dst);
+    lookup_tbf16_to_u32[0](src, dst, status);
     return;
   }
-  lookup_tbf16_to_u32[1](src, dst);
+  lookup_tbf16_to_u32[1](src, dst, status);
 #else
-  lookup_tbf16_to_u32[1](src, dst);
+  lookup_tbf16_to_u32[1](src, dst, status);
 #endif
 }
 
@@ -1661,18 +1959,21 @@ static inline void tbf16_to_u32(const Tensor *restrict src,
  * @brief Casts bfloat16 tensor to uint64.
  * @param[in]  src Source tensor (bf16).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tbf16_to_u64(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_) &&
       (SIMD->avx512_dq_)) {
-    lookup_tbf16_to_u64[0](src, dst);
+    lookup_tbf16_to_u64[0](src, dst, status);
     return;
   }
-  lookup_tbf16_to_u64[1](src, dst);
+  lookup_tbf16_to_u64[1](src, dst, status);
 #else
-  lookup_tbf16_to_u64[1](src, dst);
+  lookup_tbf16_to_u64[1](src, dst, status);
 #endif
 }
 
@@ -1680,17 +1981,20 @@ static inline void tbf16_to_u64(const Tensor *restrict src,
  * @brief Casts double tensor to uint8.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf64_to_u8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tf64_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tf64_to_u8[0](src, dst);
+    lookup_tf64_to_u8[0](src, dst, status);
     return;
   }
-  lookup_tf64_to_u8[1](src, dst);
+  lookup_tf64_to_u8[1](src, dst, status);
 #else
-  lookup_tf64_to_u8[1](src, dst);
+  lookup_tf64_to_u8[1](src, dst, status);
 #endif
 }
 
@@ -1698,27 +2002,33 @@ static inline void tf64_to_u8(const Tensor *restrict src,
  * @brief Casts double tensor to uint16.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf64_to_u16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tf64_to_u16[0](src, dst);
+static inline void tf64_to_u16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tf64_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts double tensor to uint32.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf64_to_u32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tf64_to_u32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tf64_to_u32[0](src, dst);
+    lookup_tf64_to_u32[0](src, dst, status);
     return;
   }
-  lookup_tf64_to_u32[1](src, dst);
+  lookup_tf64_to_u32[1](src, dst, status);
 #else
-  lookup_tf64_to_u32[1](src, dst);
+  lookup_tf64_to_u32[1](src, dst, status);
 #endif
 }
 
@@ -1726,17 +2036,20 @@ static inline void tf64_to_u32(const Tensor *restrict src,
  * @brief Casts double tensor to uint64.
  * @param[in]  src Source tensor (f64).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tf64_to_u64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tf64_to_u64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_tf64_to_u64[0](src, dst);
+    lookup_tf64_to_u64[0](src, dst, status);
     return;
   }
-  lookup_tf64_to_u64[1](src, dst);
+  lookup_tf64_to_u64[1](src, dst, status);
 #else
-  lookup_tf64_to_u64[1](src, dst);
+  lookup_tf64_to_u64[1](src, dst, status);
 #endif
 }
 
@@ -1746,47 +2059,59 @@ static inline void tf64_to_u64(const Tensor *restrict src,
  * @brief Casts int8 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts8_to_fp4e2m1(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_ts8_to_fp4e2m1[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts8_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts int8 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts8_to_fp8e4m3(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_ts8_to_fp8e4m3[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts8_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts int8 tensor to float8_e5m2.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts8_to_fp8e5m2(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_ts8_to_fp8e5m2[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts8_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts int8 tensor to float16.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_fp16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts8_to_fp16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_ts8_to_fp16[0](src, dst);
+    lookup_ts8_to_fp16[0](src, dst, status);
     return;
   }
-  lookup_ts8_to_fp16[1](src, dst);
+  lookup_ts8_to_fp16[1](src, dst, status);
 #else
-  lookup_ts8_to_fp16[1](src, dst);
+  lookup_ts8_to_fp16[1](src, dst, status);
 #endif
 }
 
@@ -1794,17 +2119,20 @@ static inline void ts8_to_fp16(const Tensor *restrict src,
  * @brief Casts int8 tensor to bfloat16.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_bf16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts8_to_bf16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_)) {
-    lookup_ts8_to_bf16[0](src, dst);
+    lookup_ts8_to_bf16[0](src, dst, status);
     return;
   }
-  lookup_ts8_to_bf16[1](src, dst);
+  lookup_ts8_to_bf16[1](src, dst, status);
 #else
-  lookup_ts8_to_bf16[1](src, dst);
+  lookup_ts8_to_bf16[1](src, dst, status);
 #endif
 }
 
@@ -1812,21 +2140,24 @@ static inline void ts8_to_bf16(const Tensor *restrict src,
  * @brief Casts int8 tensor to float.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_f32(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void ts8_to_f32(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts8_to_f32[0](src, dst);
+    lookup_ts8_to_f32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_ts8_to_f32[1](src, dst);
+    lookup_ts8_to_f32[1](src, dst, status);
     return;
   }
-  lookup_ts8_to_f32[2](src, dst);
+  lookup_ts8_to_f32[2](src, dst, status);
 #else
-  lookup_ts8_to_f32[2](src, dst);
+  lookup_ts8_to_f32[2](src, dst, status);
 #endif
 }
 
@@ -1834,17 +2165,20 @@ static inline void ts8_to_f32(const Tensor *restrict src,
  * @brief Casts int8 tensor to double.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_f64(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void ts8_to_f64(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts8_to_f64[0](src, dst);
+    lookup_ts8_to_f64[0](src, dst, status);
     return;
   }
-  lookup_ts8_to_f64[1](src, dst);
+  lookup_ts8_to_f64[1](src, dst, status);
 #else
-  lookup_ts8_to_f64[1](src, dst);
+  lookup_ts8_to_f64[1](src, dst, status);
 #endif
 }
 
@@ -1852,117 +2186,150 @@ static inline void ts8_to_f64(const Tensor *restrict src,
  * @brief Casts int16 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts16_to_fp4e2m1(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_ts16_to_fp4e2m1[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts16_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts16_to_fp8e4m3(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_ts16_to_fp8e4m3[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts16_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to float8_e5m2.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts16_to_fp8e5m2(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_ts16_to_fp8e5m2[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts16_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to float16.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts16_to_fp16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  lookup_ts16_to_fp16[0](src, dst);
+                                Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts16_to_fp16[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to bfloat16.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts16_to_bf16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  lookup_ts16_to_bf16[0](src, dst);
+                                Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts16_to_bf16[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to float.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts16_to_f32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts16_to_f32[0](src, dst);
+static inline void ts16_to_f32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts16_to_f32[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to double.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts16_to_f64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts16_to_f64[0](src, dst);
+static inline void ts16_to_f64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts16_to_f64[0](src, dst, status);
 }
 
 /**
  * @brief Casts int32 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts32_to_fp4e2m1(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_ts32_to_fp4e2m1[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts32_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts int32 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts32_to_fp8e4m3(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_ts32_to_fp8e4m3[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts32_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts int32 tensor to float8_e5m2.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts32_to_fp8e5m2(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_ts32_to_fp8e5m2[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts32_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts int32 tensor to float16.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts32_to_fp16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_ts32_to_fp16[0](src, dst);
+    lookup_ts32_to_fp16[0](src, dst, status);
     return;
   }
-  lookup_ts32_to_fp16[1](src, dst);
+  lookup_ts32_to_fp16[1](src, dst, status);
 #else
-  lookup_ts32_to_fp16[1](src, dst);
+  lookup_ts32_to_fp16[1](src, dst, status);
 #endif
 }
 
@@ -1970,17 +2337,20 @@ static inline void ts32_to_fp16(const Tensor *restrict src,
  * @brief Casts int32 tensor to bfloat16.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts32_to_bf16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_)) {
-    lookup_ts32_to_bf16[0](src, dst);
+    lookup_ts32_to_bf16[0](src, dst, status);
     return;
   }
-  lookup_ts32_to_bf16[1](src, dst);
+  lookup_ts32_to_bf16[1](src, dst, status);
 #else
-  lookup_ts32_to_bf16[1](src, dst);
+  lookup_ts32_to_bf16[1](src, dst, status);
 #endif
 }
 
@@ -1988,25 +2358,28 @@ static inline void ts32_to_bf16(const Tensor *restrict src,
  * @brief Casts int32 tensor to float.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts32_to_f32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts32_to_f32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts32_to_f32[0](src, dst);
+    lookup_ts32_to_f32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_ts32_to_f32[1](src, dst);
+    lookup_ts32_to_f32[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_f32[2](src, dst);
+    lookup_ts32_to_f32[2](src, dst, status);
     return;
   }
-  lookup_ts32_to_f32[3](src, dst);
+  lookup_ts32_to_f32[3](src, dst, status);
 #else
-  lookup_ts32_to_f32[3](src, dst);
+  lookup_ts32_to_f32[3](src, dst, status);
 #endif
 }
 
@@ -2014,25 +2387,28 @@ static inline void ts32_to_f32(const Tensor *restrict src,
  * @brief Casts int32 tensor to double.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts32_to_f64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts32_to_f64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts32_to_f64[0](src, dst);
+    lookup_ts32_to_f64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_ts32_to_f64[1](src, dst);
+    lookup_ts32_to_f64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_f64[2](src, dst);
+    lookup_ts32_to_f64[2](src, dst, status);
     return;
   }
-  lookup_ts32_to_f64[3](src, dst);
+  lookup_ts32_to_f64[3](src, dst, status);
 #else
-  lookup_ts32_to_f64[3](src, dst);
+  lookup_ts32_to_f64[3](src, dst, status);
 #endif
 }
 
@@ -2040,47 +2416,59 @@ static inline void ts32_to_f64(const Tensor *restrict src,
  * @brief Casts int64 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts64_to_fp4e2m1(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_ts64_to_fp4e2m1[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts64_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts int64 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts64_to_fp8e4m3(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_ts64_to_fp8e4m3[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts64_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts int64 tensor to float8_e5m2.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts64_to_fp8e5m2(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_ts64_to_fp8e5m2[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_ts64_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts int64 tensor to float16.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts64_to_fp16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_ts64_to_fp16[0](src, dst);
+    lookup_ts64_to_fp16[0](src, dst, status);
     return;
   }
-  lookup_ts64_to_fp16[1](src, dst);
+  lookup_ts64_to_fp16[1](src, dst, status);
 #else
-  lookup_ts64_to_fp16[1](src, dst);
+  lookup_ts64_to_fp16[1](src, dst, status);
 #endif
 }
 
@@ -2088,18 +2476,21 @@ static inline void ts64_to_fp16(const Tensor *restrict src,
  * @brief Casts int64 tensor to bfloat16.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void ts64_to_bf16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_bf16_) &&
       (SIMD->avx512_vl_)) {
-    lookup_ts64_to_bf16[0](src, dst);
+    lookup_ts64_to_bf16[0](src, dst, status);
     return;
   }
-  lookup_ts64_to_bf16[1](src, dst);
+  lookup_ts64_to_bf16[1](src, dst, status);
 #else
-  lookup_ts64_to_bf16[1](src, dst);
+  lookup_ts64_to_bf16[1](src, dst, status);
 #endif
 }
 
@@ -2107,17 +2498,20 @@ static inline void ts64_to_bf16(const Tensor *restrict src,
  * @brief Casts int64 tensor to float.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts64_to_f32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts64_to_f32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_ts64_to_f32[0](src, dst);
+    lookup_ts64_to_f32[0](src, dst, status);
     return;
   }
-  lookup_ts64_to_f32[1](src, dst);
+  lookup_ts64_to_f32[1](src, dst, status);
 #else
-  lookup_ts64_to_f32[1](src, dst);
+  lookup_ts64_to_f32[1](src, dst, status);
 #endif
 }
 
@@ -2125,17 +2519,20 @@ static inline void ts64_to_f32(const Tensor *restrict src,
  * @brief Casts int64 tensor to double.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts64_to_f64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts64_to_f64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_ts64_to_f64[0](src, dst);
+    lookup_ts64_to_f64[0](src, dst, status);
     return;
   }
-  lookup_ts64_to_f64[1](src, dst);
+  lookup_ts64_to_f64[1](src, dst, status);
 #else
-  lookup_ts64_to_f64[1](src, dst);
+  lookup_ts64_to_f64[1](src, dst, status);
 #endif
 }
 
@@ -2145,35 +2542,41 @@ static inline void ts64_to_f64(const Tensor *restrict src,
  * @brief Casts int8 tensor to int16.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_s16(const Tensor *restrict src,
-                              Tensor *restrict dst) {
-  lookup_ts8_to_s16[0](src, dst);
+static inline void ts8_to_s16(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
+  lookup_ts8_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts int8 tensor to int32.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_s32(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void ts8_to_s32(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts8_to_s32[0](src, dst);
+    lookup_ts8_to_s32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_ts8_to_s32[1](src, dst);
+    lookup_ts8_to_s32[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts8_to_s32[2](src, dst);
+    lookup_ts8_to_s32[2](src, dst, status);
     return;
   }
-  lookup_ts8_to_s32[3](src, dst);
+  lookup_ts8_to_s32[3](src, dst, status);
 #else
-  lookup_ts8_to_s32[3](src, dst);
+  lookup_ts8_to_s32[3](src, dst, status);
 #endif
 }
 
@@ -2181,25 +2584,28 @@ static inline void ts8_to_s32(const Tensor *restrict src,
  * @brief Casts int8 tensor to int64.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_s64(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void ts8_to_s64(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts8_to_s64[0](src, dst);
+    lookup_ts8_to_s64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_ts8_to_s64[1](src, dst);
+    lookup_ts8_to_s64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts8_to_s64[2](src, dst);
+    lookup_ts8_to_s64[2](src, dst, status);
     return;
   }
-  lookup_ts8_to_s64[3](src, dst);
+  lookup_ts8_to_s64[3](src, dst, status);
 #else
-  lookup_ts8_to_s64[3](src, dst);
+  lookup_ts8_to_s64[3](src, dst, status);
 #endif
 }
 
@@ -2207,47 +2613,59 @@ static inline void ts8_to_s64(const Tensor *restrict src,
  * @brief Casts int16 tensor to int8.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts16_to_s8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
-  lookup_ts16_to_s8[0](src, dst);
+static inline void ts16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
+  lookup_ts16_to_s8[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to int32.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts16_to_s32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts16_to_s32[0](src, dst);
+static inline void ts16_to_s32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts16_to_s32[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to int64.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts16_to_s64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts16_to_s64[0](src, dst);
+static inline void ts16_to_s64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts16_to_s64[0](src, dst, status);
 }
 
 /**
  * @brief Casts int32 tensor to int8.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts32_to_s8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void ts32_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts32_to_s8[0](src, dst);
+    lookup_ts32_to_s8[0](src, dst, status);
     return;
   }
-  lookup_ts32_to_s8[1](src, dst);
+  lookup_ts32_to_s8[1](src, dst, status);
 #else
-  lookup_ts32_to_s8[1](src, dst);
+  lookup_ts32_to_s8[1](src, dst, status);
 #endif
 }
 
@@ -2255,35 +2673,41 @@ static inline void ts32_to_s8(const Tensor *restrict src,
  * @brief Casts int32 tensor to int16.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts32_to_s16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts32_to_s16[0](src, dst);
+static inline void ts32_to_s16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts32_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts int32 tensor to int64.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts32_to_s64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts32_to_s64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts32_to_s64[0](src, dst);
+    lookup_ts32_to_s64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_ts32_to_s64[1](src, dst);
+    lookup_ts32_to_s64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_s64[2](src, dst);
+    lookup_ts32_to_s64[2](src, dst, status);
     return;
   }
-  lookup_ts32_to_s64[3](src, dst);
+  lookup_ts32_to_s64[3](src, dst, status);
 #else
-  lookup_ts32_to_s64[3](src, dst);
+  lookup_ts32_to_s64[3](src, dst, status);
 #endif
 }
 
@@ -2291,17 +2715,20 @@ static inline void ts32_to_s64(const Tensor *restrict src,
  * @brief Casts int64 tensor to int8.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts64_to_s8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void ts64_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_ts64_to_s8[0](src, dst);
+    lookup_ts64_to_s8[0](src, dst, status);
     return;
   }
-  lookup_ts64_to_s8[1](src, dst);
+  lookup_ts64_to_s8[1](src, dst, status);
 #else
-  lookup_ts64_to_s8[1](src, dst);
+  lookup_ts64_to_s8[1](src, dst, status);
 #endif
 }
 
@@ -2309,27 +2736,33 @@ static inline void ts64_to_s8(const Tensor *restrict src,
  * @brief Casts int64 tensor to int16.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts64_to_s16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts64_to_s16[0](src, dst);
+static inline void ts64_to_s16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts64_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts int64 tensor to int32.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts64_to_s32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts64_to_s32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts64_to_s32[0](src, dst);
+    lookup_ts64_to_s32[0](src, dst, status);
     return;
   }
-  lookup_ts64_to_s32[1](src, dst);
+  lookup_ts64_to_s32[1](src, dst, status);
 #else
-  lookup_ts64_to_s32[1](src, dst);
+  lookup_ts64_to_s32[1](src, dst, status);
 #endif
 }
 
@@ -2339,24 +2772,28 @@ static inline void ts64_to_s32(const Tensor *restrict src,
  * @brief Casts int8 tensor to uint8.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_u8(const Tensor *restrict src, Tensor *restrict dst) {
+static inline void ts8_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts8_to_u8[0](src, dst);
+    lookup_ts8_to_u8[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_ts8_to_u8[1](src, dst);
+    lookup_ts8_to_u8[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts8_to_u8[2](src, dst);
+    lookup_ts8_to_u8[2](src, dst, status);
     return;
   }
-  lookup_ts8_to_u8[3](src, dst);
+  lookup_ts8_to_u8[3](src, dst, status);
 #else
-  lookup_ts8_to_u8[3](src, dst);
+  lookup_ts8_to_u8[3](src, dst, status);
 #endif
 }
 
@@ -2364,35 +2801,41 @@ static inline void ts8_to_u8(const Tensor *restrict src, Tensor *restrict dst) {
  * @brief Casts int8 tensor to uint16.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_u16(const Tensor *restrict src,
-                              Tensor *restrict dst) {
-  lookup_ts8_to_u16[0](src, dst);
+static inline void ts8_to_u16(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
+  lookup_ts8_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts int8 tensor to uint32.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_u32(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void ts8_to_u32(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts8_to_u32[0](src, dst);
+    lookup_ts8_to_u32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_ts8_to_u32[1](src, dst);
+    lookup_ts8_to_u32[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts8_to_u32[2](src, dst);
+    lookup_ts8_to_u32[2](src, dst, status);
     return;
   }
-  lookup_ts8_to_u32[3](src, dst);
+  lookup_ts8_to_u32[3](src, dst, status);
 #else
-  lookup_ts8_to_u32[3](src, dst);
+  lookup_ts8_to_u32[3](src, dst, status);
 #endif
 }
 
@@ -2400,17 +2843,20 @@ static inline void ts8_to_u32(const Tensor *restrict src,
  * @brief Casts int8 tensor to uint64.
  * @param[in]  src Source tensor (s8).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts8_to_u64(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void ts8_to_u64(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts8_to_u64[0](src, dst);
+    lookup_ts8_to_u64[0](src, dst, status);
     return;
   }
-  lookup_ts8_to_u64[1](src, dst);
+  lookup_ts8_to_u64[1](src, dst, status);
 #else
-  lookup_ts8_to_u64[1](src, dst);
+  lookup_ts8_to_u64[1](src, dst, status);
 #endif
 }
 
@@ -2418,65 +2864,80 @@ static inline void ts8_to_u64(const Tensor *restrict src,
  * @brief Casts int16 tensor to uint8.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts16_to_u8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
-  lookup_ts16_to_u8[0](src, dst);
+static inline void ts16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
+  lookup_ts16_to_u8[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to uint16.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts16_to_u16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts16_to_u16[0](src, dst);
+static inline void ts16_to_u16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts16_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to uint32.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts16_to_u32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts16_to_u32[0](src, dst);
+static inline void ts16_to_u32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts16_to_u32[0](src, dst, status);
 }
 
 /**
  * @brief Casts int16 tensor to uint64.
  * @param[in]  src Source tensor (s16).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts16_to_u64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts16_to_u64[0](src, dst);
+static inline void ts16_to_u64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts16_to_u64[0](src, dst, status);
 }
 
 /**
  * @brief Casts int32 tensor to uint8.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts32_to_u8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void ts32_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_ts32_to_u8[0](src, dst);
+    lookup_ts32_to_u8[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_ts32_to_u8[1](src, dst);
+    lookup_ts32_to_u8[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_u8[2](src, dst);
+    lookup_ts32_to_u8[2](src, dst, status);
     return;
   }
-  lookup_ts32_to_u8[3](src, dst);
+  lookup_ts32_to_u8[3](src, dst, status);
 #else
-  lookup_ts32_to_u8[3](src, dst);
+  lookup_ts32_to_u8[3](src, dst, status);
 #endif
 }
 
@@ -2484,35 +2945,41 @@ static inline void ts32_to_u8(const Tensor *restrict src,
  * @brief Casts int32 tensor to uint16.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts32_to_u16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts32_to_u16[0](src, dst);
+static inline void ts32_to_u16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts32_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts int32 tensor to uint32.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts32_to_u32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts32_to_u32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts32_to_u32[0](src, dst);
+    lookup_ts32_to_u32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_ts32_to_u32[1](src, dst);
+    lookup_ts32_to_u32[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_u32[2](src, dst);
+    lookup_ts32_to_u32[2](src, dst, status);
     return;
   }
-  lookup_ts32_to_u32[3](src, dst);
+  lookup_ts32_to_u32[3](src, dst, status);
 #else
-  lookup_ts32_to_u32[3](src, dst);
+  lookup_ts32_to_u32[3](src, dst, status);
 #endif
 }
 
@@ -2520,25 +2987,28 @@ static inline void ts32_to_u32(const Tensor *restrict src,
  * @brief Casts int32 tensor to uint64.
  * @param[in]  src Source tensor (s32).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts32_to_u64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts32_to_u64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts32_to_u64[0](src, dst);
+    lookup_ts32_to_u64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_ts32_to_u64[1](src, dst);
+    lookup_ts32_to_u64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_u64[2](src, dst);
+    lookup_ts32_to_u64[2](src, dst, status);
     return;
   }
-  lookup_ts32_to_u64[3](src, dst);
+  lookup_ts32_to_u64[3](src, dst, status);
 #else
-  lookup_ts32_to_u64[3](src, dst);
+  lookup_ts32_to_u64[3](src, dst, status);
 #endif
 }
 
@@ -2546,17 +3016,20 @@ static inline void ts32_to_u64(const Tensor *restrict src,
  * @brief Casts int64 tensor to uint8.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts64_to_u8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void ts64_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts64_to_u8[0](src, dst);
+    lookup_ts64_to_u8[0](src, dst, status);
     return;
   }
-  lookup_ts64_to_u8[1](src, dst);
+  lookup_ts64_to_u8[1](src, dst, status);
 #else
-  lookup_ts64_to_u8[1](src, dst);
+  lookup_ts64_to_u8[1](src, dst, status);
 #endif
 }
 
@@ -2564,27 +3037,33 @@ static inline void ts64_to_u8(const Tensor *restrict src,
  * @brief Casts int64 tensor to uint16.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts64_to_u16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_ts64_to_u16[0](src, dst);
+static inline void ts64_to_u16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_ts64_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts int64 tensor to uint32.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts64_to_u32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts64_to_u32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts64_to_u32[0](src, dst);
+    lookup_ts64_to_u32[0](src, dst, status);
     return;
   }
-  lookup_ts64_to_u32[1](src, dst);
+  lookup_ts64_to_u32[1](src, dst, status);
 #else
-  lookup_ts64_to_u32[1](src, dst);
+  lookup_ts64_to_u32[1](src, dst, status);
 #endif
 }
 
@@ -2592,25 +3071,28 @@ static inline void ts64_to_u32(const Tensor *restrict src,
  * @brief Casts int64 tensor to uint64.
  * @param[in]  src Source tensor (s64).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void ts64_to_u64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void ts64_to_u64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_ts64_to_u64[0](src, dst);
+    lookup_ts64_to_u64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_ts64_to_u64[1](src, dst);
+    lookup_ts64_to_u64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_ts64_to_u64[2](src, dst);
+    lookup_ts64_to_u64[2](src, dst, status);
     return;
   }
-  lookup_ts64_to_u64[3](src, dst);
+  lookup_ts64_to_u64[3](src, dst, status);
 #else
-  lookup_ts64_to_u64[3](src, dst);
+  lookup_ts64_to_u64[3](src, dst, status);
 #endif
 }
 
@@ -2620,47 +3102,59 @@ static inline void ts64_to_u64(const Tensor *restrict src,
  * @brief Casts uint8 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu8_to_fp4e2m1(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_tu8_to_fp4e2m1[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu8_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint8 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu8_to_fp8e4m3(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_tu8_to_fp8e4m3[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu8_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint8 tensor to float8_e5m2.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu8_to_fp8e5m2(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
-  lookup_tu8_to_fp8e5m2[0](src, dst);
+                                  Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu8_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint8 tensor to float16.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_fp16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu8_to_fp16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tu8_to_fp16[0](src, dst);
+    lookup_tu8_to_fp16[0](src, dst, status);
     return;
   }
-  lookup_tu8_to_fp16[1](src, dst);
+  lookup_tu8_to_fp16[1](src, dst, status);
 #else
-  lookup_tu8_to_fp16[1](src, dst);
+  lookup_tu8_to_fp16[1](src, dst, status);
 #endif
 }
 
@@ -2668,17 +3162,20 @@ static inline void tu8_to_fp16(const Tensor *restrict src,
  * @brief Casts uint8 tensor to bfloat16.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_bf16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu8_to_bf16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_)) {
-    lookup_tu8_to_bf16[0](src, dst);
+    lookup_tu8_to_bf16[0](src, dst, status);
     return;
   }
-  lookup_tu8_to_bf16[1](src, dst);
+  lookup_tu8_to_bf16[1](src, dst, status);
 #else
-  lookup_tu8_to_bf16[1](src, dst);
+  lookup_tu8_to_bf16[1](src, dst, status);
 #endif
 }
 
@@ -2686,21 +3183,24 @@ static inline void tu8_to_bf16(const Tensor *restrict src,
  * @brief Casts uint8 tensor to float.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_f32(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tu8_to_f32(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu8_to_f32[0](src, dst);
+    lookup_tu8_to_f32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tu8_to_f32[1](src, dst);
+    lookup_tu8_to_f32[1](src, dst, status);
     return;
   }
-  lookup_tu8_to_f32[2](src, dst);
+  lookup_tu8_to_f32[2](src, dst, status);
 #else
-  lookup_tu8_to_f32[2](src, dst);
+  lookup_tu8_to_f32[2](src, dst, status);
 #endif
 }
 
@@ -2708,17 +3208,20 @@ static inline void tu8_to_f32(const Tensor *restrict src,
  * @brief Casts uint8 tensor to double.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_f64(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tu8_to_f64(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu8_to_f64[0](src, dst);
+    lookup_tu8_to_f64[0](src, dst, status);
     return;
   }
-  lookup_tu8_to_f64[1](src, dst);
+  lookup_tu8_to_f64[1](src, dst, status);
 #else
-  lookup_tu8_to_f64[1](src, dst);
+  lookup_tu8_to_f64[1](src, dst, status);
 #endif
 }
 
@@ -2726,117 +3229,150 @@ static inline void tu8_to_f64(const Tensor *restrict src,
  * @brief Casts uint16 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu16_to_fp4e2m1(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tu16_to_fp4e2m1[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu16_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu16_to_fp8e4m3(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tu16_to_fp8e4m3[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu16_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to float8_e5m2.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu16_to_fp8e5m2(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tu16_to_fp8e5m2[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu16_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to float16.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu16_to_fp16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  lookup_tu16_to_fp16[0](src, dst);
+                                Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu16_to_fp16[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to bfloat16.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu16_to_bf16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
-  lookup_tu16_to_bf16[0](src, dst);
+                                Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu16_to_bf16[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to float.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu16_to_f32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu16_to_f32[0](src, dst);
+static inline void tu16_to_f32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu16_to_f32[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to double.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu16_to_f64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu16_to_f64[0](src, dst);
+static inline void tu16_to_f64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu16_to_f64[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint32 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu32_to_fp4e2m1(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tu32_to_fp4e2m1[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu32_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint32 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu32_to_fp8e4m3(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tu32_to_fp8e4m3[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu32_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint32 tensor to float8_e5m2.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu32_to_fp8e5m2(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tu32_to_fp8e5m2[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu32_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint32 tensor to float16.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu32_to_fp16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tu32_to_fp16[0](src, dst);
+    lookup_tu32_to_fp16[0](src, dst, status);
     return;
   }
-  lookup_tu32_to_fp16[1](src, dst);
+  lookup_tu32_to_fp16[1](src, dst, status);
 #else
-  lookup_tu32_to_fp16[1](src, dst);
+  lookup_tu32_to_fp16[1](src, dst, status);
 #endif
 }
 
@@ -2844,17 +3380,20 @@ static inline void tu32_to_fp16(const Tensor *restrict src,
  * @brief Casts uint32 tensor to bfloat16.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu32_to_bf16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bf16_)) {
-    lookup_tu32_to_bf16[0](src, dst);
+    lookup_tu32_to_bf16[0](src, dst, status);
     return;
   }
-  lookup_tu32_to_bf16[1](src, dst);
+  lookup_tu32_to_bf16[1](src, dst, status);
 #else
-  lookup_tu32_to_bf16[1](src, dst);
+  lookup_tu32_to_bf16[1](src, dst, status);
 #endif
 }
 
@@ -2862,17 +3401,20 @@ static inline void tu32_to_bf16(const Tensor *restrict src,
  * @brief Casts uint32 tensor to float.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu32_to_f32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu32_to_f32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu32_to_f32[0](src, dst);
+    lookup_tu32_to_f32[0](src, dst, status);
     return;
   }
-  lookup_tu32_to_f32[1](src, dst);
+  lookup_tu32_to_f32[1](src, dst, status);
 #else
-  lookup_tu32_to_f32[1](src, dst);
+  lookup_tu32_to_f32[1](src, dst, status);
 #endif
 }
 
@@ -2880,17 +3422,20 @@ static inline void tu32_to_f32(const Tensor *restrict src,
  * @brief Casts uint32 tensor to double.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu32_to_f64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu32_to_f64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu32_to_f64[0](src, dst);
+    lookup_tu32_to_f64[0](src, dst, status);
     return;
   }
-  lookup_tu32_to_f64[1](src, dst);
+  lookup_tu32_to_f64[1](src, dst, status);
 #else
-  lookup_tu32_to_f64[1](src, dst);
+  lookup_tu32_to_f64[1](src, dst, status);
 #endif
 }
 
@@ -2898,47 +3443,59 @@ static inline void tu32_to_f64(const Tensor *restrict src,
  * @brief Casts uint64 tensor to float4_e2m1fn_x2.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (fp4e2m1).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu64_to_fp4e2m1(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tu64_to_fp4e2m1[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu64_to_fp4e2m1[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint64 tensor to float8_e4m3fn.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (fp8e4m3).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu64_to_fp8e4m3(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tu64_to_fp8e4m3[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu64_to_fp8e4m3[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint64 tensor to float8_e5m2.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (fp8e5m2).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu64_to_fp8e5m2(const Tensor *restrict src,
-                                   Tensor *restrict dst) {
-  lookup_tu64_to_fp8e5m2[0](src, dst);
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tu64_to_fp8e5m2[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint64 tensor to float16.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (fp16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu64_to_fp16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tu64_to_fp16[0](src, dst);
+    lookup_tu64_to_fp16[0](src, dst, status);
     return;
   }
-  lookup_tu64_to_fp16[1](src, dst);
+  lookup_tu64_to_fp16[1](src, dst, status);
 #else
-  lookup_tu64_to_fp16[1](src, dst);
+  lookup_tu64_to_fp16[1](src, dst, status);
 #endif
 }
 
@@ -2946,18 +3503,21 @@ static inline void tu64_to_fp16(const Tensor *restrict src,
  * @brief Casts uint64 tensor to bfloat16.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (bf16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
 static inline void tu64_to_bf16(const Tensor *restrict src,
-                                Tensor *restrict dst) {
+                                Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_bf16_) &&
       (SIMD->avx512_vl_)) {
-    lookup_tu64_to_bf16[0](src, dst);
+    lookup_tu64_to_bf16[0](src, dst, status);
     return;
   }
-  lookup_tu64_to_bf16[1](src, dst);
+  lookup_tu64_to_bf16[1](src, dst, status);
 #else
-  lookup_tu64_to_bf16[1](src, dst);
+  lookup_tu64_to_bf16[1](src, dst, status);
 #endif
 }
 
@@ -2965,17 +3525,20 @@ static inline void tu64_to_bf16(const Tensor *restrict src,
  * @brief Casts uint64 tensor to float.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu64_to_f32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu64_to_f32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_tu64_to_f32[0](src, dst);
+    lookup_tu64_to_f32[0](src, dst, status);
     return;
   }
-  lookup_tu64_to_f32[1](src, dst);
+  lookup_tu64_to_f32[1](src, dst, status);
 #else
-  lookup_tu64_to_f32[1](src, dst);
+  lookup_tu64_to_f32[1](src, dst, status);
 #endif
 }
 
@@ -2983,17 +3546,20 @@ static inline void tu64_to_f32(const Tensor *restrict src,
  * @brief Casts uint64 tensor to double.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (f64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu64_to_f64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu64_to_f64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_tu64_to_f64[0](src, dst);
+    lookup_tu64_to_f64[0](src, dst, status);
     return;
   }
-  lookup_tu64_to_f64[1](src, dst);
+  lookup_tu64_to_f64[1](src, dst, status);
 #else
-  lookup_tu64_to_f64[1](src, dst);
+  lookup_tu64_to_f64[1](src, dst, status);
 #endif
 }
 
@@ -3003,24 +3569,28 @@ static inline void tu64_to_f64(const Tensor *restrict src,
  * @brief Casts uint8 tensor to int8.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_s8(const Tensor *restrict src, Tensor *restrict dst) {
+static inline void tu8_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_tu8_to_s8[0](src, dst);
+    lookup_tu8_to_s8[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tu8_to_s8[1](src, dst);
+    lookup_tu8_to_s8[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tu8_to_s8[2](src, dst);
+    lookup_tu8_to_s8[2](src, dst, status);
     return;
   }
-  lookup_tu8_to_s8[3](src, dst);
+  lookup_tu8_to_s8[3](src, dst, status);
 #else
-  lookup_tu8_to_s8[3](src, dst);
+  lookup_tu8_to_s8[3](src, dst, status);
 #endif
 }
 
@@ -3028,35 +3598,41 @@ static inline void tu8_to_s8(const Tensor *restrict src, Tensor *restrict dst) {
  * @brief Casts uint8 tensor to int16.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_s16(const Tensor *restrict src,
-                              Tensor *restrict dst) {
-  lookup_tu8_to_s16[0](src, dst);
+static inline void tu8_to_s16(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
+  lookup_tu8_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint8 tensor to int32.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_s32(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tu8_to_s32(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu8_to_s32[0](src, dst);
+    lookup_tu8_to_s32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tu8_to_s32[1](src, dst);
+    lookup_tu8_to_s32[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tu8_to_s32[2](src, dst);
+    lookup_tu8_to_s32[2](src, dst, status);
     return;
   }
-  lookup_tu8_to_s32[3](src, dst);
+  lookup_tu8_to_s32[3](src, dst, status);
 #else
-  lookup_tu8_to_s32[3](src, dst);
+  lookup_tu8_to_s32[3](src, dst, status);
 #endif
 }
 
@@ -3064,25 +3640,28 @@ static inline void tu8_to_s32(const Tensor *restrict src,
  * @brief Casts uint8 tensor to int64.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_s64(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tu8_to_s64(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu8_to_s64[0](src, dst);
+    lookup_tu8_to_s64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tu8_to_s64[1](src, dst);
+    lookup_tu8_to_s64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tu8_to_s64[2](src, dst);
+    lookup_tu8_to_s64[2](src, dst, status);
     return;
   }
-  lookup_tu8_to_s64[3](src, dst);
+  lookup_tu8_to_s64[3](src, dst, status);
 #else
-  lookup_tu8_to_s64[3](src, dst);
+  lookup_tu8_to_s64[3](src, dst, status);
 #endif
 }
 
@@ -3090,57 +3669,72 @@ static inline void tu8_to_s64(const Tensor *restrict src,
  * @brief Casts uint16 tensor to int8.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu16_to_s8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
-  lookup_tu16_to_s8[0](src, dst);
+static inline void tu16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
+  lookup_tu16_to_s8[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to int16.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu16_to_s16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu16_to_s16[0](src, dst);
+static inline void tu16_to_s16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu16_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to int32.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu16_to_s32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu16_to_s32[0](src, dst);
+static inline void tu16_to_s32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu16_to_s32[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to int64.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu16_to_s64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu16_to_s64[0](src, dst);
+static inline void tu16_to_s64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu16_to_s64[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint32 tensor to int8.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu32_to_s8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tu32_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_tu32_to_s8[0](src, dst);
+    lookup_tu32_to_s8[0](src, dst, status);
     return;
   }
-  lookup_tu32_to_s8[1](src, dst);
+  lookup_tu32_to_s8[1](src, dst, status);
 #else
-  lookup_tu32_to_s8[1](src, dst);
+  lookup_tu32_to_s8[1](src, dst, status);
 #endif
 }
 
@@ -3148,35 +3742,41 @@ static inline void tu32_to_s8(const Tensor *restrict src,
  * @brief Casts uint32 tensor to int16.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu32_to_s16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu32_to_s16[0](src, dst);
+static inline void tu32_to_s16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu32_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint32 tensor to int32.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu32_to_s32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu32_to_s32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu32_to_s32[0](src, dst);
+    lookup_tu32_to_s32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_tu32_to_s32[1](src, dst);
+    lookup_tu32_to_s32[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tu32_to_s32[2](src, dst);
+    lookup_tu32_to_s32[2](src, dst, status);
     return;
   }
-  lookup_tu32_to_s32[3](src, dst);
+  lookup_tu32_to_s32[3](src, dst, status);
 #else
-  lookup_tu32_to_s32[3](src, dst);
+  lookup_tu32_to_s32[3](src, dst, status);
 #endif
 }
 
@@ -3184,25 +3784,28 @@ static inline void tu32_to_s32(const Tensor *restrict src,
  * @brief Casts uint32 tensor to int64.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu32_to_s64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu32_to_s64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu32_to_s64[0](src, dst);
+    lookup_tu32_to_s64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tu32_to_s64[1](src, dst);
+    lookup_tu32_to_s64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tu32_to_s64[2](src, dst);
+    lookup_tu32_to_s64[2](src, dst, status);
     return;
   }
-  lookup_tu32_to_s64[3](src, dst);
+  lookup_tu32_to_s64[3](src, dst, status);
 #else
-  lookup_tu32_to_s64[3](src, dst);
+  lookup_tu32_to_s64[3](src, dst, status);
 #endif
 }
 
@@ -3210,17 +3813,20 @@ static inline void tu32_to_s64(const Tensor *restrict src,
  * @brief Casts uint64 tensor to int8.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (s8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu64_to_s8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tu64_to_s8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu64_to_s8[0](src, dst);
+    lookup_tu64_to_s8[0](src, dst, status);
     return;
   }
-  lookup_tu64_to_s8[1](src, dst);
+  lookup_tu64_to_s8[1](src, dst, status);
 #else
-  lookup_tu64_to_s8[1](src, dst);
+  lookup_tu64_to_s8[1](src, dst, status);
 #endif
 }
 
@@ -3228,27 +3834,33 @@ static inline void tu64_to_s8(const Tensor *restrict src,
  * @brief Casts uint64 tensor to int16.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (s16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu64_to_s16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu64_to_s16[0](src, dst);
+static inline void tu64_to_s16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu64_to_s16[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint64 tensor to int32.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (s32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu64_to_s32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu64_to_s32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu64_to_s32[0](src, dst);
+    lookup_tu64_to_s32[0](src, dst, status);
     return;
   }
-  lookup_tu64_to_s32[1](src, dst);
+  lookup_tu64_to_s32[1](src, dst, status);
 #else
-  lookup_tu64_to_s32[1](src, dst);
+  lookup_tu64_to_s32[1](src, dst, status);
 #endif
 }
 
@@ -3256,25 +3868,28 @@ static inline void tu64_to_s32(const Tensor *restrict src,
  * @brief Casts uint64 tensor to int64.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (s64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu64_to_s64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu64_to_s64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu64_to_s64[0](src, dst);
+    lookup_tu64_to_s64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_tu64_to_s64[1](src, dst);
+    lookup_tu64_to_s64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tu64_to_s64[2](src, dst);
+    lookup_tu64_to_s64[2](src, dst, status);
     return;
   }
-  lookup_tu64_to_s64[3](src, dst);
+  lookup_tu64_to_s64[3](src, dst, status);
 #else
-  lookup_tu64_to_s64[3](src, dst);
+  lookup_tu64_to_s64[3](src, dst, status);
 #endif
 }
 
@@ -3284,31 +3899,37 @@ static inline void tu64_to_s64(const Tensor *restrict src,
  * @brief Casts uint8 tensor to uint16.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_u16(const Tensor *restrict src,
-                              Tensor *restrict dst) {
-  lookup_tu8_to_u16[0](src, dst);
+static inline void tu8_to_u16(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
+  lookup_tu8_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint8 tensor to uint32.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_u32(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tu8_to_u32(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu8_to_u32[0](src, dst);
+    lookup_tu8_to_u32[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tu8_to_u32[1](src, dst);
+    lookup_tu8_to_u32[1](src, dst, status);
     return;
   }
-  lookup_tu8_to_u32[2](src, dst);
+  lookup_tu8_to_u32[2](src, dst, status);
 #else
-  lookup_tu8_to_u32[2](src, dst);
+  lookup_tu8_to_u32[2](src, dst, status);
 #endif
 }
 
@@ -3316,25 +3937,28 @@ static inline void tu8_to_u32(const Tensor *restrict src,
  * @brief Casts uint8 tensor to uint64.
  * @param[in]  src Source tensor (u8).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu8_to_u64(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tu8_to_u64(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu8_to_u64[0](src, dst);
+    lookup_tu8_to_u64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tu8_to_u64[1](src, dst);
+    lookup_tu8_to_u64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tu8_to_u64[2](src, dst);
+    lookup_tu8_to_u64[2](src, dst, status);
     return;
   }
-  lookup_tu8_to_u64[3](src, dst);
+  lookup_tu8_to_u64[3](src, dst, status);
 #else
-  lookup_tu8_to_u64[3](src, dst);
+  lookup_tu8_to_u64[3](src, dst, status);
 #endif
 }
 
@@ -3342,47 +3966,59 @@ static inline void tu8_to_u64(const Tensor *restrict src,
  * @brief Casts uint16 tensor to uint8.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu16_to_u8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
-  lookup_tu16_to_u8[0](src, dst);
+static inline void tu16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
+  lookup_tu16_to_u8[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to uint32.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu16_to_u32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu16_to_u32[0](src, dst);
+static inline void tu16_to_u32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu16_to_u32[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint16 tensor to uint64.
  * @param[in]  src Source tensor (u16).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu16_to_u64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu16_to_u64[0](src, dst);
+static inline void tu16_to_u64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu16_to_u64[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint32 tensor to uint8.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu32_to_u8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tu32_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu32_to_u8[0](src, dst);
+    lookup_tu32_to_u8[0](src, dst, status);
     return;
   }
-  lookup_tu32_to_u8[1](src, dst);
+  lookup_tu32_to_u8[1](src, dst, status);
 #else
-  lookup_tu32_to_u8[1](src, dst);
+  lookup_tu32_to_u8[1](src, dst, status);
 #endif
 }
 
@@ -3390,35 +4026,41 @@ static inline void tu32_to_u8(const Tensor *restrict src,
  * @brief Casts uint32 tensor to uint16.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu32_to_u16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu32_to_u16[0](src, dst);
+static inline void tu32_to_u16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu32_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint32 tensor to uint64.
  * @param[in]  src Source tensor (u32).
  * @param[out] dst Destination tensor (u64).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu32_to_u64(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu32_to_u64(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu32_to_u64[0](src, dst);
+    lookup_tu32_to_u64[0](src, dst, status);
     return;
   }
   if ((SIMD->avx2_)) {
-    lookup_tu32_to_u64[1](src, dst);
+    lookup_tu32_to_u64[1](src, dst, status);
     return;
   }
   if ((SIMD->sse4_2_)) {
-    lookup_tu32_to_u64[2](src, dst);
+    lookup_tu32_to_u64[2](src, dst, status);
     return;
   }
-  lookup_tu32_to_u64[3](src, dst);
+  lookup_tu32_to_u64[3](src, dst, status);
 #else
-  lookup_tu32_to_u64[3](src, dst);
+  lookup_tu32_to_u64[3](src, dst, status);
 #endif
 }
 
@@ -3426,17 +4068,20 @@ static inline void tu32_to_u64(const Tensor *restrict src,
  * @brief Casts uint64 tensor to uint8.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (u8).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu64_to_u8(const Tensor *restrict src,
-                              Tensor *restrict dst) {
+static inline void tu64_to_u8(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_tu64_to_u8[0](src, dst);
+    lookup_tu64_to_u8[0](src, dst, status);
     return;
   }
-  lookup_tu64_to_u8[1](src, dst);
+  lookup_tu64_to_u8[1](src, dst, status);
 #else
-  lookup_tu64_to_u8[1](src, dst);
+  lookup_tu64_to_u8[1](src, dst, status);
 #endif
 }
 
@@ -3444,26 +4089,32 @@ static inline void tu64_to_u8(const Tensor *restrict src,
  * @brief Casts uint64 tensor to uint16.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (u16).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu64_to_u16(const Tensor *restrict src,
-                               Tensor *restrict dst) {
-  lookup_tu64_to_u16[0](src, dst);
+static inline void tu64_to_u16(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
+  lookup_tu64_to_u16[0](src, dst, status);
 }
 
 /**
  * @brief Casts uint64 tensor to uint32.
  * @param[in]  src Source tensor (u64).
  * @param[out] dst Destination tensor (u32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
  */
-static inline void tu64_to_u32(const Tensor *restrict src,
-                               Tensor *restrict dst) {
+static inline void tu64_to_u32(const Tensor *restrict src, Tensor *restrict dst,
+                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
   if ((SIMD->avx512f_)) {
-    lookup_tu64_to_u32[0](src, dst);
+    lookup_tu64_to_u32[0](src, dst, status);
     return;
   }
-  lookup_tu64_to_u32[1](src, dst);
+  lookup_tu64_to_u32[1](src, dst, status);
 #else
-  lookup_tu64_to_u32[1](src, dst);
+  lookup_tu64_to_u32[1](src, dst, status);
 #endif
 }

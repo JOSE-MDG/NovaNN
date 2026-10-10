@@ -90,7 +90,7 @@ static inline novaStatus_t render_owned(const Tensor *ten,
   memcpy(&rten, ten, sizeof(Tensor));
 
   if (ten->device == DEVICE_GPU) {
-    if (!on_device(ten)) {
+    if (!in_device(ten)) {
       return repr_status(novaInvalidDevice);
     }
     swapped = true;
@@ -99,8 +99,8 @@ static inline novaStatus_t render_owned(const Tensor *ten,
     rten.is_allocated_ = false;
 
     // Create a storage for rten (in-place)
-    novaStatus_t st = safe_allocator(ten->storage->size_bytes, DEVICE_CPU,
-                                     false, nullptr, &rten, true);
+    auto st = safe_allocator(ten->storage->handle.requested_bytes, DEVICE_CPU,
+                             false, nullptr, &rten, true);
     if (st.err != novaSuccess) {
       return st;
     }

@@ -92,48 +92,39 @@ namespace dd = ncore::dtypes::detail;
 
 template <DType_ S, typename ST> struct ToF32;
 template <> struct ToF32<DType_::Float32, float> {
-  static __device__ inline float convert(float v) { return v; }
+  static __device__ float convert(float v) { return v; }
 };
 template <> struct ToF32<DType_::Float64, double> {
-  static __device__ inline float convert(double v) {
-    return static_cast<float>(v);
-  }
+  static __device__ float convert(double v) { return static_cast<float>(v); }
 };
 template <> struct ToF32<DType_::Float16, F16T> {
-  static __device__ inline float convert(F16T v) {
+  static __device__ float convert(F16T v) {
     return f16BitsToF32(__half_as_ushort(v));
   }
 };
 template <> struct ToF32<DType_::BFloat16, BF16T> {
-  static __device__ inline float convert(BF16T v) {
-    uint16_t bits = 0U;
-    __builtin_memcpy(&bits, &v, sizeof(bits));
+  static __device__ float convert(BF16T v) {
+    const uint16_t bits = __bfloat16_as_ushort(v);
     const uint32_t exp = (static_cast<uint32_t>(bits) >> 7U) & 0xFFU;
     const uint32_t mant = static_cast<uint32_t>(bits) & 0x7FU;
     if (exp == 0xFFU && mant != 0U) {
-      // Replicate x86 widening: the intrinsic preserves signaling NaN
-      // patterns, while the CPU reference quietizes them.
+      // Quietize signaling NaN inputs: x86 quietizes sNaN on conversion
+      // while the intrinsic preserves the signaling pattern. For quiet
+      // NaN inputs the OR below is a no-op.
       const uint16_t quiet = static_cast<uint16_t>(bits | UINT16_C(0x40));
-      BF16T q = v;
-      __builtin_memcpy(&q, &quiet, sizeof(q));
+      const BF16T q = __ushort_as_bfloat16(quiet);
       return __bfloat162float(q);
-    }
-    if (exp == 0U && mant != 0U) {
-      // Replicate libgcc soft-float widening (__extendbfsf2): subnormal
-      // inputs flush to sign-preserving zero, while the intrinsic
-      // preserves them.
-      return (bits & UINT16_C(0x8000)) != 0U ? -0.0F : 0.0F;
     }
     return __bfloat162float(v);
   }
 };
 template <> struct ToF32<DType_::Float8E4M3fn, uint8_t> {
-  static __device__ inline float convert(uint8_t v) {
+  static __device__ float convert(uint8_t v) {
     return dd::fp8e4m3fn_to_fp32_value(v);
   }
 };
 template <> struct ToF32<DType_::Float8E5M2, uint8_t> {
-  static __device__ inline float convert(uint8_t v) {
+  static __device__ float convert(uint8_t v) {
     // Widen into the half domain and reuse the F16C-equivalent path:
     // E5M2 shares the FP16 exponent layout exactly.
     const uint16_t wide = static_cast<uint16_t>(static_cast<uint16_t>(v) << 8U);
@@ -141,114 +132,86 @@ template <> struct ToF32<DType_::Float8E5M2, uint8_t> {
   }
 };
 template <> struct ToF32<DType_::Signed8, int8_t> {
-  static __device__ inline float convert(int8_t v) {
-    return static_cast<float>(v);
-  }
+  static __device__ float convert(int8_t v) { return static_cast<float>(v); }
 };
 template <> struct ToF32<DType_::UnSigned8, uint8_t> {
-  static __device__ inline float convert(uint8_t v) {
-    return static_cast<float>(v);
-  }
+  static __device__ float convert(uint8_t v) { return static_cast<float>(v); }
 };
 template <> struct ToF32<DType_::Signed16, int16_t> {
-  static __device__ inline float convert(int16_t v) {
-    return static_cast<float>(v);
-  }
+  static __device__ float convert(int16_t v) { return static_cast<float>(v); }
 };
 template <> struct ToF32<DType_::UnSigned16, uint16_t> {
-  static __device__ inline float convert(uint16_t v) {
-    return static_cast<float>(v);
-  }
+  static __device__ float convert(uint16_t v) { return static_cast<float>(v); }
 };
 template <> struct ToF32<DType_::Signed32, int32_t> {
-  static __device__ inline float convert(int32_t v) {
-    return static_cast<float>(v);
-  }
+  static __device__ float convert(int32_t v) { return static_cast<float>(v); }
 };
 template <> struct ToF32<DType_::UnSigned32, uint32_t> {
-  static __device__ inline float convert(uint32_t v) {
-    return static_cast<float>(v);
-  }
+  static __device__ float convert(uint32_t v) { return static_cast<float>(v); }
 };
 template <> struct ToF32<DType_::Signed64, int64_t> {
-  static __device__ inline float convert(int64_t v) {
-    return static_cast<float>(v);
-  }
+  static __device__ float convert(int64_t v) { return static_cast<float>(v); }
 };
 template <> struct ToF32<DType_::UnSigned64, uint64_t> {
-  static __device__ inline float convert(uint64_t v) {
-    return static_cast<float>(v);
-  }
+  static __device__ float convert(uint64_t v) { return static_cast<float>(v); }
 };
 
 /* Source element to float64 (ints convert directly, floats widen). */
 
 template <DType_ S, typename ST> struct ToF64;
 template <> struct ToF64<DType_::Float32, float> {
-  static __device__ inline double convert(float v) {
-    return static_cast<double>(v);
-  }
+  static __device__ double convert(float v) { return static_cast<double>(v); }
 };
 template <> struct ToF64<DType_::Float64, double> {
-  static __device__ inline double convert(double v) { return v; }
+  static __device__ double convert(double v) { return v; }
 };
 template <> struct ToF64<DType_::Float16, F16T> {
-  static __device__ inline double convert(F16T v) {
+  static __device__ double convert(F16T v) {
     return static_cast<double>(ToF32<DType_::Float16, F16T>::convert(v));
   }
 };
 template <> struct ToF64<DType_::BFloat16, BF16T> {
-  static __device__ inline double convert(BF16T v) {
+  static __device__ double convert(BF16T v) {
     return static_cast<double>(ToF32<DType_::BFloat16, BF16T>::convert(v));
   }
 };
 template <> struct ToF64<DType_::Float8E4M3fn, uint8_t> {
-  static __device__ inline double convert(uint8_t v) {
+  static __device__ double convert(uint8_t v) {
     return static_cast<double>(dd::fp8e4m3fn_to_fp32_value(v));
   }
 };
 template <> struct ToF64<DType_::Float8E5M2, uint8_t> {
-  static __device__ inline double convert(uint8_t v) {
+  static __device__ double convert(uint8_t v) {
     return static_cast<double>(ToF32<DType_::Float8E5M2, uint8_t>::convert(v));
   }
 };
 template <> struct ToF64<DType_::Signed8, int8_t> {
-  static __device__ inline double convert(int8_t v) {
-    return static_cast<double>(v);
-  }
+  static __device__ double convert(int8_t v) { return static_cast<double>(v); }
 };
 template <> struct ToF64<DType_::UnSigned8, uint8_t> {
-  static __device__ inline double convert(uint8_t v) {
-    return static_cast<double>(v);
-  }
+  static __device__ double convert(uint8_t v) { return static_cast<double>(v); }
 };
 template <> struct ToF64<DType_::Signed16, int16_t> {
-  static __device__ inline double convert(int16_t v) {
-    return static_cast<double>(v);
-  }
+  static __device__ double convert(int16_t v) { return static_cast<double>(v); }
 };
 template <> struct ToF64<DType_::UnSigned16, uint16_t> {
-  static __device__ inline double convert(uint16_t v) {
+  static __device__ double convert(uint16_t v) {
     return static_cast<double>(v);
   }
 };
 template <> struct ToF64<DType_::Signed32, int32_t> {
-  static __device__ inline double convert(int32_t v) {
-    return static_cast<double>(v);
-  }
+  static __device__ double convert(int32_t v) { return static_cast<double>(v); }
 };
 template <> struct ToF64<DType_::UnSigned32, uint32_t> {
-  static __device__ inline double convert(uint32_t v) {
+  static __device__ double convert(uint32_t v) {
     return static_cast<double>(v);
   }
 };
 template <> struct ToF64<DType_::Signed64, int64_t> {
-  static __device__ inline double convert(int64_t v) {
-    return static_cast<double>(v);
-  }
+  static __device__ double convert(int64_t v) { return static_cast<double>(v); }
 };
 template <> struct ToF64<DType_::UnSigned64, uint64_t> {
-  static __device__ inline double convert(uint64_t v) {
+  static __device__ double convert(uint64_t v) {
     return static_cast<double>(v);
   }
 };
@@ -257,15 +220,13 @@ template <> struct ToF64<DType_::UnSigned64, uint64_t> {
 
 template <DType_ D, typename DT> struct FromF32;
 template <> struct FromF32<DType_::Float32, float> {
-  static __device__ inline float convert(float v) { return v; }
+  static __device__ float convert(float v) { return v; }
 };
 template <> struct FromF32<DType_::Float64, double> {
-  static __device__ inline double convert(float v) {
-    return static_cast<double>(v);
-  }
+  static __device__ double convert(float v) { return static_cast<double>(v); }
 };
 template <> struct FromF32<DType_::Float16, F16T> {
-  static __device__ inline F16T convert(float v) {
+  static __device__ F16T convert(float v) {
     const uint32_t w = dd::fp32_to_bits(v);
     if (((w >> 23U) & 0xFFU) == 0xFFU && (w & 0x7FFFFFU) != 0U) {
       // Replicate x86 narrowing: __float2half drops the sign of NaN
@@ -283,12 +244,9 @@ template <> struct FromF32<DType_::Float16, F16T> {
   }
 };
 template <> struct FromF32<DType_::BFloat16, BF16T> {
-  static __device__ inline BF16T convert(float v) {
+  static __device__ BF16T convert(float v) {
     if (isnan(v)) {
-      BF16T out;
-      uint16_t bits = UINT16_C(0x7FC0);
-      __builtin_memcpy(&out, &bits, sizeof(out));
-      return out;
+      return __ushort_as_bfloat16(UINT16_C(0x7FC0));
     }
     if (fabsf(v) < 0x1p-126F) {
       // Replicate libgcc soft-float narrowing (__truncsfbf2): magnitudes
@@ -300,17 +258,17 @@ template <> struct FromF32<DType_::BFloat16, BF16T> {
   }
 };
 template <> struct FromF32<DType_::Float8E4M3fn, uint8_t> {
-  static __device__ inline uint8_t convert(float v) {
+  static __device__ uint8_t convert(float v) {
     return dd::fp8e4m3fn_from_fp32_value(v);
   }
 };
 template <> struct FromF32<DType_::Float8E5M2, uint8_t> {
-  static __device__ inline uint8_t convert(float v) {
+  static __device__ uint8_t convert(float v) {
     return dd::fp8e5m2_from_fp32_value(v);
   }
 };
 template <> struct FromF32<DType_::Signed8, int8_t> {
-  static __device__ inline int8_t convert(float v) {
+  static __device__ int8_t convert(float v) {
     if (isnan(v)) {
       return static_cast<int8_t>(0);
     }
@@ -319,7 +277,7 @@ template <> struct FromF32<DType_::Signed8, int8_t> {
   }
 };
 template <> struct FromF32<DType_::UnSigned8, uint8_t> {
-  static __device__ inline uint8_t convert(float v) {
+  static __device__ uint8_t convert(float v) {
     if (isnan(v)) {
       return static_cast<uint8_t>(0);
     }
@@ -328,7 +286,7 @@ template <> struct FromF32<DType_::UnSigned8, uint8_t> {
   }
 };
 template <> struct FromF32<DType_::Signed16, int16_t> {
-  static __device__ inline int16_t convert(float v) {
+  static __device__ int16_t convert(float v) {
     if (isnan(v)) {
       return static_cast<int16_t>(0);
     }
@@ -337,7 +295,7 @@ template <> struct FromF32<DType_::Signed16, int16_t> {
   }
 };
 template <> struct FromF32<DType_::UnSigned16, uint16_t> {
-  static __device__ inline uint16_t convert(float v) {
+  static __device__ uint16_t convert(float v) {
     if (isnan(v)) {
       return static_cast<uint16_t>(0);
     }
@@ -346,7 +304,7 @@ template <> struct FromF32<DType_::UnSigned16, uint16_t> {
   }
 };
 template <> struct FromF32<DType_::Signed32, int32_t> {
-  static __device__ inline int32_t convert(float v) {
+  static __device__ int32_t convert(float v) {
     if (isnan(v)) {
       return static_cast<int32_t>(0);
     }
@@ -357,7 +315,7 @@ template <> struct FromF32<DType_::Signed32, int32_t> {
   }
 };
 template <> struct FromF32<DType_::UnSigned32, uint32_t> {
-  static __device__ inline uint32_t convert(float v) {
+  static __device__ uint32_t convert(float v) {
     if (isnan(v)) {
       return static_cast<uint32_t>(0);
     }
@@ -366,7 +324,7 @@ template <> struct FromF32<DType_::UnSigned32, uint32_t> {
   }
 };
 template <> struct FromF32<DType_::Signed64, int64_t> {
-  static __device__ inline int64_t convert(float v) {
+  static __device__ int64_t convert(float v) {
     if (isnan(v)) {
       return static_cast<int64_t>(0);
     }
@@ -378,7 +336,7 @@ template <> struct FromF32<DType_::Signed64, int64_t> {
   }
 };
 template <> struct FromF32<DType_::UnSigned64, uint64_t> {
-  static __device__ inline uint64_t convert(float v) {
+  static __device__ uint64_t convert(float v) {
     if (isnan(v)) {
       return static_cast<uint64_t>(0);
     }
@@ -393,35 +351,33 @@ template <> struct FromF32<DType_::UnSigned64, uint64_t> {
 
 template <DType_ D, typename DT> struct FromF64;
 template <> struct FromF64<DType_::Float32, float> {
-  static __device__ inline float convert(double v) {
-    return static_cast<float>(v);
-  }
+  static __device__ float convert(double v) { return static_cast<float>(v); }
 };
 template <> struct FromF64<DType_::Float64, double> {
-  static __device__ inline double convert(double v) { return v; }
+  static __device__ double convert(double v) { return v; }
 };
 template <> struct FromF64<DType_::Float16, F16T> {
-  static __device__ inline F16T convert(double v) {
+  static __device__ F16T convert(double v) {
     return FromF32<DType_::Float16, F16T>::convert(static_cast<float>(v));
   }
 };
 template <> struct FromF64<DType_::BFloat16, BF16T> {
-  static __device__ inline BF16T convert(double v) {
+  static __device__ BF16T convert(double v) {
     return FromF32<DType_::BFloat16, BF16T>::convert(static_cast<float>(v));
   }
 };
 template <> struct FromF64<DType_::Float8E4M3fn, uint8_t> {
-  static __device__ inline uint8_t convert(double v) {
+  static __device__ uint8_t convert(double v) {
     return dd::fp8e4m3fn_from_fp32_value(static_cast<float>(v));
   }
 };
 template <> struct FromF64<DType_::Float8E5M2, uint8_t> {
-  static __device__ inline uint8_t convert(double v) {
+  static __device__ uint8_t convert(double v) {
     return dd::fp8e5m2_from_fp32_value(static_cast<float>(v));
   }
 };
 template <> struct FromF64<DType_::Signed8, int8_t> {
-  static __device__ inline int8_t convert(double v) {
+  static __device__ int8_t convert(double v) {
     if (isnan(v)) {
       return static_cast<int8_t>(0);
     }
@@ -430,7 +386,7 @@ template <> struct FromF64<DType_::Signed8, int8_t> {
   }
 };
 template <> struct FromF64<DType_::UnSigned8, uint8_t> {
-  static __device__ inline uint8_t convert(double v) {
+  static __device__ uint8_t convert(double v) {
     if (isnan(v)) {
       return static_cast<uint8_t>(0);
     }
@@ -439,7 +395,7 @@ template <> struct FromF64<DType_::UnSigned8, uint8_t> {
   }
 };
 template <> struct FromF64<DType_::Signed16, int16_t> {
-  static __device__ inline int16_t convert(double v) {
+  static __device__ int16_t convert(double v) {
     if (isnan(v)) {
       return static_cast<int16_t>(0);
     }
@@ -448,7 +404,7 @@ template <> struct FromF64<DType_::Signed16, int16_t> {
   }
 };
 template <> struct FromF64<DType_::UnSigned16, uint16_t> {
-  static __device__ inline uint16_t convert(double v) {
+  static __device__ uint16_t convert(double v) {
     if (isnan(v)) {
       return static_cast<uint16_t>(0);
     }
@@ -457,7 +413,7 @@ template <> struct FromF64<DType_::UnSigned16, uint16_t> {
   }
 };
 template <> struct FromF64<DType_::Signed32, int32_t> {
-  static __device__ inline int32_t convert(double v) {
+  static __device__ int32_t convert(double v) {
     if (isnan(v)) {
       return static_cast<int32_t>(0);
     }
@@ -467,7 +423,7 @@ template <> struct FromF64<DType_::Signed32, int32_t> {
   }
 };
 template <> struct FromF64<DType_::UnSigned32, uint32_t> {
-  static __device__ inline uint32_t convert(double v) {
+  static __device__ uint32_t convert(double v) {
     if (isnan(v)) {
       return static_cast<uint32_t>(0);
     }
@@ -476,7 +432,7 @@ template <> struct FromF64<DType_::UnSigned32, uint32_t> {
   }
 };
 template <> struct FromF64<DType_::Signed64, int64_t> {
-  static __device__ inline int64_t convert(double v) {
+  static __device__ int64_t convert(double v) {
     if (isnan(v)) {
       return static_cast<int64_t>(0);
     }
@@ -488,7 +444,7 @@ template <> struct FromF64<DType_::Signed64, int64_t> {
   }
 };
 template <> struct FromF64<DType_::UnSigned64, uint64_t> {
-  static __device__ inline uint64_t convert(double v) {
+  static __device__ uint64_t convert(double v) {
     if (isnan(v)) {
       return static_cast<uint64_t>(0);
     }

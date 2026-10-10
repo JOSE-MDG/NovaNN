@@ -27,7 +27,7 @@
  * inline the @c memcpy call while keeping the codebase minimal.
  * Similarly, @c copy_device_buffer handles all dtypes in one routine,
  * directly returning the @ref transfer_to() result.  The dispatch
- * tables are @c const static and zero-initialised; only the entries
+ * tables are @c const static and zero-initialised. Only the entries
  * that correspond to supported dtypes are filled in.
  *
  * @see copy.h       Public API for deep-copy.
@@ -53,25 +53,28 @@
  *        @c memcpy.
  *
  * @details
- * Copies exactly @c src->storage->size_bytes bytes from the source
- * data buffer to the destination buffer using @c memcpy.  The copy is
- * dtype-agnostic — it operates on the raw @c void* pointers
+ * Copies exactly @c src->storage->handle.requested_bytes bytes from the
+ * source data buffer to the destination buffer using @c memcpy.  The copy
+ * is dtype-agnostic. It operates on the raw @c void* pointers
  * (@c src->data.v, @c dst->data.v) so a single routine serves every
- * dtype.  The @c status parameter is accepted for interface uniformity
- * with @ref CopyFn but is not modified (the operation is infallible).
+ * dtype.  Only the theoretical payload moves. The rounded reservation
+ * padding is never copied.  The @c status parameter is accepted for
+ * interface uniformity with @ref CopyFn but is not modified (the
+ * operation is infallible).
  *
  * @param[in]  src     Source tensor with allocated storage.  The
  *                     data buffer is read-only.
  * @param[out] dst     Destination tensor with pre-allocated storage
- *                     of at least @c src->storage->size_bytes.
+ *                     of at least @c src->storage->handle.requested_bytes.
  * @param[out] status  Unused for this function (always left
  *                     unchanged).  Provided for signature
  *                     compatibility with @ref CopyFn.
  *
  * @pre  Both @p src and @p dst have non-null, allocated storage.
- * @pre  @c dst->storage->size_bytes >= @c src->storage->size_bytes.
- * @post The first @c src->storage->size_bytes bytes of @c dst->data
- *       are a bitwise copy of @c src->data.
+ * @pre  @c dst->storage->handle.requested_bytes >=
+ *       @c src->storage->handle.requested_bytes.
+ * @post The first @c src->storage->handle.requested_bytes bytes of
+ *       @c dst->data are a bitwise copy of @c src->data.
  */
 static inline void copy_host_buffer(const Tensor *restrict src,
                                     Tensor *restrict dst,
@@ -79,7 +82,7 @@ static inline void copy_host_buffer(const Tensor *restrict src,
 
   (void)status;
   memcpy(dst->data.data, src->data.data + src->offset,
-         src->storage->size_bytes);
+         src->storage->handle.requested_bytes);
 }
 
 /**
@@ -91,7 +94,7 @@ static inline void copy_host_buffer(const Tensor *restrict src,
  * @ref get_detected_device_kind().  If no compute device has been
  * detected, sets @p status to @ref novaDeviceNotAvailable and
  * returns early.  Otherwise delegates to @ref transfer_to() and
- * assigns the returned @ref novaStatus_t directly — the intermediate
+ * assigns the returned @ref novaStatus_t directly. The intermediate
  * @c map_code2err() translation is no longer required because
  * @ref transfer_to() now returns a @ref novaStatus_t natively.
  *
@@ -99,7 +102,7 @@ static inline void copy_host_buffer(const Tensor *restrict src,
  *                     have allocated storage.
  * @param[out] dst     Destination tensor on a GPU device.  Must have
  *                     pre-allocated storage of at least
- *                     @c src->storage->size_bytes.
+ *                     @c src->storage->handle.requested_bytes.
  * @param[out] status  Receives the result.  On success, set to
  *                     @ref novaSuccess.  If no device is available,
  *                     set to @ref novaDeviceNotAvailable.  On
@@ -110,7 +113,8 @@ static inline void copy_host_buffer(const Tensor *restrict src,
  *       @ref is_device_available().
  * @pre  Both @p src and @p dst must have non-null, allocated storage
  *       on the active device.
- * @pre  @c dst->storage->size_bytes >= @c src->storage->size_bytes.
+ * @pre  @c dst->storage->handle.requested_bytes >=
+ *       @c src->storage->handle.requested_bytes.
  * @post On success, @c dst->data contains a device-side bitwise copy
  *       of @c src->data and @p status is @ref novaSuccess.
  * @post On failure, @p status contains the appropriate error code
@@ -130,7 +134,8 @@ static inline void copy_device_buffer(const Tensor *restrict src,
   }
 
   *status = transfer_to(src->device, dst->device, src->data.data + src->offset,
-                        dst->data.data, src->storage->size_bytes);
+                        dst->data.data,
+                        src->storage->handle.requested_bytes);
 }
 
 /**
@@ -282,8 +287,8 @@ static const CopyFn *lookup_copy[2] = {
  *                     appropriate error code.
  *
  * @pre  @p dst must be an unallocated tensor.
- * @pre  If @p src has a non-nullptr @c storage, its @c size_bytes must
- *       be > 0.
+ * @pre  If @p src has a non-nullptr @c storage, its @c requested_bytes
+ *       must be > 0.
  * @post On success, @p dst is a complete independent copy of
  *       @p src, including gradient history.
  * @post On failure, @p status contains the error code and @p dst is
@@ -343,7 +348,7 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
 
   if (src->storage != nullptr) {
 
-    *status = safe_allocator(src->storage->size_bytes, src->device,
+    *status = safe_allocator(src->storage->handle.requested_bytes, src->device,
                              src->is_pinned_, nullptr, dst, true);
 
     if (status->err != novaSuccess) {

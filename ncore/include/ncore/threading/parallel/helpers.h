@@ -61,7 +61,7 @@ static inline ElementwiseWork make_elementwise_work(const Tensor *ten) {
     return work;
   }
   work.logical_size = ten->logical_size;
-  work.total_bytes = ten->storage->size_bytes;
+  work.total_bytes = ten->storage->handle.requested_bytes;
   work.item_size = ten->item_size;
   work.packing = dtype_packing_factor(ten->dtype);
   work.heavy = ((is_quantizable_dtype(ten->dtype) || work.packing > 1) != 0);
@@ -107,7 +107,7 @@ static inline LayoutWork make_layout_work(const Tensor *ten, bool is_dense) {
     return work;
   }
   work.num_elements = ten->size;
-  work.total_bytes = ten->storage->size_bytes;
+  work.total_bytes = ten->storage->handle.requested_bytes;
   work.item_size = ten->item_size;
   work.packing = dtype_packing_factor(ten->dtype);
   work.heavy = ((is_quantizable_dtype(ten->dtype) || work.packing > 1) != 0);

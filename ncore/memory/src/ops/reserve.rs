@@ -18,15 +18,20 @@ use crate::storage::RustStorage;
 ///
 /// # Arguments
 ///
-/// * `size`       - Number of bytes to allocate. Must be non-zero.
-/// * `device`     - Target memory device: `"cpu"` for host RAM,
-///                  `"device"` for GPU VRAM.
-/// * `pin_memory` - If `true`, allocate page-locked host memory.
-///                  Only valid when `device` is `"cpu"`.
+/// * `rounded`      - Reservation size in bytes, already rounded to its size
+///                    class by the caller. Must be non-zero.
+/// * `requested`    - Theoretical size asked by the caller. Must be non-zero
+///                    and not greater than `rounded`.
+/// * `device`       - Target memory device: `"cpu"` for host RAM,
+///                    `"device"` for GPU VRAM.
+/// * `pin_memory`   - If `true`, allocate page-locked host memory.
+///                    Only valid when `device` is `"cpu"`.
 /// * `align` - Required memory alignment. Must be a power of two. Ignored for device and pinned host allocations.
 ///
 /// # Errors
 ///
+/// Returns [`StorageError::InvalidSize`] when `rounded` or `requested` is
+/// zero or when `requested` exceeds `rounded`.
 /// Returns [`StorageError::InvalidDevice`] when `device` is not `"cpu"` or
 /// `"device"`. Returns [`StorageError::PinnedMemoryOnDevice`] when
 /// `pin_memory` is `true` and `device` is `"device"`. Propagates allocation
@@ -37,24 +42,34 @@ use crate::storage::RustStorage;
 /// A valid [`RustHandle`] on success.
 ///
 /// The handle owns one reference to the newly inserted registry entry. Its
-/// cached size and alignment are taken from the actual storage object.
+/// cached sizes are taken from the actual storage object.
 pub fn reserve_op(
-    size: usize,
+    rounded: usize,
+    requested: usize,
     device: &str,
     pin_memory: bool,
     align: usize,
 ) -> Result<RustHandle, StorageError> {
+    if rounded == 0 || requested == 0 || requested > rounded {
+        return Err(StorageError::InvalidSize);
+    }
     let storage = match device {
-        "cpu" if pin_memory => RustStorage::allocate_device(size, pin_memory)?,
-        "cpu" => RustStorage::allocate(size, align)?,
+        "cpu" if pin_memory => RustStorage::allocate_device(rounded, requested, true)?,
+        "cpu" => RustStorage::allocate(rounded, requested, align)?,
         "device" if pin_memory => return Err(StorageError::PinnedMemoryOnDevice),
-        "device" => RustStorage::allocate_device(size, false)?,
+        "device" => RustStorage::allocate_device(rounded, requested, false)?,
         _ => return Err(StorageError::InvalidDevice),
     };
 
     let id = next_id();
+    let requested_bytes = storage.requested_bytes;
     let size_bytes = storage.size_bytes;
     let effective_align = storage.align();
     StorageManager::insert(id, storage)?;
-    Ok(RustHandle::new(id, size_bytes, effective_align))
+    Ok(RustHandle::new(
+        id,
+        requested_bytes,
+        size_bytes,
+        effective_align,
+    ))
 }

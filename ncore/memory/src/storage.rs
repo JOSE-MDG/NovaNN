@@ -56,7 +56,9 @@ pub struct RustStorage {
     ptr: *mut u8,
     /// Allocation-backend details.
     alloc: Allocation,
-    /// Size of the allocated memory in bytes.
+    /// Theoretical size asked by the caller, in bytes.
+    pub requested_bytes: usize,
+    /// Real reservation in bytes. Greater than or equal to `requested_bytes`.
     pub size_bytes: usize,
     /// Atomically tracked number of live owners represented by handles in the
     /// native core. Use [`AtomicRefCounter::get`] to read the value.
@@ -72,8 +74,10 @@ impl RustStorage {
     ///
     /// # Arguments
     ///
-    /// * `size`  - Number of bytes to allocate. Must be non-zero.
-    /// * `align` - Required memory alignment. Must be a power of two.
+    /// * `size`      - Reservation size in bytes. Must be non-zero.
+    /// * `requested` - Theoretical size asked by the caller. Must be non-zero
+    ///                 and not greater than `size`.
+    /// * `align`     - Required memory alignment. Must be a power of two.
     ///
     /// # Ownership
     ///
@@ -83,15 +87,16 @@ impl RustStorage {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError::InvalidSize`] when `size` is zero,
+    /// Returns [`StorageError::InvalidSize`] when `size` or `requested` is
+    /// zero or when `requested` exceeds `size`,
     /// [`StorageError::InvalidAlignment`] when `align` is zero or not a
     /// power of two,
     /// [`StorageError::InvalidMemoryLayout`] when `align` or `size` cannot be
     /// represented by the platform allocator, or
     /// [`StorageError::AllocationFailed`] when the system allocator returns
     /// a null pointer.
-    pub fn allocate(size: usize, align: usize) -> Result<Self, StorageError> {
-        if size == 0 {
+    pub fn allocate(size: usize, requested: usize, align: usize) -> Result<Self, StorageError> {
+        if size == 0 || requested == 0 || requested > size {
             return Err(StorageError::InvalidSize);
         }
 
@@ -112,6 +117,7 @@ impl RustStorage {
         Ok(Self {
             ptr,
             alloc: Allocation::Cpu { layout },
+            requested_bytes: requested,
             size_bytes: size,
             ref_count: AtomicRefCounter::new(1),
         })
@@ -126,7 +132,10 @@ impl RustStorage {
     ///
     /// # Arguments
     ///
-    /// * `size`       - Number of bytes to allocate. Must be non-zero.
+    /// * `size`       - Reservation size in bytes, already rounded to its
+    ///                  size class by the caller. Must be non-zero.
+    /// * `requested`  - Theoretical size asked by the caller. Must be
+    ///                  non-zero and not greater than `size`.
     /// * `pin_memory` - If `true`, allocate page-locked host memory.
     ///
     /// # Ownership
@@ -137,11 +146,15 @@ impl RustStorage {
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError::InvalidSize`] when `size` is zero, or
-    /// [`StorageError::DeviceError`] with the C++ status message when the
-    /// backend operation fails.
-    pub fn allocate_device(size: usize, pin_memory: bool) -> Result<Self, StorageError> {
-        if size == 0 {
+    /// Returns [`StorageError::InvalidSize`] when `size` or `requested` is
+    /// zero or when `requested` exceeds `size`, or [`StorageError::DeviceError`]
+    /// with the C++ status message when the backend operation fails.
+    pub fn allocate_device(
+        size: usize,
+        requested: usize,
+        pin_memory: bool,
+    ) -> Result<Self, StorageError> {
+        if size == 0 || requested == 0 || requested > size {
             return Err(StorageError::InvalidSize);
         }
 
@@ -176,40 +189,53 @@ impl RustStorage {
         // Get bytes before device_buf move
         let bytes = device_buf.bytes;
 
+        if bytes == 0 || bytes < requested {
+            // The backend reported success with an unusable size: release
+            // the buffer instead of registering a reservation that violates
+            // the requested <= bytes contract.
+            unsafe { deviceRelease(&mut device_buf as *mut DeviceBuffer) };
+            return Err(StorageError::InvalidSize);
+        }
+
         Ok(Self {
             ptr: device_buf.ptr as *mut u8,
             alloc: Allocation::Gpu { device_buf },
+            requested_bytes: requested,
             size_bytes: bytes,
             ref_count: AtomicRefCounter::new(1),
         })
     }
 
-    /// Resizes the allocated memory to the new size, preserving existing data.
+    /// Resizes the allocated memory to the new theoretical size, preserving
+    /// existing data.
     ///
-    /// For CPU storage the underlying [`realloc`] is used; for GPU storage the
-    /// operation is forwarded to [`deviceResize`] which allocates a new
-    /// buffer, copies the minimum of the old and new sizes, and frees the old
-    /// buffer atomically on the device stream.
+    /// For CPU storage the underlying [`realloc`] is used with the exact
+    /// size; for GPU storage the size is first rounded to its size class
+    /// with the same rules as the initial reservation, then forwarded to
+    /// [`deviceResize`] which allocates a new buffer, copies the minimum of
+    /// the old and new sizes, and frees the old buffer atomically on the
+    /// device stream.
     ///
     /// # Errors
     ///
-    /// Returns [`StorageError::InvalidSize`] when `new_size` is zero,
-    /// [`StorageError::InvalidAlignment`] when the new layout is misaligned
-    /// (CPU only), [`StorageError::ResizeFailed`] when the system realloc
-    /// returns null, or [`StorageError::DeviceError`] with the backend error
-    /// message when the GPU realloc fails.
-    pub fn resize(&mut self, new_size: usize) -> Result<(), StorageError> {
-        if new_size == 0 {
+    /// Returns [`StorageError::InvalidSize`] when `requested` is zero, when
+    /// it cannot be rounded, or when `requested` exceeds the current real
+    /// size contract, [`StorageError::InvalidAlignment`] when the new layout
+    /// is misaligned (CPU only), [`StorageError::ResizeFailed`] when the
+    /// system realloc returns null, or [`StorageError::DeviceError`] with the
+    /// backend error message when the GPU realloc fails.
+    pub fn resize(&mut self, requested: usize) -> Result<(), StorageError> {
+        if requested == 0 {
             return Err(StorageError::InvalidSize);
         }
 
         match &mut self.alloc {
             Allocation::Cpu { layout } => {
-                let new_layout = Layout::from_size_align(new_size, layout.align())
+                let new_layout = Layout::from_size_align(requested, layout.align())
                     .map_err(|_| StorageError::InvalidAlignment)?;
 
                 // SAFETY: ptr was allocated with `layout` and is still valid.
-                let new_ptr = unsafe { realloc(self.ptr, *layout, new_size) };
+                let new_ptr = unsafe { realloc(self.ptr, *layout, requested) };
 
                 if new_ptr.is_null() {
                     return Err(StorageError::ResizeFailed);
@@ -217,13 +243,18 @@ impl RustStorage {
 
                 self.ptr = new_ptr;
                 *layout = new_layout;
-                self.size_bytes = new_size;
+                self.requested_bytes = requested;
+                self.size_bytes = requested;
                 Ok(())
             }
             Allocation::Gpu { device_buf } => {
+                let pinned = device_buf.is_pinned;
+                let rounded = crate::rounding::resolve(requested, true, pinned)
+                    .ok_or(StorageError::InvalidSize)?;
                 // SAFETY: device_buf was returned by a previous
                 // deviceReserve call and has not been freed yet.
-                let status = unsafe { deviceResize(device_buf as *mut DeviceBuffer, new_size) };
+                let status: crate::NovaStatus =
+                    unsafe { deviceResize(device_buf as *mut DeviceBuffer, rounded) };
 
                 if status.err != NovaError::Success {
                     let msg = if status.message.is_null() {
@@ -240,7 +271,15 @@ impl RustStorage {
                     });
                 }
 
+                if device_buf.bytes == 0 || device_buf.bytes < requested {
+                    // The backend reported success with an unusable size.
+                    // The previous buffer is already gone; report the
+                    // contract violation without caching it.
+                    return Err(StorageError::InvalidSize);
+                }
+
                 self.ptr = device_buf.ptr as *mut u8;
+                self.requested_bytes = requested;
                 self.size_bytes = device_buf.bytes;
                 Ok(())
             }

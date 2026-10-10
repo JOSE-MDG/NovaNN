@@ -45,7 +45,7 @@
  * }
  *
  * // Transfer a buffer from host to device.
- * novaStatus_t status = transfer_to(DEVICE_CPU, DEVICE_GPU, src, dst, n);
+ * novaStatus_t status = transfer_to(DEVICE_CPU, DEVICE_GPU, src_ptr, dst_ptr, bytes);
  * if (status.err != 0) {
  *     std::cout << "Transfer failed: " << status.message << "\n";
  * }
@@ -241,7 +241,7 @@ bool is_device_available(DeviceKind kind, bool verbose);
  * @see is_hip_available()
  * @see DeviceKind
  */
-bool is_cuda_available(void);
+bool is_cuda_available();
 
 /**
  * @brief Check whether HIP is available.
@@ -262,7 +262,7 @@ bool is_cuda_available(void);
  * @see is_cuda_available()
  * @see DeviceKind
  */
-bool is_hip_available(void);
+bool is_hip_available();
 
 /**
  * @brief Transfer memory between device backends.
@@ -343,7 +343,7 @@ NCORE_HOST_DEVICE novaStatus_t transfer_to(Device_ src, Device_ dst,
  * @see getCudaDeviceId()  CUDA-specific device id accessor.
  * @see getHipDeviceId()   HIP-specific device id accessor.
  */
-int get_device_id(void);
+int get_device_id();
 
 /**
  * @brief Print detailed or concise device information to stdout.
@@ -401,7 +401,7 @@ novaStatus_t print_device_info(DeviceKind kind, bool verbose);
  * @see was_device_detection_done()
  * @see DeviceKind
  */
-DeviceKind get_detected_device_kind(void);
+DeviceKind get_detected_device_kind();
 
 /**
  * @brief Check whether device detection has already been performed.
@@ -418,7 +418,7 @@ DeviceKind get_detected_device_kind(void);
  * @see is_device_available()
  * @see get_detected_device_kind()
  */
-bool was_device_detection_done(void);
+bool was_device_detection_done();
 
 #ifdef __cplusplus
 }

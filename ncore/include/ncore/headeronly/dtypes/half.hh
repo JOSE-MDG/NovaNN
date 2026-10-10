@@ -168,13 +168,17 @@ namespace detail {
  * @return The float value corresponding to the bit pattern.
  */
 NCORE_HOST_DEVICE inline float fp32_from_bits(uint32_t w) {
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+  return __uint_as_float(w);
+#elif defined(_MSC_VER) && defined(__clang__)
   float f;
-#if defined(_MSC_VER) && defined(__clang__)
   __builtin_memcpy(&f, &w, sizeof(f));
-#else
-  std::memcpy(&f, &w, sizeof(f));
-#endif
   return f;
+#else
+  float f;
+  std::memcpy(&f, &w, sizeof(f));
+  return f;
+#endif
 }
 
 /**
@@ -183,13 +187,17 @@ NCORE_HOST_DEVICE inline float fp32_from_bits(uint32_t w) {
  * @return The 32-bit unsigned integer representing the float's bit pattern.
  */
 NCORE_HOST_DEVICE inline uint32_t fp32_to_bits(float f) {
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+  return __float_as_uint(f);
+#elif defined(_MSC_VER) && defined(__clang__)
   uint32_t w;
-#if defined(_MSC_VER) && defined(__clang__)
   __builtin_memcpy(&w, &f, sizeof(w));
-#else
-  std::memcpy(&w, &f, sizeof(w));
-#endif
   return w;
+#else
+  uint32_t w;
+  std::memcpy(&w, &f, sizeof(w));
+  return w;
+#endif
 }
 
 /**
@@ -260,9 +268,7 @@ NCORE_HOST_DEVICE inline float fp16_ieee_to_fp32_value(uint16_t h) {
   constexpr uint32_t expOffset = UINT32_C(0xE0) << 23;
   // exp_scale = 0x1.0p-112f represented as bits
   constexpr uint32_t scaleBits = static_cast<uint32_t>(15) << 23;
-  float expScaleVal = 0;
-  std::memcpy(&expScaleVal, &scaleBits, sizeof(expScaleVal));
-  const float expScale = expScaleVal;
+  const float expScale = fp32_from_bits(scaleBits);
   const float normalizedValue =
       fp32_from_bits((twoW >> 4) + expOffset) * expScale;
 
@@ -322,11 +328,8 @@ inline uint16_t fp16_ieee_from_fp32_value(float f) {
   // scale2zero = 0x1.0p-110f
   constexpr uint32_t scale2infBits = static_cast<uint32_t>(239) << 23;
   constexpr uint32_t scale2zeroBits = static_cast<uint32_t>(17) << 23;
-  float scale2infVal = 0, scale2zeroVal = 0;
-  std::memcpy(&scale2infVal, &scale2infBits, sizeof(scale2infVal));
-  std::memcpy(&scale2zeroVal, &scale2zeroBits, sizeof(scale2zeroVal));
-  const float scale2inf = scale2infVal;
-  const float scale2zero = scale2zeroVal;
+  const float scale2inf = fp32_from_bits(scale2infBits);
+  const float scale2zero = fp32_from_bits(scale2zeroBits);
 
 #if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER == 1916
   float base = ((signbit(f) != 0 ? -f : f) * scale2inf) * scale2zero;

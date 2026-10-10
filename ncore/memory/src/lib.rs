@@ -50,6 +50,7 @@ pub mod handle;
 pub mod id;
 pub mod manager;
 pub mod ops;
+pub(crate) mod rounding;
 pub mod status;
 pub mod storage;
 

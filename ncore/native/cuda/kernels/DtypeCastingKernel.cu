@@ -103,15 +103,13 @@ template <> struct ToF32<DType_::Float16, F16T> {
 };
 template <> struct ToF32<DType_::BFloat16, BF16T> {
   static __device__ float convert(BF16T v) {
-    uint16_t bits = 0U;
-    __builtin_memcpy(&bits, &v, sizeof(bits));
+    uint16_t bits = __bfloat16_as_ushort(v);
     if (((bits >> 7U) & 0xFFU) == 0xFFU && (bits & 0x7FU) != 0U &&
         (bits & 0x40U) == 0U) {
       // Replicate x86 widening: the intrinsic preserves signaling NaN
       // patterns, while the CPU reference quietizes them.
       bits |= 0x40U;
-      BF16T quiet = v;
-      __builtin_memcpy(&quiet, &bits, sizeof(quiet));
+      const BF16T quiet = __ushort_as_bfloat16(bits);
       return __bfloat162float(quiet);
     }
     return __bfloat162float(v);
@@ -245,10 +243,7 @@ template <> struct FromF32<DType_::Float16, F16T> {
 template <> struct FromF32<DType_::BFloat16, BF16T> {
   static __device__ BF16T convert(float v) {
     if (isnan(v)) {
-      BF16T out;
-      uint16_t bits = UINT16_C(0x7FC0);
-      __builtin_memcpy(&out, &bits, sizeof(out));
-      return out;
+      return __ushort_as_bfloat16(UINT16_C(0x7FC0));
     }
     return __float2bfloat16_rn(v);
   }

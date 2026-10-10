@@ -47,12 +47,12 @@ namespace {
 class HandleTracker {
 public:
   bool acquire(uint64_t id) {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::scoped_lock lock(mtx_);
     return live_ids_.insert(id).second;
   }
 
   void release(uint64_t id) {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::scoped_lock lock(mtx_);
     live_ids_.erase(id);
   }
 
@@ -68,7 +68,7 @@ private:
  * @param[in] to    Inclusive upper bound (default: 2048).
  * @return A uniformly distributed size within the requested range.
  */
-size_t getRandomBufferSize(size_t from = 2, size_t to = 2048) {
+constexpr size_t getRandomBufferSize(size_t from = 2, size_t to = 2048) {
   static thread_local std::mt19937 gen(std::random_device{}());
   std::uniform_int_distribution<size_t> distrib(from, to);
   return distrib(gen);
@@ -78,7 +78,7 @@ size_t getRandomBufferSize(size_t from = 2, size_t to = 2048) {
 
 /**
  * @brief Allocates and releases a host buffer.
- * @test reserve(512, "cpu", false, 64) routes to
+ * @test reserve(512, 512, "cpu", false, 64) routes to
  *       RustStorage::allocate() (ncore/memory/src/storage.rs), which
  *       builds a 64-byte-aligned layout and returns a handle with
  *       id != 0. The test fills the buffer, verifies the returned
@@ -92,7 +92,7 @@ TEST(MemoryAllocator, HostAllocationAndDeallocation) {
   const char *device = "cpu";
   const size_t align = 64;
   novaStatus_t st{};
-  auto handle = reserve(bytes, device, false, align, &st);
+  auto handle = reserve(bytes, bytes, device, false, align, &st);
 
   ASSERT_EQ(st.err, novaSuccess) << st.message << "\n";
 
@@ -117,7 +117,7 @@ TEST(MemoryAllocator, HostAllocationAndDeallocation) {
 #if defined(NOVA_HAS_CUDA) or defined(NOVA_HAS_HIP)
 /**
  * @brief Allocates and releases a device buffer.
- * @test reserve(512, "device", false, 0) routes to
+ * @test reserve(512, 512, "device", false, 0) routes to
  *       RustStorage::allocate_device() (storage.rs), which asks the
  *       C++ bridge (deviceReserve) to reserve 512 bytes on the active
  *       CUDA/HIP backend. `align` is ignored on this path. The handle
@@ -131,7 +131,7 @@ TEST(MemoryAllocator, DeviceAllocationAndDeallocation) {
   const size_t align = 512; // is ignored
   novaStatus_t st{};
 
-  auto handle = reserve(bytes, device, false, align, &st);
+  auto handle = reserve(bytes, bytes, device, false, align, &st);
 
   ASSERT_EQ(st.err, novaSuccess) << st.message << "\n";
 
@@ -149,7 +149,7 @@ TEST(MemoryAllocator, DeviceAllocationAndDeallocation) {
 
 /**
  * @brief Allocates and releases pinned (page-locked) host memory.
- * @test reserve(512, "cpu", true, 0) routes to
+ * @test reserve(512, 512, "cpu", true, 0) routes to
  *       RustStorage::allocate_device() with pin_memory = true, which
  *       allocates page-locked host memory through the active GPU
  *       backend. The test writes the buffer and releases it.
@@ -160,7 +160,7 @@ TEST(MemoryAllocator, PinnedHostAllocationAndDeallocation) {
   const char *device = "cpu";
   const size_t align = 4096; // is ignored
   novaStatus_t st{};
-  auto handle = reserve(bytes, device, true, align, &st);
+  auto handle = reserve(bytes, bytes, device, true, align, &st);
 
   ASSERT_EQ(st.err, novaSuccess) << st.message << "\n";
 
@@ -182,7 +182,7 @@ TEST(MemoryAllocator, PinnedHostAllocationAndDeallocation) {
 
 /**
  * @brief Rejects a zero-size reservation.
- * @test reserve(0, "cpu", false, 64) fails in RustStorage::allocate()
+ * @test reserve(0, 0, "cpu", false, 64) fails in RustStorage::allocate()
  *       with StorageError::InvalidSize, mapped to novaInvalidValue
  *       (error.rs). The returned handle has id == 0. The same applies
  *       to the device path, where allocate_device() performs the same
@@ -194,7 +194,7 @@ TEST(MemoryAllocator,
   const size_t bytes = 0;
   novaStatus_t st{};
 
-  auto handle = reserve(bytes, "cpu", false, 64, &st);
+  auto handle = reserve(bytes, bytes, "cpu", false, 64, &st);
 
   EXPECT_EQ(st.err, novaInvalidValue) << st.message << "\n";
   EXPECT_TRUE(!is_valid_handle(&handle));
@@ -204,7 +204,7 @@ TEST(MemoryAllocator,
  * @brief Rejects a zero-size resize.
  * @test resize(handle, 0) fails in RustStorage::resize() with
  *       StorageError::InvalidSize -> novaInvalidValue, leaving the
- *       handle registered and its cached size_bytes unchanged.
+ *       handle registered and its cached requested_bytes unchanged.
  */
 TEST(MemoryAllocator,
      InvalidResizedBytes) { // The same applies to `device = “device”`
@@ -214,7 +214,7 @@ TEST(MemoryAllocator,
 
   novaStatus_t st{};
 
-  auto handle = reserve(bytes, "cpu", false, 64, &st);
+  auto handle = reserve(bytes, bytes, "cpu", false, 64, &st);
 
   EXPECT_EQ(st.err, novaSuccess) << st.message << "\n";
   EXPECT_TRUE(is_valid_handle(&handle));
@@ -222,7 +222,7 @@ TEST(MemoryAllocator,
   st = resize(&handle, newBytes);
   EXPECT_EQ(st.err, novaInvalidValue);
   ASSERT_TRUE(is_valid_handle(&handle));
-  EXPECT_EQ(handle.size_bytes, bytes);
+  EXPECT_EQ(handle.requested_bytes, bytes);
 
   release(&handle, &st);
   EXPECT_EQ(st.err, novaSuccess) << st.message << "\n";
@@ -232,7 +232,7 @@ TEST(MemoryAllocator,
  * @brief Resizes a host buffer.
  * @test resize() reallocs the 512-byte buffer to 1024 bytes on the CPU
  *       path (RustStorage::resize, std::realloc) and updates the
- *       handle's size_bytes cache to the new size on success.
+ *       handle's requested_bytes cache to the new size on success.
  */
 TEST(MemoryAllocator, HostBufferResizing) {
 
@@ -243,16 +243,16 @@ TEST(MemoryAllocator, HostBufferResizing) {
 
   novaStatus_t st{};
 
-  auto handle = reserve(bytes, device, false, align, &st);
+  auto handle = reserve(bytes, bytes, device, false, align, &st);
 
   ASSERT_EQ(st.err, novaSuccess) << st.message << "\n";
   ASSERT_TRUE(is_valid_handle(&handle));
-  EXPECT_TRUE(handle.size_bytes == bytes);
+  EXPECT_TRUE(handle.requested_bytes == bytes);
 
   st = resize(&handle, newBytes);
 
   ASSERT_EQ(st.err, novaSuccess) << st.message << "\n";
-  EXPECT_TRUE(handle.size_bytes == newBytes);
+  EXPECT_TRUE(handle.requested_bytes == newBytes);
 
   release(&handle, &st);
   EXPECT_EQ(st.err, novaSuccess) << st.message << "\n";
@@ -264,7 +264,7 @@ TEST(MemoryAllocator, HostBufferResizing) {
  * @test resize() forwards to the C++ bridge (deviceResize), which
  *       allocates a new device buffer, copies the old contents, and
  *       frees the old one. The handle stays flagged as device memory
- *       and its size_bytes cache is updated.
+ *       and its requested_bytes cache is updated.
  */
 TEST(MemoryAllocator, DeviceBufferResizing) {
 
@@ -275,17 +275,17 @@ TEST(MemoryAllocator, DeviceBufferResizing) {
 
   novaStatus_t st{};
 
-  auto handle = reserve(bytes, device, false, align, &st);
+  auto handle = reserve(bytes, bytes, device, false, align, &st);
 
   ASSERT_EQ(st.err, novaSuccess) << st.message << "\n";
   ASSERT_TRUE(is_valid_handle(&handle));
   EXPECT_TRUE(is_device_memory_handle(&handle));
-  EXPECT_EQ(handle.size_bytes, bytes);
+  EXPECT_EQ(handle.requested_bytes, bytes);
 
   st = resize(&handle, newBytes);
 
   ASSERT_EQ(st.err, novaSuccess) << st.message << "\n";
-  EXPECT_TRUE(handle.size_bytes == newBytes);
+  EXPECT_TRUE(handle.requested_bytes == newBytes);
 
   release(&handle, &st);
   EXPECT_EQ(st.err, novaSuccess) << st.message << "\n";
@@ -294,7 +294,7 @@ TEST(MemoryAllocator, DeviceBufferResizing) {
 
 /**
  * @brief Rejects an oversized host allocation.
- * @test reserve(SIZE_MAX, "cpu", false, 64) fails when
+ * @test reserve(SIZE_MAX, SIZE_MAX, "cpu", false, 64) fails when
  *       Layout::from_size_align(SIZE_MAX, 64) cannot be built (see the
  *       @note below), reporting novaInvalidMemoryLayout.
  */
@@ -306,7 +306,7 @@ TEST(MemoryAllocator, HostAllocationLimit) {
 
   novaStatus_t st{};
 
-  auto handle = reserve(bytes, device, false, align, &st);
+  auto handle = reserve(bytes, bytes, device, false, align, &st);
 
   /**
    * @note Returned by the Rust storage layer: rounding SIZE_MAX up to the
@@ -322,7 +322,7 @@ TEST(MemoryAllocator, HostAllocationLimit) {
 #if defined(NOVA_HAS_CUDA) or defined(NOVA_HAS_HIP)
 /**
  * @brief Rejects an oversized device allocation.
- * @test reserve(SIZE_MAX, "device", false, 0) fails in the C++ GPU
+ * @test reserve(SIZE_MAX, SIZE_MAX, "device", false, 0) fails in the C++ GPU
  *       backend (cudaReserve/hipReserve), which reports
  *       novaOutOfMemory; the Rust layer propagates that code as-is
  *       (see the @note below).
@@ -335,7 +335,7 @@ TEST(MemoryAllocator, DeviceAllocationLimit) {
 
   novaStatus_t st{};
 
-  auto handle = reserve(bytes, device, false, align, &st);
+  auto handle = reserve(bytes, bytes, device, false, align, &st);
 
   /**
    * @note Returned by the C++ device bridge backend: the allocator cannot provide
@@ -363,7 +363,7 @@ TEST(MemoryAllocator, DoubleFree) {
 
   novaStatus_t st{};
 
-  auto handle = reserve(bytes, device, false, align, &st);
+  auto handle = reserve(bytes, bytes, device, false, align, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message << "\n";
   EXPECT_TRUE(is_valid_handle(&handle));
 
@@ -422,7 +422,8 @@ TEST(MemoryAllocator, ConcurrentRandomHostAllocFree) {
       pool.enqueue([&tracker, &failures, device, deadline] -> void {
         while (std::chrono::steady_clock::now() < deadline) {
           novaStatus_t st{};
-          auto handle = reserve(getRandomBufferSize(), device, false, 64, &st);
+          const size_t bytes = getRandomBufferSize();
+          auto handle = reserve(bytes, bytes, device, false, 64, &st);
 
           if (st.err != novaSuccess) {
             ADD_FAILURE() << "reserve() failed: " << st.message;
@@ -496,7 +497,8 @@ TEST(MemoryAllocator, ConcurrentRandomDeviceAllocFree) {
       pool.enqueue([&tracker, &failures, device, deadline] -> void {
         while (std::chrono::steady_clock::now() < deadline) {
           novaStatus_t st{};
-          auto handle = reserve(getRandomBufferSize(), device, false, 512, &st);
+          const size_t bytes = getRandomBufferSize();
+          auto handle = reserve(bytes, bytes, device, false, 512, &st);
 
           if (st.err != novaSuccess) {
             ADD_FAILURE() << "reserve() failed: " << st.message;
@@ -563,7 +565,8 @@ TEST(MemoryAllocator, ConcurrentRandomPinnedHostAllocFree) {
       pool.enqueue([&tracker, &failures, device, deadline] -> void {
         while (std::chrono::steady_clock::now() < deadline) {
           novaStatus_t st{};
-          auto handle = reserve(getRandomBufferSize(), device, true, 4096, &st);
+          const size_t bytes = getRandomBufferSize();
+          auto handle = reserve(bytes, bytes, device, true, 4096, &st);
 
           if (st.err != novaSuccess) {
             ADD_FAILURE() << "reserve() failed: " << st.message;

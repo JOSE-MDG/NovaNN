@@ -321,8 +321,10 @@ TEST_P(SaturationInvariant, TailElementsAlsoSaturate) {
     const tests::casting::PairInfo *info =
         tests::casting::findPairFor(p.src, p.dst);
     ASSERT_NE(info, nullptr);
+    novaStatus_t wrapperSt;
     info->wrapper(&wrapperPair.src.mutableCTensor(),
-                  &wrapperPair.dst.mutableCTensor());
+                  &wrapperPair.dst.mutableCTensor(), &wrapperSt);
+    ASSERT_EQ(wrapperSt.err, novaSuccess);
 
     size_t mismatch = 0;
     EXPECT_TRUE(payloadEqual(scalarPair.dst.getCTensor(),
