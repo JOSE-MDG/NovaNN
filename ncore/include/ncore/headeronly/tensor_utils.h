@@ -562,13 +562,13 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
                                Device_ device, bool pin_memory, size_t ndims,
                                novaStatus_t *status) {
 #if defined(_WIN64)
-  TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
+  TensorGrad grad = STATIC_CAST(TensorGrad, malloc(sizeof(Tensor)));
 #else
   void *raw = nullptr;
   if (posix_memalign(&raw, alignof(Tensor), sizeof(Tensor)) != 0) {
     raw = nullptr;
   }
-  TensorGrad grad = (TensorGrad)raw;
+  TensorGrad grad = STATIC_CAST(TensorGrad, raw);
 #endif
   if (grad == nullptr) {
     status->err = novaInvalidPointer;
@@ -686,13 +686,13 @@ static inline TensorGrad
 create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
                                       bool pin_memory, novaStatus_t *status) {
 #if defined(_WIN64)
-  TensorGrad grad = (TensorGrad)malloc(sizeof(Tensor));
+  TensorGrad grad = STATIC_CAST(TensorGrad, malloc(sizeof(Tensor)));
 #else
   void *raw = nullptr;
   if (posix_memalign(&raw, alignof(Tensor), sizeof(Tensor)) != 0) {
     raw = nullptr;
   }
-  TensorGrad grad = (TensorGrad)raw;
+  TensorGrad grad = STATIC_CAST(TensorGrad, raw);
 #endif
   if (grad == nullptr) {
     status->err = novaInvalidPointer;
@@ -817,7 +817,7 @@ static inline CollapsedView collapse(const Tensor *restrict ten) {
     return cv;
   }
 
-  int ndims_in = (int)ten->ndims;
+  int ndims_in = STATIC_CAST(int, ten->ndims);
   shape_t tmp_shape;
   strides_t tmp_strides;
 
@@ -836,7 +836,7 @@ static inline CollapsedView collapse(const Tensor *restrict ten) {
     }
   }
 
-  cv.ndims = (size_t)out_idx + 1;
+  cv.ndims = STATIC_CAST(size_t, out_idx) + 1;
   for (size_t i = 0; i < cv.ndims; ++i) {
     cv.shape[i] = tmp_shape[cv.ndims - 1 - i];
     cv.strides[i] = tmp_strides[cv.ndims - 1 - i];

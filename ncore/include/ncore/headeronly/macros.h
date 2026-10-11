@@ -54,6 +54,19 @@
 #endif
 
 /**
+ * @def STATIC_CAST(T, ...)
+ * @brief Portable value cast for shared C/C++ headers.
+ *
+ * @param T    Target type (may contain commas, e.g. @c unsigned int).
+ * @param ...  Expression to convert (single argument).
+ */
+#ifdef __cplusplus
+#define STATIC_CAST(T, ...) static_cast<T>(__VA_ARGS__)
+#else
+#define STATIC_CAST(T, ...) ((T)(__VA_ARGS__))
+#endif
+
+/**
  * @def ALIGN(N)
  * @brief Align a type or variable to N bytes.
  *
