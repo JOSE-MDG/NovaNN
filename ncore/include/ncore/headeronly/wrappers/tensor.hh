@@ -570,17 +570,17 @@ private:
 inline TensorCXX::TensorCXX() = default;
 
 /// @brief Allocates the backing buffer and mirrors the C tensor metadata.
-inline TensorCXX::TensorCXX(const std::vector<size_t> &shape, DType_ dtype,
+inline TensorCXX::TensorCXX(const std::vector<size_t> &init_shape, DType_ dtype,
                             Device_ device, bool requires_grad, bool pin_memory,
                             novaStatus_t *st) {
   shape_t local_shape = {0};
-  for (size_t i = 0; i < shape.size(); ++i) {
-    local_shape[i] = shape[i];
+  for (size_t i = 0; i < init_shape.size(); ++i) {
+    local_shape[i] = init_shape[i];
   }
   c_tensor = create_tensor(local_shape, dtype, device, requires_grad,
-                           pin_memory, shape.size(), st);
+                           pin_memory, init_shape.size(), st);
 
-  this->shape = shape;
+  this->shape = init_shape;
   size = c_tensor.size;
   ndims = c_tensor.ndims;
   item_size = c_tensor.item_size;
@@ -591,10 +591,10 @@ inline TensorCXX::TensorCXX(const std::vector<size_t> &shape, DType_ dtype,
 /// @brief Releases the underlying tensor buffer via the C core.
 inline TensorCXX::~TensorCXX() { (void)collect(&c_tensor); }
 
-inline TensorCXX::TensorCXX(std::initializer_list<size_t> shape, DType_ dtype,
-                            Device_ device, bool requires_grad, bool pin_memory,
-                            novaStatus_t *st)
-    : TensorCXX(std::vector<size_t>(shape), dtype, device, requires_grad,
+inline TensorCXX::TensorCXX(std::initializer_list<size_t> init_shape,
+                            DType_ dtype, Device_ device, bool requires_grad,
+                            bool pin_memory, novaStatus_t *st)
+    : TensorCXX(std::vector<size_t>(init_shape), dtype, device, requires_grad,
                 pin_memory, st) {}
 
 /// @brief Deep-copy constructor. Allocates a new buffer and copies data.
@@ -929,17 +929,19 @@ inline TensorCXX TensorCXX::contiguous(novaStatus_t &st) const noexcept {
   return out;
 }
 /// @brief Constructs an unallocated n-dimensional tensor.
-inline TensorCXX::TensorCXX(UnallocatedTag, const std::vector<size_t> &shape,
-                            DType_ dtype, Device_ device, bool requires_grad,
-                            bool pin_memory, novaStatus_t *st) {
+inline TensorCXX::TensorCXX(UnallocatedTag,
+                            const std::vector<size_t> &init_shape, DType_ dtype,
+                            Device_ device, bool requires_grad, bool pin_memory,
+                            novaStatus_t *st) {
   shape_t local_shape = {0};
-  for (size_t i = 0; i < shape.size(); ++i) {
-    local_shape[i] = shape[i];
+  for (size_t i = 0; i < init_shape.size(); ++i) {
+    local_shape[i] = init_shape[i];
   }
-  c_tensor = create_unallocated_tensor(
-      local_shape, dtype, device, requires_grad, pin_memory, shape.size(), st);
+  c_tensor =
+      create_unallocated_tensor(local_shape, dtype, device, requires_grad,
+                                pin_memory, init_shape.size(), st);
 
-  this->shape = shape;
+  this->shape = init_shape;
   size = c_tensor.size;
   ndims = c_tensor.ndims;
   item_size = c_tensor.item_size;
