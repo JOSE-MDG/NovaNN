@@ -225,7 +225,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
 
     char fmt_buf[128];
     ReprContext lane = ctx;
-    lane.sub_element_index = (size_t)(logical % (packing != 0 ? packing : 1U));
+    lane.sub_element_index = (logical % (packing != 0 ? packing : 1U));
     const int w = format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &lane);
     if (w > 0 && (size_t)w > max_w) {
       max_w = (size_t)w;
