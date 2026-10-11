@@ -22,7 +22,7 @@
  *
  * @return A fully initialised @ref ReprOptions structure.
  */
-ReprOptions repr_default_options(void) {
+ReprOptions repr_default_options() {
   ReprOptions opts;
   opts.mode = ReprModeNormal;
   opts.threshold = 1000;
