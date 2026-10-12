@@ -399,7 +399,7 @@ CAST_UINT_TO_SINT(DECL_CAST)
  * @details
  * Resolves to a @c const SIMDCapabilities * at each call site.
  * The pointer is cached per-thread by the underlying
- * @c call_once initialisation, so repeated access is cheap.
+ * @c call_once initialization, so repeated access is cheap.
  *
  * @see get_simd_capabilities()  Returns the singleton capabilities.
  * @see SIMDCapabilities        Struct with SIMD feature flags.
