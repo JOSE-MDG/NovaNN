@@ -54,11 +54,12 @@
  * @ref atomic_detected_device_kind.
  * This avoids repeated runtime API calls during training, where only
  * a single GPU vendor (CUDA or HIP) is ever used.  The cache is
- * protected by a platform-specific mutex and one-shot initialisation
+ * protected by a portable mutex and one-shot initialization
  * guard to ensure thread safety:
- * @li Linux: C11 @c mtx_t + @c call_once from @c <threads.h>.
- * @li Windows (_WIN64): @c CRITICAL_SECTION + @c INIT_ONCE from
- *   @c <windows.h>.
+ * @li @c MTX_T with @c MTX_LOCK/@c MTX_UNLOCK (C11 @c mtx_t on Linux,
+ *   @c CRITICAL_SECTION on Windows).
+ * @li One-shot guard: @c call_once from @c <threads.h> on Linux,
+ *   @c INIT_ONCE from @c <windows.h> on Windows.
  *
  * @see device.h              Public API declarations.
  * @see DetectCudaDevice.cpp  CUDA detection implementation.
@@ -94,12 +95,6 @@
  */
 extern novaStatus_t deviceTransfer(const void *src, void *dst,
                                    TransferKind kind, size_t bytes);
-
-#ifdef __linux__
-#include <threads.h>
-#elifdef _WIN64
-#include <windows.h>
-#endif
 
 #ifdef NOVA_HAS_CUDA
 
@@ -229,43 +224,31 @@ static _Atomic DeviceKind atomic_detected_device_kind = NULL_DEVICE;
 /**
  * @var runtime_flags_once
  * @brief C11 @c call_once guard ensuring @ref runtime_flags_mtx is
- *        initialised exactly once, even under concurrent access.
+ *        initialized exactly once, even under concurrent access.
  */
 static once_flag runtime_flags_once = {};
 #elifdef _WIN64
 /**
  * @var runtime_flags_once
- * @brief Windows one-time initialisation guard ensuring
- *        @ref runtime_flags_mtx is initialised exactly once.
+ * @brief Windows one-time initialization guard ensuring
+ *        @ref runtime_flags_mtx is initialized exactly once.
  */
 static INIT_ONCE runtime_flags_once = INIT_ONCE_STATIC_INIT;
 #endif
 
-#ifdef __linux__
 /**
  * @var runtime_flags_mtx
  * @brief Mutex protecting writes to @ref atomic_device_detection_done and
  *        @ref atomic_detected_device_kind.
  *
  * @details
- * Initialised lazily via @ref init_runtime_flags_lock() through
- * C11 @c call_once.  Only taken for write operations; reads are
- * safe without locking due to the single-writer pattern.
+ * Portable @c MTX_T storage (@c mtx_t on Linux, @c CRITICAL_SECTION on
+ * Windows), initialized lazily via @ref init_runtime_flags_lock() through
+ * the platform one-shot guard. Only taken for write operations; reads are
+ * safe without locking due to the single-writer pattern. Use
+ * @c MTX_LOCK/@c MTX_UNLOCK to access it.
  */
-static mtx_t runtime_flags_mtx;
-#elifdef _WIN64
-/**
- * @var runtime_flags_mtx
- * @brief Critical section protecting writes to
- *        @ref atomic_device_detection_done and @ref atomic_detected_device_kind.
- *
- * @details
- * Initialised lazily via @ref init_runtime_flags_lock() through
- * Windows @c InitOnceExecuteOnce.  Only taken for write operations;
- * reads are safe without locking due to the single-writer pattern.
- */
-static CRITICAL_SECTION runtime_flags_mtx;
-#endif
+static MTX_T runtime_flags_mtx;
 
 #ifdef __linux__
 /**
@@ -278,12 +261,12 @@ static CRITICAL_SECTION runtime_flags_mtx;
  * (@c (void) cast) because the C11 mutex API does not provide a
  * meaningful error path for @c mtx_plain.
  */
-static void init_runtime_flags_lock(void) {
+static void init_runtime_flags_lock() {
   (void)mtx_init(&runtime_flags_mtx, mtx_plain);
 }
 #elifdef _WIN64
 /**
- * @brief Lazy initialiser for @ref runtime_flags_mtx.
+ * @brief Lazy initializer for @ref runtime_flags_mtx.
  *
  * @details
  * Passed to Windows @c InitOnceExecuteOnce so that the critical
@@ -312,16 +295,16 @@ static BOOL CALLBACK init_runtime_flags_lock(PINIT_ONCE once, PVOID param,
  * encodes the correct copy direction for the given @c (src, dst) pair.
  *
  * The table is populated by @ref init_transf_dispatch() at program
- * startup (via @c INITIALIZE(init_transf_dispatch)).  After initialisation
+ * startup (via @c INITIALIZE(init_transf_dispatch)).  After initialization
  * it is read-only and safe to access from any thread.
  *
- * @section initialised-entries Initialised Entries
+ * @section initialized-entries Initialized Entries
  *
  * @li @c DEVICE_CPU — @c DEVICE_GPU — @c deviceMemcpyHostToDevice
  * @li @c DEVICE_GPU — @c DEVICE_CPU — @c deviceMemcpyDeviceToHost
  * @li @c DEVICE_GPU — @c DEVICE_GPU — @c deviceMemcpyDeviceToDevice
  *
- * All other entries remain @c 0 (zero-initialised).  Calling
+ * All other entries remain @c 0 (zero-initialized).  Calling
  * @ref transfer_to() with an uninitialized pair (e.g.,
  * @c DEVICE_CPU → @c DEVICE_CPU) is reported as
  * @ref novaInvalidTransfDirection.
@@ -337,7 +320,7 @@ static TransferKind transf_dispatch[3][3] = {};
  *
  * @details
  * This function is declared with @c INITIALIZE(f), so
- * it is called automatically at library initialisation time.  It fills in
+ * it is called automatically at library initialization time.  It fills in
  * the three meaningful entries of @ref transf_dispatch:
  *
  * @li @c GPU → @c CPU: @c deviceMemcpyDeviceToHost
@@ -425,21 +408,12 @@ bool is_device_available(DeviceKind kind, bool verbose) {
   case CUDA_DEVICE: {
 #ifdef NOVA_HAS_CUDA
     if (isCudaDeviceAvailable(verbose, verbose)) {
-#ifdef __linux__
-      mtx_lock(&runtime_flags_mtx);
+      MTX_LOCK(&runtime_flags_mtx);
       atomic_store_explicit(&atomic_device_detection_done, true,
                             memory_order_release);
       atomic_store_explicit(&atomic_detected_device_kind, CUDA_DEVICE,
                             memory_order_release);
-      mtx_unlock(&runtime_flags_mtx);
-#elifdef _WIN64
-      EnterCriticalSection(&runtime_flags_mtx);
-      atomic_store_explicit(&atomic_device_detection_done, true,
-                            memory_order_release);
-      atomic_store_explicit(&atomic_detected_device_kind, CUDA_DEVICE,
-                            memory_order_release);
-      LeaveCriticalSection(&runtime_flags_mtx);
-#endif
+      MTX_UNLOCK(&runtime_flags_mtx);
       return true;
     }
 #endif
@@ -448,21 +422,12 @@ bool is_device_available(DeviceKind kind, bool verbose) {
   case HIP_DEVICE: {
 #ifdef NOVA_HAS_HIP
     if (isHipDeviceAvailable(false, false)) {
-#ifdef __linux__
-      mtx_lock(&runtime_flags_mtx);
+      MTX_LOCK(&runtime_flags_mtx);
       atomic_store_explicit(&atomic_device_detection_done, true,
                             memory_order_release);
       atomic_store_explicit(&atomic_detected_device_kind, HIP_DEVICE,
                             memory_order_release);
-      mtx_unlock(&runtime_flags_mtx);
-#elifdef _WIN64
-      EnterCriticalSection(&runtime_flags_mtx);
-      atomic_store_explicit(&atomic_device_detection_done, true,
-                            memory_order_release);
-      atomic_store_explicit(&atomic_detected_device_kind, HIP_DEVICE,
-                            memory_order_release);
-      LeaveCriticalSection(&runtime_flags_mtx);
-#endif
+      MTX_UNLOCK(&runtime_flags_mtx);
       return true;
     }
 #endif
@@ -520,21 +485,12 @@ bool is_cuda_available() {
 
 #ifdef NOVA_HAS_CUDA
   if (isCudaDeviceAvailable(false, false)) {
-#ifdef __linux__
-    mtx_lock(&runtime_flags_mtx);
+    MTX_LOCK(&runtime_flags_mtx);
     atomic_store_explicit(&atomic_device_detection_done, true,
                           memory_order_release);
     atomic_store_explicit(&atomic_detected_device_kind, CUDA_DEVICE,
                           memory_order_release);
-    mtx_unlock(&runtime_flags_mtx);
-#elifdef _WIN64
-    EnterCriticalSection(&runtime_flags_mtx);
-    atomic_store_explicit(&atomic_device_detection_done, true,
-                          memory_order_release);
-    atomic_store_explicit(&atomic_detected_device_kind, CUDA_DEVICE,
-                          memory_order_release);
-    LeaveCriticalSection(&runtime_flags_mtx);
-#endif
+    MTX_UNLOCK(&runtime_flags_mtx);
     return true;
   }
 #endif
@@ -587,21 +543,12 @@ bool is_hip_available() {
 
 #ifdef NOVA_HAS_HIP
   if (isHipDeviceAvailable(false, false)) {
-#ifdef __linux__
-    mtx_lock(&runtime_flags_mtx);
+    MTX_LOCK(&runtime_flags_mtx);
     atomic_store_explicit(&atomic_device_detection_done, true,
                           memory_order_release);
     atomic_store_explicit(&atomic_detected_device_kind, HIP_DEVICE,
                           memory_order_release);
-    mtx_unlock(&runtime_flags_mtx);
-#elifdef _WIN64
-    EnterCriticalSection(&runtime_flags_mtx);
-    atomic_store_explicit(&atomic_device_detection_done, true,
-                          memory_order_release);
-    atomic_store_explicit(&atomic_detected_device_kind, HIP_DEVICE,
-                          memory_order_release);
-    LeaveCriticalSection(&runtime_flags_mtx);
-#endif
+    MTX_UNLOCK(&runtime_flags_mtx);
     return true;
   }
 #endif
@@ -619,7 +566,7 @@ bool is_hip_available() {
  * @li 2. Forwards the request to @c deviceTransfer() (declared in
  *    @ref ffi.hpp) with the resolved transfer kind.
  *
- * The dispatch table is initialised at program startup by
+ * The dispatch table is initialized at program startup by
  * @ref init_transf_dispatch(), so it is always ready when this
  * function is called.
  *
@@ -653,7 +600,7 @@ bool is_hip_available() {
  *       host-to-host copies.
  *
  * @note Thread-safe.  The dispatch table is read-only after
- *       initialisation, and @c deviceTransfer() is expected to be
+ *       initialization, and @c deviceTransfer() is expected to be
  *       thread-safe.
  *
  * @see deviceTransfer()  Low-level C-callable copy wrapper.
@@ -804,7 +751,7 @@ DeviceKind get_detected_device_kind() {
  * Returns @c true only when the first detection call found a device
  * (i.e., @ref atomic_device_detection_done is set).  A probe that finds no
  * device leaves the flag unset.  Useful for guarding one-time
- * initialisation that depends on a detected backend.
+ * initialization that depends on a detected backend.
  *
  * @return @c true if a device was found by a detection call,
  *         @c false otherwise.
