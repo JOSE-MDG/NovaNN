@@ -656,7 +656,7 @@ public:
   static constexpr int max_exponent = 128;   ///< Maximum positive power of 2.
   static constexpr int max_exponent10 = 38;  ///< Maximum positive power of 10.
   static constexpr auto traps =
-      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
+      numeric_limits<float>::traps; ///< Inherits float32 trap behavior.
   static constexpr auto tinyness_before =
       numeric_limits<float>::tinyness_before; ///< Inherits float32
                                               ///< tinyness-before semantics.

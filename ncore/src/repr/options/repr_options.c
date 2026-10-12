@@ -16,11 +16,11 @@
  * @brief Return a ReprOptions struct with library-standard defaults.
  *
  * @details
- * Initialises all visual parameters to their default states. Users
+ * Initializes all visual parameters to their default states. Users
  * should call this before overriding specific fields for custom
  * formatting.
  *
- * @return A fully initialised @ref ReprOptions structure.
+ * @return A fully initialized @ref ReprOptions structure.
  */
 ReprOptions repr_default_options() {
   ReprOptions opts;

@@ -109,7 +109,7 @@ static inline double lane_abs_double(const Tensor *ten, const void *ptr,
  * @param[in]  opts Pointer to formatting options. If @c nullptr,
  *                  defaults are used.
  *
- * @return A fully initialised @ref ReprContext structure.
+ * @return A fully initialized @ref ReprContext structure.
  */
 ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   ReprContext ctx = {};

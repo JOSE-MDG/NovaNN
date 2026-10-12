@@ -83,7 +83,7 @@ static once_flag init_flag = {};
 #elif defined(_WIN64)
 /**
  * @var static INIT_ONCE init_flag
- * @brief Windows one-time initialisation guard for thread-safe lazy
+ * @brief Windows one-time initialization guard for thread-safe lazy
  *        initialization.
  *
  * @details
@@ -213,7 +213,7 @@ void get_simd_capabilities_from_cpuid(const SIMDCpuidSnapshot *snapshot,
  * not be queried there.
  *
  * @param[in,out] caps Pointer to the SIMDCapabilities structure to populate.
- *                  Must be zero-initialised by the caller, since fields
+ *                  Must be zero-initialized by the caller, since fields
  *                  are only written when their CPUID leaf is available.
  *
  * @pre caps must point to a valid SIMDCapabilities structure.
@@ -223,7 +223,7 @@ void get_simd_capabilities_from_cpuid(const SIMDCpuidSnapshot *snapshot,
  *
  * @note On non-Windows platforms, if CPUID leaf 1 is not supported,
  *       the function returns early leaving caps untouched.  Callers
- *       should zero-initialise the structure (e.g., @c = @c {})
+ *       should zero-initialize the structure (e.g., @c = @c {})
  *       beforehand.
  *
  * @note This function is platform-specific:
@@ -336,11 +336,11 @@ static inline void init_once(void) { detect_simd_capabilities(&simd); }
  * @ref detect_simd_capabilities() to populate the global @ref simd
  * structure.
  *
- * @param[in] once   Pointer to the one-time initialisation structure.
+ * @param[in] once   Pointer to the one-time initialization structure.
  * @param[in] param  Optional callback data (unused).
  * @param[in] ctx    Optional callback context (unused).
  *
- * @return Always @c TRUE (initialisation always succeeds).
+ * @return Always @c TRUE (initialization always succeeds).
  *
  * @see get_simd_capabilities()
  * @see init_flag

@@ -105,7 +105,7 @@ TEST(TensorTransfer, ValidatorsRejectMetaTensors) {
    (ncore/memory/csrc/ffi.cpp): an out-of-range TransferKind is rejected
    before any backend probe or pointer dereference, so null buffers are
    safe here even on CPU-only builds. Kind 0 is what the dispatch table
-   yields for pairs it does not initialise (e.g. META pairs). */
+   yields for pairs it does not initialize (e.g. META pairs). */
 TEST(TensorTransfer, DeviceTransferRejectsUnknownKind) {
   const novaStatus_t st =
       deviceTransfer(nullptr, nullptr, static_cast<TransferKind>(0), 0);

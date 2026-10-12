@@ -94,7 +94,7 @@ typedef struct {
  * @param[in]  opts Pointer to formatting options. If @c nullptr,
  *                  defaults are used.
  *
- * @return A fully initialised @ref ReprContext structure.
+ * @return A fully initialized @ref ReprContext structure.
  *
  * @pre  The tensor's data must be host-accessible (shadowed to CPU
  *       if GPU).

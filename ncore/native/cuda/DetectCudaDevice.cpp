@@ -66,7 +66,7 @@ std::atomic<bool> cudaDeviceAvailable{false};
 
 /**
  * @var cudaDeviceProbeOnce
- * @brief One-shot initialisation guard for the CUDA device probe.
+ * @brief One-shot initialization guard for the CUDA device probe.
  *
  * Ensures @ref probeCudaDevice is called exactly once, even from
  * multiple threads.

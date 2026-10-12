@@ -603,7 +603,7 @@ public:
       3; ///< Largest normal: 6.0 (@f$1.5 \times 2^{2}@f$).
   static constexpr int max_exponent10 = 0; ///< Maximum positive power of 10.
   static constexpr auto traps =
-      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
+      numeric_limits<float>::traps; ///< Inherits float32 trap behavior.
   static constexpr auto tinyness_before =
       false; ///< Tinyness is not tested before rounding.
 
@@ -1161,7 +1161,7 @@ public:
   static constexpr int max_exponent10 =
       lane_limits::max_exponent10; ///< Maximum positive power of 10.
   static constexpr auto traps =
-      lane_limits::traps; ///< Both lanes inherit float32 trap behaviour.
+      lane_limits::traps; ///< Both lanes inherit float32 trap behavior.
   static constexpr auto tinyness_before =
       lane_limits::tinyness_before; ///< Both lanes: tinyness is not tested
                                     ///< before rounding.

@@ -107,7 +107,7 @@ struct hipDetectedDeviceAttrs_t {
  * @return Cached device attributes (zeros where unknown).
  *
  * @note Thread-safe.  The result is cached in a @c static local
- *       variable initialised exactly once (C++11 guarantee).
+ *       variable initialized exactly once (C++11 guarantee).
  */
 hipDetectedDeviceAttrs_t
 getHipDeviceAttributes(novaStatus_t *status) noexcept;
@@ -128,7 +128,7 @@ getHipDeviceAttributes(novaStatus_t *status) noexcept;
  *         determine whether the data is valid.
  *
  * @note Thread-safe.  The result is cached in a @c static local
- *       variable initialised exactly once (C++11 guarantee).
+ *       variable initialized exactly once (C++11 guarantee).
  *
  * @see printHipDeviceInfo()  Prints the properties to stdout.
  * @see hipDetectedDeviceProps_t  The returned struct type.
@@ -144,7 +144,7 @@ extern "C" {
  *
  * @details
  * Queries the HIP runtime for device 0 properties and prints
- * them using ANSI colour codes.  When @p verbose is @c false, a
+ * them using ANSI color codes.  When @p verbose is @c false, a
  * concise two-line summary is printed.  When @p verbose is @c true,
  * a detailed multi-line block is printed.
  *

@@ -40,7 +40,7 @@
  * process-lifetime object; it is safe to call from any thread.
  * @li @ref delegate_execution() is safe to call from any thread.  Each call
  *   updates the preferred backend for subsequent dispatch; concurrent calls
- *   may race on the preference, but no undefined behaviour occurs.
+ *   may race on the preference, but no undefined behavior occurs.
  * @li @ref is_backend_available() is a pure query with no side effects and is
  *   safe to call from any thread.
  *
@@ -112,7 +112,7 @@ typedef enum Backend_ : uint8_t {
  *
  * This function is intended for diagnostic logging and runtime introspection,
  * not for hot-path dispatch.  Backend selection should be performed once at
- * initialisation time.
+ * initialization time.
  *
  * @return Pointer to the preferred @ref Backend_ value.  The returned pointer
  *         is valid for the lifetime of the process and must not be freed.
@@ -139,7 +139,7 @@ Backend_ *get_current_running_backend(void);
  * preference.  The actual backend used for a given operation depends on
  * availability at dispatch time.
  *
- * @section behaviour Behaviour
+ * @section behavior Behavior
  *
  * @li 1. Store @p backend as the preferred target for subsequent dispatch.
  * @li 2. Return @c true if the backend is available and was set as preferred.
@@ -183,7 +183,7 @@ bool delegate_execution(Backend_ backend);
  * backend is always available as it performs no computation.
  *
  * This function has no side effects and does not allocate resources.
- * It is safe to call during early initialisation, before any backend has
+ * It is safe to call during early initialization, before any backend has
  * been selected.
  *
  * @param[in] backend  The backend to query.  Must be a valid enumerator

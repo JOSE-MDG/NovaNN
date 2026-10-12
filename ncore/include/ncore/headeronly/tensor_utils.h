@@ -11,7 +11,7 @@
  *
  * The utilities fall into several categories:
  *
- * @li Tensor creation (unallocated): Functions to initialise
+ * @li Tensor creation (unallocated): Functions to initialize
  *   @c Tensor and @c TensorGrad metadata shells — including scalar
  *   (0-D) variants — without allocating backing storage.  These
  *   are used for deferred allocation and gradient tracking.
@@ -448,7 +448,7 @@ compute_coords_from_linear_index_(size_t item, size_t ndims,
  * @brief Create a Tensor without allocating a data buffer.
  *
  * @details
- * Zero-initialises a @c Tensor, copies shape metadata, computes
+ * Zero-initializes a @c Tensor, copies shape metadata, computes
  * size and strides, but leaves @c storage = nullptr,
  * @c data.data = nullptr, and @c is_allocated_ = false.  The tensor
  * is a valid metadata-only shell ready for deferred allocation.
@@ -468,7 +468,7 @@ compute_coords_from_linear_index_(size_t item, size_t ndims,
  * @param[in]  ndims         Number of dimensions.
  * @param[out] status        Receives the operation result.
  *
- * @return Initialised @c Tensor with no backing storage.
+ * @return Initialized @c Tensor with no backing storage.
  *
  * @pre  @c ndims must not exceed @c NOVA_MAX_DIMS.
  * @pre  @p status must not be @c nullptr.
@@ -530,7 +530,7 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
  *
  * @details
  * Allocates a @c Tensor on the heap via @c malloc(), then
- * initialises it as an unallocated tensor via
+ * initializes it as an unallocated tensor via
  * @c create_unallocated_tensor().  The gradient is a metadata-only
  * shell — no data buffer is allocated.
  *
@@ -586,7 +586,7 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
  *        buffer.
  *
  * @details
- * Zero-initialises a @c Tensor and sets the scalar invariant:
+ * Zero-initializes a @c Tensor and sets the scalar invariant:
  * @c shape[0] = 0, @c strides[0] = 0, @c size = 1, @c ndims = 0.
  * No data buffer is allocated.
  *
@@ -602,7 +602,7 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
  *                           memory (CPU only).
  * @param[out] status        Receives the operation result.
  *
- * @return Initialised scalar @c Tensor with no backing storage.
+ * @return Initialized scalar @c Tensor with no backing storage.
  *
  * @pre  @p status must not be @c nullptr.
  * @post @c is_allocated_ == @c false, @c storage == @c nullptr,
@@ -660,7 +660,7 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
  *
  * @details
  * Allocates a @c Tensor on the heap via @c malloc(), then
- * initialises it as an unallocated scalar tensor via
+ * initializes it as an unallocated scalar tensor via
  * @c create_unallocated_scalar_tensor().
  *
  * If @c malloc() fails, @p status is set to @ref novaInvalidPointer
@@ -715,7 +715,7 @@ create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
  * upper bound (@c shape[dim]), resetting it to zero.
  *
  * When all dimensions overflow, the coordinate wraps back to all
- * zeros — matching the behaviour of a traditional mechanical
+ * zeros — matching the behavior of a traditional mechanical
  * odometer.
  *
  * Typical usage for iterating over all elements:

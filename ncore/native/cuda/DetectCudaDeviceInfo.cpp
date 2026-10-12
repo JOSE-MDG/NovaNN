@@ -275,7 +275,7 @@ getCudaDeviceAttributes(novaStatus_t *status) noexcept {
  *
  * @details
  * Queries device 0 properties via @ref initCudaDeviceProperties
- * and prints them using ANSI colour codes.  When @p verbose is
+ * and prints them using ANSI color codes.  When @p verbose is
  * @c false, a concise two-line summary is printed.  When @p verbose
  * is @c true, a detailed multi-line block is printed.
  *
@@ -370,7 +370,7 @@ novaStatus_t printCudaDeviceInfo(bool verbose) {
  *         determine whether the data is valid.
  *
  * @note Thread-safe.  The result is cached in a @c static local
- *       variable initialised exactly once (C++11 guarantee).
+ *       variable initialized exactly once (C++11 guarantee).
  */
 cudaDetectedDeviceProps_t
 getCudaDeviceProperties(novaStatus_t *status) noexcept {

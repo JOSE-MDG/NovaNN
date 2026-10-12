@@ -1,6 +1,6 @@
 /**
  * @file status_dispatch_tables.c
- * @brief Initialisation of the global error message dispatch table.
+ * @brief Initialization of the global error message dispatch table.
  *
  * @details
  * Populates the @c status_msg_dispatch array that maps each @ref novaError_t
@@ -44,7 +44,7 @@ const char *status_msg_dispatch[NUM_ERRORS] = {};
  * @brief Populate every entry in @c status_msg_dispatch.
  *
  * @details
- * Called automatically at library initialisation time via @c INITIALIZE(init_status_msg_dispatch).
+ * Called automatically at library initialization time via @c INITIALIZE(init_status_msg_dispatch).
  * Assigns a descriptive string to each valid error code defined in
  * the @ref novaError_t enumeration.
  *

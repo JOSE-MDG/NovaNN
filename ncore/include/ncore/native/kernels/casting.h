@@ -47,7 +47,7 @@ extern "C" {
  * @pre  Both @p src and @p dst must be valid, non-null tensors.
  * @pre  @p src and @p dst must have the same shape.
  * @pre  A compute device (CUDA or HIP) must be available and
- *       initialised.
+ *       initialized.
  * @post On success, @p dst contains the casted elements.
  *
  * @warning Calling this function without a valid compute device

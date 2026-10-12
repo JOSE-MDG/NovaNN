@@ -27,7 +27,7 @@
  * inline the @c memcpy call while keeping the codebase minimal.
  * Similarly, @c copy_device_buffer handles all dtypes in one routine,
  * directly returning the @ref transfer_to() result.  The dispatch
- * tables are @c const static and zero-initialised. Only the entries
+ * tables are @c const static and zero-initialized. Only the entries
  * that correspond to supported dtypes are filled in.
  *
  * @see copy.h       Public API for deep-copy.
@@ -261,7 +261,7 @@ static const CopyFn *lookup_copy[2] = {
  * the @ref lookup_copy table based on @c src->device and
  * @c src->dtype.
  *
- * @section behaviour Behaviour
+ * @section behavior Behavior
  *
  * @li 1. All metadata fields (@c shape, @c strides, @c item_size, @c size,
  *    @c ndims, @c dtype, @c device, @c scale_, @c zero_point_,

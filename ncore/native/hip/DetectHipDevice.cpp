@@ -74,7 +74,7 @@ std::atomic_bool hipDeviceAvailable{false};
 
 /**
  * @var hipDeviceProbeOnce
- * @brief One-shot initialisation guard for the HIP device probe.
+ * @brief One-shot initialization guard for the HIP device probe.
  *
  * Ensures @ref probeHipDevice is called exactly once, even from
  * multiple threads.

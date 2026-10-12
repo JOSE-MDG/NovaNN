@@ -212,7 +212,7 @@ typedef Tensor *TensorGrad;
  *
  * @note Thread-safe.  Delegates to thread-safe backend detection
  *       functions.  The cached result is protected by a mutex and
- *       a @c call_once/@c InitOnceExecuteOnce initialisation guard.
+ *       a @c call_once/@c InitOnceExecuteOnce initialization guard.
  *
  * @see is_cuda_available()          Convenience wrapper for @c CUDA_DEVICE.
  * @see is_hip_available()           Convenience wrapper for @c HIP_DEVICE.
@@ -275,7 +275,7 @@ bool is_hip_available();
  * @li 2. Forwards the request to @c deviceTransfer() (declared in
  *    @ref ffi.hpp) with the resolved transfer kind.
  *
- * The dispatch table is initialised at program startup by an
+ * The dispatch table is initialized at program startup by an
  * @c INITIALIZE(init_transf_dispatch) function in @ref device.c, so it is
  * always ready when this function is called.
  *
@@ -306,7 +306,7 @@ bool is_hip_available();
  *       @c memcpy() or @ref deepcopy() for host-to-host copies.
  *
  * @note Thread-safe.  The dispatch table is read-only after
- *       initialisation, and @c deviceTransfer() is expected to be
+ *       initialization, and @c deviceTransfer() is expected to be
  *       thread-safe.
  *
  * @see deviceTransfer()   Low-level C-callable copy wrapper.
@@ -350,7 +350,7 @@ int get_device_id();
  *
  * @details
  * Queries the specified backend for device 0 properties and prints
- * them to stdout using ANSI colour codes.
+ * them to stdout using ANSI color codes.
  *
  * When @p verbose is @c false, a concise two-line summary is printed
  * per device:
@@ -410,7 +410,7 @@ DeviceKind get_detected_device_kind();
  * Returns @c true after the first call to @ref is_device_available()
  * (or its convenience wrappers @ref is_cuda_available() /
  * @ref is_hip_available()) has completed.  Useful for guarding
- * one-time initialisation that depends on the detection result.
+ * one-time initialization that depends on the detection result.
  *
  * @return @c true if detection has been performed at least once,
  *         @c false otherwise.

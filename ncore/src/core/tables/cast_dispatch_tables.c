@@ -1,6 +1,6 @@
 /**
  * @file cast_dispatch_tables.c
- * @brief Initialisation of the global cast-function dispatch table.
+ * @brief Initialization of the global cast-function dispatch table.
  *
  * @details
  * Populates the NUM_DTYPES×NUM_DTYPES @c cast_dispatch matrix that maps every
@@ -41,7 +41,7 @@
  * data type and @c dst is the target data type.  The diagonal and
  * unsupported combinations are @c nullptr.
  *
- * The table is zero-initialised (@c = {}) and fully populated
+ * The table is zero-initialized (@c = {}) and fully populated
  * by @ref init_cast_dispatch() at program load time.
  *
  * @see init_cast_dispatch()  Populates the table.
@@ -53,13 +53,13 @@ CastFn cast_dispatch[NUM_DTYPES][NUM_DTYPES] = {};
  * @brief Populate every non-trivial entry in @c cast_dispatch.
  *
  * @details
- * Called automatically at library initialisation time via
+ * Called automatically at library initialization time via
  * @c INITIALIZE(init_cast_dispatch).  Assigns a @c castFn pointer to
  * each supported (src, dst) pair.  Entries left as @c nullptr are:
  * @li Diagonal (@c src == dst): identity cast, no function needed.
  * @li Quantised types: no explicit entries.
  *
- * @subsection organisation Organisation
+ * @subsection organization Organization
  *
  * The assignments are grouped by conversion category for
  * readability:

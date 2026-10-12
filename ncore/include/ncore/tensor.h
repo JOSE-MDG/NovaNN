@@ -176,7 +176,7 @@ typedef Tensor *TensorGrad;
  * @brief Create a fully allocated n-dimensional tensor.
  *
  * @details
- * Zero-initialises the @ref Tensor struct, copies the shape, computes
+ * Zero-initializes the @ref Tensor struct, copies the shape, computes
  * @c size and @c strides, and allocates a data buffer via
  * @ref safe_allocator().  When @p requires_grad is @c true, an
  * unallocated gradient tensor is created in @c grad with the same
@@ -204,7 +204,7 @@ typedef Tensor *TensorGrad;
  * @param[out] status        Receives the operation result.  On
  *                           success @c err is @ref novaSuccess.
  *
- * @return Initialised @ref Tensor with valid backing storage, or a
+ * @return Initialized @ref Tensor with valid backing storage, or a
  *         META tensor with nullptr storage.
  *
  * @pre  @p ndims must be in [1, @ref NOVA_MAX_DIMS].  Scalars
@@ -246,7 +246,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device_ device,
  *                           memory (CPU only).
  * @param[out] status        Receives the operation result.
  *
- * @return Initialised scalar @ref Tensor with backing storage.
+ * @return Initialized scalar @ref Tensor with backing storage.
  *
  * @pre  @p status must not be @c nullptr.
  * @post On success, @c is_allocated_ == true (unless META).

@@ -7,7 +7,7 @@
  * host (AMX, AVX10, AVX-512 FP16) are still covered.
  *
  * Bit positions are declared independently from the implementation, so a
- * wrong constant on either side fails instead of cancelling out.
+ * wrong constant on either side fails instead of canceling out.
  *
  * Synthetic models mirror the CPUID enumeration of their real-silicon
  * counterparts (e.g. Sapphire Rapids ships AMX-BF16/AMX-INT8 and

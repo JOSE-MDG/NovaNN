@@ -80,7 +80,7 @@ typedef struct {
  * @brief Return a default-initialized ReprOptions structure.
  *
  * @details
- * Initialises all fields to library-standard, framework-agnostic
+ * Initializes all fields to library-standard, framework-agnostic
  * values:
  * @li @c mode: @c ReprModeNormal
  * @li @c threshold: @c 1000
@@ -88,7 +88,7 @@ typedef struct {
  * @li @c precision: @c 4
  * @li @c sci_mode_auto: @c true
  *
- * @return A correctly initialised @ref ReprOptions structure.
+ * @return A correctly initialized @ref ReprOptions structure.
  *
  * @see ReprOptions
  */

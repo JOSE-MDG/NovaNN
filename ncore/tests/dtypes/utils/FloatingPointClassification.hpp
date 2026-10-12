@@ -9,7 +9,7 @@
  * bit fields against a declarative FormatModel, and the referenceDecode*
  * functions compute exact dyadic values in @c double from the format
  * definitions. A wrong constant on either side fails a test instead of
- * cancelling out.
+ * canceling out.
  *
  * The decoders here are intentionally separate from the casting-side oracle:
  * the two test trees must be able to fail independently, so a shared-bug

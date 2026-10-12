@@ -62,7 +62,7 @@ typedef void (*CopyFn)(const Tensor *restrict src, Tensor *restrict dst,
  * the @ref lookup_copy table based on @c src->device and
  * @c src->dtype.
  *
- * @section behaviour Behaviour
+ * @section behavior Behavior
  *
  * @li 1. All metadata fields (@c shape, @c strides, @c item_size, @c size,
  *    @c ndims, @c dtype, @c device, @c scale_, @c zero_point_,

@@ -13,7 +13,7 @@
  *
  * @section implementation-notes Implementation Notes
  *
- * @li All creation functions zero-initialise the @c Tensor struct before
+ * @li All creation functions zero-initialize the @c Tensor struct before
  *   populating fields — no stale data is possible.
  * @li @c safe_allocator() is the single allocation entry point for CPU and
  *   GPU tensors; for @c DEVICE_META tensors it is never invoked and
@@ -46,7 +46,7 @@
  * @brief Create a fully allocated n-dimensional tensor.
  *
  * @details
- * @li 1. Zero-initialises a @c Tensor struct.
+ * @li 1. Zero-initializes a @c Tensor struct.
  * @li 2. Copies @c shape (only the first @c ndims entries).
  * @li 3. Computes @c size via @c compute_tensor_size_().
  * @li 4. Computes @c strides via @c compute_tensor_strides_() (row-major).
@@ -72,7 +72,7 @@
  *                           must be created via @c create_scalar_tensor().
  * @param[out] status        Receives the operation result.
  *
- * @return Initialised @c Tensor with valid backing storage, or a
+ * @return Initialized @c Tensor with valid backing storage, or a
  *         META tensor with nullptr storage.
  *
  * @pre  @c ndims must be in [1, NOVA_MAX_DIMS].  Scalars (@c ndims == 0)
@@ -171,7 +171,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device_ device,
  *                           memory (CPU only).
  * @param[out] status        Receives the operation result.
  *
- * @return Initialised scalar @c Tensor with backing storage.
+ * @return Initialized scalar @c Tensor with backing storage.
  *
  * @pre  Device_ must be one of @c DEVICE_CPU, @c DEVICE_GPU, or
  *       @c DEVICE_META.
