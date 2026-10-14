@@ -56,11 +56,13 @@ private:
   /// @brief Worker entry point: waits for and executes queued tasks.
   void workerLoop(std::stop_token st);
 
-  std::queue<std::function<void()>> tasks_; ///< Pending tasks, guarded by `mtx_`.
-  std::stop_source stop_source_;            ///< Cooperative stop for all workers.
-  std::mutex mtx_;                          ///< Guards `tasks_` and the CV predicate.
-  std::vector<std::jthread> workers_;       ///< Worker threads, joined on destruction.
-  std::condition_variable cv_;              ///< Wakes workers on work or stop.
+  std::queue<std::function<void()>>
+      tasks_;                    ///< Pending tasks, guarded by `mtx_`.
+  std::stop_source stop_source_; ///< Cooperative stop for all workers.
+  std::mutex mtx_;               ///< Guards `tasks_` and the CV predicate.
+  std::vector<std::jthread>
+      workers_;                ///< Worker threads, joined on destruction.
+  std::condition_variable cv_; ///< Wakes workers on work or stop.
 };
 
 } // namespace tests::pool
