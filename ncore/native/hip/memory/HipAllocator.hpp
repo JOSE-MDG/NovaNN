@@ -183,4 +183,4 @@ novaStatus_t hipRelease(hipBuffer_t *buf, hipStream_t stream = nullptr);
  * @see hipRelease()  Explicit deallocation.
  */
 novaStatus_t hipResize(hipBuffer_t *buf, std::size_t new_bytes,
-                        hipStream_t stream = nullptr);
+                       hipStream_t stream = nullptr);

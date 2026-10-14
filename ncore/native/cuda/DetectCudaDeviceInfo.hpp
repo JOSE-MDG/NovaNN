@@ -55,8 +55,8 @@ struct cudaDetectedDeviceProps_t {
   int multiProcessorCount;   ///< Number of streaming multiprocessors (SMs).
   int warpSize;              ///< Warp size in threads.
   int maxThreadsPerBlock;    ///< Maximum threads per block.
-  int maxThreadsPerMultiProcessor; ///< Maximum threads per SM.
-  int maxBlocksPerMultiProcessor; ///< Maximum resident blocks per SM.
+  int maxThreadsPerMultiProcessor;   ///< Maximum threads per SM.
+  int maxBlocksPerMultiProcessor;    ///< Maximum resident blocks per SM.
   int major;                         ///< Compute capability major.
   int minor;                         ///< Compute capability minor.
   int clockRate;                     ///< SM clock in kHz.
@@ -64,10 +64,10 @@ struct cudaDetectedDeviceProps_t {
   int memoryBusWidth;                ///< DRAM bus width in bits.
   size_t sharedMemPerBlock;          ///< Shared memory per block, bytes.
   size_t sharedMemPerMultiprocessor; ///< Shared memory per SM, bytes.
-  int regsPerMultiprocessor; ///< 32-bit registers per SM.
-  std::array<int, 3> maxGridSize; ///< Max grid extent per axis.
-  int l2CacheSize;           ///< L2 capacity, bytes.
-  int persistingL2CacheMaxSize; ///< Max L2 persisting lines, bytes.
+  int regsPerMultiprocessor;         ///< 32-bit registers per SM.
+  std::array<int, 3> maxGridSize;    ///< Max grid extent per axis.
+  int l2CacheSize;                   ///< L2 capacity, bytes.
+  int persistingL2CacheMaxSize;      ///< Max L2 persisting lines, bytes.
   uint64_t peakFp32Flops;   ///< FP32 FMA peak, flop/s (0 when unknown).
   std::string memBandwidth; ///< Theoretical bandwidth, formatted.
   explicit operator bool() const noexcept { return isAvailable; }

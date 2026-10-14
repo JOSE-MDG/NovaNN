@@ -64,12 +64,12 @@ struct hipDetectedDeviceProps_t {
   int memoryBusWidth;              ///< DRAM bus width in bits.
   size_t sharedMemPerBlock;        ///< Shared memory per block, bytes.
   size_t sharedMemPerMultiprocessor; ///< Shared memory per CU, bytes.
-  int regsPerMultiprocessor;       ///< 32-bit registers per CU.
-  std::array<int, 3> maxGridSize;  ///< Max grid extent per axis.
-  int l2CacheSize;                 ///< L2 capacity, bytes.
-  int persistingL2CacheMaxSize;    ///< Max L2 persisting lines, bytes.
-  uint64_t peakFp32Flops;          ///< FP32 peak, flop/s (0 when unknown).
-  std::string memBandwidth;        ///< Theoretical bandwidth, formatted.
+  int regsPerMultiprocessor;         ///< 32-bit registers per CU.
+  std::array<int, 3> maxGridSize;    ///< Max grid extent per axis.
+  int l2CacheSize;                   ///< L2 capacity, bytes.
+  int persistingL2CacheMaxSize;      ///< Max L2 persisting lines, bytes.
+  uint64_t peakFp32Flops;            ///< FP32 peak, flop/s (0 when unknown).
+  std::string memBandwidth;          ///< Theoretical bandwidth, formatted.
   explicit operator bool() const noexcept { return isAvailable; }
 };
 
@@ -109,8 +109,7 @@ struct hipDetectedDeviceAttrs_t {
  * @note Thread-safe.  The result is cached in a @c static local
  *       variable initialized exactly once (C++11 guarantee).
  */
-hipDetectedDeviceAttrs_t
-getHipDeviceAttributes(novaStatus_t *status) noexcept;
+hipDetectedDeviceAttrs_t getHipDeviceAttributes(novaStatus_t *status) noexcept;
 
 /**
  * @brief Retrieve the properties of the detected HIP device.

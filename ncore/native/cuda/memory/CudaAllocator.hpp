@@ -185,4 +185,4 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf, cudaStream_t stream = nullptr);
  * @see cudaRelease()  Explicit deallocation.
  */
 novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes,
-                         cudaStream_t stream = nullptr);
+                        cudaStream_t stream = nullptr);
