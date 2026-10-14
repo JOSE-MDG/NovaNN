@@ -135,11 +135,11 @@
 
 /**
  * @def ALIGN(N)
- * @brief Align a type or variable to N bytes.
+ * @brief Align a member or variable to N bytes (standard alignas).
  *
  * @param N  Alignment boundary in bytes.  Must be a power of two.
  */
-#define ALIGN(N) __attribute__((aligned(N)))
+#define ALIGN(N) alignas(N)
 
 /**
  * @def ATTR(mode)

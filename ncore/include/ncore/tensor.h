@@ -68,11 +68,7 @@ extern "C" {
  * Example: @c shape = {2, 3, 4} with @c ndims = 3 represents a
  * 2×3×4 tensor.
  */
-#ifndef _WIN64
-typedef size_t shape_t[NOVA_MAX_DIMS] ALIGN(64);
-#else
 typedef size_t shape_t[NOVA_MAX_DIMS];
-#endif
 
 /**
  * @typedef strides_t
@@ -86,11 +82,7 @@ typedef size_t shape_t[NOVA_MAX_DIMS];
  * Example: for a contiguous float32 tensor with shape @c {2, 3, 4},
  * strides are @c {48, 16, 4}.
  */
-#ifndef _WIN64
-typedef size_t strides_t[NOVA_MAX_DIMS] ALIGN(64);
-#else
 typedef size_t strides_t[NOVA_MAX_DIMS];
-#endif
 
 /**
  * @struct Node
@@ -139,20 +131,16 @@ typedef Node *BackwardNode;
  * @see strides_t    Fixed-size strides array.
  * @see TensorGrad   Gradient tensor alias.
  */
-#ifndef _WIN64
-struct ALIGN(64) Tensor {
-#else
 struct Tensor {
-#endif
-  size_t item_size;    ///< Bytes per element (from @ref dtype_size).
-  size_t offset;       ///< Byte offset into the storage buffer.
-  size_t ndims;        ///< Number of dimensions (0 for scalars).
-  size_t size;         ///< Total element count (product of shape).
-  size_t logical_size; ///< Unpacked element count (individual values).
-  DType_ dtype;        ///< Element data type (@ref DType_ enum).
-  Device_ device;      ///< Placement device (@ref Device_ enum).
-  shape_t shape;       ///< Dimension sizes (up to @ref NOVA_MAX_DIMS).
-  strides_t strides;   ///< Byte strides per dimension.
+  size_t item_size;            ///< Bytes per element (from @ref dtype_size).
+  size_t offset;               ///< Byte offset into the storage buffer.
+  size_t ndims;                ///< Number of dimensions (0 for scalars).
+  size_t size;                 ///< Total element count (product of shape).
+  size_t logical_size;         ///< Unpacked element count (individual values).
+  DType_ dtype;                ///< Element data type (@ref DType_ enum).
+  Device_ device;              ///< Placement device (@ref Device_ enum).
+  ALIGN(64) shape_t shape;     ///< Dimension sizes (up to @ref NOVA_MAX_DIMS).
+  ALIGN(64) strides_t strides; ///< Byte strides per dimension.
   TensorStorage
       *storage;    ///< Reference-counted backing buffer (nullptr for META).
   data_ptr data;   ///< Typed pointer into @c storage (offset-adjusted).
