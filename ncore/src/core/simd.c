@@ -80,7 +80,7 @@ static SIMDCapabilities simd = {};
  * @see get_simd_capabilities()
  */
 static once_flag init_flag = {};
-#elif defined(_WIN64)
+#elifdef _WIN64
 /**
  * @var static INIT_ONCE init_flag
  * @brief Windows one-time initialization guard for thread-safe lazy
@@ -150,9 +150,10 @@ void get_simd_capabilities_from_cpuid(const SIMDCpuidSnapshot *snapshot,
   const uint32 ecx70 = snapshot->leaf7_0[2];
   const uint32 edx70 = snapshot->leaf7_0[3];
 
-  caps->avx2_ = ((ebx70 & (1 << 5)) != 0);       ///< AVX2
-  caps->avx512f_ = ((ebx70 & (1 << 16)) != 0);   ///< AVX-512 Foundation
-  caps->avx512_dq_ = ((ebx70 & (1 << 17)) != 0); ///< AVX-512 Doubleword/Quadword
+  caps->avx2_ = ((ebx70 & (1 << 5)) != 0);     ///< AVX2
+  caps->avx512f_ = ((ebx70 & (1 << 16)) != 0); ///< AVX-512 Foundation
+  caps->avx512_dq_ =
+      ((ebx70 & (1 << 17)) != 0); ///< AVX-512 Doubleword/Quadword
   caps->avx512_bw_ = ((ebx70 & (1 << 30)) != 0); ///< AVX-512 Byte/Word
   caps->avx512_vl_ =
       ((ebx70 & (1U << 31)) != 0); ///< AVX-512 Vector Length extensions
@@ -326,7 +327,7 @@ static inline void detect_simd_capabilities(SIMDCapabilities *restrict caps) {
  * @see detect_simd_capabilities()
  */
 static inline void init_once(void) { detect_simd_capabilities(&simd); }
-#elif defined(_WIN64)
+#elifdef _WIN64
 /**
  * @brief Windows one-time initialization callback.
  *
@@ -388,7 +389,7 @@ static BOOL CALLBACK init_once_win(PINIT_ONCE once, PVOID param, PVOID *ctx) {
 const SIMDCapabilities *get_simd_capabilities() {
 #ifdef __linux__
   call_once(&init_flag, init_once);
-#elif defined(_WIN64)
+#elifdef _WIN64
   InitOnceExecuteOnce(&init_flag, init_once_win, nullptr, nullptr);
 #endif
   return &simd;
