@@ -134,8 +134,7 @@ static inline void copy_device_buffer(const Tensor *restrict src,
   }
 
   *status = transfer_to(src->device, dst->device, src->data.data + src->offset,
-                        dst->data.data,
-                        src->storage->handle.requested_bytes);
+                        dst->data.data, src->storage->handle.requested_bytes);
 }
 
 /**
