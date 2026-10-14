@@ -75,8 +75,8 @@ TEST(TensorCopies, ShapeVariantsAreCopied) {
 
     const Tensor dcv = dst.getCTensor();
     expectMetadataEqual(sv, dcv);
-    expectBytesEqual(sv.data.data, dcv.data.data,
-                     sv.size * sv.item_size, "deep-copied payload");
+    expectBytesEqual(sv.data.data, dcv.data.data, sv.size * sv.item_size,
+                     "deep-copied payload");
   }
 
   /* Scalar variant: created through the scalar constructors. */
@@ -92,8 +92,8 @@ TEST(TensorCopies, ShapeVariantsAreCopied) {
   ASSERT_EQ(st.err, novaSuccess);
 
   const Tensor sdcv = sdst.getCTensor();
-  expectBytesEqual(ssv.data.data, sdcv.data.data,
-                   ssv.size * ssv.item_size, "scalar deep-copied payload");
+  expectBytesEqual(ssv.data.data, sdcv.data.data, ssv.size * ssv.item_size,
+                   "scalar deep-copied payload");
 }
 
 TEST(TensorCopies, GradientSubtreeDeepCopied) {
@@ -106,8 +106,8 @@ TEST(TensorCopies, GradientSubtreeDeepCopied) {
 
   st = tests::tensor::allocateGrad(sv);
   ASSERT_EQ(st.err, novaSuccess);
-  fillPattern(sv.grad->data.data,
-              sv.grad->size * sv.grad->item_size, 0xDEADBEEFu);
+  fillPattern(sv.grad->data.data, sv.grad->size * sv.grad->item_size,
+              0xDEADBEEFu);
 
   /* Destination without a pre-existing grad: deepcopy attaches the copy. */
   TensorCXX dst(unallocated, {2, 3}, Float32, DEVICE_CPU, false, false, &st);
@@ -380,8 +380,8 @@ TEST(TensorCopies, DeviceGradientSubtree) {
   Tensor gb = gback.getCTensor();
   st = transf_tensor_from_device(dcv.grad, &gb);
   ASSERT_EQ(st.err, novaSuccess);
-  expectBytesEqual(gv.data.data, gb.data.data,
-                   gv.size * gv.item_size, "device gradient payload");
+  expectBytesEqual(gv.data.data, gb.data.data, gv.size * gv.item_size,
+                   "device gradient payload");
 }
 
 TEST(TensorCopies, PinnedHostDeepCopy) {

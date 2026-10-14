@@ -263,8 +263,8 @@ TEST(TensorTransfer, PinnedStagingBuffer) {
   st = transf_tensor_from_device(&dv, &pdv);
   ASSERT_EQ(st.err, novaSuccess);
 
-  expectBytesEqual(psv.data.data, pdv.data.data,
-                   psv.size * psv.item_size, "pinned staging payload");
+  expectBytesEqual(psv.data.data, pdv.data.data, psv.size * psv.item_size,
+                   "pinned staging payload");
 }
 
 /* With a fully valid GPU source, the rejection can only come from the
