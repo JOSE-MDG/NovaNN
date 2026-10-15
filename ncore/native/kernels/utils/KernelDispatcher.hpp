@@ -3,21 +3,16 @@
  * @brief Shared backend-resolution flow for native kernel launchers.
  *
  * @details
- * Every device-agnostic launcher (@c launchDtypeCastingKernel(),
- * @c launchContiguousKernel() , and whatever comes next) used to
- * repeat the same detection flow: cached kind, probe CUDA/HIP, run
- * when exactly one backend answers. That logic lives here exactly
- * once. Each operation keeps only its genuinely per-op data: the
- * backend entry points and the table saying which backends provide
- * them.
+ * Every device-agnostic launcher is used to repeat the same
+ * detection flow: cached kind, probe CUDA/HIP, run when exactly
+ * one backend answers. That logic lives here exactly once.
+ * Each operation keeps only its genuinely per-op data: the backend
+ * entry points and the table saying which backends provide them.
  *
  * The launcher is a template so future operations can change
  * signatures freely: @p KernelFn and the forwarded arguments are
  * deduced at each call site, and this file never needs to change
  * for a new signature.
- *
- * @see CastingDispatchImpl.cpp     Casting launcher using this flow.
- * @see ContiguousDispatchImpl.cpp  Contiguous launcher using this flow.
  */
 
 #pragma once
@@ -29,6 +24,7 @@
 #include <ncore/core/status.h>
 
 namespace ncore::dispatch {
+
 /**
  * @brief Resolve the active backend kernel and invoke it.
  *
@@ -63,7 +59,7 @@ novaStatus_t launch(const std::unordered_map<DeviceKind, KernelFn> &table,
 
   auto run = [&](DeviceKind kind) -> novaStatus_t {
     if (kind != CUDA_DEVICE && kind != HIP_DEVICE && kind != NULL_DEVICE) {
-      status.err = novaInvalidValue;
+      status.err = novaInvalidDevice;
       status.message = "Invalid device kind specified for kernel dispatch\n";
       return status;
     }
