@@ -164,7 +164,7 @@ static _Atomic GroupOrigin group_origin[NUM_PARALLEL_GROUPS] = {
 /**
  * @brief Display label for a group origin flag.
  */
-static const char *origin_label(GroupOrigin origin) {
+static inline const char *origin_label(GroupOrigin origin) {
   switch (origin) {
   case ThreadsOriginAuto:
     return "auto";
@@ -219,19 +219,19 @@ DistributionKind current_distribution_kind() {
  * @brief Print the oversubscription warning block.
  *
  * @details
- * Yellow, single block, fully computed numbers. Advisory only:
- * the assignment stands.
+ * Yellow, two-line factual report with fully computed numbers.
+ * Advisory only: the assignment stands.
  */
-static void print_oversubscription_warning(uint32 compute, uint32 autograd,
-                                           uint32 dtloader, uint32 total,
-                                           uint64_t counted) {
-  printf("-- " NCORE_LOG_YELLOW
-         "[Threads] WARNING: manual assignment oversubscribes the machine: "
-         "counted %" PRIu64 " (compute %" PRIu32 " + autograd %" PRIu32
-         " + dtloader %" PRIu32
-         "; groups at 1 excluded) > machine total %" PRIu32
-         ". Expect context-switching losses.\n" NCORE_LOG_RESET,
-         counted, compute, autograd, dtloader, total);
+static inline void print_oversubscription_warning(uint32 compute,
+                                                  uint32 autograd,
+                                                  uint32 dtloader, uint32 total,
+                                                  uint64_t counted) {
+  printf(NCORE_LOG_PREFIX NCORE_LOG_YELLOW
+         " [Threads] WARNING: thread assignment exceeds available "
+         "threads\n" NCORE_LOG_PREFIX NCORE_LOG_YELLOW "   requested %" PRIu64
+         " > available %" PRIu32 " (compute %" PRIu32 ", autograd %" PRIu32
+         ", dtloader %" PRIu32 ")\n" NCORE_LOG_RESET,
+         counted, total, compute, autograd, dtloader);
 }
 
 typedef novaStatus_t (*set_threads_func_t)(uint32);
@@ -265,8 +265,8 @@ static const get_threads_func_t get_threads_funcs[NUM_PARALLEL_GROUPS] = {
  * stratification distribute (auto). Range-checks the group;
  * per-group minimums are enforced by the dispatched setter.
  */
-static novaStatus_t assign_group_threads(ParallelGroups group, uint32 threads,
-                                         GroupOrigin origin) {
+static inline novaStatus_t
+assign_group_threads(ParallelGroups group, uint32 threads, GroupOrigin origin) {
   if (group >= NUM_PARALLEL_GROUPS) {
     return (novaStatus_t){
         .err = novaInvalidParallelGroup,
