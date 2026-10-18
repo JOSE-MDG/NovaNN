@@ -228,7 +228,7 @@ static inline void print_oversubscription_warning(uint32 compute,
                                                   uint64_t counted) {
   printf(NCORE_LOG_PREFIX NCORE_LOG_YELLOW
          " [Threads] WARNING: thread assignment exceeds available "
-         "threads\n" NCORE_LOG_PREFIX NCORE_LOG_YELLOW "   requested %" PRIu64
+         "threads\n" NCORE_LOG_YELLOW "   requested %" PRIu64
          " > available %" PRIu32 " (compute %" PRIu32 ", autograd %" PRIu32
          ", dtloader %" PRIu32 ")\n" NCORE_LOG_RESET,
          counted, total, compute, autograd, dtloader);
@@ -610,6 +610,13 @@ novaStatus_t print_thread_config(bool verbose) {
              "%" PRIu32 NCORE_LOG_RESET " dtloader " NCORE_LOG_VALUE
              "%" PRIu32 NCORE_LOG_RESET ")\n",
              live_compute, live_autograd, live_dtloader);
+      if (logical_ok &&
+          manual_counts_oversubscribed(live_compute, live_autograd,
+                                       live_dtloader, logical)) {
+        print_oversubscription_warning(
+            live_compute, live_autograd, live_dtloader, logical,
+            counted_thread_sum(live_compute, live_autograd, live_dtloader));
+      }
     } else if (initialized) {
       const uint32 total = get_configured_num_logical_threads(nullptr);
       const StratifiedThreads strat = get_last_stratification_result();
