@@ -27,6 +27,8 @@ if(TEST_SOURCES)
 
     target_include_directories(ncore_dtypes_tests
         PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
+        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/tests/core
+        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/tests/dtypeCasting
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
         PRIVATE ${CMAKE_BINARY_DIR}
     )
