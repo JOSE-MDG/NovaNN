@@ -4,33 +4,13 @@
  *
  * @details
  * Implements the master memcpy dispatcher @ref cudaTransfer using
- * @c cudaMemcpyAsync on a reusable CUDA stream for all copy
- * directions.  The stream is created once and lives for the
- * lifetime of the process (singleton pattern).
+ * @c cudaMemcpyAsync.  A caller stream enqueues with no
+ * synchronization; the synchronous null path runs on the singleton
+ * stream, created once for the lifetime of the process.
  *
- * The file is conditionally compiled behind @c NOVA_HAS_CUDA and
- * @c __has_include(<cuda_runtime_api.h>).  When CUDA headers are
- * unavailable, a stub function returning an error status is
- * provided.
- *
- * @section architecture Architecture
- *
- * The module exposes a single public function (@ref cudaTransfer)
- * that handles H2D, D2H, and D2D transfers.  Internally it uses:
- * @li @ref mapError — maps @c cudaError_t to @ref novaStatus_t.
- * @li @ref mapMemcpyKind — converts @ref DeviceMemcpyKind to
- *   @c cudaMemcpyKind.
- * @li @ref getStream — returns a singleton CUDA stream.
- *
- * @section error-mapping Error Mapping
- *
- * All CUDA errors are mapped to a @ref novaStatus_t via a single
- * @ref mapError function: @c cudaSuccess maps to @ref novaSuccess,
- * @c cudaErrorInvalidValue to @ref novaInvalidValue,
- * @c cudaErrorExternalDevice to @ref novaExternalDeviceError,
- * @c cudaErrorInvalidMemcpyDirection to @ref novaInvalidTransfDirection,
- * @c cudaErrorInvalidResourceHandle to @ref novaInvalidResourceHandle,
- * and every other error to @ref novaNotImplemented.
+ * Compiled only behind @c NOVA_HAS_CUDA and
+ * @c __has_include(<cuda_runtime_api.h>); otherwise a stub
+ * returning an error status is provided.
  *
  * @see CudaIO.hpp        Function declaration.
  * @see CudaAllocator.cpp CUDA memory allocation implementation.
@@ -101,31 +81,6 @@ novaStatus_t mapError(cudaError_t err) {
     status.message = nova_get_error_msg(status.err, nullptr);
     return status;
   }
-}
-
-/**
- * @brief Query whether the active CUDA device supports memory pools.
- *
- * @details
- * Uses @c getCudaDeviceId() to query the
- * @c cudaDevAttrMemoryPoolsSupported attribute.  This is safe
- * because CUDA device detection is performed before any memory is
- * allocated on the device; if detection failed, the internal
- * implementations saved the result under lock, ensuring that
- * @c getCudaDeviceId() always returns a valid value.
- *
- * @return @c true if memory pools are supported, @c false otherwise.
- *         Queried once; function-local statics initialize exactly once
- *         even under concurrent first calls.
- */
-bool supportMemoryPool() {
-  static const bool supported = [] {
-    int value = 0;
-    const cudaError_t err = cudaDeviceGetAttribute(
-        &value, cudaDevAttrMemoryPoolsSupported, getCudaDeviceId());
-    return err == cudaSuccess && value != 0;
-  }();
-  return supported;
 }
 
 /**
@@ -206,21 +161,9 @@ cudaStream_t getStream(novaStatus_t *status) {
  * synchronization before returning when @p stream is null.  The
  * transfer direction is determined by @p kind.
  *
- * @subsection execution-flow Execution Flow
- *
- * @code{.cpp}
- *   work = (stream != nullptr) ? stream : getStream();  // select
- *   err = cudaMemcpyAsync(dst, src,                     // enqueue
- *                         bytes, kind, work);
- *   if (err != cudaSuccess) return mapError(err);
- *   if (stream == nullptr) {                            // sync iff internal
- *     syncErr = cudaStreamSynchronize(work);            // block
- *     if (sync_err != cudaSuccess) return mapError(syncErr);
- *   }
- *   return CUDA_OK;
- * @endcode
- *
- * Both use @ref mapError for consistent error mapping.
+ * Errors surface at the @c cudaMemcpyAsync launch and, on the
+ * singleton path, at the @c cudaStreamSynchronize wait; both map
+ * through @ref mapError.
  *
  * @param[in]  bytes     Number of bytes to copy.
  * @param[in]  kind      Copy direction (@ref DeviceMemcpyKind).
@@ -243,25 +186,15 @@ novaStatus_t cudaTransfer(std::size_t bytes, DeviceMemcpyKind kind,
     }
   }
 
-  if (supportMemoryPool()) {
-    const cudaError_t err =
-        cudaMemcpyAsync(dst, src, bytes, mapMemcpyKind(kind), work);
-
-    if (err != cudaSuccess) {
-      return mapError(err);
-    }
-
-    if (stream == nullptr) {
-      const cudaError_t syncErr = cudaStreamSynchronize(work);
-      if (syncErr != cudaSuccess) {
-        return mapError(syncErr);
-      }
-    }
-  } else {
-    const cudaError_t err = cudaMemcpy(dst, src, bytes, mapMemcpyKind(kind));
-
-    if (err != cudaSuccess) {
-      return mapError(err);
+  const cudaError_t err =
+      cudaMemcpyAsync(dst, src, bytes, mapMemcpyKind(kind), work);
+  if (err != cudaSuccess) {
+    return mapError(err);
+  }
+  if (stream == nullptr) {
+    const cudaError_t syncErr = cudaStreamSynchronize(work);
+    if (syncErr != cudaSuccess) {
+      return mapError(syncErr);
     }
   }
 
