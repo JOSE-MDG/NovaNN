@@ -43,6 +43,7 @@
 #include <ncore/tensor.h>
 #include <ncore/threading/parallel/helpers.h>
 
+#include "utils/Rng.hpp"
 #include "utils/TensorUtils.hpp"
 
 namespace {
@@ -565,7 +566,7 @@ TEST(StorageRounding, PinnedSmallTierRoundTrip) {
   TensorCXX host({63}, UnSigned8, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
   Tensor hv = host.getCTensor();
-  tests::tensor::fillTensor(hv);
+  EXPECT_EQ(tests::rng::fillTensor(hv).err, novaSuccess);
 
   TensorCXX dev({63}, UnSigned8, DEVICE_GPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
@@ -600,7 +601,7 @@ TEST(StorageRounding, ReprShadowUsesTheoretical) {
   TensorCXX host({4, 8}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
   Tensor hv = host.getCTensor();
-  tests::tensor::fillTensor(hv);
+  EXPECT_EQ(tests::rng::fillTensor(hv).err, novaSuccess);
 
   TensorCXX dev({4, 8}, Float32, DEVICE_GPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
@@ -752,7 +753,7 @@ TEST(StorageRounding, DeepcopyPreservesDualSizes) {
   TensorCXX src({4, 8}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
   Tensor sv = src.getCTensor();
-  tests::tensor::fillTensor(sv);
+  EXPECT_EQ(tests::rng::fillTensor(sv).err, novaSuccess);
   ASSERT_EQ(sv.storage->handle.requested_bytes, size_t{128});
 
   TensorCXX dst(unallocated, {4, 8}, Float32, DEVICE_CPU, false, false, &st);

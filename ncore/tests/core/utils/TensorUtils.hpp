@@ -27,38 +27,6 @@
 
 namespace tests::tensor {
 
-/// Default seed for the deterministic byte pattern ("NOVA" in ASCII).
-constexpr uint32_t kDefaultSeed = 0x4E4F5641u;
-
-/**
- * @brief Fills @p buf with a deterministic LCG byte pattern.
- *
- * Same inputs produce the same bytes on every platform; no global state.
- *
- * @param[out] buf   Destination buffer.
- * @param[in]  bytes Size in bytes.
- * @param[in]  seed  LCG seed.
- */
-inline void fillPattern(void *buf, size_t bytes, uint32_t seed = kDefaultSeed) {
-  auto *out = static_cast<uint8_t *>(buf);
-  uint32_t state = seed;
-  for (size_t i = 0; i < bytes; ++i) {
-    state = (state * 1664525u) + 1013904223u;
-    out[i] = static_cast<uint8_t>(state >> 24);
-  }
-}
-
-/**
- * @brief Fills the whole data buffer of an allocated tensor.
- *
- * @param[in,out] ten  Allocated tensor whose payload is overwritten.
- * @param[in]     seed LCG seed.
- */
-inline void fillTensor(Tensor &ten, uint32_t seed = kDefaultSeed) {
-  EXPECT_TRUE(is_allocated(&ten));
-  fillPattern(ten.data.data, ten.size * ten.item_size, seed);
-}
-
 /**
  * @brief Non-fatal bitwise comparison of two buffers with context.
  */
