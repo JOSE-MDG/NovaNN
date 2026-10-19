@@ -1288,6 +1288,11 @@ novaStatus_t launchCast(const Tensor *restrict src, Tensor *restrict dst) {
     return {.err = novaKernelLaunchError,
             .message = hipGetErrorString(launchErr)};
   }
+  // Null path: The sync drains the null queue before returning.
+  if (hipStreamSynchronize(nullptr) != hipSuccess) {
+    return {.err = novaKernelLaunchError,
+            .message = "hipStreamSynchronize after launch failed"};
+  }
   return OK;
 }
 
