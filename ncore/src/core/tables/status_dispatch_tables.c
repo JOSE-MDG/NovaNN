@@ -4,21 +4,17 @@
  *
  * @details
  * Populates the @c status_msg_dispatch array that maps each @ref novaError_t
- * code to its corresponding human-readable message. The table is
- * populated once at program load time via an @c INITIALIZE(init_status_msg_dispatch)
- * function.
+ * code to its corresponding human-readable message, once at program
+ * load time via an INITIALIZE(init_status_msg_dispatch) function.
+ * The core status logic stays decoupled from the message strings,
+ * following the same pattern as other dispatch tables in the runtime.
  *
- * This separation ensures that the core status logic remains decoupled
- * from the specific message strings, following the same pattern as other
- * dispatch tables in the runtime.
+ * @c INITIALIZE(init_status_msg_dispatch) runs at program load time.
+ * Because this file only writes to the @c status_msg_dispatch array
+ * (no other globals depend on it), there are no inter-file ordering
+ * constraints.
  *
- * @section constructor-ordering Constructor ordering
- * @c INITIALIZE(init_status_msg_dispatch) runs at program load time. Because
- * this file only writes to the @c status_msg_dispatch array (no other
- * globals depend on it), there are no inter-file ordering constraints.
- *
- * @see status_msg_dispatch  The message lookup array.
- * @see novaError_t          The error code enumeration.
+ * @see status.h  @ref novaError_t enumeration and reporting API.
  */
 
 #include <ncore/core/status.h>

@@ -3,32 +3,17 @@
  * @brief Generic tensor copy routines and deep-copy dispatch.
  *
  * @details
- * This translation unit implements the tensor deep-copy machinery
- * declared in @ref copy.h.  It provides:
- *
- * @li CPU copy function — a single @c static inline routine
- *    (@ref copy_host_buffer) that performs host-to-host @c memcpy
- *    via a @c void* pointer, working for every dtype.
- * @li GPU copy function — a single @c static inline routine
- *    (@ref copy_device_buffer) that delegates to @ref transfer_to()
- *    for device-to-device copies.
- * @li Dispatch tables — @ref lookup_host_copy, @ref lookup_device_copy,
- *    and @ref lookup_copy map @c (device, dtype) pairs to the correct
- *    @ref CopyFn.
- * @li @c deepcopy() — the public entry point that allocates storage,
- *    copies metadata and data, and recursively copies the gradient
- *    subtree.
- *
- * @section design Design
+ * Tensor deep-copy machinery declared in @ref copy.h: a host and a
+ * device copy routine, the (device, dtype) dispatch tables, and the
+ * public @c deepcopy() entry point.
  *
  * Rather than maintaining one copy function per dtype (as in earlier
  * versions), a single @c static inline @c copy_host_buffer uses
  * @c src->data.v / @c dst->data.v (@c void*) so the compiler can still
  * inline the @c memcpy call while keeping the codebase minimal.
- * Similarly, @c copy_device_buffer handles all dtypes in one routine,
- * directly returning the @ref transfer_to() result.  The dispatch
- * tables are @c const static and zero-initialized. Only the entries
- * that correspond to supported dtypes are filled in.
+ * Likewise @c copy_device_buffer handles all dtypes in one routine.
+ * The dispatch tables are @c const static and zero-initialized; only
+ * the entries for supported dtypes are filled.
  *
  * @see copy.h       Public API for deep-copy.
  * @see device.h     Device placement and transfer functions.
@@ -64,8 +49,7 @@
  *
  * @param[in]  src     Source tensor with allocated storage.  The
  *                     data buffer is read-only.
- * @param[out] dst     Destination tensor with pre-allocated storage
- *                     of at least @c src->storage->handle.requested_bytes.
+ * @param[out] dst     Destination tensor with pre-allocated storage.
  * @param[out] status  Unused for this function (always left
  *                     unchanged).  Provided for signature
  *                     compatibility with @ref CopyFn.
@@ -73,8 +57,6 @@
  * @pre  Both @p src and @p dst have non-null, allocated storage.
  * @pre  @c dst->storage->handle.requested_bytes >=
  *       @c src->storage->handle.requested_bytes.
- * @post The first @c src->storage->handle.requested_bytes bytes of
- *       @c dst->data are a bitwise copy of @c src->data.
  */
 static inline void copy_host_buffer(const Tensor *restrict src,
                                     Tensor *restrict dst,
@@ -94,20 +76,14 @@ static inline void copy_host_buffer(const Tensor *restrict src,
  * @ref get_detected_device_kind().  If no compute device has been
  * detected, sets @p status to @ref novaDeviceNotAvailable and
  * returns early.  Otherwise delegates to @ref transfer_to() and
- * assigns the returned @ref novaStatus_t directly. The intermediate
- * @c map_code2err() translation is no longer required because
- * @ref transfer_to() now returns a @ref novaStatus_t natively.
+ * assigns the returned @ref novaStatus_t directly.
  *
  * @param[in]  src     Source tensor residing on a GPU device.  Must
  *                     have allocated storage.
- * @param[out] dst     Destination tensor on a GPU device.  Must have
- *                     pre-allocated storage of at least
- *                     @c src->storage->handle.requested_bytes.
- * @param[out] status  Receives the result.  On success, set to
- *                     @ref novaSuccess.  If no device is available,
- *                     set to @ref novaDeviceNotAvailable.  On
- *                     transfer failure, set to the error code
- *                     returned by @ref transfer_to().
+ * @param[out] dst     Destination tensor on a GPU device.
+ * @param[out] status  Receives the transfer result, or
+ *                     @ref novaDeviceNotAvailable when no device has
+ *                     been detected.
  *
  * @pre  A compute device (CUDA or HIP) must have been detected via
  *       @ref is_device_available().
@@ -115,10 +91,6 @@ static inline void copy_host_buffer(const Tensor *restrict src,
  *       on the active device.
  * @pre  @c dst->storage->handle.requested_bytes >=
  *       @c src->storage->handle.requested_bytes.
- * @post On success, @c dst->data contains a device-side bitwise copy
- *       of @c src->data and @p status is @ref novaSuccess.
- * @post On failure, @p status contains the appropriate error code
- *       and the contents of @c dst->data are undefined.
  *
  * @see transfer_to()   Low-level device memory transfer.
  */
@@ -144,9 +116,7 @@ static inline void copy_device_buffer(const Tensor *restrict src,
  * @details
  * A @c NUM_DTYPES × 1 array of @ref CopyFn pointers.  Every entry
  * points to the generic @ref copy_host_buffer function, which handles
- * all dtypes via a @c void* @c memcpy.  Twenty-one dtypes are supported
- * (all standard float, low-precision, signed/unsigned integer, and
- * quantized variants).  Used by @ref deepcopy() when
+ * all dtypes via a @c void* @c memcpy.  Used by @ref deepcopy() when
  * @c src->device == DEVICE_CPU.
  */
 static const CopyFn lookup_host_copy[NUM_DTYPES][1] = {
@@ -191,10 +161,8 @@ static const CopyFn lookup_host_copy[NUM_DTYPES][1] = {
  * @details
  * A @c NUM_DTYPES × 1 array of @ref CopyFn pointers.  Every entry
  * points to the generic @ref copy_device_buffer function, which
- * handles all dtypes in a single routine.  Twenty-one dtypes are
- * supported (all standard float, low-precision, signed/unsigned
- * integer, and quantized variants).  Used by @ref deepcopy() when
- * @c src->device == DEVICE_GPU.
+ * handles all dtypes in a single routine.  Used by @ref deepcopy()
+ * when @c src->device == DEVICE_GPU.
  */
 static const CopyFn lookup_device_copy[NUM_DTYPES][1] = {
     /* Low-precision floats */
@@ -237,12 +205,10 @@ static const CopyFn lookup_device_copy[NUM_DTYPES][1] = {
  *        appropriate per-dtype copy table.
  *
  * @details
- * A 2-element array indexed by @ref Device_:
- * @li @c lookup_copy[DEVICE_CPU] → @ref lookup_host_copy
- * @li @c lookup_copy[DEVICE_GPU] → @ref lookup_device_copy
- *
- * Used by @ref deepcopy() as @c lookup_copy[src->device][src->dtype]
- * to resolve the correct @ref CopyFn in a single array lookup.
+ * 2-element array indexed by @ref Device_ pointing at
+ * @ref lookup_host_copy and @ref lookup_device_copy.  Used by
+ * @ref deepcopy() as @c lookup_copy[src->device][src->dtype] to
+ * resolve the correct @ref CopyFn in a single array lookup.
  */
 static const CopyFn *lookup_copy[2] = {
     [DEVICE_CPU] = (CopyFn *)lookup_host_copy,
@@ -254,50 +220,29 @@ static const CopyFn *lookup_copy[2] = {
  *        gradients.
  *
  * @details
- * Allocates new storage for @p dst via @ref safe_allocator(),
- * copies all metadata and element data from @p src, and recursively
+ * Allocates new storage for @p dst via @ref safe_allocator(), copies
+ * all metadata and element data from @p src, and recursively
  * deep-copies the gradient subtree.  The copy is dispatched through
  * the @ref lookup_copy table based on @c src->device and
  * @c src->dtype.
  *
- * @section behavior Behavior
- *
- * @li 1. All metadata fields (@c shape, @c strides, @c item_size, @c size,
- *    @c ndims, @c dtype, @c device, @c scale_, @c zero_point_,
- *    @c is_pinned_, gradient flags, etc) are copied element-by-element.
- *    Fields @c is_view_, @c grad_fn_, and @c offset are set to fixed
- *    values (@c false, @c nullptr, @c 0 respectively).
- * @li 2. If @c src->storage is non-nullptr, a new @ref TensorStorage is
- *    allocated via @ref safe_allocator() and the data is copied
- *    using the appropriate @ref CopyFn.
- * @li 3. If @c src->grad is non-nullptr, the gradient tensor is recursively
- *    deep-copied via a self-recursive call.  Gradient copy errors
- *    are propagated through @p status.
- * @li 4. The destination tensor is marked as @c is_allocated_ = true,
- *    @c is_leaf_ = true, and @c is_view_ = false.
+ * The destination starts from fixed view/autograd metadata:
+ * @c is_view_ is @c false, @c offset is 0, @c grad_fn_ is
+ * @c nullptr, and @c is_leaf_ is @c true.
  *
  * @param[in]  src     Source tensor.  May be @c nullptr (no-op).
- * @param[out] dst     Destination tensor.  Must not be @c nullptr.  Must
- *                     have @c is_allocated_ == false (i.e., created
- *                     by @c create_unallocated_tensor()).
- * @param[out] status  Receives the result of the deep-copy
- *                     operation.  On success, set to
- *                     @ref novaSuccess.  On failure, set to the
- *                     appropriate error code.
+ * @param[out] dst     Destination tensor.  Must not be @c nullptr.
+ *                     Must have @c is_allocated_ == false (i.e.,
+ *                     created by @c create_unallocated_tensor()).
+ * @param[out] status  Receives the result.  On failure @p dst is
+ *                     collected (freed) and must not be used.
  *
- * @pre  @p dst must be an unallocated tensor.
  * @pre  If @p src has a non-nullptr @c storage, its @c requested_bytes
  *       must be > 0.
- * @post On success, @p dst is a complete independent copy of
- *       @p src, including gradient history.
- * @post On failure, @p status contains the error code and @p dst is
- *       collected (freed) by this function and must not be used.
  *
  * @see CopyFn            Per-dtype copy function pointer type.
  * @see lookup_copy       Dispatch table selecting host vs device.
  * @see safe_allocator()  Storage allocator.
- * @see Device_           Device placement enum.
- * @see DType_            Data-type enum used for dispatch.
  */
 void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
               novaStatus_t *status) {

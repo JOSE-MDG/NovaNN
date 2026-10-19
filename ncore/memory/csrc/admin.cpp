@@ -21,8 +21,8 @@
  *
  * @details
  * Checks CUDA first, then HIP.  The first detected runtime
- * wins.  This function is called by @ref deviceTransfer,
- *  and FFI Rust wrappers (in @c ncore/memory/src)
+ * wins.  Called by @c deviceTransfer() and the
+ * FFI Rust wrappers (in @c ncore/memory/src)
  * to auto-detect the active backend for data transfers.
  *
  * @return @ref deviceKind_t::DeviceCUDA if CUDA is available,

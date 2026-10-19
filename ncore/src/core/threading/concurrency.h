@@ -24,15 +24,10 @@
   *        process.
   *
   * @details
-  * Platform-specific implementation:
-  * @li Linux: counts the CPUs in the process CPU affinity mask via
-  *   @c sched_getaffinity().
-  * @li Windows: counts the logical CPUs in the process affinity
-  *   state. Single processor group: popcount of the process affinity
-  *   mask. Multiple groups: exact per-group process masks collected
-  *   by a helper thread visiting each process group.
-  * @li Other platforms: returns @c 0 with
-  *   @ref novaOsPlatformNotSupported.
+  * Platform-specific implementation in @ref concurrency.c; counts
+  * logical CPUs schedulable by this process (affinity-aware), or
+  * fails with @ref novaOsPlatformNotSupported on unsupported
+  * platforms.
   *
   * @param[out] status  Receives the result.  Set to @ref novaSuccess
   *                     on success, or to an error code (e.g.,

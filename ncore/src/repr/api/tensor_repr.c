@@ -10,18 +10,12 @@
  * device-to-host shadowing, context building, layout rendering, and
  * metadata formatting.
  *
- * @section representation-pipeline Representation Pipeline
- *
- * @li 1. Validation: null arguments and unallocated tensors fail
- *    fast with a reason; nothing renders.
- * @li 2. Shadowing: GPU tensors render through a temporary host copy
- *    that is always released, including on transfer failure.
- * @li 3. Contextualization: @ref build_repr_context() scans the
- *    tensor and derives formatting parameters.
- * @li 4. Layout: one recursive renderer handles contiguous, strided,
- *    and truncated output behind a 256-byte @ref StringBuilder.
- * @li 5. Metadata & closure: footer appended, builder errors map to
- *    @c novaOutOfMemory, ownership transfers to the caller.
+ * Unallocated tensors and null arguments fail fast with a reason;
+ * nothing renders.  GPU tensors render through a temporary host copy
+ * that is always released, including on transfer failure.  Rendered
+ * output moves through a 256-byte @ref StringBuilder; builder errors
+ * map to @c novaOutOfMemory and ownership of the string transfers to
+ * the caller.
  *
  * @see tensor_repr.h     Public API definitions.
  * @see repr_context.h    Context and scanning logic.

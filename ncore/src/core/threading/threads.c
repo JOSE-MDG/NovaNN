@@ -3,23 +3,17 @@
  * @brief Global and per-group thread-count management.
  *
  * @details
- * Implements the public threading API declared in @ref threads.h:
- *
- * @li Global budget: @ref atomic_global_thread_counter with its
- *   initialized flag, written by @ref set_num_logical_threads() and
- *   read by @ref get_configured_num_logical_threads().
- * @li Per-group counters: assigned through the @ref set_threads_funcs
- *   dispatch table (@ref set_num_threads_to()) and read through
- *   @ref get_threads_funcs (@ref get_num_threads_from()).
- * @li Stratification: @ref get_stratified_threads() resolves the total
- *   and splits it once via @ref stratify_threads(), serving later
- *   calls from the recorded result;
- *   @ref distribute_stratified_threads() writes a validated budget
- *   into the counters.
- * @li Inspection: @ref print_thread_config() renders the budget, the
- *   recorded split and the live counters to stdout.
- *
- * @section thread-safety Thread Safety
+ * Implements the public threading API declared in @ref threads.h.
+ * A global budget (@ref atomic_global_thread_counter with its
+ * initialized flag) is written by @ref set_num_logical_threads() and
+ * read by @ref get_configured_num_logical_threads(); per-group
+ * counters are assigned through the @ref set_threads_funcs dispatch
+ * table and read through @ref get_threads_funcs.
+ * @ref get_stratified_threads() resolves the total, splits it once
+ * via @ref stratify_threads(), and serves later calls from the
+ * recorded result; @ref distribute_stratified_threads() writes a
+ * validated budget into the counters.  @ref print_thread_config()
+ * renders the budget, the recorded split and the live counters.
  *
  * All shared state in this unit is atomic. The global budget and its
  * flag pair a relaxed counter with a release/acquire flag, and each

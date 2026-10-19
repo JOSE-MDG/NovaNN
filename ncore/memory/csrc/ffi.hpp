@@ -31,7 +31,7 @@
  * @brief Opaque descriptor for a GPU or pinned-host memory buffer.
  *
  * @details
- * This struct is the currency type passed between the Rust FFI
+ * The currency type passed between the Rust FFI
  * layer and the C++ backend.  The @ref deviceBufPtr member
  * holds a pointer to a backend-specific descriptor
  * (@c cudaBuffer_t* or @c hipBuffer_t*) that is allocated by

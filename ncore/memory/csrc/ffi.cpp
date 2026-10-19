@@ -8,21 +8,14 @@
  * (CUDA or HIP) based on the @ref deviceKind_t tag stored in
  * the buffer descriptor or detected at runtime.
  *
- * Backend availability is gated at two levels:
- * @li 1. Compile-time — @c NOVA_HAS_CUDA / @c NOVA_HAS_HIP
- *    preprocessor macros control whether backend code is
- *    compiled.
- * @li 2. Runtime — @ref getDeviceBackend() probes CUDA and
- *    HIP runtime availability.
- *
- * @section dispatch-strategy Dispatch Strategy
- *
- * @li Allocation (@c deviceReserve) — The caller specifies the
- *   target backend via the @p kind parameter.
- * @li Release and resize — The backend is read from the buffer
- *   descriptor's @ref deviceBuffer_t::deviceKind field.
- * @li Transfer — The backend is auto-detected via
- *   @ref getDeviceBackend().
+ * Backend availability is gated at two levels: compile-time
+ * (@c NOVA_HAS_CUDA / @c NOVA_HAS_HIP preprocessor macros) and
+ * runtime (@ref getDeviceBackend() probes CUDA and HIP runtime
+ * availability).  Dispatch strategy per operation: allocation
+ * (@c deviceReserve) takes the target backend from the caller's
+ * @p kind parameter; release and resize read the backend from the
+ * buffer descriptor's @ref deviceBuffer_t::deviceKind field;
+ * transfer auto-detects the backend via @ref getDeviceBackend().
  *
  * @see ffi.hpp             Function declarations and type definitions.
  * @see admin.cpp           Runtime backend detection.

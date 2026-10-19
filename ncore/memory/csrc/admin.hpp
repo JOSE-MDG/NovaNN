@@ -48,10 +48,9 @@ extern "C" {
  *
  * @details
  * Probes CUDA and HIP runtime availability in order.  The first
- * runtime found wins:
- * @li 1. CUDA — returns @ref deviceKind_t::DeviceCUDA.
- * @li 2. HIP  — returns @ref deviceKind_t::DeviceHIP.
- * @li 3. Neither — returns @ref deviceKind_t::DeviceNull.
+ * runtime found wins: CUDA maps to @ref deviceKind_t::DeviceCUDA,
+ * HIP to @ref deviceKind_t::DeviceHIP, neither to
+ * @ref deviceKind_t::DeviceNull.
  *
  * @return The detected GPU backend.
  *

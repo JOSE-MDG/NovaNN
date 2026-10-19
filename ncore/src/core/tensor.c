@@ -11,17 +11,12 @@
  * @ref novaStatus_t pointer.  On failure the returned tensor is zeroed
  * and the caller must not use it.
  *
- * @section implementation-notes Implementation Notes
- *
- * @li All creation functions zero-initialize the @c Tensor struct before
- *   populating fields — no stale data is possible.
- * @li @c safe_allocator() is the single allocation entry point for CPU and
- *   GPU tensors; for @c DEVICE_META tensors it is never invoked and
- *   storage is left @c nullptr.
- * @li Views increment the Rust reference count via @c retain() and decrement
- *   it when @c collect() is called on the view. A failed release leaves the
- *   storage attached so cleanup can be retried.
- * @li @c collect() returns @c novaSuccess on @c nullptr.
+ * Creation functions zero-initialize the @c Tensor struct before
+ * populating fields.  @c safe_allocator() is the single allocation
+ * entry point for CPU and GPU tensors; META tensors never invoke it.
+ * Views bump the Rust reference count via @c retain() and drop it when
+ * @c collect() runs on the view; a failed release leaves the storage
+ * attached so cleanup can be retried.
  *
  * @see tensor.h   Public API declarations and struct documentation.
  * @see alloc.h    safe_allocator().
@@ -46,45 +41,33 @@
  * @brief Create a fully allocated n-dimensional tensor.
  *
  * @details
- * @li 1. Zero-initializes a @c Tensor struct.
- * @li 2. Copies @c shape (only the first @c ndims entries).
- * @li 3. Computes @c size via @c compute_tensor_size_().
- * @li 4. Computes @c strides via @c compute_tensor_strides_() (row-major).
- * @li 5. For @c DEVICE_META: marks the tensor as unallocated and returns
- *    immediately (the allocator is never invoked).
- * @li 6. For @c DEVICE_CPU / @c DEVICE_GPU: calls @c safe_allocator() to
- *    allocate the data buffer.  On failure the tensor is zeroed.
- * @li 7. If @c requires_grad, creates an unallocated gradient tensor.
- *    On failure, releases any already-allocated storage via
- *    @c collect() and zeroes the tensor.
+ * Copies the shape, computes row-major strides, and allocates backing
+ * storage through @ref safe_allocator().  META tensors skip allocation
+ * and keep @c nullptr storage.  With @c requires_grad an unallocated
+ * gradient tensor is attached; if that fails the just-allocated
+ * storage is collected and the tensor zeroed.
  *
  * @param[in]  shape         Dimension sizes (only the first @c ndims
  *                           entries are read).
  * @param[in]  dtype         Element data type (@ref DType_).
- * @param[in]  device        Target device (@c DEVICE_CPU,
- *                           @c DEVICE_GPU, or @c DEVICE_META).
+ * @param[in]  device        Target device.
  * @param[in]  requires_grad If @c true, creates an unallocated
  *                           gradient tensor in @c grad.
  * @param[in]  pin_memory    If @c true, request page-locked host
  *                           memory (CPU only).
- * @param[in]  ndims         Number of dimensions.  Must be > 0 and <=
- *                           @ref NOVA_MAX_DIMS; a scalar (@c ndims == 0)
- *                           must be created via @c create_scalar_tensor().
+ * @param[in]  ndims         Number of dimensions, in
+ *                           [1, @ref NOVA_MAX_DIMS].  Scalars
+ *                           (@c ndims == 0) must be created via
+ *                           @c create_scalar_tensor().
  * @param[out] status        Receives the operation result.
  *
  * @return Initialized @c Tensor with valid backing storage, or a
  *         META tensor with nullptr storage.
  *
- * @pre  @c ndims must be in [1, NOVA_MAX_DIMS].  Scalars (@c ndims == 0)
- *       are out of contract here — use @c create_scalar_tensor().
  * @pre  @c product(shape[0..ndims]) must be > 0 for non-META.
- * @pre  @p status must not be @c nullptr.
- * @post On success, @c is_allocated_ == true (unless META).
- * @post If @c requires_grad, @c grad points to an unallocated tensor.
  *
- * @see create_scalar_tensor()   Scalar (0-D) variant.
- * @see create_tensor_like()     Clone metadata from an existing tensor.
- * @see safe_allocator()         Underlying allocation.
+ * @see create_scalar_tensor()  Scalar (0-D) variant.
+ * @see create_tensor_like()    Clone metadata from an existing tensor.
  */
 Tensor create_tensor(const shape_t shape, DType_ dtype, Device_ device,
                      bool requires_grad, bool pin_memory, size_t ndims,
@@ -152,19 +135,11 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device_ device,
  * @brief Create a fully allocated 0-dimensional (scalar) tensor.
  *
  * @details
- * Allocates a single-element data buffer.  Shape and strides are
- * zeroed, @c ndims is set to 0, and @c size is set to 1.
- * The implementation mirrors @c create_tensor() but bypasses the
- * @c compute_tensor_size_() / @c compute_tensor_strides_() calls
- * since scalars have a trivial layout.
- *
- * For @c DEVICE_META, storage is left @c nullptr and @c is_allocated_ is
- * set to @c false.  On failure the tensor is zeroed and the error
- * is reported through @p status.
+ * Allocates a single-element buffer.  Shape and strides are zeroed,
+ * @c ndims is 0 and @c size is 1.  For META, storage stays @c nullptr.
  *
  * @param[in]  dtype         Element data type (@ref DType_).
- * @param[in]  device        Target device (@c DEVICE_CPU,
- *                           @c DEVICE_GPU, or @c DEVICE_META).
+ * @param[in]  device        Target device.
  * @param[in]  requires_grad If @c true, creates an unallocated
  *                           scalar gradient tensor.
  * @param[in]  pin_memory    If @c true, request page-locked host
@@ -172,11 +147,6 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device_ device,
  * @param[out] status        Receives the operation result.
  *
  * @return Initialized scalar @c Tensor with backing storage.
- *
- * @pre  Device_ must be one of @c DEVICE_CPU, @c DEVICE_GPU, or
- *       @c DEVICE_META.
- * @pre  @p status must not be @c nullptr.
- * @post On success, @c is_allocated_ == true (unless META).
  *
  * @see create_tensor()  N-dimensional variant.
  * @see is_scalar()      Query predicate.
@@ -245,27 +215,15 @@ Tensor create_scalar_tensor(DType_ dtype, Device_ device, bool requires_grad,
  *        another.
  *
  * @details
- * Inspects the source tensor and produces a new tensor with
- * identical metadata:
- * @li If @c is_scalar(ten) is true, delegates to
- *   @c create_scalar_tensor() or @c create_unallocated_scalar_tensor().
- * @li Otherwise delegates to @c create_tensor() or
- *   @c create_unallocated_tensor().
- *
- * The new tensor is independent of the source — it owns its own
- * storage and does not share the source's buffer.
+ * Delegates to the scalar or n-dimensional constructor depending on
+ * @c is_scalar(ten).  The new tensor is independent of the source:
+ * it owns its own storage and does not share the source's buffer.
  *
  * @param[in]  ten    Source tensor to copy metadata from.  Must not
  *                    be @c nullptr.
  * @param[out] status Receives the operation result.
  *
  * @return New @c Tensor with matching metadata and allocation state.
- *
- * @pre  @p ten must not be @c nullptr.
- * @pre  @p status must not be @c nullptr.
- * @post The returned tensor has the same shape, dtype, device,
- *       requires_grad, and is_pinned_ as @p ten.
- * @post The returned tensor owns its own storage (not shared).
  *
  * @see create_tensor()           Allocated variant.
  * @see create_unallocated_tensor() Unallocated variant.
@@ -309,21 +267,12 @@ Tensor create_tensor_like(const Tensor *ten, novaStatus_t *status) {
  * @brief Create a view of an existing tensor with a new shape.
  *
  * @details
- * @li 1. Shallow-copy the source @c Tensor into @c dst.
- * @li 2. Increment the Rust reference count via @c retain(), propagating
- *    any status error through @p status.
- * @li 3. Overwrite @c ndims and @c shape with the new values (skipped for
- *    scalar sources).
- * @li 4. Recompute @c strides for the new shape via
- *    @c compute_tensor_strides_().
- * @li 5. Mark @c is_view_ = true and @c is_leaf_ = false.
- * @li 6. If the source has a gradient, create an unallocated gradient
- *    tensor for the view (preserving the gradient dtype).  On
- *    failure, release the view's storage via @c collect() and zero
- *    the tensor.
- *
- * The returned view shares the source's storage — no data copy is
- * performed.  The source must outlive the view.
+ * Shallow-copies @p src, bumps the storage reference count via
+ * @c retain(), then rewrites shape and strides for @p new_shape.
+ * The view shares the source's storage, no data is copied and the
+ * source must outlive the view.  If the source carries a gradient,
+ * an unallocated gradient tensor is created for the view; on failure
+ * the view's storage is collected and the tensor zeroed.
  *
  * @param[in]  src        Source tensor to view.  Must have non-nullptr
  *                        storage.  Must outlive the view.
@@ -335,12 +284,6 @@ Tensor create_tensor_like(const Tensor *ten, novaStatus_t *status) {
  * @return View @c Tensor sharing @p src's storage.
  *
  * @pre  @c product(new_shape[0..new_ndims]) must equal @c src->size.
- * @pre  @c src->storage must not be @c nullptr.
- * @pre  @p status must not be @c nullptr.
- * @post The returned tensor has @c is_view_ = true and
- *       @c is_leaf_ = false.
- * @post The Rust reference count is incremented by one.
- * @post If @c src->grad != nullptr, the view has an unallocated gradient.
  *
  * @see retain()   Increments the storage reference count.
  * @see collect()  Decrements it (and may free storage).
@@ -351,7 +294,6 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
 
   Tensor dst = *src;
 
-  // Increase the Rust reference counter.
   novaStatus_t retain_status = retain(&dst.storage->handle);
   if (retain_status.err != novaSuccess) {
     *status = retain_status;
@@ -359,7 +301,6 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
     return dst;
   }
 
-  // Copy tensor metadata
   dst.ndims = new_ndims;
   if (!is_scalar(src)) {
     memcpy(dst.shape, new_shape, new_ndims * sizeof(size_t));
@@ -392,25 +333,14 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
  *        memory.
  *
  * @details
- * A tensor is contiguous when elements are stored in row-major
- * order without gaps.  This is verified by checking that each
- * stride matches the expected value:
- *
- * @code
- * expected = item_size
- * for dim = ndims-1 .. 0:
- *     if strides[dim] != expected: not contiguous
- *     expected *= shape[dim]
- * @endcode
- *
- * For a scalar (@c ndims == 0), the function returns @c true
- * immediately.
+ * Contiguous means row-major without gaps: every stride must match
+ * the running product of the inner shapes.  Scalars are always
+ * contiguous.
  *
  * @param[in] ten  Tensor to check.  Must not be @c nullptr.
  *
  * @return @c true if the tensor is contiguous, @c false otherwise.
  *
- * @see strides_t      Stride array.
  * @see create_view()  Views may break contiguity.
  */
 bool is_contiguous(const Tensor *restrict ten) {
@@ -429,18 +359,14 @@ bool is_contiguous(const Tensor *restrict ten) {
 }
 
 /**
- * @brief Ensure a tensor's data is stored contiguously.
+ * @brief Return a tensor whose data is stored contiguously.
  *
  * @details
- * Returns a tensor whose elements are laid out contiguously in
- * row-major order (no gaps between elements).  If @p ten is already
- * contiguous, a view sharing its storage is returned via
- * @ref create_view() — no data is copied.  Otherwise, a new tensor
- * is allocated with the same metadata (dtype, device, requires_grad,
- * pin_memory) and the elements are copied into it.
- *
- * Scalars are handled via @ref create_scalar_tensor() so the result
- * keeps @c ndims == 0.
+ * If @p ten is already contiguous, a view sharing its storage is
+ * returned via @ref create_view() and no data is copied.  Otherwise
+ * a new tensor with the same metadata is allocated and the elements
+ * are copied in.  Scalars go through @ref create_scalar_tensor() so
+ * the result keeps @c ndims == 0.
  *
  * @param[in]  ten    Tensor to make contiguous.  Must not be
  *                    @c nullptr.
@@ -448,11 +374,6 @@ bool is_contiguous(const Tensor *restrict ten) {
  *
  * @return Contiguous @c Tensor with the same shape and metadata as
  *         @p ten, or a zeroed tensor on failure.
- *
- * @pre  @p ten must not be @c nullptr.
- * @pre  @p status must not be @c nullptr.
- * @post On success, @ref is_contiguous() returns @c true for the
- *       result.
  *
  * @see is_contiguous()  Query predicate.
  * @see create_view()    Fast path for already-contiguous tensors.
@@ -698,14 +619,10 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
  * @brief Move ownership of tensor resources from src to dst.
  *
  * @details
- * @li 1. Frees any existing resources in @c dst via @c collect().
- * @li 2. Bitwise-copies @c src into @c dst.
- * @li 3. Zeroes out @c src (storage, data, grad, grad_fn_ set to nullptr;
- *    and @c is_allocated_ set to @c false) so that a
- *    subsequent @c collect() on @c src is a no-op.
- *
- * This is a move semantics wrapper — after the call, only @c dst
- * owns the resources.
+ * Frees any resources currently held by @p dst via @c collect(),
+ * bitwise-copies @c src over it, then hollows out @c src (pointers
+ * nulled, allocation flag cleared) so a later @c collect() on
+ * @c src is a no-op.  After the call only @c dst owns the resources.
  *
  * @param[in,out] dst  Destination tensor (previous resources are
  *                     freed via @c collect()).
@@ -715,11 +632,7 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
  * @return Operation status.  On @c collect() failure @p src is left
  *         untouched.
  *
- * @pre  @p dst and @p src must not be @c nullptr.
  * @pre  @p dst and @p src must not be the same object.
- * @post On success, @p dst owns all resources previously held by
- *       @p src.
- * @post On success, @p src is in a valid but unallocated state.
  *
  * @see collect()  Called on @c dst before the move.
  */
@@ -752,26 +665,16 @@ novaStatus_t move_tensor(Tensor *restrict dst, Tensor *restrict src) {
  * @brief Release tensor memory and gradients.
  *
  * @details
- * @li 1. If @c ten is @c nullptr, returns @c novaSuccess.
- * @li 2. If @c ten->storage is non-nullptr, calls @c release() to
- *    decrement the Rust reference count.
- * @li 3. If @c release() succeeds and returns @c true (count reached zero),
- *    frees the @c TensorStorage with @c free() and nullifies @c storage,
- *    @c data, and @c is_allocated_. On release failure, storage remains
- *    attached for a later cleanup attempt.
- * @li 4. Walks the @c grad chain iteratively, releasing each node's
- *    storage the same way and freeing the node.  A node whose release
- *    fails stays linked under @c ten->grad with the remainder of the
- *    chain for retry.
+ * Releases @c ten->storage with @c release() and, when the reference
+ * count reaches zero, frees the @c TensorStorage.  On release
+ * failure the storage stays attached for a later cleanup attempt.
+ * The @c grad chain is walked iteratively the same way; a node whose
+ * release fails stays linked under @c ten->grad with the remainder
+ * of the chain for retry.
  *
  * @param[in,out] ten  Tensor to collect.  May be @c nullptr.
  *
  * @return First release error encountered, or @c novaSuccess.
- *
- * @post @c ten->storage reference count is decremented.
- * @post If the count reaches zero, @c storage and @c data are set
- *       to nullptr and @c is_allocated_ to @c false.
- * @post @c ten->grad is nullptr unless a gradient release failed.
  *
  * @see release()       Decrements the Rust reference count.
  * @see is_collected()  Query predicate after collection.
@@ -833,13 +736,7 @@ novaStatus_t collect(Tensor *ten) {
  * @brief Check whether a tensor is 0-dimensional (scalar).
  *
  * @details
- * A tensor is a scalar when all four conditions hold:
- * @li @c ndims == 0
- * @li @c shape[0] == 0
- * @li @c strides[0] == 0
- * @li @c size == 1
- *
- * This is the invariant established by @c create_scalar_tensor().
+ * Matches the invariant established by @c create_scalar_tensor().
  *
  * @param[in] ten  Tensor to check.  Must not be @c nullptr.
  *
@@ -857,14 +754,11 @@ bool is_scalar(const Tensor *ten) {
  * @brief Check whether a gradient tensor is 0-dimensional (scalar).
  *
  * @details
- * Same logic as @c is_scalar() but operates on a @c TensorGrad
- * (pointer-to-@c Tensor).
+ * Same logic as @c is_scalar() on a @c TensorGrad.
  *
  * @param[in] grad  Gradient tensor to check.  Must not be @c nullptr.
  *
  * @return @c true if the gradient is a scalar, @c false otherwise.
- *
- * @pre  @p grad must not be @c nullptr.
  *
  * @see is_scalar()  Tensor variant.
  */
@@ -877,13 +771,9 @@ bool is_scalar_grad(TensorGrad grad) {
  * @brief Check whether a tensor has been collected (freed).
  *
  * @details
- * A tensor is considered collected when all three conditions hold:
- * @li @c data.data == nullptr
- * @li @c storage == nullptr
- * @li @c is_allocated_ == false
- *
- * This is the state after @c collect() has fully released the
- * tensor's storage.
+ * True when the data pointer and storage are gone and the allocation
+ * flag is cleared, the state after @c collect() has fully released
+ * the tensor.
  *
  * @param[in] ten  Tensor to check.  Must not be @c nullptr.
  *
@@ -902,9 +792,8 @@ bool is_collected(const Tensor *ten) {
  * @brief Check whether a gradient tensor has been collected.
  *
  * @details
- * If @p grad is @c nullptr, returns @c true (a nullptr gradient is
- * logically "collected").  Otherwise, checks the same three
- * conditions as @c is_collected().
+ * A @c nullptr gradient counts as collected.  Otherwise the same
+ * three conditions as @c is_collected() apply.
  *
  * @param[in] grad  Gradient tensor to check.  May be @c nullptr.
  *
@@ -925,13 +814,9 @@ bool is_grad_collected(TensorGrad grad) {
  * @brief Check whether a tensor's data buffer has been allocated.
  *
  * @details
- * Returns @c true when all three conditions hold:
- * @li @c is_allocated_ == true
- * @li @c storage != nullptr
- * @li @c data.data != nullptr
- *
- * This triple-check ensures the tensor was both marked as
- * allocated and actually has a valid pointer.
+ * Checks the allocation flag plus both pointers, so a tensor only
+ * counts as allocated when it was marked as such and actually holds
+ * a valid buffer.
  *
  * @param[in] ten  Tensor to check.  Must not be @c nullptr.
  *
@@ -949,9 +834,8 @@ bool is_allocated(const Tensor *ten) {
  * @brief Check whether a gradient tensor has been allocated.
  *
  * @details
- * If @p grad is @c nullptr, returns @c false.  Otherwise, checks the
- * same three conditions as @ref is_allocated(): @c is_allocated_,
- * @c storage != nullptr, and @c data.data != nullptr.
+ * Same conditions as @ref is_allocated(); a @c nullptr gradient is
+ * never allocated.
  *
  * @param[in] grad  Gradient tensor to check.  May be @c nullptr.
  *
@@ -972,9 +856,8 @@ bool is_grad_allocated(TensorGrad grad) {
  * @brief Check whether a tensor is a view (shares storage).
  *
  * @details
- * A tensor is marked as a view when it was created via
- * @ref create_view().  Views share the underlying storage with
- * their source tensor and have @c is_leaf_ == false.
+ * True for tensors created via @ref create_view().  Views share the
+ * underlying storage with their source and have @c is_leaf_ == false.
  *
  * @param[in] ten  Tensor to check.  Must not be @c nullptr.
  *
@@ -989,14 +872,11 @@ bool is_view(const Tensor *ten) { return ten->is_view_; }
  * @brief Check whether a gradient tensor is a view.
  *
  * @details
- * Same logic as @ref is_view() but operates on a @c TensorGrad
- * (pointer-to-@c Tensor).
+ * Same logic as @ref is_view() on a @c TensorGrad.
  *
  * @param[in] grad  Gradient tensor to check.  Must not be @c nullptr.
  *
  * @return @c true if the gradient is a view, @c false otherwise.
- *
- * @pre  @p grad must not be @c nullptr.
  *
  * @see is_view()  Tensor variant.
  */
@@ -1006,25 +886,17 @@ bool is_grad_view(TensorGrad grad) { return grad->is_view_; }
  * @brief Check whether a tensor's data resides in GPU device memory.
  *
  * @details
- * A tensor is considered to be "in device" when all three conditions
- * hold:
- * @li @c is_allocated(ten) — the tensor has valid backing storage.
- * @li @c ten->device == @c DEVICE_GPU — the tensor is GPU-resident.
- * @li @c is_device_memory_handle(&ten->storage->handle) — the storage
- *   is backed by device-managed memory.
- *
- * This distinguishes genuine VRAM-resident tensors from CPU tensors
- * (including pinned host tensors, whose handles are also device-managed
- * but are not located in VRAM).
+ * Requires an allocated tensor flagged GPU-resident whose storage
+ * handle is device-managed.  This separates genuine VRAM-resident
+ * tensors from CPU tensors, including pinned host tensors whose
+ * handles are also device-managed but which are not in VRAM.
  *
  * @param[in] ten  Tensor to check.  Must not be @c nullptr.
  *
  * @return @c true if the tensor is allocated, GPU-resident, and
  *         device-backed, @c false otherwise.
  *
- * @see in_host()                    Complementary check.
- * @see is_allocated()               Allocation precondition.
- * @see is_device_memory_handle()    Storage backing check.
+ * @see in_host()  Complementary check.
  */
 bool in_device(const Tensor *ten) {
   return (bool)(is_allocated(ten) && ten->device == DEVICE_GPU &&
@@ -1060,8 +932,10 @@ bool in_host(const Tensor *ten) {
  *        moves.
  *
  * @details
- * Validates the precondition via @p condition, then delegates to
- * @ref transfer_to() which returns the result directly.
+ * @p condition carries the caller's direction/precondition check; on
+ * failure the transfer is refused with
+ * @ref novaInvalidTransfDirection.  Otherwise the work goes to
+ * @ref transfer_to().
  *
  * @param[in]  src       Source tensor.
  * @param[in]  dst       Destination tensor.
@@ -1088,9 +962,8 @@ static inline novaStatus_t transf_tensor_common(const Tensor *restrict src,
  *        memory.
  *
  * @details
- * Validates that @p src is GPU-resident with device-backed storage
- * and that @p dst is an allocated CPU tensor.  Delegates to
- * @ref transf_tensor_common() for the actual transfer.
+ * @p src must be GPU-resident with device-backed storage and @p dst
+ * an allocated CPU tensor.
  *
  * @param[in]     src  Source tensor on GPU.
  * @param[in,out] dst  Destination tensor on CPU.
@@ -1111,9 +984,8 @@ novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
  *        memory.
  *
  * @details
- * Validates that @p src is an allocated CPU tensor and that @p dst
- * is GPU-resident with device-backed storage.  Delegates to
- * @ref transf_tensor_common() for the actual transfer.
+ * @p src must be an allocated CPU tensor and @p dst GPU-resident
+ * with device-backed storage.
  *
  * @param[in]     src  Source tensor on CPU.
  * @param[in,out] dst  Destination tensor on GPU.
