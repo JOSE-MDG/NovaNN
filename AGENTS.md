@@ -155,6 +155,8 @@ Reverse-mode automatic differentiation engine.
 
 The three main backends (CPU, CUDA, HIP) are developed in parallel. CUDA and HIP are mutually exclusive at compile time (`-DUSE_CUDA=ON` or `-DUSE_HIP=ON`, not both). HIP is Linux-only; attempting `-DUSE_HIP=ON` on Windows produces a configure-time error.
 
+ROCm's null stream can drop a freshly compiled kernel when the next null-stream operation waits host side for milliseconds. Launchers on the null path synchronize before returning, and the test tree drains device fills before reading them back. Never run the suites with `HIP_LAUNCH_BLOCKING=1`: it serializes every launch, hides the drop, and makes the gates meaningless.
+
 ---
 
 ## Memory Management (Rust)
@@ -213,7 +215,7 @@ Backend primitives (`cudaReserve/Release/Resize/Transfer` and HIP mirrors) take 
 
 ### Building the Project
 
-Prerequisites: CMake ≥ 3.27, Ninja, and vcpkg with the `VCPKG_ROOT` environment variable pointing to the vcpkg installation (all presets load its toolchain). Every preset builds out-of-source into `build/<preset-name>/`; list them all with `cmake --list-presets`.
+Prerequisites: CMake ≥ 3.27 and Ninja. vcpkg arrives as a git submodule at `thirdParty/vcpkg`; the preset scripts point `VCPKG_ROOT` at it and every preset loads `$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake`. Initialize or refresh it with `scripts/update-vcpkg.sh`, which bootstraps the executable and updates the registry baselines in `vcpkg-configuration.json`. Every preset builds out-of-source into `build/<preset-name>/`; list them all with `cmake --list-presets`.
 
 #### Preset Naming Convention
 
@@ -257,11 +259,16 @@ Configure or build many presets at once. Both scripts print one summary line per
 | `scripts/build-presets.sh` / `.ps1` | Configure matching presets (`cmake --preset`) | `-c/--continue`, `-l/--list` |
 | `scripts/compile-presets.sh` / `.ps1` | Build already-configured presets (`cmake --build`) | `-C/--config Release\|Debug`, `-j/--jobs N`, `-c/--continue`, `-l/--list` |
 | `scripts/run-tests.sh` / `.ps1` | Run matching `*-test-*` presets with ctest | `--force-stop-on-failure`, `-l/--list`, `-- CTEST_ARGS...` |
+| `scripts/update-vcpkg.sh` / `.ps1` | Update the vcpkg submodule, bootstrap it, refresh the registry baselines | `-h/--help` |
 | `clean.sh` / `.ps1` | Clean one CMake tree, logs, or the complete `build/` directory | `--target`, `-n/--dry-run`, `-y/--yes` |
 
 The four preset/test runners share colors, error handling, elapsed-time
 formatting, preset discovery, and progress rendering from
-`scripts/lib/common.sh` and `scripts/lib/common.psm1`. `run-tests` continues
+`scripts/lib/common.sh` and `scripts/lib/common.psm1`. `build-presets`
+and `compile-presets` select the pinned vcpkg through
+`scripts/lib/vcpkg-env.sh` and `scripts/lib/vcpkg-env.psm1`, so a
+reconfigure triggered by the build uses the same toolchain as the
+configure step. `run-tests` continues
 after a failing preset by default; `--force-stop-on-failure` changes that to
 fail-fast. Arguments after `--` are forwarded to ctest, and each preset's
 complete output is saved under `build/logs/tests/`.
@@ -283,7 +290,7 @@ scripts/run-tests.sh cuda -- -R 'MemoryAllocator.*'  # run a filtered test set
 ./clean.sh --target logs                   # remove all build and test logs
 ```
 
-- Filters match a backend prefix (`cpu`, `cuda`, `hip`) or an exact preset name; `compile-presets` accepts multiple filters.
+- Filters match a backend prefix (`cpu`, `cuda`, `hip`) or an exact preset name. `build-presets` takes a single filter; `compile-presets` accepts multiple filters.
 - `--config` defaults to the value derived from the preset name (`*-debug*` → Debug, otherwise Release).
 - Both scripts abort on the first failure unless `--continue` is given. Exit status: `0` success · `1` failure · `2` usage error.
 - On Windows, configuring `cuda-*` presets requires the `CUDA_HOST_COMPILER` environment variable (e.g., pointing to MSVC's `cl.exe`); otherwise those presets are skipped.
@@ -363,6 +370,13 @@ exists because skipping it caused a concrete failure during development.
 - Comments state rationale, never narration. Banned: the word "production"
   (use "the kernels", "the implementation"); em-dash "--" separators in
   comments (use colon, semicolon, parentheses).
+- Headers shared with C++ cast through `STATIC_CAST` from
+  `ncore/include/ncore/headeronly/macros.h`. A C-style cast in a C header
+  raises `-Wold-style-cast` in every C++ translation unit that includes it.
+- The documentation voice lives in
+  `.agents/skills/doxygen-c-cxx-documentation/SKILL.md`: one-line briefs,
+  details only for a non-obvious why, and deletion of what the signature
+  already says.
 - Struct and table aggregates use designated initializers with one member
   per line (`{.name = ..., .pattern = ...}`). Plain scalar arrays remain
   positional.
@@ -378,6 +392,15 @@ exists because skipping it caused a concrete failure during development.
 - A failed Ninja compile deletes object files, so a subsequent ctest runs a
   stale binary silently. Confirm builds succeeded before interpreting test
   results; grep `build/logs/<preset>.log` for `error:`.
+- Build logs accumulate: the preset scripts append to
+  `build/logs/<preset>.log`, so a hit there can come from an older run.
+  Check the hit against the last build line in the same log, or move the log
+  aside before a run whose output has to be read.
+- Incremental builds hide warnings in the translation units they skip. To
+  measure warnings, clean the tree first (`./clean.sh --target
+  build/<preset>`) and rebuild: the build must come out warning free.
+- A registry baseline change re-resolves the vcpkg ports. Re-run the gates
+  after moving a baseline, since the installed ports can change with it.
 - Save full command output to files and grep them; truncated pipes have
   hidden hundreds of failures.
 - Intentional GTEST_SKIPs carry reason strings and are part of the spec;
