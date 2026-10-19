@@ -3,10 +3,9 @@
  * @brief CPU SIMD capability detection and runtime kernel selection interface.
  *
  * @details
- * Provides runtime detection of CPU SIMD instruction sets and a unified
- * interface for selecting optimized kernels based on available hardware.
- * This header defines the @ref SIMDCapabilities structure and the
- * @ref get_simd_capabilities() accessor for querying SIMD features.
+ * Runtime detection of CPU SIMD instruction sets and kernel selection
+ * keyed on the detected hardware. SIMD capabilities arrive through
+ * @ref SIMDCapabilities and @ref get_simd_capabilities().
  *
  * @section simd-support-tiers SIMD Support Tiers
  * The detection follows a hierarchical model:
@@ -17,32 +16,15 @@
  * @li AVX-512 — avx512_* — 512-bit — High-throughput
  * @li AMX — amx_* — Tile — Matrix ops
  *
- * @section usage Usage
- * @code{.c}
- * const SIMDCapabilities *simd = get_simd_capabilities();
- * if (simd->avx512f_) {
- *     // Use AVX-512 optimized kernel
- * } else if (simd->avx2_) {
- *     // Use SSE4.2 fallback
- * }
- * @endcode
- *
  * @section thread-safety Thread Safety
  * Detection is performed once on first call.
  * The returned pointer is safe to use from any thread.
- *
- * @section detection-process Detection Process
- * @li 1. get_simd_capabilities() is called
- * @li 2. CPUID instruction queries available features
- * @li 3. Results are cached in global static
- * @li 4. Subsequent calls return cached result
  *
  * @note Every flag reflects exactly its own CPUID bit; no cross-feature
  *       gating is applied. VNNI flags (avx2_vnni_, avx512_vnni_) enable
  *       neural network optimizations.
  *
  * @see DetectSIMD.cmake Compile-time SIMD flag detection
- * @see tensor.h Tensor structure using SIMD alignment
  * @see simd.c Implementation of runtime detection
  */
 
@@ -56,21 +38,12 @@
  * @brief CPU SIMD capabilities detected at runtime.
  *
  * @details
- * Contains boolean flags indicating which SIMD instruction sets are available
- * on the current processor. These flags are populated by the first call to
- * @ref get_simd_capabilities() and remain read-only thereafter.
- *
- * Flags are organized into logical groups:
- * @li Base SIMD: sse4_2_, avx_, avx2_, f16c_, fma3_
- * @li AVX-512 Family: avx512f_, avx512_bw_, avx512_dq_, avx512_vl_,
- *   avx512_vnni_, avx512_fp16_, avx512_bf16_
- * @li AMX Tiles: amx_, amx_fp16_, amx_bf16_, amx_int8_
- * @li Neural Network: vnni_, avx2_vnni_, avx2_int8_
+ * Flags are populated by the first call to @ref get_simd_capabilities()
+ * and remain read-only thereafter.
  *
  * @note Composite flags (amx_, vnni_) are OR of their constituent features.
  *
  * @see get_simd_capabilities()
- * @see detect_simd_capabilities()
  */
 typedef struct {
   bool sse4_2_; ///< Streaming SIMD Extensions 4.2 (128-bit integer/vector ops).
@@ -111,12 +84,7 @@ typedef struct {
  *
  * @details
  * Each member holds the four output registers of one CPUID query in
- * hardware order:
- *
- * @li Index 0 — EAX
- * @li Index 1 — EBX
- * @li Index 2 — ECX
- * @li Index 3 — EDX
+ * hardware order: EAX, EBX, ECX, EDX.
  *
  * The snapshot decouples the pure bit-to-flag mapping (unit-testable with
  * synthetic snapshots of processors that are not physically available)
@@ -140,17 +108,13 @@ extern "C" {
  * @brief Get CPU capabilities (thread-safe singleton accessor).
  *
  * @details
- * Returns a pointer to the global @ref SIMDCapabilities structure containing
- * all detected SIMD features. The first call triggers detection via
- * @ref detect_simd_capabilities(); subsequent calls return the cached result.
+ * Detection runs once; subsequent calls return the cached result. The
+ * first call uses C11 @c call_once on Linux or @c InitOnceExecuteOnce
+ * on Windows.
  *
  * @return Pointer to the global SIMDCapabilities structure.
  *         The returned pointer is valid for the lifetime of the process
  *         and must not be freed by the caller.
- *
- * @note This function is thread-safe. The detection is performed at most
- *       once using C11 @c call_once on Linux or @c InitOnceExecuteOnce on
- *       Windows.
  *
  * @par Example:
  * @code{.c}
@@ -163,8 +127,6 @@ extern "C" {
  * @endcode
  *
  * @see SIMDCapabilities
- * @see detect_simd_capabilities()
- * @see init_once()
  */
 const SIMDCapabilities *get_simd_capabilities();
 
@@ -197,11 +159,6 @@ const SIMDCapabilities *get_simd_capabilities();
  * @param[in]     snapshot  Raw CPUID registers. Must not be null.
  * @param[in,out] caps      Destination capabilities. Must not be null;
  *                          every flag is overwritten.
- *
- * @pre snapshot must point to a valid SIMDCpuidSnapshot structure.
- * @pre caps must point to a valid SIMDCapabilities structure.
- * @post All capability flags in caps reflect the bits in snapshot; the
- *       amx_ and vnni_ composite flags equal the OR of their constituents.
  *
  * @see get_simd_capabilities()
  */

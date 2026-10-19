@@ -4,31 +4,10 @@
  *        stratification across NovaNN subsystems.
  *
  * @details
- * This header exposes the threading configuration API used to size
- * the worker pools of the CPU compute libraries and the internal
- * NovaNN subsystems. It provides:
- *
- * @li Logical thread queries — @ref get_num_logical_threads()
- *   reports how many logical hardware threads are available to the
- *   process (respecting CPU affinity / cgroup restrictions).
- * @li Global thread setting — @ref set_num_physical_threads()
- *   configures the total number of threads used by the library.
- * @li Managed groups — @ref set_num_threads_to() and
- *   @ref get_num_threads_from() assign and query thread counts for
- *   the groups enumerated in @ref ParallelGroups.
- * @li Stratification — @ref stratify_threads() partitions a total
- *   thread count across all managed groups into a @ref
- *   StratifiedThreads structure. @ref get_stratified_threads()
- *   resolves the total and caches the result, since the global budget
- *   is immutable once set.
- * @li Distribution — @ref distribute_stratified_threads() applies a
- *   @ref StratifiedThreads budget to the per-group counters.
- * @li Validation — @ref is_valid_stratification_result() and
- *   @ref is_valid_latest_stratification_result() report whether a
- *   budget holds no empty group.
- * @li Inspection — @ref print_thread_config() prints the current
- *   thread budget and its stratification to stdout, in concise or
- *   verbose form.
+ * Sizing and partitioning API for the managed worker pools in
+ * @ref ParallelGroups: a global one-shot thread budget, per-group
+ * assignment and query, stratification of a total across all
+ * groups, budget validation, and a config printer.
  *
  * @see concurrency.h  Low-level logical-thread query implementation.
  * @see status.h       novaStatus_t error reporting.
@@ -81,20 +60,8 @@ typedef struct {
 
 /**
  * @def MIN_THREADS_PER_GROUP
- * @brief Minimum number of threads assigned to each parallel group.
- *
- * @details
- * Every parallel group (@ref ParallelGroups) is guaranteed at least
- * one thread. This value is the lower bound enforced when validating
- * per-group assignments via @ref set_num_threads_to() and
- * @ref set_compute_threads(), @ref set_autograd_threads(),
- * @ref set_dtloader_threads(), and when stratifying a total budget
- * via @ref stratify_threads(). Each group's atomic counter
- * determines the number of threads its pool is allowed to use.
- *
- * @see NUM_PARALLEL_GROUPS
- * @see ParallelGroups
- * @see StratifiedThreads
+ * @brief Lower bound enforced on per-group assignment and
+ * stratification; every parallel group gets at least one thread.
  */
 #define MIN_THREADS_PER_GROUP 1
 
@@ -102,31 +69,23 @@ typedef struct {
  * @brief Set the global number of logical threads used by the library.
  *
  * @details
- * Configures the total logical thread budget that NovaNN and the
- * underlying high-performance libraries use for parallel execution.
- * The value is stored in @ref atomic_global_thread_counter and
- * determines the total number of threads the library is allowed to
-  * use. The managed groups may then be configured individually via
-  * @ref set_num_threads_to(). The value must be at least
-  * @ref MIN_THREADS_PER_GROUP (1).
-  *
-  * The budget may only be set once per execution: a repeat call is
-  * rejected with @ref novaInvalidValue, since silently swapping the
-  * total would strand the recorded stratification.
-  *
-  * @param[in] threads  Total number of logical threads to use. Must be
-  *                     at least @ref MIN_THREADS_PER_GROUP (1).
-  *
-  * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
-  *         success, @ref novaInvalidNumThreads when @p threads is
-  *         less than @ref MIN_THREADS_PER_GROUP, or
-  *         @ref novaInvalidValue when the budget was already set.
+ * Configures the total logical thread budget for NovaNN and the
+ * underlying high-performance libraries, stored in
+ * @ref atomic_global_thread_counter.
  *
- * @pre  @p threads must be at least @ref MIN_THREADS_PER_GROUP.
+ * The budget may only be set once per execution: a repeat call is
+ * rejected with @ref novaInvalidValue, since silently swapping the
+ * total would strand the recorded stratification.
  *
- * @see set_num_logical_threads2group()  Configures individual groups.
- * @see stratify_threads()       Partitions a total across groups.
- * @see MIN_THREADS_PER_GROUP    Minimum per-group threads.
+ * @param[in] threads  Total number of logical threads to use. Must be
+ *                     at least @ref MIN_THREADS_PER_GROUP (1).
+ *
+ * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
+ *         success, @ref novaInvalidNumThreads when @p threads is
+ *         less than @ref MIN_THREADS_PER_GROUP, or
+ *         @ref novaInvalidValue when the budget was already set.
+ *
+ * @see stratify_threads()  Partitions a total across groups.
  */
 novaStatus_t set_num_logical_threads(uint32 threads);
 
@@ -263,8 +222,6 @@ bool is_global_thread_count_initialized();
  *         @c {1,1,1}), or @c {0,0,0} when the total could not be
  *         determined.
  *
- * @pre  @p status must not be @c nullptr.
- *
  * @see stratify_threads()  Partitions the total.
  * @see is_global_thread_count_initialized()  Selects the total source.
  * @see is_stratification_complete()  Reports whether a cached result exists.
@@ -284,8 +241,6 @@ StratifiedThreads get_stratified_threads(novaStatus_t *status);
   * @param[in] strat  Budget to validate. Must not be @c nullptr.
   *
   * @return @c true when every member is nonzero, @c false otherwise.
-  *
-  * @pre  @p strat must not be @c nullptr.
   *
   * @see distribute_stratified_threads()  Applies a validated budget.
   * @see StratifiedThreads                Budget under validation.
@@ -332,8 +287,6 @@ bool is_valid_latest_stratification_result();
   *         @c nullptr, @ref novaInvalidValue when the budget holds an
   *         empty group or any group was assigned manually, or the
   *         error of the first failing per-group assignment.
-  *
-  * @pre  @p strat must not be @c nullptr.
   *
   * @see is_valid_stratification_result()  Validation applied.
   * @see set_num_threads_to()              Per-group assignment.

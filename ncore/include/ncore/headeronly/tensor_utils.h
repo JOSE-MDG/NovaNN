@@ -1,49 +1,12 @@
 /**
  * @file tensor_utils.h
- * @brief Header-only tensor utilities: creation, metadata
- *        computation, coordinate manipulation, and view collapsing.
+ * @brief Header-only tensor utilities: metadata shells, shape/stride
+ *        math, coordinate arithmetic, and view collapsing.
  *
- * @details
- * This module provides a collection of @c static inline utilities
- * for low-level tensor manipulation.  It is designed for
- * zero-overhead inclusion in translation units that need tensor
- * metadata operations without pulling in heavy dependencies.
- *
- * The utilities fall into several categories:
- *
- * @li Tensor creation (unallocated): Functions to initialize
- *   @c Tensor and @c TensorGrad metadata shells — including scalar
- *   (0-D) variants — without allocating backing storage.  These
- *   are used for deferred allocation and gradient tracking.
- *   All creation functions accept a @ref novaStatus_t pointer
- *   for error propagation; on failure the returned tensor is
- *   zeroed and must not be used.
- *
- * @li Metadata computation: Row-major stride and size
- *   computation for both @c Tensor and @c TensorGrad types.
- *
- * @li Coordinate arithmetic: Conversion between multi-
- *   dimensional coordinates and linear byte offsets, plus an
- *   odometer-style iterator for visiting every element in
- *   row-major order.
- *
- * @li Dimension collapsing: The @ref CollapsedView type and
- *   @ref collapse() function merge contiguous dimensions,
- *   reducing odometer overhead in memory-bound kernels.
- *
- * All functions operate on the public @c Tensor layout defined in
- * @ref tensor.h and use the @c DType_ enumeration from @ref dtype.h.
- * The maximum supported rank is @ref NOVA_MAX_DIMS from
- * @ref macros.h.
- *
- * @see tensor.h    Tensor struct, public API, and layout
- *                  invariants.
- * @see dtype.h     DType_ enum and dtype_size().
- * @see macros.h    NOVA_MAX_DIMS, ALIGN(), and other compile-time
- *                  limits.
- * @see alloc.h     Storage allocation (used by allocated variants
- *                  in tensor.c).
- * @see status.h    novaStatus_t error reporting.
+ * All functions are @c static inline and operate on the public
+ * @c Tensor layout from @ref tensor.h. Creation functions accept a
+ * @ref novaStatus_t pointer; on failure the returned tensor is zeroed
+ * and must not be used.
  */
 
 #pragma once
@@ -63,23 +26,9 @@
  * @brief Reduced-dimension view of a tensor after collapsing
  *        contiguous dimensions.
  *
- * @details
- * When a tensor has adjacent dimensions that are contiguous in
- * memory (i.e., @c strides[d] == @c strides[d+1] * @c shape[d+1]), they
- * can be merged into a single larger dimension without copying
- * data.  @c CollapsedView captures the result of this merging
- * operation performed by @ref collapse().
- *
- * The collapsed view preserves the total element count:
- * @c product(shape[0..ndims-1]) == @c original_tensor->size.
- *
- * This view is used by operations like @c contiguous_cpu_impl() to
- * iterate over the tensor with fewer odometer steps, reducing
- * loop overhead.
- *
- * @see collapse()               Produces this view.
- * @see contiguous_cpu_impl()    Consumer of this view.
- * @see odometer()               Iterates using collapsed shape.
+ * Adjacent dimensions with @c strides[d] == @c strides[d+1] *
+ * @c shape[d+1] merge into one larger dimension; the total element
+ * count is preserved. @ref collapse() produces it.
  */
 typedef struct {
   shape_t shape;     ///< Collapsed dimension sizes (row-major order).
@@ -90,13 +39,7 @@ typedef struct {
 /**
  * @brief Forward declaration of create_unallocated_grad_tensor().
  *
- * @details
- * Declared here to allow circular calls between
- * @c create_unallocated_tensor() and @c create_unallocated_grad_tensor().
- * The full implementation appears later in this file.
- *
- * @see create_unallocated_grad_tensor()  Full implementation.
- * @see create_unallocated_tensor()       Calls this function.
+ * Needed for circular calls with @c create_unallocated_tensor().
  */
 static inline TensorGrad
 create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
@@ -106,14 +49,8 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
 /**
  * @brief Forward declaration of create_unallocated_scalar_tensor().
  *
- * @details
- * Declared here to allow circular calls between
- * @c create_unallocated_scalar_grad_tensor() and
- * @c create_unallocated_scalar_tensor().  The full implementation
- * appears later in this file.
- *
- * @see create_unallocated_scalar_tensor()       Full implementation.
- * @see create_unallocated_scalar_grad_tensor()  Calls this function.
+ * Needed for circular calls with
+ * @c create_unallocated_scalar_grad_tensor().
  */
 static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
                                                       Device_ device,
@@ -124,14 +61,7 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
 /**
  * @brief Forward declaration of create_unallocated_scalar_grad_tensor().
  *
- * @details
- * Declared here to allow circular calls between
- * @c create_unallocated_scalar_tensor() and
- * @c create_unallocated_scalar_grad_tensor().  The full
- * implementation appears later in this file.
- *
- * @see create_unallocated_scalar_grad_tensor()  Full implementation.
- * @see create_unallocated_scalar_tensor()       Calls this function.
+ * Needed for circular calls with @c create_unallocated_scalar_tensor().
  */
 static inline TensorGrad
 create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
@@ -141,20 +71,14 @@ create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
  * @typedef coords_t
  * @brief Multi-dimensional coordinate array type.
  *
- * @details
- * Fixed-size array of @c NOVA_MAX_DIMS elements representing a
- * position within an n-dimensional tensor.  Only the first @c ndims
- * entries are meaningful.
- *
- * Used by @c compute_linear_byte_offset(),
- * @c compute_coords_given_linear_byte_offset_(), and @c odometer().
+ * Fixed-size array of @c NOVA_MAX_DIMS elements; only the first
+ * @c ndims entries are meaningful.
  */
 typedef size_t coords_t[NOVA_MAX_DIMS];
 
 /**
  * @brief Compute per-dimension contiguous strides for a Tensor.
  *
- * @details
  * Fills @c ten->strides[0..ndims-1] with row-major strides:
  *
  * @code
@@ -162,22 +86,12 @@ typedef size_t coords_t[NOVA_MAX_DIMS];
  * strides[dim]     = strides[dim+1] * shape[dim+1]   for dim = ndims-2 .. 0
  * @endcode
  *
- * This produces the standard C row-major layout where the last
- * dimension varies fastest.
- *
  * @param[in]      ten       Tensor whose @c strides[] will be
  *                           written.
  * @param[in]      ndims     Number of dimensions.
  * @param[in]      shape     Dimension sizes.
  * @param[in]      item_size Element size in bytes (from
  *                           @c dtype_size()).
- *
- * @pre  @c ten must not be @c nullptr.
- * @pre  @c ndims must be > 0.
- * @post @c ten->strides[0..ndims-1] contain valid row-major strides.
- *
- * @see compute_tensor_size_()          Computes @c ten->size.
- * @see compute_grad_tensor_strides_()  Gradient variant.
  */
 static inline void compute_tensor_strides_(Tensor *ten, size_t ndims,
                                            const shape_t shape,
@@ -191,21 +105,13 @@ static inline void compute_tensor_strides_(Tensor *ten, size_t ndims,
 /**
  * @brief Compute the total element count for a Tensor.
  *
- * @details
- * Multiplies all @c ndims dimension sizes together and stores the
- * result in @c ten->size.  For a scalar (@c ndims == 0), @c ten->size
- * is set to 1.
+ * Stores the product of the sizes in @c ten->size (1 when
+ * @c ndims == 0) and multiplies by the packing factor for
+ * @c logical_size.
  *
  * @param[in,out] ten    Tensor whose @c size will be set.
  * @param[in]     shape  Dimension sizes (first @c ten->ndims
  *                       entries).
- *
- * @pre  @c ten must not be @c nullptr.
- * @post @c ten->size == @c product(shape[0..ten->ndims-1]), or 1 if
- *       @c ten->ndims == 0.
- *
- * @see compute_tensor_strides_()          Computes @c ten->strides.
- * @see compute_grad_tensor_size_()        Gradient variant.
  */
 static inline void compute_tensor_size_(Tensor *ten, const shape_t shape) {
   size_t size = 1;
@@ -219,34 +125,25 @@ static inline void compute_tensor_size_(Tensor *ten, const shape_t shape) {
 /**
  * @brief Convert a logical shape to storage units for packed dtypes.
  *
- * @details
  * Packed dtypes (e.g. @c Float4E2M1fn) store @c packing logical
- * elements in a single storage unit along the innermost dimension.
- * The physical layout — @c shape, @c strides, @c size, and the
- * theoretical byte count — is expressed in storage units, so the
- * logical last dimension is divided by the dtype's packing factor.
- * The backend reservation for that count may be larger after
- * size-class rounding.
- *
- * The output shape is the caller-provided shape verbatim when the
- * dtype is not packed (@c packing == 1).
+ * elements in one storage unit along the innermost dimension. The
+ * physical layout (shape, strides, size, theoretical byte count) is
+ * expressed in storage units, so the logical last dimension is
+ * divided by the packing factor. Non-packed dtypes copy the shape
+ * verbatim.
  *
  * @param[out] storage  Receives the storage-unit shape.
  * @param[in]  shape    Logical dimension sizes (first @c ndims
  *                      entries).
  * @param[in]  dtype    Element data type (@ref DType_).
  * @param[in]  ndims    Number of dimensions.
- * @param[out] status   Receives the operation result.  Set to
- *                      @ref novaInvalidShape when the last dimension
- *                      is not divisible by the packing factor.
+ * @param[out] status   Receives @ref novaInvalidShape when the last
+ *                      dimension is not divisible by the packing
+ *                      factor.
  *
- * @pre  @p storage and @p status must not be @c nullptr.
- * @post On error @p storage is modified: it holds a verbatim copy of
- *       the logical @p shape, because the packing-divisibility check
- *       runs after the copy.  The caller must check @p status before
- *       using it.
- *
- * @see dtype_packing_factor()  Packing factor lookup.
+ * On error @p storage still holds a verbatim copy of @p shape
+ * (the copy runs before the divisibility check), so check @p status
+ * before using it.
  */
 static inline void storage_shape_(shape_t storage, const shape_t shape,
                                   DType_ dtype, size_t ndims,
@@ -271,21 +168,7 @@ static inline void storage_shape_(shape_t storage, const shape_t shape,
 /**
  * @brief Compute per-dimension contiguous strides for a TensorGrad.
  *
- * @details
- * Identical logic to @c compute_tensor_strides_() but operates on
- * a @c TensorGrad (pointer-to-@c Tensor).
- *
- * @param[in,out] grad      TensorGrad whose @c strides[] will be
- *                          written.
- * @param[in]     ndims     Number of dimensions.
- * @param[in]     shape     Dimension sizes.
- * @param[in]     item_size Element size in bytes.
- *
- * @pre  @c grad must not be @c nullptr.
- * @pre  @c ndims must be > 0.
- * @post @c grad->strides[0..ndims-1] contain valid row-major strides.
- *
- * @see compute_tensor_strides_()  Tensor variant.
+ * Same logic as @c compute_tensor_strides_() for a pointer tensor.
  */
 static inline void compute_grad_tensor_strides_(TensorGrad grad, size_t ndims,
                                                 const shape_t shape,
@@ -299,19 +182,7 @@ static inline void compute_grad_tensor_strides_(TensorGrad grad, size_t ndims,
 /**
  * @brief Compute the total element count for a TensorGrad.
  *
- * @details
- * Identical logic to @c compute_tensor_size_() but operates on a
- * @c TensorGrad.
- *
- * @param[in,out] grad   TensorGrad whose @c size will be set.
- * @param[in]     shape  Dimension sizes (first @c grad->ndims
- *                       entries).
- *
- * @pre  @c grad must not be @c nullptr.
- * @post @c grad->size == @c product(shape[0..grad->ndims-1]), or 1 if
- *       @c grad->ndims == 0.
- *
- * @see compute_tensor_size_()  Tensor variant.
+ * Same logic as @c compute_tensor_size_() for a pointer tensor.
  */
 static inline void compute_grad_tensor_size_(TensorGrad grad,
                                              const shape_t shape) {
@@ -327,28 +198,19 @@ static inline void compute_grad_tensor_size_(TensorGrad grad,
  * @brief Compute the linear byte offset from multi-dimensional
  *        coordinates.
  *
- * @details
- * Applies the standard strided offset formula:
+ * Applies the standard strided formula:
  *
  * @code
  * offset = Σ (coords[dim] × strides[dim])   for dim = 0 .. ndims-1
  * @endcode
- *
- * This is the byte distance from the start of the data buffer to
- * the element at the given coordinates.
  *
  * @param[in] coords   Multi-dimensional coordinates.  Only the
  *                     first @c ndims entries are read.
  * @param[in] ndims    Number of dimensions.
  * @param[in] strides  Per-dimension stride values (in bytes).
  *
- * @return Byte offset from the start of the data buffer.
- *
- * @pre  @c ndims must be > 0.
- * @pre  Each @c coords[dim] must be < @c shape[dim] (not validated).
- *
- * @see compute_coords_given_linear_byte_offset_()  Inverse
- *      operation.
+ * @return Byte offset from the start of the data buffer. Bounds are
+ *         not validated.
  */
 static inline size_t compute_linear_byte_offset(const coords_t coords,
                                                 size_t ndims,
@@ -364,29 +226,15 @@ static inline size_t compute_linear_byte_offset(const coords_t coords,
  * @brief Reconstruct multi-dimensional coordinates from a linear
  *        byte offset.
  *
- * @details
- * Performs the inverse of @c compute_linear_byte_offset() by
- * repeatedly dividing the offset by each dimension's stride:
- *
- * @code
- * for dim = 0 .. ndims-1:
- *     coords[dim] = offset / strides[dim]
- *     offset      = offset % strides[dim]
- * @endcode
- *
- * After the loop, @c offset should be 0 for a valid position.
+ * Inverse of @c compute_linear_byte_offset(): divides the offset by
+ * each dimension's stride in turn. For a valid position the
+ * remainder ends at 0.
  *
  * @param[in]  offset  Linear byte offset into the data buffer.
  * @param[in]  ndims   Number of dimensions.
  * @param[out] coords  Output array (written in-place).  Only the
  *                     first @c ndims entries are written.
  * @param[in]  strides Per-dimension stride values (in bytes).
- *
- * @pre  @c ndims must be > 0.
- * @pre  @c offset must be < total buffer size (not validated).
- * @post @c coords[0..ndims-1] contain the reconstructed position.
- *
- * @see compute_linear_byte_offset()  Forward operation.
  */
 static inline void compute_coords_given_linear_byte_offset_(
     size_t offset, size_t ndims, coords_t coords, const strides_t strides) {
@@ -400,40 +248,18 @@ static inline void compute_coords_given_linear_byte_offset_(
  * @brief Reconstruct multi-dimensional coordinates from a linear
  *        element index.
  *
- * @details
- * Converts a flat element index into per-dimension coordinates by
- * repeatedly taking the remainder against each dimension size, from
- * the innermost dimension outward:
+ * Walks element counts, taking the remainder against each dimension
+ * size from the innermost dimension outward. This variant works
+ * where @c compute_coords_given_linear_byte_offset_() cannot: strided
+ * or collapsed views whose byte stride is not a multiple of the
+ * element size. Each thread computes its own @c item, so parallel
+ * loops need no shared state (see @c contiguous_cpu_impl()).
  *
- * @code
- * for dim = ndims-1 .. 0:
- *     coords[dim] = item % shape[dim]
- *     item       /= shape[dim]
- * @endcode
- *
- * Unlike @c compute_coords_given_linear_byte_offset_(), which walks
- * byte strides, this variant works on element counts, so it stays
- * valid for strided or collapsed views where the byte stride is not
- * a multiple of the element size.  Each thread in an OpenMP parallel
- * loop calls it with its own @c item, which keeps the conversion
- * thread-safe without shared state (see @c contiguous_cpu_impl() ).
- *
- * @param[in]  item   Linear element index, from @c 0 to
- *                    @c product(shape[0..ndims-1]) - 1.
+ * @param[in]  item   Linear element index.
  * @param[in]  ndims  Number of dimensions.
  * @param[in]  shape  Dimension sizes.  Only the first @c ndims
- *                     entries are read.  All must be > 0.
- * @param[out] coords Output array (written in-place).  Only the
- *                     first @c ndims entries are written.
- *
- * @pre  @c ndims must be > 0.
- * @pre  @c item must be < @c product(shape[0..ndims-1]) (not
- *       validated).
- * @post @c coords[0..ndims-1] contain the reconstructed position.
- *
- * @see compute_coords_given_linear_byte_offset_()  Byte-stride
- *      variant.
- * @see odometer()  Incremental counterpart for serial loops.
+ *                     entries are read.
+ * @param[out] coords Output array (written in-place).
  */
 NCORE_HOST_DEVICE static inline void
 compute_coords_from_linear_index_(size_t item, size_t ndims,
@@ -447,16 +273,10 @@ compute_coords_from_linear_index_(size_t item, size_t ndims,
 /**
  * @brief Create a Tensor without allocating a data buffer.
  *
- * @details
- * Zero-initializes a @c Tensor, copies shape metadata, computes
- * size and strides, but leaves @c storage = nullptr,
- * @c data.data = nullptr, and @c is_allocated_ = false.  The tensor
- * is a valid metadata-only shell ready for deferred allocation.
- *
- * When @p requires_grad is @c true, an unallocated gradient tensor
- * is created via @ref create_unallocated_grad_tensor().  On
- * failure the tensor is zeroed and the error is reported through
- * @p status.
+ * Metadata-only shell: @c storage and @c data.data stay @c nullptr.
+ * When @p requires_grad is @c true, an unallocated gradient tensor is
+ * created via @ref create_unallocated_grad_tensor(); a failure there
+ * zeroes the tensor and reports through @p status.
  *
  * @param[in]  shape         Dimension sizes.
  * @param[in]  dtype         Element data type (@c DType_).
@@ -468,17 +288,9 @@ compute_coords_from_linear_index_(size_t item, size_t ndims,
  * @param[in]  ndims         Number of dimensions.
  * @param[out] status        Receives the operation result.
  *
- * @return Initialized @c Tensor with no backing storage.
- *
  * @pre  @c ndims must not exceed @c NOVA_MAX_DIMS.
- * @pre  @p status must not be @c nullptr.
- * @post @c is_allocated_ == @c false, @c storage == @c nullptr,
- *       @c data.data == @c nullptr.
- * @post @c shape, @c strides, @c size, and @c item_size are valid.
- *
- * @see create_tensor()                    Allocated variant.
- * @see create_unallocated_scalar_tensor() Scalar variant.
- * @see create_unallocated_grad_tensor()   Heap-allocated gradient.
+ * @post @c shape, @c strides, @c size, and @c item_size are valid;
+ *       the tensor is not allocated.
  */
 static inline Tensor create_unallocated_tensor(const shape_t shape,
                                                DType_ dtype, Device_ device,
@@ -528,16 +340,10 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
 /**
  * @brief Create a heap-allocated unallocated TensorGrad.
  *
- * @details
- * Allocates a @c Tensor on the heap via @c malloc(), then
- * initializes it as an unallocated tensor via
- * @c create_unallocated_tensor().  The gradient is a metadata-only
- * shell — no data buffer is allocated.
- *
- * If @c malloc() fails, @p status is set to @ref novaInvalidPointer
- * and @c nullptr is returned.  The caller takes ownership of the
- * returned pointer and must free it (or let @ref collect() on the
- * parent handle it).
+ * The gradient is a metadata-only shell. @p status gets
+ * @ref novaInvalidPointer and the return is @c nullptr when the
+ * heap allocation fails. The caller owns the returned pointer and
+ * must free it (or let @ref collect() on the parent handle it).
  *
  * @param[in]  shape      Dimension sizes.
  * @param[in]  dtype      Element data type (@c DType_).
@@ -547,15 +353,8 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
  * @param[in]  ndims      Number of dimensions.
  * @param[out] status     Receives the operation result.
  *
- * @return Pointer to newly allocated @c Tensor (as @c TensorGrad),
- *         or @c nullptr on allocation failure.
- *
- * @pre  @p status must not be @c nullptr.
- * @post The returned pointer is heap-allocated and must be freed.
- * @post @c grad->is_allocated_ == @c false.
- *
- * @see create_unallocated_tensor()              Non-heap variant.
- * @see create_unallocated_scalar_grad_tensor()  Scalar variant.
+ * @return Newly allocated @c Tensor (as @c TensorGrad), or
+ *         @c nullptr on allocation failure.
  */
 static inline TensorGrad
 create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
@@ -585,15 +384,10 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
  * @brief Create a scalar (0-D) Tensor without allocating a data
  *        buffer.
  *
- * @details
- * Zero-initializes a @c Tensor and sets the scalar invariant:
- * @c shape[0] = 0, @c strides[0] = 0, @c size = 1, @c ndims = 0.
- * No data buffer is allocated.
- *
- * When @p requires_grad is @c true, an unallocated scalar gradient
- * tensor is created via @ref create_unallocated_scalar_grad_tensor().
- * On failure the tensor is zeroed and the error is reported through
- * @p status.
+ * Sets the scalar invariant: @c shape[0] = 0, @c strides[0] = 0,
+ * @c size = 1, @c ndims = 0. When @p requires_grad is @c true, an
+ * unallocated scalar gradient tensor is created; a failure there
+ * zeroes the tensor and reports through @p status.
  *
  * @param[in]  dtype         Element data type (@c DType_).
  * @param[in]  device        Target device.
@@ -603,16 +397,6 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
  * @param[out] status        Receives the operation result.
  *
  * @return Initialized scalar @c Tensor with no backing storage.
- *
- * @pre  @p status must not be @c nullptr.
- * @post @c is_allocated_ == @c false, @c storage == @c nullptr,
- *       @c data.data == @c nullptr.
- * @post @c ndims == 0, @c size == 1, @c shape[0] == 0,
- *       @c strides[0] == 0.
- *
- * @see create_unallocated_tensor()           N-dimensional variant.
- * @see create_unallocated_scalar_grad_tensor() Scalar gradient.
- * @see create_scalar_tensor()                Allocated variant.
  */
 static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
                                                       Device_ device,
@@ -658,13 +442,8 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
 /**
  * @brief Create a heap-allocated unallocated scalar TensorGrad.
  *
- * @details
- * Allocates a @c Tensor on the heap via @c malloc(), then
- * initializes it as an unallocated scalar tensor via
- * @c create_unallocated_scalar_tensor().
- *
- * If @c malloc() fails, @p status is set to @ref novaInvalidPointer
- * and @c nullptr is returned.
+ * Metadata-only shell. @p status gets @ref novaInvalidPointer and the
+ * return is @c nullptr when the heap allocation fails.
  *
  * @param[in]  dtype      Element data type (@c DType_).
  * @param[in]  device     Target device.
@@ -672,15 +451,9 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
  *                        memory (CPU only).
  * @param[out] status     Receives the operation result.
  *
- * @return Pointer to newly allocated scalar @c Tensor (as
- *         @c TensorGrad), or @c nullptr on allocation failure.
- *
- * @pre  @p status must not be @c nullptr.
- * @post The returned pointer is heap-allocated and must be freed.
- * @post @c grad->is_allocated_ == @c false, @c grad->ndims == @c 0.
- *
- * @see create_unallocated_scalar_tensor()  Non-heap variant.
- * @see create_unallocated_grad_tensor()    N-dimensional variant.
+ * @return Newly allocated scalar @c Tensor (as @c TensorGrad), or
+ *         @c nullptr on allocation failure. Heap memory: the caller
+ *         owns it.
  */
 static inline TensorGrad
 create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
@@ -706,19 +479,11 @@ create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
 }
 
 /**
- * @brief Advance a multi-dimensional coordinate by one step
- *        (row-major).
+ * @brief Advance a multi-dimensional coordinate by one step in
+ *        row-major order, odometer style.
  *
- * @details
- * Increments the last dimension (@c ndims-1) by one and propagates
- * the carry to earlier dimensions when a dimension reaches its
- * upper bound (@c shape[dim]), resetting it to zero.
- *
- * When all dimensions overflow, the coordinate wraps back to all
- * zeros — matching the behavior of a traditional mechanical
- * odometer.
- *
- * Typical usage for iterating over all elements:
+ * Increments the last dimension and propagates the carry to earlier
+ * dimensions; overflows wrap back to all zeros.
  *
  * @code{.c}
  * coords_t coord = {};
@@ -730,15 +495,7 @@ create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
  *
  * @param[in,out] coords  Current coordinates, updated in-place.
  * @param[in]     ndims   Number of dimensions.
- * @param[in]     shape   Dimension sizes (upper bound for each
- *                        coordinate).
- *
- * @pre  @c ndims must be > 0.
- * @post @c coords is advanced to the next position, or wrapped to
- *       @c {0, 0, ..., 0} if at the end.
- *
- * @see compute_linear_byte_offset()  Convert coords to byte
- *      offset.
+ * @param[in]     shape   Dimension sizes (upper bounds).
  */
 static inline void odometer(coords_t coords, size_t ndims,
                             const shape_t shape) {
@@ -755,61 +512,25 @@ static inline void odometer(coords_t coords, size_t ndims,
  * @brief Collapse contiguous dimensions of a tensor into a
  *        reduced-dimension view.
  *
- * @details
- * Iterates over the tensor's dimensions from the innermost
- * (last) to the outermost (first) and merges adjacent dimensions
- * that are contiguous in memory. Two dimensions @c d and
- * @c d+1 are contiguous when:
+ * Walks the dimensions from the innermost outward and merges
+ * adjacent ones that are contiguous in memory, i.e.
  *
  * @code
  * strides[d] == strides[d+1] * shape[d+1]
  * @endcode
  *
- * This is exactly the condition for row-major (C-style) memory
- * layout where dimension @c d+1 varies fastest. When the
- * condition holds, the two dimensions can be treated as a
- * single larger dimension without copying data.
+ * (the row-major adjacency condition). Merging needs no copy, so
+ * consumers such as @c contiguous_cpu_impl() iterate the same
+ * element sequence with fewer odometer steps.
  *
- * The algorithm:
- * @li 1. Start with the innermost dimension as the first output
- *    dimension.
- * @li 2. Walk outward: if the current dimension is contiguous with
- *    the accumulated output dimension, multiply the output
- *    shape by the current shape.
- * @li 3. Otherwise, start a new output dimension.
- * @li 4. Reverse the collected dimensions so the result is in
- *    standard order (outermost first).
+ * For a scalar tensor (@c ndims == 0) the view comes back empty.
  *
- * For a scalar tensor (@c ndims == 0), the function returns an
- * empty @c CollapsedView with @c ndims == 0.
+ * @param[in] ten  Input tensor. Must not be @c nullptr.  Read-only:
+ *                 shape, strides, and ndims are not modified.
  *
- * The returned @c CollapsedView contains the collapsed @c shape_t
- * and @c strides_t arrays, and the new dimension count @c ndims.
- * This view can be used to iterate over the tensor with fewer
- * odometer steps, reducing loop overhead in operations such as
- * @c contiguous_cpu_impl().
- *
- * @param[in] ten  Input tensor. Must not be @c nullptr.
- *                 The tensor's @c shape_t, @c strides_t, and
- *                 @c ndims are read but not modified.
- *
- * @return A @c CollapsedView describing the collapsed layout.
- *         If the input is a scalar, @c cv.ndims == 0 and the
- *         @c shape_t/@c strides_t arrays are zeroed.
- *
- * @pre  @c ten must not be @c nullptr.
- * @pre  @c ten->ndims must not exceed @c NOVA_MAX_DIMS.
- * @post @c cv.ndims <= @c ten->ndims.
- * @post @c cv.shape and @c cv.strides describe a valid
- *       row-major layout for the same data buffer.
- * @post The product of @c cv.shape[0..cv.ndims-1] equals
- *       @c ten->size (total element count is preserved).
- *
- * @see CollapsedView           Returned view structure.
- * @see is_scalar()             Scalar check used internally.
- * @see contiguous_cpu_impl()   Consumer of this function.
- * @see odometer()              Iteration helper that benefits
- *                              from collapsed views.
+ * @return A @c CollapsedView describing the collapsed layout, with
+ *         @c ndims <= @c ten->ndims and
+ *         product(shape) == @c ten->size.
  */
 static inline CollapsedView collapse(const Tensor *restrict ten) {
   CollapsedView cv = {};
