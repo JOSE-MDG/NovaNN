@@ -4,24 +4,22 @@ cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 NovaNN Project
 --------------
 
-Root CMakeLists.txt for the NovaNN, High Performance Deep Learning Framework.
-Configures the project-wide build settings, detects available hardware
-backends, and creates the main ``nova`` shared library.
+Root CMakeLists.txt.  Configures the project-wide build settings,
+detects hardware backends, and creates the main ``nova`` shared library.
 
 Project Options
 ^^^^^^^^^^^^^^^
 
 ``USE_CUDA``
   Enable NVIDIA CUDA support.  Default: ``OFF``.  Cannot be combined
-  with ``USE_HIP``.  When ``ON``, also enables the ``cuda`` vcpkg
-  manifest feature, so the ``cuda`` helper port is installed and
-  verified during the vcpkg install step.
+  with ``USE_HIP``.  Also enables the ``cuda`` vcpkg manifest feature,
+  so the ``cuda`` helper port is installed and verified during the
+  vcpkg install step.
 
 ``USE_HIP``
   Enable AMD HIP/ROCm support.  Default: ``OFF``.  Cannot be combined
-  with ``USE_CUDA``.  Not available on Windows.  When ``ON``, also
-  enables the ``rocm`` vcpkg manifest feature, so the ``rocm`` helper
-  port is installed and verified during the vcpkg install step.
+  with ``USE_CUDA``.  Not available on Windows.  Also enables the
+  ``rocm`` vcpkg manifest feature.
 
 ``USE_LTO``
   Enable Link-Time Optimization.  Default: ``ON``.
@@ -39,31 +37,13 @@ Platform and Compiler Support
 - **Windows:** Clang/LLVM (clang-cl)
 
 Invalid combinations are rejected at configure time with a fatal error.
-
-Build Targets
-^^^^^^^^^^^^^
-
-``nova``
-  The main shared library.  Aggregates ``ncore::obj::core``,
-  ``ncore::obj::autograd``, and ``ncore::obj::dtypes``.  Links
-  ``ncore::memory`` (Rust) and ``ncore::native``.  Links against ``dl``
-  and ``m``.
-
-Subdirectories
-^^^^^^^^^^^^^^
-
-- ``ncore/`` — Core module containing native backends, Rust crate, and
-object libraries.
-
 #]=======================================================================]
 option(USE_CUDA "Compile with NVIDIA CUDA support" OFF)
 option(USE_HIP "Compile with AMD HIP/ROCm support" OFF)
 
-# Map the GPU backend options to vcpkg manifest features.  This must happen
-# before project(): the vcpkg toolchain file is loaded during project() and
-# reads VCPKG_MANIFEST_FEATURES at that point.  With this mapping the cuda
-# and rocm helper ports are only installed and verified (vcpkg install time)
-# when the corresponding backend is enabled.
+# The vcpkg toolchain file loads during project() and reads
+# VCPKG_MANIFEST_FEATURES at that point, so the mapping has to happen
+# before it. The helper ports install and verify the backend SDK.
 if(USE_CUDA)
     list(APPEND VCPKG_MANIFEST_FEATURES cuda)
 endif()
@@ -75,12 +55,16 @@ project(NovaNN VERSION 5.0.0 LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
+# Fail fast when the build keeps re-running CMake: the guard counts the
+# configures of this build tree and aborts with a diagnostic.
+include(Modules/NovaNNReconfigureGuard)
+nova_guard_reconfigure_loop()
+
 option(USE_LTO "Enable Link-Time Optimization" ON)
 option(USE_ASAN "Enable AddressSanitizer" OFF)
 option(USE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 
-# Reject invalid platform / compiler / option combinations
-# at configure time before any backend is enabled.
+# Reject invalid option combinations before any backend is enabled.
 if(USE_CUDA AND USE_HIP)
     message(FATAL_ERROR
         "CUDA and HIP cannot be enabled simultaneously. "
@@ -133,10 +117,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Symlink the active preset's compile_commands.json to the source root so
-# clangd picks it up automatically (clangd searches parent directories for
-# compile_commands.json).  Refreshed on every configure.  Skipped on Windows
-# where creating symlinks requires elevated privileges.
+# clangd searches parent directories for compile_commands.json, so
+# symlink the build tree's copy into the source root.  Skipped on
+# Windows, where creating symlinks requires elevated privileges.
 if(NOT WIN32)
     set(NOVA_CLANGD_DB "${CMAKE_SOURCE_DIR}/compile_commands.json")
     if(IS_SYMLINK "${NOVA_CLANGD_DB}")
