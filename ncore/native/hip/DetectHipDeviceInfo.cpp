@@ -7,35 +7,18 @@
  * @ref DetectHipDeviceInfo.hpp.  Queries the HIP runtime for
  * device 0 properties (name, GCN architecture, memory, CUs, warp
  * size, thread limits, driver/runtime versions) and formats them
- * for human-readable output.
+ * for human-readable output.  Properties are queried once and
+ * cached; @ref formatMemory, @ref formatBandwidth and
+ * @ref formatHipVersion are internal formatting helpers.
  *
- * The file is conditionally compiled behind @c NOVA_HAS_HIP and
+ * Compiled only behind @c NOVA_HAS_HIP and
  * @c __has_include(<hip/hip_runtime_api.h>).  When HIP headers are
  * unavailable, stub functions returning error statuses are
  * provided.
  *
  * A @c __HIP_PLATFORM_AMD__ macro is defined when neither AMD nor
- * NVIDIA platform macros are set, ensuring clangd and clang-tidy
- * can parse the HIP headers correctly.
- *
- * @section caching Caching
- *
- * Device properties are queried once and cached in a @c static
- * local variable within @ref initHipDeviceProperties.  Subsequent
- * calls to @ref getHipDeviceProperties and @ref
- * printHipDeviceInfo return the cached values without additional
- * HIP runtime API calls.
- *
- * @section internal-helpers Internal Helpers
- *
- * @li @ref formatMemory — Converts byte counts to human-readable
- *   strings (GiB / MiB / bytes).
- * @li @ref formatBandwidth — Converts bytes/s to human-readable
- *   bandwidth (GB/s).
- * @li @ref formatHipVersion — Converts the HIP integer version
- *   encoding to a "major.minor.patch" string.
- * @li @ref initHipDeviceProperties — Performs the actual HIP
- *   runtime queries and populates the cached struct.
+ * NVIDIA platform macros are set, so clangd and clang-tidy can
+ * parse the HIP headers correctly.
  *
  * @see DetectHipDeviceInfo.hpp  Type and function declarations.
  * @see DetectHipDevice.cpp      Device availability detection.
@@ -66,12 +49,6 @@ namespace {
 
 /**
  * @brief Format a byte count as a human-readable memory string.
- *
- * @details
- * Converts @p bytes to the most appropriate unit:
- * @li 8 GiB or more → "X.X GiB"
- * @li 1 MiB or more → "X.X MiB"
- * @li Otherwise → "N bytes"
  *
  * @param[in] bytes  The byte count to format.
  *

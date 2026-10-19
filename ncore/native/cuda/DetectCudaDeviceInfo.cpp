@@ -7,31 +7,14 @@
  * @ref DetectCudaDeviceInfo.hpp.  Queries the CUDA runtime for
  * device 0 properties (name, compute capability, memory, SMs,
  * warp size, thread limits, driver/runtime versions) and formats
- * them for human-readable output.
+ * them for human-readable output.  Properties are queried once and
+ * cached; @ref formatMemory, @ref formatBandwidth and
+ * @ref formatCudaVersion are internal formatting helpers.
  *
- * The file is conditionally compiled behind @c NOVA_HAS_CUDA and
+ * Compiled only behind @c NOVA_HAS_CUDA and
  * @c __has_include(<cuda_runtime_api.h>).  When CUDA headers are
  * unavailable, stub functions returning error statuses are
  * provided.
- *
- * @section caching Caching
- *
- * Device properties are queried once and cached in a @c static
- * local variable within @ref initCudaDeviceProperties.  Subsequent
- * calls to @ref getCudaDeviceProperties and @ref
- * printCudaDeviceInfo return the cached values without additional
- * CUDA runtime API calls.
- *
- * @section internal-helpers Internal Helpers
- *
- * @li @ref formatMemory — Converts byte counts to human-readable
- *   strings (GiB / MiB / bytes).
- * @li @ref formatBandwidth — Converts bytes/s to human-readable
- *   bandwidth (GB/s).
- * @li @ref formatCudaVersion — Converts the CUDA integer version
- *   encoding to a "major.minor" string.
- * @li @ref initCudaDeviceProperties — Performs the actual CUDA
- *   runtime queries and populates the cached struct.
  *
  * @see DetectCudaDeviceInfo.hpp  Type and function declarations.
  * @see DetectCudaDevice.cpp      Device availability detection.
@@ -59,12 +42,6 @@ namespace {
 
 /**
  * @brief Format a byte count as a human-readable memory string.
- *
- * @details
- * Converts @p bytes to the most appropriate unit:
- * @li 8 GiB or more → "X.X GiB"
- * @li 1 MiB or more → "X.X MiB"
- * @li Otherwise → "N bytes"
  *
  * @param[in] bytes  The byte count to format.
  *

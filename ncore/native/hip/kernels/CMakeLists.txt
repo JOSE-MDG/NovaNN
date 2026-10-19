@@ -2,19 +2,10 @@
 HIP Kernels
 -----------
 
-Builds the HIP device-code object library.
-
-All ``.hip`` files under this directory are compiled into a single
-OBJECT library.  The resulting objects are collected by
-``native/CMakeLists.txt`` via ``$<TARGET_OBJECTS:ncore::native::obj::hip::kernels>``
-and archived into ``libnative.a``.
-
-Targets created
-^^^^^^^^^^^^^^^
-
-``hip_kernels_obj`` — alias ``ncore::native::obj::hip::kernels``
-  OBJECT library containing compiled HIP device code.
-
+Object library for the HIP device code (``*.hip``).  Its objects are
+collected by ``native/CMakeLists.txt`` via
+``$<TARGET_OBJECTS:ncore::native::obj::hip::kernels>`` and archived
+into ``libnative.a``.
 #]=======================================================================]
 
 file(GLOB_RECURSE KERNEL_SOURCES CONFIGURE_DEPENDS

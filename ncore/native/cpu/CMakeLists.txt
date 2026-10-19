@@ -2,24 +2,8 @@
 CPU Backend
 -----------
 
-Collects all C source files in the CPU backend directory and builds
-the ``cpu_obj`` OBJECT library.  Targets in this subtree provide
-vectorised (SIMD) implementations of element-wise operations.
-
-Targets created
-^^^^^^^^^^^^^^^
-
-``cpu_obj`` — alias ``ncore::native::obj::cpu``
-  OBJECT library containing all CPU backend kernel implementations.
-
-Functions used
-^^^^^^^^^^^^^^
-
-:command:`nova_configure_cpu_target`
-  Applies SIMD compiler flags, links ``Threads::Threads`` and
-  ``OpenMP::OpenMP_C`` when available (defined in
-  :module:`NovaNNCPU`).
-
+Builds the ``cpu_obj`` OBJECT library from the CPU backend C sources:
+vectorised (SIMD) implementations of the CPU kernels.
 #]=======================================================================]
 
 file(GLOB_RECURSE CPU_SOURCES CONFIGURE_DEPENDS

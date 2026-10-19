@@ -2,19 +2,10 @@
 CUDA Kernels
 ------------
 
-Builds the CUDA device-code object library.
-
-All ``.cu`` files under this directory are compiled into a single
-OBJECT library.  The resulting objects are collected by
-``native/CMakeLists.txt`` via ``$<TARGET_OBJECTS:ncore::native::obj::cuda::kernels>``
-and archived into ``libnative.a``.
-
-Targets created
-^^^^^^^^^^^^^^^
-
-``cuda_kernels_obj`` — alias ``ncore::native::obj::cuda::kernels``
-  OBJECT library containing compiled CUDA device code.
-
+Object library for the CUDA device code (``*.cu``).  Its objects are
+collected by ``native/CMakeLists.txt`` via
+``$<TARGET_OBJECTS:ncore::native::obj::cuda::kernels>`` and archived
+into ``libnative.a``.
 #]=======================================================================]
 
 file(GLOB_RECURSE KERNEL_SOURCES CONFIGURE_DEPENDS

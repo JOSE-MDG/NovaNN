@@ -3,18 +3,14 @@
  * @brief Runtime dispatch layer for dtype casting kernels.
  *
  * @details
- * This file implements the public @ref launchDtypeCastingKernel entry
- * point declared in @ref casting.h.  It resolves the active compute
- * device at run time and forwards the request to the appropriate
- * backend-specific kernel:
- *
- * @li CUDA — @ref launchCudaDtypeCastingKernel (compiled from
- *   @c DtypeCastingKernel.cu).
- * @li HIP — @ref launchHipDtypeCastingKernel (compiled from
- *   @c DtypeCastingKernel.hip).
- *
- * The dispatch uses a static @c std::unordered_map<DeviceKind, kernel_t> lookup
- * table populated at compile time based on which backends are enabled
+ * Implements the public @ref launchDtypeCastingKernel entry point
+ * declared in @ref casting.h.  It resolves the active compute device
+ * at run time and forwards the request to the CUDA kernel
+ * (@ref launchCudaDtypeCastingKernel from @c DtypeCastingKernel.cu)
+ * or the HIP kernel (@ref launchHipDtypeCastingKernel from
+ * @c DtypeCastingKernel.hip).  The dispatch uses a static
+ * @c std::unordered_map<DeviceKind, kernel_t> lookup table populated
+ * at compile time based on which backends are enabled
  * (@c NOVA_HAS_CUDA, @c NOVA_HAS_HIP). The detection flow itself
  * (cached kind, probe, exactly-one-backend) lives in
  * @ref ncore::dispatch::launch(), shared with every launcher.

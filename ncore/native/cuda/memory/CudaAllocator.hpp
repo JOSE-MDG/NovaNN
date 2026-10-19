@@ -6,26 +6,15 @@
  * Declares the @ref cudaBuffer_t descriptor, the @ref CUDA_OK
  * sentinel, and the three core allocation functions
  * (@ref cudaReserve, @ref cudaRelease, @ref cudaResize) that manage
- * CUDA device and pinned-host memory.
+ * CUDA device and pinned-host memory.  All functions return a
+ * @ref novaStatus_t (see @ref status.h).
  *
- * @section memory-types Memory Types
+ * Device memory is allocated via @c cudaMallocAsync on a temporary
+ * stream, or @c cudaMalloc when MemoryPools is not supported;
+ * pinned (page-locked) host memory comes from @c cudaMallocHost and
+ * suits fast host-device transfers with @c cudaMemcpyAsync.
  *
- * This module handles two kinds of CUDA memory:
- * @li Device memory — allocated via @c cudaMallocAsync on a
- *   temporary stream or @c cudaMalloc if MemoryPools is not supported,
- *   suitable for GPU kernel access.
- * @li Pinned (page-locked) host memory — allocated via
- *   @c cudaMallocHost, suitable for fast host-device transfers
- *   with @c cudaMemcpyAsync.
- *
- * @section error-handling Error Handling
- *
- * All functions return a @ref novaStatus_t defined in @ref status.h
- *
- * @section stream-lifecycle Stream Lifecycle
- *
- * Device-memory operations (reserve, release, resize) run on a CUDA
- * stream selected per call:
+ * Device-memory operations run on a CUDA stream selected per call:
  * @li @c stream == nullptr (default) — a temporary stream is created,
  *   the operation runs on it, the stream is synchronized, and the
  *   stream is destroyed before returning. Synchronous contract.
@@ -35,9 +24,9 @@
  *   after the allocation and before the free in stream order, per the
  *   stream-ordered allocator rules. Pinned-host paths ignore @p stream.
  *
- * This header is the CUDA counterpart of @c HipAllocator.hpp and
- * provides an identical API surface.  The dispatch layer in
- * @c ffi.cpp selects between CUDA and HIP at runtime.
+ * This header is the CUDA counterpart of @c HipAllocator.hpp with an
+ * identical API surface; the dispatch layer in @c ffi.cpp selects
+ * between CUDA and HIP at runtime.
  *
  * @see CudaAllocator.cpp  Implementation of the allocation functions.
  * @see CudaIO.hpp         CUDA data transfer functions.

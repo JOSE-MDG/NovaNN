@@ -3,20 +3,16 @@
  * @brief Runtime dispatch layer for contiguous-layout kernels.
  *
  * @details
- * This file implements the public @ref launchContiguousKernel entry
- * point declared in @ref contiguous.h. It resolves the active
- * compute device at run time and forwards the request to the
- * appropriate backend-specific kernel:
- *
- * @li CUDA — @ref launchCudaContiguousKernel (compiled from
- *   @c ContiguousLayoutKernel.cu ).
- * @li HIP — @ref launchHipContiguousKernel (compiled from
- *   @c ContiguousLayoutKernel.hip ).
- *
- * The dispatch uses a static @c std::unordered_map<DeviceKind , kernel_t> lookup
- * table populated at compile time based on which backends are
- * enabled (@c NOVA_HAS_CUDA, @c NOVA_HAS_HIP ). The detection flow
- * itself lives in @ref ncore::dispatch::launch(), shared with every
+ * Implements the public @ref launchContiguousKernel entry point
+ * declared in @ref contiguous.h. It resolves the active compute
+ * device at run time and forwards the request to the CUDA kernel
+ * (@ref launchCudaContiguousKernel from @c ContiguousLayoutKernel.cu)
+ * or the HIP kernel (@ref launchHipContiguousKernel from
+ * @c ContiguousLayoutKernel.hip).  The dispatch uses a static
+ * @c std::unordered_map<DeviceKind, kernel_t> lookup table populated
+ * at compile time based on which backends are enabled
+ * (@c NOVA_HAS_CUDA, @c NOVA_HAS_HIP). The detection flow itself
+ * lives in @ref ncore::dispatch::launch(), shared with every
  * launcher.
  *
  * @see contiguous.h            Public interface for this module.

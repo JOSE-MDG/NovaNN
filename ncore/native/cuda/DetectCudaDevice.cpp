@@ -8,25 +8,18 @@
  * (@c cudaGetDeviceCount) to probe for an available GPU and caches
  * the result in module-level atomics for subsequent queries.
  *
- * The file is conditionally compiled behind @c NOVA_HAS_CUDA and
- * @c __has_include(<cuda_runtime_api.h>).  When CUDA headers are
- * unavailable, stub functions that return @c false / @c -1 are
- * provided.
+ * Compiled only behind @c NOVA_HAS_CUDA and
+ * @c __has_include(<cuda_runtime_api.h>); otherwise stubs that
+ * return @c false / @c -1 are provided.
  *
- * @section thread-safety Thread Safety
- *
- * The initial probe is guarded by @c std::call_once, ensuring that
+ * The initial probe is guarded by @c std::call_once, so
  * @c cudaGetDeviceCount is called exactly once even under concurrent
- * access.  The cached results are stored in @c std::atomic variables
- * with @c std::memory_order_release (write) and
- * @c std::memory_order_acquire (read) semantics.
- *
- * @section one-shot-caching One-shot Caching
- *
- * After the first call to @ref isCudaDeviceAvailable, the probe
- * result is cached.  All subsequent calls — regardless of the
- * @p log or @p verbose arguments — return the cached value without
- * touching the CUDA runtime API.
+ * access; cached results are stored in @c std::atomic variables with
+ * @c std::memory_order_release (write) and
+ * @c std::memory_order_acquire (read) semantics.  After the first
+ * call to @ref isCudaDeviceAvailable every later call, regardless of
+ * the @p log or @p verbose arguments, returns the cached value
+ * without touching the CUDA runtime API.
  *
  * @see DetectCudaDevice.hpp  Public function declarations.
  * @see DetectCudaDeviceInfo.cpp  Device property queries.

@@ -6,31 +6,12 @@
  * Implements the three core allocation primitives used by the
  * device-agnostic FFI layer (@c ffi.cpp).  All device-memory
  * operations use a temporary CUDA stream for async allocation
- * and synchronize before returning.
+ * and synchronize before returning; errors are mapped through
+ * @ref mapError().
  *
- * The file is conditionally compiled behind @c NOVA_HAS_CUDA and
- * @c __has_include(<cuda_runtime_api.h>).  When CUDA headers are
- * unavailable (e.g., during linting), stub functions that return
- * an error status are provided.
- *
- * @section architecture Architecture
- *
- * Internal helpers (within anonymous namespace):
- * @li @ref mapError — maps any @c cudaError_t to a @ref novaError_t.
- * @li @ref streamCreate — creates a temporary CUDA stream.
- * @li @ref streamSync — blocks until stream work completes.
- * @li @ref streamDestroy — destroys a CUDA stream.
- *
- * @section error-mapping Error Mapping
- *
- * All CUDA errors are mapped via @ref mapError:
- * @li @c cudaSuccess → @ref novaSuccess
- * @li @c cudaErrorInvalidValue → @ref novaInvalidValue
- * @li @c cudaErrorMemoryAllocation → @ref novaOutOfMemory
- * @li @c cudaErrorNotSupported → @ref novaNotImplemented
- * @li @c cudaErrorExternalDevice → @ref novaExternalDeviceError
- * @li @c cudaErrorInvalidResourceHandle → @ref novaInvalidResourceHandle
- * @li Any other error → @ref novaNotImplemented
+ * Compiled only behind @c NOVA_HAS_CUDA with
+ * @c __has_include(<cuda_runtime_api.h>); otherwise stubs that
+ * return @ref novaBackendNotCompiled are provided.
  *
  * @see CudaAllocator.hpp  Type declarations and function signatures.
  * @see CudaIO.cpp         CUDA data transfer implementation.
@@ -51,13 +32,6 @@ namespace {
 
 /**
  * @brief Map a CUDA error code to a @ref novaError_t.
- *
- * @details
- * Converts @c cudaError_t values into the project-standard
- * @ref novaError_t enumeration.  Covers errors from allocation
- * (@c cudaMallocAsync, @c cudaMallocHost), deallocation
- * (@c cudaFreeAsync, @c cudaFreeHost), stream operations, and
- * memcpy.
  *
  * @param[in] err  The CUDA error to map.
  *
@@ -86,16 +60,13 @@ novaError_t mapError(cudaError_t err) {
  * @brief Query whether the active CUDA device supports memory pools.
  *
  * @details
- * Uses @c getCudaDeviceId() to query the
- * @c cudaDevAttrMemoryPoolsSupported attribute.  This is safe
- * because CUDA device detection is performed before any memory is
- * allocated on the device; if detection failed, the internal
- * implementations saved the result under lock, ensuring that
- * @c getCudaDeviceId() always returns a valid value.
+ * Queries the @c cudaDevAttrMemoryPoolsSupported attribute through
+ * @c getCudaDeviceId().  Safe because CUDA device detection runs
+ * before any device memory is allocated and the detection result is
+ * saved under lock, so @c getCudaDeviceId() always returns a valid
+ * id here.
  *
  * @return @c true if memory pools are supported, @c false otherwise.
- *         Queried once; function-local statics initialize exactly once
- *         even under concurrent first calls.
  */
 bool supportMemoryPool() {
   static const bool supported = [] {
@@ -181,8 +152,6 @@ bool streamDestroy(cudaStream_t stream, novaStatus_t *status) {
  * @return @ref CUDA_OK on success, or an error status.
  *
  * @pre  @p bytes must be greater than zero.
- * @pre  @p out must not be null.
- * @post On success, @p out->ptr points to valid CUDA memory.
  */
 novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out,
                          cudaStream_t stream) {
@@ -255,7 +224,7 @@ novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out,
  * For pinned memory, calls @c cudaFreeHost.  For device memory,
  * calls @c cudaFreeAsync on @p stream when given (no sync, caller
  * owns ordering), or on a temporary synchronized stream when @p stream
- * is null.  On success, the buffer is zeroed.
+ * is null.
  *
  * @param[in,out] buf    Buffer descriptor to free.  Must not be null.
  * @param[in]     stream Caller stream for chaining, or null for the
@@ -344,8 +313,6 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf, cudaStream_t stream) {
  *                          destroyed here.
  *
  * @return @ref CUDA_OK on success, or an error status.
- *
- * @post On success, @p buf->ptr and @p buf->bytes are updated.
  *
  * @warning On failure the original buffer may be freed.
  */
