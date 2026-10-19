@@ -98,6 +98,14 @@ extern "C" {
 #define PARALLEL_GRAIN_SORT 16384
 
 /**
+ * @def PARALLEL_GRAIN_RNG
+ * @brief Cost-weighted lanes per thread for counter-based fills.
+ *        The rule weighs @ref RngWork::lanes by
+ *        @ref RngWork::cost_per_elem before dividing by this grain.
+ */
+#define PARALLEL_GRAIN_RNG 65536
+
+/**
  * @def PARALLEL_GRAIN_TINY_BYTES
  * @brief Backing bytes per thread for one-byte element sizes.
  */
