@@ -68,7 +68,7 @@ struct GpuCastPair {
 inline novaStatus_t callBackendLauncher(const Tensor *src, Tensor *dst) {
 #ifdef NOVA_HAS_CUDA
   return launchCudaDtypeCastingKernel(src, dst);
-#elif defined(NOVA_HAS_HIP)
+#elifdef NOVA_HAS_HIP
   return launchHipDtypeCastingKernel(src, dst);
 #else
   (void)src;
@@ -90,11 +90,11 @@ inline novaStatus_t callBackendLauncher(const Tensor *src, Tensor *dst) {
  * @param[in] from         Source dtype.
  * @param[in] to           Destination dtype.
  * @param[in] logicalCount Logical element count (must be positive).
- * @param[in] seed         Deterministic fill seed.
+ * @param[in] seed         Generator seed.
  * @return Pair descriptor; check ok before use.
  */
 [[nodiscard]] inline GpuCastPair
-makeDevicePair(DType_ from, DType_ to, size_t logicalCount, uint32_t seed) {
+makeDevicePair(DType_ from, DType_ to, size_t logicalCount, uint64_t seed) {
   GpuCastPair pair;
   pair.host = tests::casting::makePair(from, to, logicalCount, seed);
   if (!pair.host.ok) {

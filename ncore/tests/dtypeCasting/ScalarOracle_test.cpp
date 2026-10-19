@@ -44,7 +44,6 @@ using tests::casting::FormatSpec;
 using tests::casting::isFloatDtype;
 using tests::casting::isNaNPattern;
 using tests::casting::kBf16;
-using tests::casting::kDefaultSeed;
 using tests::casting::kFp16;
 using tests::casting::kFp4E2M1;
 using tests::casting::kFp8E4M3;
@@ -59,6 +58,7 @@ using tests::casting::referenceSaturate;
 using tests::casting::specOf;
 using tests::casting::writeFloatValue;
 using tests::casting::writeRaw;
+using tests::rng::kDefaultSeed;
 
 enum class Family : uint8_t { FpToFp, FpToInt, IntToFp, IntToInt };
 
@@ -111,9 +111,8 @@ std::vector<double> interestingValues(DType_ dtype) {
   const int emin = 1 - spec.bias;
   // Finite-only formats keep their whole top exponent binade normal, so the
   // maximum unbiased exponent extends past the IEEE bias (E4M3FN: 8, FP4: 2).
-  const int emax = spec.hasInf
-                       ? spec.bias
-                       : static_cast<int>((1 << spec.expBits) - 1) - spec.bias;
+  const int emax =
+      spec.hasInf ? spec.bias : ((1 << spec.expBits) - 1) - spec.bias;
   const int minSubExp = emin - spec.manBits;
 
   for (const double mag : {0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0}) {
@@ -247,8 +246,7 @@ TEST(ScalarOracle, OracleSelfCheckEncodePowersOfTwoAndDomain) {
     // Finite-only formats keep their top binade normal (E4M3FN: 2^8 = 256
     // is representable), so powers of two extend past the IEEE bias.
     const int emax =
-        spec.hasInf ? spec.bias
-                    : static_cast<int>((1 << spec.expBits) - 1) - spec.bias;
+        spec.hasInf ? spec.bias : ((1 << spec.expBits) - 1) - spec.bias;
     for (int e = emin; e <= emax; ++e) {
       const uint64_t want = static_cast<uint64_t>(e + spec.bias)
                             << spec.manBits;
@@ -471,11 +469,11 @@ TEST(ScalarOracle, IntToIntMatchesOracle) {
 }
 
 /**
- * @brief Verifies LCG-filled raw patterns (excluding NaN slots) also match
- *        the oracle composition: catches pattern-space blind spots in the
- *        curated lists.
+ * @brief Verifies generator-filled raw patterns (excluding NaN slots) also
+ *        match the oracle composition: catches pattern-space blind spots
+ *        in the curated lists.
  */
-TEST(ScalarOracle, LcgPatternsMatchOracleForFpToFp) {
+TEST(ScalarOracle, RandomPatternsMatchOracleForFpToFp) {
   for (const auto &pair : allPairs()) {
     if (familyOf(pair) != Family::FpToFp) {
       continue;

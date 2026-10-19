@@ -34,7 +34,6 @@ using tests::casting::f32BitsOf;
 using tests::casting::FormatSpec;
 using tests::casting::isFloatDtype;
 using tests::casting::isNaNPattern;
-using tests::casting::kDefaultSeed;
 using tests::casting::makePair;
 using tests::casting::readAs;
 using tests::casting::readRaw;
@@ -45,6 +44,7 @@ using tests::casting::specialValuesOf;
 using tests::casting::specOf;
 using tests::casting::writeFloatValue;
 using tests::casting::writeRaw;
+using tests::rng::kDefaultSeed;
 
 struct SviParam {
   DType_ src;
@@ -175,9 +175,7 @@ TEST_P(SpecialValueInvariant, InfinityMapsToInfOrSaturates) {
     GTEST_SKIP() << "float-destination case";
   }
   if (!specOf(p.src).hasInf) {
-    // E4M3FN and FP4 have no infinity encoding; their "inf" registry
-    // entries hold the saturation target (max finite), which is an
-    // ordinary value, not a special.
+    // E4M3FN and FP4 have no infinity encoding.
     GTEST_SKIP() << "source format has no infinity";
   }
 
@@ -237,7 +235,7 @@ TEST_P(SpecialValueInvariant, SubnormalsRoundOrFlushCorrectly) {
   if (!isFloatDtype(p.dst)) {
     GTEST_SKIP() << "float-destination case";
   }
-#if defined(__clang__)
+#ifdef __clang__
   // Kernel bodies call the bf16 C API, whose __bf16 ABI edges are
   // re-narrowed by Clang; see
   // ncore/tests/dtypes/utils/BFloat16ClangLimitations.md.
@@ -275,7 +273,7 @@ TEST_P(SpecialValueInvariant, FpToIntSpecialsAreDefined) {
     GTEST_SKIP() << "int-destination case";
   }
   if (p.src == DType_::Float4E2M1fn) {
-    // FP4 has no NaN or infinity encoding: there is no special to inject.
+    // FP4 has no NaN or infinity encoding.
     GTEST_SKIP() << "finite-only source format";
   }
 
@@ -283,12 +281,7 @@ TEST_P(SpecialValueInvariant, FpToIntSpecialsAreDefined) {
     const char *srcName;
     double value;
   };
-  // E4M3FN has no infinity: its would-be "inf" inputs are ordinary large
-  // finite values, covered by the saturation suites instead.
   const bool srcHasInf = specOf(p.src).hasInf;
-  // Drive through values rather than patterns: writeFloatValue quantizes
-  // into the source format, and +/-inf survive as themselves there. NaN is
-  // written as an explicit pattern instead (see below).
   const std::array<Case, 3> cases{{{.srcName = "pinf", .value = HUGE_VAL},
                                    {.srcName = "ninf", .value = -HUGE_VAL},
                                    {.srcName = "nzero", .value = -0.0}}};
@@ -343,7 +336,7 @@ TEST_P(SpecialValueInvariant, FpToIntSpecialsAreDefined) {
  */
 TEST_P(SpecialValueInvariant, DispatchAgreesWithScalarOnSpecials) {
   const SviParam &p = GetParam();
-#if defined(__clang__)
+#ifdef __clang__
   // Kernel bodies call the bf16 C API, whose __bf16 ABI edges are
   // re-narrowed by Clang; see
   // ncore/tests/dtypes/utils/BFloat16ClangLimitations.md.
@@ -387,9 +380,6 @@ TEST_P(SpecialValueInvariant, DispatchAgreesWithScalarOnSpecials) {
             << "element=" << i;
         continue;
       }
-      // NaN source: only the class contract is guaranteed across paths.
-      // FP4 has no NaN encoding and saturates instead; integer
-      // destinations map NaN to 0 deterministically.
       if (p.dst == DType_::Float4E2M1fn) {
         expectNanResult(p, std::string(sv.name) == "qnan_neg", wrapperDst, i);
       } else if (isFloatDtype(p.dst)) {
@@ -432,12 +422,12 @@ TEST(SpecialValueInvariant, PackedFp4LanesCarrySpecialsIndependently) {
   EXPECT_EQ(negZeroBits, UINT32_C(0x80000000));
 }
 
-INSTANTIATE_TEST_SUITE_P(AllPairs, SpecialValueInvariant,
-                         ::testing::ValuesIn(buildParams()),
-                         [](const ::testing::TestParamInfo<SviParam> &info) {
-                           std::string name;
-                           for (const char c : info.param.label) {
-                             name.push_back((c == '-' || c == '>') ? '_' : c);
-                           }
-                           return name;
-                         });
+INSTANTIATE_TEST_SUITE_P(
+    AllPairs, SpecialValueInvariant, ::testing::ValuesIn(buildParams()),
+    [](const ::testing::TestParamInfo<SviParam> &paramInfo) {
+      std::string name;
+      for (const char c : paramInfo.param.label) {
+        name.push_back((c == '-' || c == '>') ? '_' : c);
+      }
+      return name;
+    });

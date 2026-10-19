@@ -35,7 +35,6 @@
 namespace {
 
 using tests::casting::allPairs;
-using tests::casting::kDefaultSeed;
 using tests::casting::makePair;
 using tests::casting::payloadEqual;
 using tests::casting::quantizeToSource;
@@ -44,6 +43,7 @@ using tests::casting::referenceSaturate;
 using tests::casting::specialValuesOf;
 using tests::casting::writeFloatValue;
 using tests::casting::writeRaw;
+using tests::rng::kDefaultSeed;
 
 /// One parameterized cast pair.
 struct SatParam {
@@ -299,9 +299,6 @@ TEST_P(SaturationInvariant, TailElementsAlsoSaturate) {
     GTEST_SKIP() << "float-only case";
   }
 
-  // Sizes chosen so every implemented SIMD step width (2/4/8/16 lanes)
-  // sees a non-empty remainder; 16 would be fully consumed by a 16-lane
-  // AVX-512 body and exercise no tail at all.
   for (const size_t count : {size_t{15}, size_t{17}, size_t{31}, size_t{33}}) {
     SCOPED_TRACE(::testing::Message() << p.label << " count=" << count);
     const size_t bodyLen = count >= 16 ? count - 3 : count - 1;
@@ -378,12 +375,12 @@ TEST(SaturationInvariant, Fp4SourcesNeverTriggerUb) {
   }
 }
 
-INSTANTIATE_TEST_SUITE_P(AllPairs, SaturationInvariant,
-                         ::testing::ValuesIn(buildParams()),
-                         [](const ::testing::TestParamInfo<SatParam> &info) {
-                           std::string name;
-                           for (const char c : info.param.label) {
-                             name.push_back((c == '-' || c == '>') ? '_' : c);
-                           }
-                           return name;
-                         });
+INSTANTIATE_TEST_SUITE_P(
+    AllPairs, SaturationInvariant, ::testing::ValuesIn(buildParams()),
+    [](const ::testing::TestParamInfo<SatParam> &paramInfo) {
+      std::string name;
+      for (const char c : paramInfo.param.label) {
+        name.push_back((c == '-' || c == '>') ? '_' : c);
+      }
+      return name;
+    });

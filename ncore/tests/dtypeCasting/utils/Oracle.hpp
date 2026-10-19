@@ -41,11 +41,9 @@
 #include <ncore/tables/cast_tables.h>
 #include <ncore/tensor.h>
 
-namespace tests::casting {
+#include "utils/Rng.hpp"
 
-/// Default seed for deterministic fills ("NOVA" in ASCII), matching the core
-/// test utilities.
-constexpr uint32_t kDefaultSeed = 0x4E4F5641u;
+namespace tests::casting {
 
 /* ==========================================================================
  * Format model: declared independently of the public headers
@@ -172,8 +170,10 @@ inline double referenceDecode(FormatSpec f, uint64_t pattern) {
     out = std::numeric_limits<double>::quiet_NaN();
   } else {
     // Normal: (1 + man / 2^manBits) * 2^(expField - bias).
-    const double scale = std::ldexp(1.0, expField - f.bias);
-    out = (1.0 + (static_cast<double>(man) / std::ldexp(1.0, manBits))) * scale;
+    const double scale = std::ldexp(1.0, static_cast<int>(expField) - f.bias);
+    out = (1.0 + (static_cast<double>(man) /
+                  std::ldexp(1.0, static_cast<int>(manBits)))) *
+          scale;
   }
   return neg ? -out : out;
 }
@@ -191,6 +191,14 @@ inline double referenceDecode(FormatSpec f, uint64_t pattern) {
 
 namespace detail {
 
+// The oracle compares dyadic values exactly, so equality is intended here.
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#elifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
 /**
  * @brief Round-to-nearest-even for a non-negative dyadic rational.
  *
@@ -210,9 +218,22 @@ inline double roundHalfToEven(double x) {
   // Exact tie: round to the even integer.
   return std::fmod(fl, 2.0) != 0.0 ? fl + 1.0 : fl;
 }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#elifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 } // namespace detail
 
+// The oracle compares dyadic values exactly, so equality is intended here.
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#elifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
 /**
  * @brief Round-to-nearest-even quantization of a double into format @p f.
  *
@@ -286,6 +307,11 @@ inline uint64_t referenceEncode(FormatSpec f, double v) {
   }
   return sign | (expField << manBits) | man;
 }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#elifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 /* ==========================================================================
  * Reference integer-conversion policies
@@ -669,29 +695,7 @@ inline double quantizeToSource(DType_ src, double v) {
 }
 
 /* ==========================================================================
- * Deterministic fill (same LCG as the core test utilities)
- * ========================================================================== */
-
-/**
- * @brief Fills a buffer with the core suites' LCG byte pattern.
- *
- * Same inputs produce the same bytes on every platform; no global state.
- *
- * @param[out] buf   Destination buffer.
- * @param[in]  bytes Size in bytes.
- * @param[in]  seed  LCG seed.
- */
-inline void fillPattern(void *buf, size_t bytes, uint32_t seed) {
-  auto *out = static_cast<uint8_t *>(buf);
-  uint32_t state = seed;
-  for (size_t i = 0; i < bytes; ++i) {
-    state = (state * 1664525U) + 1013904223U;
-    out[i] = static_cast<uint8_t>(state >> 24);
-  }
-}
-
-/* ==========================================================================
- * Tensor fixtures -- packing-aware raw access
+ * Tensor fixtures: packing-aware raw access
  * ========================================================================== */
 
 /**
@@ -705,21 +709,19 @@ struct CastPair {
 };
 
 /**
- * @brief Allocates a 1-D CPU src/dst pair holding @p logicalCount logical
- *        elements each.
+ * @brief Allocates an unfilled 1-D CPU src/dst pair.
  *
- * The count rounds up to an even value when either side is Float4E2M1fn
- * (packed dtypes require an even logical length). Both buffers are filled
- * with the deterministic LCG pattern so uninitialized reads are visible.
+ * Shared seam for the makePair() overloads: a packed dtype rounds the
+ * count up to an even length and both buffers stay untouched until the
+ * caller fills them.
  *
  * @param[in] from         Source dtype.
  * @param[in] to           Destination dtype.
  * @param[in] logicalCount Logical element count.
- * @param[in] seed         LCG seed for both fills.
- * @return Pair descriptor; check @ref CastPair::ok before use.
+ * @return Pair descriptor, check ok before use.
  */
-[[nodiscard]] inline CastPair makePair(DType_ from, DType_ to,
-                                       size_t logicalCount, uint32_t seed) {
+[[nodiscard]] inline CastPair allocPair(DType_ from, DType_ to,
+                                        size_t logicalCount) {
   CastPair pair;
   size_t n = logicalCount;
   if (dtype_packing_factor(from) == 2 || dtype_packing_factor(to) == 2) {
@@ -743,10 +745,34 @@ struct CastPair {
     return pair;
   }
   pair.ok = true;
-  fillPattern(pair.src.mutableCTensor().data.data,
-              pair.src.getSize() * pair.src.itemSize(), seed);
-  fillPattern(pair.dst.mutableCTensor().data.data,
-              pair.dst.getSize() * pair.dst.itemSize(), seed ^ 0xFFFFFFFFU);
+  return pair;
+}
+
+/**
+ * @brief Allocates a CPU src/dst pair filled by the generator.
+ *
+ * Source stream at @p subsequence, destination at @p subsequence + 1.
+ *
+ * @param[in] from            Source dtype.
+ * @param[in] to              Destination dtype.
+ * @param[in] logicalCount    Logical element count.
+ * @param[in] seed            Generator seed.
+ * @param[in] subsequenceBase Source stream's subsequence, defaults to 0.
+ * @return Pair descriptor, check ok before use.
+ */
+[[nodiscard]] inline CastPair makePair(DType_ from, DType_ to,
+                                       size_t logicalCount, uint64_t seed,
+                                       uint64_t subsequenceBase = 0) {
+  CastPair pair = allocPair(from, to, logicalCount);
+  if (!pair.ok) {
+    return pair;
+  }
+  tests::rng::Generator fillSrc(DEVICE_CPU, seed, subsequenceBase);
+  tests::rng::Generator fillDst(DEVICE_CPU, seed, subsequenceBase + 1U);
+  Tensor sv = pair.src.mutableCTensor();
+  Tensor dv = pair.dst.mutableCTensor();
+  EXPECT_EQ(fillSrc.fill(sv).err, novaSuccess) << "makePair: src fill";
+  EXPECT_EQ(fillDst.fill(dv).err, novaSuccess) << "makePair: dst fill";
   return pair;
 }
 
@@ -765,9 +791,12 @@ inline void writeRaw(Tensor &ten, size_t idx, uint64_t pattern) {
   if (dtype_packing_factor(ten.dtype) == 2) {
     const auto nibble = static_cast<uint8_t>(pattern & 0xFU);
     uint8_t &byte = ten.data.data[idx / 2];
+    const auto high = static_cast<uint32_t>(byte) & 0xF0U;
+    const auto low = static_cast<uint32_t>(byte) & 0x0FU;
+    const auto shifted = static_cast<uint32_t>(nibble) << 4U;
     byte = (idx % 2 == 0)
-               ? static_cast<uint8_t>((byte & 0xF0U) | nibble)
-               : static_cast<uint8_t>((byte & 0x0FU) | (nibble << 4));
+               ? static_cast<uint8_t>(high | static_cast<uint32_t>(nibble))
+               : static_cast<uint8_t>(low | shifted);
     return;
   }
   std::memcpy(ten.data.data + (idx * ten.item_size), &pattern, ten.item_size);

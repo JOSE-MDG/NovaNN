@@ -30,7 +30,6 @@ namespace {
 using tests::casting::allPairs;
 using tests::casting::findPairFor;
 using tests::casting::isFloatDtype;
-using tests::casting::kDefaultSeed;
 using tests::casting::PairInfo;
 using tests::casting::readRaw;
 using tests::casting::specialValuesOf;
@@ -42,6 +41,7 @@ using tests::gpu::makeDevicePair;
 using tests::gpu::sanitizeLabel;
 using tests::gpu::scalarRef;
 using tests::gpu::stageToDevice;
+using tests::rng::kDefaultSeed;
 
 /// Float-source pairs only.
 inline std::vector<PairInfo> floatSourcePairs() {
@@ -132,8 +132,8 @@ TEST(GpuSpecialValues, Bf16NaNIsCanonical) {
   }
 }
 
-INSTANTIATE_TEST_SUITE_P(FloatSources, GpuSpecialValues,
-                         ::testing::ValuesIn(floatSourcePairs()),
-                         [](const ::testing::TestParamInfo<PairInfo> &info) {
-                           return sanitizeLabel(info.param.label);
-                         });
+INSTANTIATE_TEST_SUITE_P(
+    FloatSources, GpuSpecialValues, ::testing::ValuesIn(floatSourcePairs()),
+    [](const ::testing::TestParamInfo<PairInfo> &paramInfo) {
+      return sanitizeLabel(paramInfo.param.label);
+    });

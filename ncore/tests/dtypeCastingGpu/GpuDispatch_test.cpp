@@ -30,13 +30,13 @@ namespace {
 using ncore::wrappers::TensorCXX;
 using tests::casting::allPairs;
 using tests::casting::findPairFor;
-using tests::casting::kDefaultSeed;
 using tests::casting::readRaw;
 using tests::casting::writeRaw;
 using tests::gpu::callBackendLauncher;
 using tests::gpu::expectHomeEqualRef;
 using tests::gpu::makeDevicePair;
 using tests::gpu::scalarRef;
+using tests::rng::kDefaultSeed;
 
 /// One absolute conversion with exact expectations in both formats.
 struct GpuFamilySample {

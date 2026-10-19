@@ -26,7 +26,6 @@
 namespace {
 
 using tests::casting::findPairFor;
-using tests::casting::kDefaultSeed;
 using tests::casting::readRaw;
 using tests::casting::writeFloatValue;
 using tests::casting::writeRaw;
@@ -36,6 +35,7 @@ using tests::gpu::fetchHome;
 using tests::gpu::makeDevicePair;
 using tests::gpu::scalarRef;
 using tests::gpu::stageToDevice;
+using tests::rng::kDefaultSeed;
 
 /**
  * @brief Converts staged src values on both paths and compares bytes.
