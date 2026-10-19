@@ -32,7 +32,7 @@ namespace {
 
 constexpr uint32 kThreads = 4;
 
-ElementwiseWork PlainElementwise(size_t logical, size_t item = 4) {
+ElementwiseWork plainElementwise(size_t logical, size_t item = 4) {
   return {.logical_size = logical,
           .total_bytes = logical * item,
           .item_size = item,
@@ -41,7 +41,7 @@ ElementwiseWork PlainElementwise(size_t logical, size_t item = 4) {
           .valid = true};
 }
 
-ElementwiseWork HeavyElementwise(size_t logical, size_t bytes, size_t packing) {
+ElementwiseWork heavyElementwise(size_t logical, size_t bytes, size_t packing) {
   return {.logical_size = logical,
           .total_bytes = bytes,
           .item_size = 1,
@@ -50,7 +50,7 @@ ElementwiseWork HeavyElementwise(size_t logical, size_t bytes, size_t packing) {
           .valid = true};
 }
 
-LayoutWork PlainLayout(size_t elements, size_t bytes, bool dense = true) {
+LayoutWork plainLayout(size_t elements, size_t bytes, bool dense = true) {
   return {.num_elements = elements,
           .total_bytes = bytes,
           .item_size = 4,
@@ -60,7 +60,7 @@ LayoutWork PlainLayout(size_t elements, size_t bytes, bool dense = true) {
           .valid = true};
 }
 
-ReductionWork PlainReduction(size_t total, size_t extent, size_t batch) {
+ReductionWork plainReduction(size_t total, size_t extent, size_t batch) {
   return {.total = total,
           .extent = extent,
           .batch = batch,
@@ -70,23 +70,23 @@ ReductionWork PlainReduction(size_t total, size_t extent, size_t batch) {
           .valid = true};
 }
 
-GemmWork PlainGemm(size_t arith, size_t outer) {
+GemmWork plainGemm(size_t arith, size_t outer) {
   return {.arith = arith, .outer = outer, .valid = true};
 }
 
-StencilWork PlainStencil(size_t points) {
+StencilWork plainStencil(size_t points) {
   return {.points = points, .valid = true};
 }
 
-ScanWork PlainScan(size_t total, size_t extent, size_t batch) {
+ScanWork plainScan(size_t total, size_t extent, size_t batch) {
   return {.total = total, .extent = extent, .batch = batch, .valid = true};
 }
 
-GatherWork PlainGather(size_t indices, size_t segment) {
+GatherWork plainGather(size_t indices, size_t segment) {
   return {.indices = indices, .segment = segment, .valid = true};
 }
 
-SortWork PlainSort(size_t total) { return {.total = total, .valid = true}; }
+SortWork plainSort(size_t total) { return {.total = total, .valid = true}; }
 
 /**
  * @brief Stack tensor with wired storage for helper-builder tests.
@@ -117,7 +117,7 @@ struct FakeTensor {
   }
 };
 
-void CheckBounded(ParallelDecision decision, uint32 threads) {
+void checkBounded(ParallelDecision decision, uint32 threads) {
   if (!decision.go) {
     return;
   }
@@ -141,10 +141,10 @@ class HelperDtypeSweep : public ::testing::TestWithParam<DtypeExpectation> {};
  */
 TEST(ElementwiseDecision, RefusesBelowGrain) {
   const ElementwiseWork below =
-      PlainElementwise((2 * PARALLEL_GRAIN_ELEMENTWISE) - 1);
+      plainElementwise((2 * PARALLEL_GRAIN_ELEMENTWISE) - 1);
   EXPECT_FALSE(decide_elementwise(&below, kThreads).go);
 
-  const ElementwiseWork at = PlainElementwise(2 * PARALLEL_GRAIN_ELEMENTWISE);
+  const ElementwiseWork at = plainElementwise(2 * PARALLEL_GRAIN_ELEMENTWISE);
   const ParallelDecision cleared = decide_elementwise(&at, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 2u);
@@ -156,13 +156,13 @@ TEST(ElementwiseDecision, RefusesBelowGrain) {
  * @test REQ-002: 4*8192 gives {go, 4}, 4*8192-1 gives {go, 3}.
  */
 TEST(ElementwiseDecision, ClearsAtGrain) {
-  const ElementwiseWork at = PlainElementwise(4 * PARALLEL_GRAIN_ELEMENTWISE);
+  const ElementwiseWork at = plainElementwise(4 * PARALLEL_GRAIN_ELEMENTWISE);
   const ParallelDecision cleared = decide_elementwise(&at, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 4u);
 
   const ElementwiseWork shortByOne =
-      PlainElementwise((4 * PARALLEL_GRAIN_ELEMENTWISE) - 1);
+      plainElementwise((4 * PARALLEL_GRAIN_ELEMENTWISE) - 1);
   const ParallelDecision partial = decide_elementwise(&shortByOne, kThreads);
   EXPECT_TRUE(partial.go);
   EXPECT_EQ(partial.num_threads, 3u);
@@ -174,11 +174,11 @@ TEST(ElementwiseDecision, ClearsAtGrain) {
  */
 TEST(LayoutDecision, RefusesBelowByteGrain) {
   constexpr size_t kHalf = (2 * PARALLEL_GRAIN_LAYOUT_BYTES) - 1;
-  const LayoutWork below = PlainLayout(kHalf / 4, kHalf);
+  const LayoutWork below = plainLayout(kHalf / 4, kHalf);
   EXPECT_FALSE(decide_layout(&below, kThreads).go);
 
   constexpr size_t kFull = 2 * PARALLEL_GRAIN_LAYOUT_BYTES;
-  const LayoutWork at = PlainLayout(kFull / 4, kFull);
+  const LayoutWork at = plainLayout(kFull / 4, kFull);
   const ParallelDecision cleared = decide_layout(&at, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 2u);
@@ -191,13 +191,13 @@ TEST(LayoutDecision, RefusesBelowByteGrain) {
  */
 TEST(LayoutDecision, ClearsAtByteGrain) {
   constexpr size_t kFull = 4 * PARALLEL_GRAIN_LAYOUT_BYTES;
-  const LayoutWork at = PlainLayout(kFull / 4, kFull);
+  const LayoutWork at = plainLayout(kFull / 4, kFull);
   const ParallelDecision cleared = decide_layout(&at, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 4u);
 
   constexpr size_t kShort = (4 * PARALLEL_GRAIN_LAYOUT_BYTES) - 1;
-  const LayoutWork shortByOne = PlainLayout(kShort / 4, kShort);
+  const LayoutWork shortByOne = plainLayout(kShort / 4, kShort);
   const ParallelDecision partial = decide_layout(&shortByOne, kThreads);
   EXPECT_TRUE(partial.go);
   EXPECT_EQ(partial.num_threads, 3u);
@@ -209,8 +209,8 @@ TEST(LayoutDecision, ClearsAtByteGrain) {
  */
 TEST(LayoutDecision, DenseFlagPassesThrough) {
   constexpr size_t kFull = 4 * PARALLEL_GRAIN_LAYOUT_BYTES;
-  const LayoutWork dense = PlainLayout(kFull / 4, kFull, true);
-  const LayoutWork strided = PlainLayout(kFull / 4, kFull, false);
+  const LayoutWork dense = plainLayout(kFull / 4, kFull, true);
+  const LayoutWork strided = plainLayout(kFull / 4, kFull, false);
   const ParallelDecision denseDecision = decide_layout(&dense, kThreads);
   const ParallelDecision stridedDecision = decide_layout(&strided, kThreads);
   EXPECT_EQ(denseDecision.go, stridedDecision.go);
@@ -223,7 +223,7 @@ TEST(LayoutDecision, DenseFlagPassesThrough) {
  * @test REQ-004: extent 16, batch 2, total 1M refuses (floor rule first).
  */
 TEST(ReductionDecision, ThinExtentRefuses) {
-  const ReductionWork thin = PlainReduction(1 << 20, 16, 2);
+  const ReductionWork thin = plainReduction(1 << 20, 16, 2);
   EXPECT_FALSE(decide_reduction(&thin, kThreads).go);
 }
 
@@ -232,7 +232,7 @@ TEST(ReductionDecision, ThinExtentRefuses) {
  * @test REQ-004: extent 1024, batch 32, total 32768 gives {go, 2}.
  */
 TEST(ReductionDecision, DeepBatchedClears) {
-  const ReductionWork deep = PlainReduction(32768, 1024, 32);
+  const ReductionWork deep = plainReduction(32768, 1024, 32);
   const ParallelDecision cleared = decide_reduction(&deep, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 2u);
@@ -243,7 +243,7 @@ TEST(ReductionDecision, DeepBatchedClears) {
  * @test REQ-005: arith 4096, outer 16 refuses.
  */
 TEST(GemmDecision, TinyRefuses) {
-  const GemmWork tiny = PlainGemm(16 * 16 * 16, 16);
+  const GemmWork tiny = plainGemm(16 * 16 * 16, 16);
   EXPECT_FALSE(decide_gemm(&tiny, kThreads).go);
 }
 
@@ -252,7 +252,7 @@ TEST(GemmDecision, TinyRefuses) {
  * @test REQ-005: arith 512^3, outer 512 gives {go, 4}.
  */
 TEST(GemmDecision, TiledClears) {
-  const GemmWork tiled = PlainGemm(512 * 512 * 512, 512);
+  const GemmWork tiled = plainGemm(512 * 512 * 512, 512);
   const ParallelDecision cleared = decide_gemm(&tiled, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 4u);
@@ -263,10 +263,10 @@ TEST(GemmDecision, TiledClears) {
  * @test REQ-006: 2*4096-1 refuses, 2*4096 gives {go, 2}.
  */
 TEST(StencilDecision, RefusesBelowGrain) {
-  const StencilWork below = PlainStencil((2 * PARALLEL_GRAIN_STENCIL) - 1);
+  const StencilWork below = plainStencil((2 * PARALLEL_GRAIN_STENCIL) - 1);
   EXPECT_FALSE(decide_stencil(&below, kThreads).go);
 
-  const StencilWork at = PlainStencil(2 * PARALLEL_GRAIN_STENCIL);
+  const StencilWork at = plainStencil(2 * PARALLEL_GRAIN_STENCIL);
   const ParallelDecision cleared = decide_stencil(&at, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 2u);
@@ -278,12 +278,12 @@ TEST(StencilDecision, RefusesBelowGrain) {
  * @test REQ-006: 4*4096 gives {go, 4}, 4*4096-1 gives {go, 3}.
  */
 TEST(StencilDecision, ClearsAtGrain) {
-  const StencilWork at = PlainStencil(4 * PARALLEL_GRAIN_STENCIL);
+  const StencilWork at = plainStencil(4 * PARALLEL_GRAIN_STENCIL);
   const ParallelDecision cleared = decide_stencil(&at, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 4u);
 
-  const StencilWork shortByOne = PlainStencil((4 * PARALLEL_GRAIN_STENCIL) - 1);
+  const StencilWork shortByOne = plainStencil((4 * PARALLEL_GRAIN_STENCIL) - 1);
   const ParallelDecision partial = decide_stencil(&shortByOne, kThreads);
   EXPECT_TRUE(partial.go);
   EXPECT_EQ(partial.num_threads, 3u);
@@ -294,7 +294,7 @@ TEST(StencilDecision, ClearsAtGrain) {
  * @test REQ-007: batch 1 with a 1M extent refuses (axis dependency).
  */
 TEST(ScanDecision, SingleScanRefuses) {
-  const ScanWork single = PlainScan(1 << 20, 1 << 20, 1);
+  const ScanWork single = plainScan(1 << 20, 1 << 20, 1);
   EXPECT_FALSE(decide_scan(&single, kThreads).go);
 }
 
@@ -303,7 +303,7 @@ TEST(ScanDecision, SingleScanRefuses) {
  * @test REQ-007: batch 8, extent 8192 gives {go, 4}.
  */
 TEST(ScanDecision, BatchedClears) {
-  const ScanWork batched = PlainScan(8 * 8192, 8192, 8);
+  const ScanWork batched = plainScan(8 * 8192, 8192, 8);
   const ParallelDecision cleared = decide_scan(&batched, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 4u);
@@ -314,7 +314,7 @@ TEST(ScanDecision, BatchedClears) {
  * @test REQ-008: segment 8 is below the 16-byte floor.
  */
 TEST(GatherDecision, SmallSegmentRefuses) {
-  const GatherWork small = PlainGather(1 << 20, 8);
+  const GatherWork small = plainGather(1 << 20, 8);
   EXPECT_FALSE(decide_gather(&small, kThreads).go);
 }
 
@@ -323,7 +323,7 @@ TEST(GatherDecision, SmallSegmentRefuses) {
  * @test REQ-008: segment 64, 4*8192 indices give {go, 4}.
  */
 TEST(GatherDecision, LargeClears) {
-  const GatherWork large = PlainGather(4 * PARALLEL_GRAIN_GATHER, 64);
+  const GatherWork large = plainGather(4 * PARALLEL_GRAIN_GATHER, 64);
   const ParallelDecision cleared = decide_gather(&large, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 4u);
@@ -334,7 +334,7 @@ TEST(GatherDecision, LargeClears) {
  * @test REQ-009: 65535 refuses.
  */
 TEST(SortDecision, BelowFloorRefuses) {
-  const SortWork below = PlainSort(PARALLEL_GRAIN_SORT_FLOOR - 1);
+  const SortWork below = plainSort(PARALLEL_GRAIN_SORT_FLOOR - 1);
   EXPECT_FALSE(decide_sort(&below, kThreads).go);
 }
 
@@ -344,7 +344,7 @@ TEST(SortDecision, BelowFloorRefuses) {
  */
 TEST(SortDecision, FloorPlusGrainClears) {
   const SortWork above =
-      PlainSort(PARALLEL_GRAIN_SORT_FLOOR + PARALLEL_GRAIN_SORT);
+      plainSort(PARALLEL_GRAIN_SORT_FLOOR + PARALLEL_GRAIN_SORT);
   const ParallelDecision cleared = decide_sort(&above, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 4u);
@@ -408,14 +408,14 @@ TEST(FusedDecision, SingleStagePassesThrough) {
  * @test REQ-021: all 8 decide_* with threads 0 and 1 refuse.
  */
 TEST(ThreadsBelowTwo, RefusesAllPatterns) {
-  const ElementwiseWork elementwise = PlainElementwise(1 << 20);
-  const LayoutWork layout = PlainLayout(1 << 20, 1 << 22);
-  const ReductionWork reduction = PlainReduction(1 << 22, 1 << 12, 1 << 10);
-  const GemmWork gemm = PlainGemm(1ULL << 32, 1 << 12);
-  const StencilWork stencil = PlainStencil(1 << 20);
-  const ScanWork scan = PlainScan(1 << 22, 1 << 12, 1 << 10);
-  const GatherWork gather = PlainGather(1 << 20, 64);
-  const SortWork sort = PlainSort(1 << 20);
+  const ElementwiseWork elementwise = plainElementwise(1 << 20);
+  const LayoutWork layout = plainLayout(1 << 20, 1 << 22);
+  const ReductionWork reduction = plainReduction(1 << 22, 1 << 12, 1 << 10);
+  const GemmWork gemm = plainGemm(1ULL << 32, 1 << 12);
+  const StencilWork stencil = plainStencil(1 << 20);
+  const ScanWork scan = plainScan(1 << 22, 1 << 12, 1 << 10);
+  const GatherWork gather = plainGather(1 << 20, 64);
+  const SortWork sort = plainSort(1 << 20);
 
   for (uint32 threads : {0u, 1u}) {
     EXPECT_FALSE(decide_elementwise(&elementwise, threads).go);
@@ -434,7 +434,7 @@ TEST(ThreadsBelowTwo, RefusesAllPatterns) {
  * @test 2*8192 elements with 8 threads give {go, 2}.
  */
 TEST(EffectiveCount, CappedByUsefulGrains) {
-  const ElementwiseWork work = PlainElementwise(2 * PARALLEL_GRAIN_ELEMENTWISE);
+  const ElementwiseWork work = plainElementwise(2 * PARALLEL_GRAIN_ELEMENTWISE);
   const ParallelDecision decision = decide_elementwise(&work, 8);
   EXPECT_TRUE(decision.go);
   EXPECT_EQ(decision.num_threads, 2u);
@@ -445,7 +445,7 @@ TEST(EffectiveCount, CappedByUsefulGrains) {
  * @test 16M elements with 4 threads give {go, 4}.
  */
 TEST(EffectiveCount, CappedByAvailableThreads) {
-  const ElementwiseWork work = PlainElementwise(1 << 24);
+  const ElementwiseWork work = plainElementwise(1 << 24);
   const ParallelDecision decision = decide_elementwise(&work, kThreads);
   EXPECT_TRUE(decision.go);
   EXPECT_EQ(decision.num_threads, 4u);
@@ -456,7 +456,7 @@ TEST(EffectiveCount, CappedByAvailableThreads) {
  * @test Batch 3 over huge extents with 8 threads gives {go, 3}.
  */
 TEST(EffectiveCount, ScanCappedByBatch) {
-  const ScanWork work = PlainScan(3 * (1 << 20), 1 << 20, 3);
+  const ScanWork work = plainScan(3 * (1 << 20), 1 << 20, 3);
   const ParallelDecision decision = decide_scan(&work, 8);
   EXPECT_TRUE(decision.go);
   EXPECT_EQ(decision.num_threads, 3u);
@@ -468,10 +468,10 @@ TEST(EffectiveCount, ScanCappedByBatch) {
  * and total 32768 gives {go, 2}.
  */
 TEST(ReductionDecision, ExtentFloorBoundary) {
-  const ReductionWork thin = PlainReduction(1 << 20, 31, 2);
+  const ReductionWork thin = plainReduction(1 << 20, 31, 2);
   EXPECT_FALSE(decide_reduction(&thin, kThreads).go);
 
-  const ReductionWork wide = PlainReduction(32768, 32, 1024);
+  const ReductionWork wide = plainReduction(32768, 32, 1024);
   const ParallelDecision cleared = decide_reduction(&wide, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 2u);
@@ -483,7 +483,7 @@ TEST(ReductionDecision, ExtentFloorBoundary) {
  * 32768 gives {go, 2}.
  */
 TEST(ReductionDecision, BatchFactorCompensatesThinExtent) {
-  const ReductionWork compensated = PlainReduction(32768, 16, 2048);
+  const ReductionWork compensated = plainReduction(32768, 16, 2048);
   const ParallelDecision cleared = decide_reduction(&compensated, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 2u);
@@ -495,10 +495,10 @@ TEST(ReductionDecision, BatchFactorCompensatesThinExtent) {
  * 2*8192 indices give {go, 2}.
  */
 TEST(GatherDecision, SegmentFloorBoundary) {
-  const GatherWork below = PlainGather(1 << 20, 15);
+  const GatherWork below = plainGather(1 << 20, 15);
   EXPECT_FALSE(decide_gather(&below, kThreads).go);
 
-  const GatherWork at = PlainGather(2 * PARALLEL_GRAIN_GATHER, 16);
+  const GatherWork at = plainGather(2 * PARALLEL_GRAIN_GATHER, 16);
   const ParallelDecision cleared = decide_gather(&at, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 2u);
@@ -509,7 +509,7 @@ TEST(GatherDecision, SegmentFloorBoundary) {
  * @test 65536 passes the floor check and gives quotient 4, {go, 4}.
  */
 TEST(SortDecision, FloorExactBoundary) {
-  const SortWork at = PlainSort(PARALLEL_GRAIN_SORT_FLOOR);
+  const SortWork at = plainSort(PARALLEL_GRAIN_SORT_FLOOR);
   const ParallelDecision cleared = decide_sort(&at, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 4u);
@@ -520,7 +520,7 @@ TEST(SortDecision, FloorExactBoundary) {
  * @test Batch 2 over 1M extents gives {go, 2}.
  */
 TEST(ScanDecision, BatchTwoBoundary) {
-  const ScanWork pair = PlainScan(2 * (1 << 20), 1 << 20, 2);
+  const ScanWork pair = plainScan(2 * (1 << 20), 1 << 20, 2);
   const ParallelDecision cleared = decide_scan(&pair, kThreads);
   EXPECT_TRUE(cleared.go);
   EXPECT_EQ(cleared.num_threads, 2u);
@@ -647,6 +647,42 @@ TEST(Helpers, NonCpuPlacementInvalid) {
 }
 
 /**
+ * @brief Random stages build valid facts straight from the demand.
+ *
+ * Random work runs over caller-owned staging with no Tensor in
+ * hand: the tensor builders refuse such call sites and the stage
+ * used to fall back to serial.
+ */
+TEST(Helpers, RngWorkBuildsValidFacts) {
+  const ElementwiseWork work = make_rng_work(131072, 4);
+  EXPECT_TRUE(work.valid);
+  EXPECT_EQ(work.logical_size, size_t{131072});
+  EXPECT_EQ(work.total_bytes, size_t{131072 * 4});
+  EXPECT_EQ(work.item_size, size_t{4});
+  EXPECT_EQ(work.packing, size_t{1});
+  EXPECT_TRUE(work.heavy);
+}
+
+/**
+ * @brief A raw random stage parallelizes where the tensor builder
+ * refused: the same demand clears the grain quotient.
+ */
+TEST(Helpers, RngWorkDecisionParallelizes) {
+  const ElementwiseWork work = make_rng_work(131072, 4);
+  const ParallelDecision decision = decide_elementwise(&work, 24);
+  EXPECT_TRUE(decision.go);
+  EXPECT_EQ(decision.num_threads, 8U); // heavy grain divides to 8.
+}
+
+/**
+ * @brief null or zero demand through the raw builder stays serial.
+ */
+TEST(Helpers, RngWorkEmptyDemandStaysSerial) {
+  const ElementwiseWork work = make_rng_work(0, 4);
+  EXPECT_FALSE(decide_elementwise(&work, 24).go);
+}
+
+/**
  * @brief Out-of-range dtype tags are rejected by both builders.
  */
 TEST(Helpers, InvalidDtypeInvalid) {
@@ -676,17 +712,17 @@ TEST(Helpers, PackedDtypeMapping) {
  */
 TEST(ElementwiseDecision, PackedNeedsHeavierGrain) {
   const ElementwiseWork plain =
-      PlainElementwise(4 * PARALLEL_GRAIN_ELEMENTWISE);
+      plainElementwise(4 * PARALLEL_GRAIN_ELEMENTWISE);
   const ParallelDecision plainDecision = decide_elementwise(&plain, kThreads);
   ASSERT_TRUE(plainDecision.go);
   EXPECT_EQ(plainDecision.num_threads, 4u);
 
-  const ElementwiseWork packedSmall = HeavyElementwise(
+  const ElementwiseWork packedSmall = heavyElementwise(
       4 * PARALLEL_GRAIN_ELEMENTWISE, 4 * PARALLEL_GRAIN_ELEMENTWISE / 2, 2);
   EXPECT_FALSE(decide_elementwise(&packedSmall, kThreads).go);
 
   const ElementwiseWork packedFull =
-      HeavyElementwise(4 * PARALLEL_GRAIN_ELEMENTWISE_PACKED,
+      heavyElementwise(4 * PARALLEL_GRAIN_ELEMENTWISE_PACKED,
                        4 * PARALLEL_GRAIN_ELEMENTWISE_PACKED / 2, 2);
   const ParallelDecision packedDecision =
       decide_elementwise(&packedFull, kThreads);
@@ -703,12 +739,12 @@ TEST(ElementwiseDecision, PackedNeedsHeavierGrain) {
  */
 TEST(ElementwiseDecision, QuantizedNeedsHeavierGrain) {
   const ElementwiseWork plain =
-      PlainElementwise(4 * PARALLEL_GRAIN_ELEMENTWISE);
+      plainElementwise(4 * PARALLEL_GRAIN_ELEMENTWISE);
   const ParallelDecision plainDecision = decide_elementwise(&plain, kThreads);
   ASSERT_TRUE(plainDecision.go);
   EXPECT_EQ(plainDecision.num_threads, 4u);
 
-  const ElementwiseWork quantized = HeavyElementwise(
+  const ElementwiseWork quantized = heavyElementwise(
       4 * PARALLEL_GRAIN_ELEMENTWISE, 4 * PARALLEL_GRAIN_ELEMENTWISE, 1);
   const ParallelDecision quantizedDecision =
       decide_elementwise(&quantized, kThreads);
@@ -716,7 +752,7 @@ TEST(ElementwiseDecision, QuantizedNeedsHeavierGrain) {
   EXPECT_EQ(quantizedDecision.num_threads, 2u);
 
   const ElementwiseWork quantizedShort =
-      HeavyElementwise((2 * PARALLEL_GRAIN_ELEMENTWISE_PACKED) - 1,
+      heavyElementwise((2 * PARALLEL_GRAIN_ELEMENTWISE_PACKED) - 1,
                        (2 * PARALLEL_GRAIN_ELEMENTWISE_PACKED) - 1, 1);
   EXPECT_FALSE(decide_elementwise(&quantizedShort, kThreads).go);
 }
@@ -858,60 +894,60 @@ TEST(ContiguousCopy, SerialVsParallelBitIdentical) {
  */
 TEST(EffectiveCount, NeverExceedsThreadsSweep) {
   for (uint32 threads : {2u, 4u, 16u}) {
-    const ElementwiseWork ewSmall = PlainElementwise(100);
-    const ElementwiseWork ewMedium = PlainElementwise(20000);
-    const ElementwiseWork ewHuge = PlainElementwise(1 << 26);
-    CheckBounded(decide_elementwise(&ewSmall, threads), threads);
-    CheckBounded(decide_elementwise(&ewMedium, threads), threads);
-    CheckBounded(decide_elementwise(&ewHuge, threads), threads);
+    const ElementwiseWork ewSmall = plainElementwise(100);
+    const ElementwiseWork ewMedium = plainElementwise(20000);
+    const ElementwiseWork ewHuge = plainElementwise(1 << 26);
+    checkBounded(decide_elementwise(&ewSmall, threads), threads);
+    checkBounded(decide_elementwise(&ewMedium, threads), threads);
+    checkBounded(decide_elementwise(&ewHuge, threads), threads);
 
-    const LayoutWork lwSmall = PlainLayout(100, 400);
-    const LayoutWork lwMedium = PlainLayout(20000, 80000);
-    const LayoutWork lwHuge = PlainLayout(1 << 24, 1 << 26);
-    CheckBounded(decide_layout(&lwSmall, threads), threads);
-    CheckBounded(decide_layout(&lwMedium, threads), threads);
-    CheckBounded(decide_layout(&lwHuge, threads), threads);
+    const LayoutWork lwSmall = plainLayout(100, 400);
+    const LayoutWork lwMedium = plainLayout(20000, 80000);
+    const LayoutWork lwHuge = plainLayout(1 << 24, 1 << 26);
+    checkBounded(decide_layout(&lwSmall, threads), threads);
+    checkBounded(decide_layout(&lwMedium, threads), threads);
+    checkBounded(decide_layout(&lwHuge, threads), threads);
 
-    const ReductionWork rwSmall = PlainReduction(100, 64, 2);
-    const ReductionWork rwMedium = PlainReduction(40000, 200, 200);
-    const ReductionWork rwHuge = PlainReduction(1 << 26, 1 << 13, 1 << 13);
-    CheckBounded(decide_reduction(&rwSmall, threads), threads);
-    CheckBounded(decide_reduction(&rwMedium, threads), threads);
-    CheckBounded(decide_reduction(&rwHuge, threads), threads);
+    const ReductionWork rwSmall = plainReduction(100, 64, 2);
+    const ReductionWork rwMedium = plainReduction(40000, 200, 200);
+    const ReductionWork rwHuge = plainReduction(1 << 26, 1 << 13, 1 << 13);
+    checkBounded(decide_reduction(&rwSmall, threads), threads);
+    checkBounded(decide_reduction(&rwMedium, threads), threads);
+    checkBounded(decide_reduction(&rwHuge, threads), threads);
 
-    const GemmWork gwSmall = PlainGemm(100, 1);
-    const GemmWork gwMedium = PlainGemm(4 * PARALLEL_GRAIN_GEMM_OPS, 4);
-    const GemmWork gwHuge = PlainGemm(1ULL << 32, 1000);
-    CheckBounded(decide_gemm(&gwSmall, threads), threads);
-    CheckBounded(decide_gemm(&gwMedium, threads), threads);
-    CheckBounded(decide_gemm(&gwHuge, threads), threads);
+    const GemmWork gwSmall = plainGemm(100, 1);
+    const GemmWork gwMedium = plainGemm(4 * PARALLEL_GRAIN_GEMM_OPS, 4);
+    const GemmWork gwHuge = plainGemm(1ULL << 32, 1000);
+    checkBounded(decide_gemm(&gwSmall, threads), threads);
+    checkBounded(decide_gemm(&gwMedium, threads), threads);
+    checkBounded(decide_gemm(&gwHuge, threads), threads);
 
-    const StencilWork swSmall = PlainStencil(100);
-    const StencilWork swMedium = PlainStencil(20000);
-    const StencilWork swHuge = PlainStencil(1 << 26);
-    CheckBounded(decide_stencil(&swSmall, threads), threads);
-    CheckBounded(decide_stencil(&swMedium, threads), threads);
-    CheckBounded(decide_stencil(&swHuge, threads), threads);
+    const StencilWork swSmall = plainStencil(100);
+    const StencilWork swMedium = plainStencil(20000);
+    const StencilWork swHuge = plainStencil(1 << 26);
+    checkBounded(decide_stencil(&swSmall, threads), threads);
+    checkBounded(decide_stencil(&swMedium, threads), threads);
+    checkBounded(decide_stencil(&swHuge, threads), threads);
 
-    const ScanWork scSmall = PlainScan(100, 50, 2);
-    const ScanWork scMedium = PlainScan(40000, 10000, 4);
-    const ScanWork scHuge = PlainScan(64 * (1 << 20), 1 << 20, 64);
-    CheckBounded(decide_scan(&scSmall, threads), threads);
-    CheckBounded(decide_scan(&scMedium, threads), threads);
-    CheckBounded(decide_scan(&scHuge, threads), threads);
+    const ScanWork scSmall = plainScan(100, 50, 2);
+    const ScanWork scMedium = plainScan(40000, 10000, 4);
+    const ScanWork scHuge = plainScan(64 * (1 << 20), 1 << 20, 64);
+    checkBounded(decide_scan(&scSmall, threads), threads);
+    checkBounded(decide_scan(&scMedium, threads), threads);
+    checkBounded(decide_scan(&scHuge, threads), threads);
 
-    const GatherWork gaSmall = PlainGather(100, 64);
-    const GatherWork gaMedium = PlainGather(20000, 64);
-    const GatherWork gaHuge = PlainGather(1 << 24, 64);
-    CheckBounded(decide_gather(&gaSmall, threads), threads);
-    CheckBounded(decide_gather(&gaMedium, threads), threads);
-    CheckBounded(decide_gather(&gaHuge, threads), threads);
+    const GatherWork gaSmall = plainGather(100, 64);
+    const GatherWork gaMedium = plainGather(20000, 64);
+    const GatherWork gaHuge = plainGather(1 << 24, 64);
+    checkBounded(decide_gather(&gaSmall, threads), threads);
+    checkBounded(decide_gather(&gaMedium, threads), threads);
+    checkBounded(decide_gather(&gaHuge, threads), threads);
 
-    const SortWork soSmall = PlainSort(1000);
-    const SortWork soMedium = PlainSort(100000);
-    const SortWork soHuge = PlainSort(1 << 26);
-    CheckBounded(decide_sort(&soSmall, threads), threads);
-    CheckBounded(decide_sort(&soMedium, threads), threads);
-    CheckBounded(decide_sort(&soHuge, threads), threads);
+    const SortWork soSmall = plainSort(1000);
+    const SortWork soMedium = plainSort(100000);
+    const SortWork soHuge = plainSort(1 << 26);
+    checkBounded(decide_sort(&soSmall, threads), threads);
+    checkBounded(decide_sort(&soMedium, threads), threads);
+    checkBounded(decide_sort(&soHuge, threads), threads);
   }
 }
