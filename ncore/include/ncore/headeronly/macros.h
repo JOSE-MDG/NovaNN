@@ -2,31 +2,13 @@
  * @file macros.h
  * @brief Foundational preprocessor macros and compile-time constants.
  *
- * @details
- * Every public and internal header includes this file, so it must stay
- * free of function definitions and external dependencies. It provides
- * portability helpers (@c restrict, @c ALIGN, @c ATTR, @c INITIALIZE),
- * a portable mutex abstraction (@c MTX_T, @c MTX_LOCK, @c MTX_UNLOCK),
- * compile-time constants (@c NOVA_MAX_DIMS, @c NUM_DTYPES, @c NUM_FLOATS,
- * @c NUM_INTEGERS, @c NUM_ERRORS, @c NUM_BACKENDS), the
- * @c NOVA_INTERNAL_ASSERT diagnostic, SIMD lane counts (@c NOVA_SIMD_*),
- * terminal color codes (@c NCORE_LOG_*), CUDA/HIP qualifiers
- * (@c NCORE_HOST_DEVICE, @c NCORE_HOST, @c NCORE_DEVICE) and compiler
- * detection macros (@c _GNUC_CLANG_, @c NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO).
+ * Every public and internal header includes this file, so it stays free
+ * of function definitions and depends on nothing beyond the standard C
+ * headers (and @c iostream in C++).  The OS mutex macros live apart, in
+ * @c mtx.h, because they need @c <windows.h> on Windows and that header
+ * defines macros that collide with ordinary identifiers.
  *
- * Three design rules keep this header usable everywhere:
- *
- * @li No function definitions — purely preprocessor constants and macros.
- * @li No dependencies beyond standard C headers (@c stdio.h, @c stdlib.h,
- *     @c stdalign.h), the OS mutex header (@c threads.h on Linux,
- *     @c windows.h on Windows) and @c iostream in C++ for the diagnostic.
- * @li C and C++ compatible — @c restrict maps to @c __restrict__, and the
- *     assertion macro uses @c fprintf(stderr, ...) in C and @c std::cerr
- *     in C++.
- *
- * @see dtype.h   DType_ enum referenced by the @c NUM_DTYPES family.
- * @see simd.h    Runtime SIMD capability detection.
- * @see status.h  novaError_t enum referenced by @c NUM_ERRORS.
+ * @see mtx.h  Portable mutex macros.
  */
 
 #pragma once
@@ -53,71 +35,6 @@
  */
 #if defined(__cplusplus) && !defined(restrict)
 #define restrict __restrict__
-#endif
-
-/**
- * @def MTX_T
- * @brief Portable mutex type for short critical sections.
- *
- * @details
- * Maps to C11 @c mtx_t from @c <threads.h> on Linux and to
- * @c CRITICAL_SECTION from @c <windows.h> on Windows. Declare storage
- * directly (not a pointer) and initialize once before use
- * (@c mtx_init with @c mtx_plain on Linux,
- * @c InitializeCriticalSection on Windows).
- *
- * @par Example
- * @code{.c}
- * static MTX_T cache_mtx;
- * MTX_LOCK(&cache_mtx);
- * // ... protected writes ...
- * MTX_UNLOCK(&cache_mtx);
- * @endcode
- *
- * @see MTX_LOCK
- * @see MTX_UNLOCK
- */
-
-/**
- * @def MTX_LOCK(mutex)
- * @brief Lock a portable mutex.
- *
- * @details
- * Maps to @c mtx_lock on Linux and to @c EnterCriticalSection on
- * Windows. Blocks until the mutex is acquired. The return value is
- * platform dependent (@c int on Linux, @c void on Windows), so callers
- * must not use it.
- *
- * @param mutex  Pointer to @c MTX_T storage (@c MTX_T*).
- *
- * @see MTX_T
- * @see MTX_UNLOCK
- */
-
-/**
- * @def MTX_UNLOCK(mutex)
- * @brief Unlock a portable mutex.
- *
- * @details
- * Maps to @c mtx_unlock on Linux and to @c LeaveCriticalSection on
- * Windows. Each call must pair with a preceding @c MTX_LOCK on the
- * same mutex by the same thread.
- *
- * @param mutex  Pointer to @c MTX_T storage (@c MTX_T*).
- *
- * @see MTX_T
- * @see MTX_LOCK
- */
-#ifdef __linux__
-#include <threads.h>
-#define MTX_T mtx_t
-#define MTX_LOCK(mutex) mtx_lock((mutex))
-#define MTX_UNLOCK(mutex) mtx_unlock((mutex))
-#elif defined(_WIN64)
-#include <windows.h>
-#define MTX_T CRITICAL_SECTION
-#define MTX_LOCK(mutex) EnterCriticalSection((mutex))
-#define MTX_UNLOCK(mutex) LeaveCriticalSection((mutex))
 #endif
 
 /**
@@ -208,28 +125,13 @@
 /**
  * @def NUM_DTYPES
  * @brief Total number of supported data types.
- *
- * @details
- * Equals 21, covering Float32, Float64, Float16, BFloat16,
- * Float8E4M3fn, Float8E5M2, Float4E2M1fn, Signed8, UnSigned8,
- * QSigned8, QUnSigned8, Signed16, UnSigned16, QSigned16,
- * QUnSigned16, Signed32, UnSigned32, QSigned32, QUnSigned32,
- * Signed64, and UnSigned64.
- *
- * @see DType_ enum in dtype.h.
  */
 #define NUM_DTYPES 21
 
 /**
  * @def NUM_ERRORS
- * @brief Total number of @ref novaError_t enumerators.
- *
- * @details
- * Counts @c novaSuccess plus every error code across all categories
- * (parameters, memory, transfers, device/backend, OS, dtype/cast, GPU,
- * internal, general and threads). Use it to size arrays indexed by error code.
- *
- * @see novaError_t in status.h.
+ * @brief Total number of @ref novaError_t enumerators, useful to size
+ *        arrays indexed by error code.
  */
 #define NUM_ERRORS 38
 
@@ -447,16 +349,8 @@ inline void nova_internal_assert_deprecated_marker() {}
  * @brief ANSI escape sequences for subtle, cmake-style terminal
  *        output.
  *
- * @details
- * Used by @c print_* functions in @c device.c, @c alloc.c, etc.
- * The color palette is intentionally muted:
- * @li Green prefix (@c --): status messages.
- * @li Cyan values: highlighted data (device names, sizes).
- * @li Bold: section headings or emphasis.
- * @li Dim: field labels and secondary text.
- * @li Yellow: pending or uninitialized states.
- * @li Red: errors and failures.
- * @li Reset: restores default terminal color.
+ * Used by the @c print_* functions. Colors must be paired with
+ * @ref NCORE_LOG_RESET where noted.
  */
 
 /**
