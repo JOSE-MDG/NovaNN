@@ -4,32 +4,23 @@
  *
  * @details
  * Implements the three core allocation primitives used by the
- * device-agnostic FFI layer (@c ffi.cpp).  All device-memory
- * operations use a temporary HIP stream for async allocation
- * and synchronize before returning.
+ * device-agnostic FFI layer (@c ffi.cpp).  Device-memory operations
+ * enqueue on the caller stream when given, or on the null stream with
+ * a null-stream wait otherwise; no private stream is ever created
+ * (see @ref HipAllocator.hpp for the rocclr rationale).
  *
- * The file is conditionally compiled behind @c NOVA_HAS_HIP and
- * @c __has_include(<hip/hip_runtime_api.h>).  When HIP headers are
- * unavailable (e.g., during linting), stub functions that return
- * an error status are provided.
+ * Compiled only behind @c NOVA_HAS_HIP and
+ * @c __has_include(<hip/hip_runtime_api.h>); otherwise stubs that
+ * return an error status are provided.
  *
  * A @c __HIP_PLATFORM_AMD__ macro is defined when neither AMD nor
- * NVIDIA platform macros are set, ensuring clangd and clang-tidy
- * can parse the HIP headers correctly.
- *
- * @section architecture Architecture
- *
- * Internal helpers (within anonymous namespace):
- * @li @ref mapError — maps any @c hipError_t to a @ref novaError_t.
- * @li @ref streamCreate — creates a temporary HIP stream.
- * @li @ref streamSync — blocks until stream work completes.
- * @li @ref streamDestroy — destroys a HIP stream.
- *
- * @section error-mapping Error Mapping
+ * NVIDIA platform macros are set, so clangd and clang-tidy can
+ * parse the HIP headers correctly.
  *
  * All HIP errors are mapped via @ref mapError to the common Nova error
- * enumeration. HIP has no @c hipErrorExternalDevice equivalent, so only the
- * error categories exposed by the HIP runtime are mapped here.
+ * enumeration.  HIP has no @c hipErrorExternalDevice equivalent, so
+ * only the error categories exposed by the HIP runtime are mapped
+ * here.
  *
  * @see HipAllocator.hpp  Type declarations and function signatures.
  * @see HipIO.cpp         HIP data transfer implementation.
@@ -53,12 +44,6 @@ namespace {
 
 /**
  * @brief Map a HIP error code to a @ref novaError_t.
- *
- * @details
- * Converts @c hipError_t values into the project-standard
- * @ref novaError_t enumeration.  Covers errors from allocation
- * (@c hipMallocAsync, @c hipHostMalloc), deallocation
- * (@c hipFreeAsync, @c hipFreeHost), stream operations, and memcpy.
  *
  * @param[in] err  The HIP error to map.
  *
@@ -87,14 +72,12 @@ novaError_t mapError(hipError_t err) {
  * @brief Query whether the active HIP device supports memory pools.
  *
  * @details
- * Uses @c getHipDeviceId() to query the
- * @c hipDeviceAttributeMemoryPoolsSupported attribute.  This is
- * safe because HIP device detection is performed before any memory
- * is allocated on the device.
+ * Queries the @c hipDeviceAttributeMemoryPoolsSupported attribute
+ * through @c getHipDeviceId().  Safe because HIP device detection
+ * runs before any device memory is allocated, so
+ * @c getHipDeviceId() always returns a valid id here.
  *
  * @return @c true if memory pools are supported, @c false otherwise.
- *         Queried once; function-local statics initialize exactly once
- *         even under concurrent first calls.
  */
 bool supportMemoryPool() {
   static const bool supported = [] {
@@ -104,24 +87,6 @@ bool supportMemoryPool() {
     return err == hipSuccess && value != 0;
   }();
   return supported;
-}
-
-/**
- * @brief Create a HIP stream.
- *
- * @param[out] stream  Receives the new stream handle.
- * @param[out] status  Receives the error status on failure.
- *
- * @return @c true on success, @c false on failure.
- */
-bool streamCreate(hipStream_t *stream, novaStatus_t *status) {
-  const hipError_t err = hipStreamCreate(stream);
-  if (err != hipSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
-  }
-  return true;
 }
 
 /**
@@ -142,24 +107,6 @@ bool streamSync(hipStream_t stream, novaStatus_t *status) {
   return true;
 }
 
-/**
- * @brief Destroy a HIP stream.
- *
- * @param[in]  stream  The stream to destroy.
- * @param[out] status  Receives the error status on failure.
- *
- * @return @c true on success, @c false on failure.
- */
-bool streamDestroy(hipStream_t stream, novaStatus_t *status) {
-  const hipError_t err = hipStreamDestroy(stream);
-  if (err != hipSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
-  }
-  return true;
-}
-
 } // namespace
 
 /**
@@ -168,20 +115,20 @@ bool streamDestroy(hipStream_t stream, novaStatus_t *status) {
  * @details
  * For pinned memory, calls @c hipHostMalloc.  For device memory,
  * calls @c hipMallocAsync on @p stream when given (no sync, caller
- * owns ordering), or on a temporary synchronized stream when @p stream
- * is null.
+ * owns ordering), or on the null stream with a null-stream wait when
+ * @p stream is null.  The null path never creates a private stream:
+ * rocclr silently cancels a pending null-stream kernel at
+ * @c hipStreamCreate.
  *
  * @param[in]  bytes  Requested size in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
  * @param[out] out    Receives the buffer descriptor on success.
  * @param[in]  stream Caller stream for chaining, or null for the
- *                    synchronous internal path. Never destroyed here.
+ *                    synchronous null-stream path.
  *
  * @return @ref HIP_OK on success, or an error status.
  *
  * @pre  @p bytes must be greater than zero.
- * @pre  @p out must not be null.
- * @post On success, @p out->ptr points to valid HIP memory.
  */
 novaStatus_t hipReserve(std::size_t bytes, bool pinned, hipBuffer_t *out,
                         hipStream_t stream) {
@@ -202,35 +149,14 @@ novaStatus_t hipReserve(std::size_t bytes, bool pinned, hipBuffer_t *out,
     }
   } else {
     if (supportMemoryPool()) {
-      hipStream_t work = stream;
-      bool ownStream = false;
-      if (work == nullptr) {
-        if (!streamCreate(&work, &status)) {
-          return status;
-        }
-        ownStream = true;
-      }
-
-      const hipError_t err = hipMallocAsync(&ptr, bytes, work);
+      const hipError_t err = hipMallocAsync(&ptr, bytes, stream);
       if (err != hipSuccess) {
-        if (ownStream && !streamDestroy(work, &status)) {
-          return status;
-        }
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
         return status;
       }
-
-      if (ownStream) {
-        if (!streamSync(work, &status)) {
-          if (!streamDestroy(work, &status)) {
-            return status;
-          }
-          return status;
-        }
-        if (!streamDestroy(work, &status)) {
-          return status;
-        }
+      if (stream == nullptr && !streamSync(nullptr, &status)) {
+        return status;
       }
     } else {
       const hipError_t err = hipMalloc(&ptr, bytes);
@@ -254,12 +180,12 @@ novaStatus_t hipReserve(std::size_t bytes, bool pinned, hipBuffer_t *out,
  * @details
  * For pinned memory, calls @c hipFreeHost.  For device memory,
  * calls @c hipFreeAsync on @p stream when given (no sync, caller
- * owns ordering), or on a temporary synchronized stream when @p stream
- * is null.  On success, the buffer is zeroed.
+ * owns ordering), or on the null stream with a null-stream wait when
+ * @p stream is null.
  *
  * @param[in,out] buf    Buffer descriptor to free.  Must not be null.
  * @param[in]     stream Caller stream for chaining, or null for the
- *                       synchronous internal path. Never destroyed here.
+ *                       synchronous null-stream path.
  *
  * @return @ref HIP_OK on success, or an error status.
  *
@@ -283,35 +209,14 @@ novaStatus_t hipRelease(hipBuffer_t *buf, hipStream_t stream) {
     }
   } else {
     if (supportMemoryPool()) {
-      hipStream_t work = stream;
-      bool ownStream = false;
-      if (work == nullptr) {
-        if (!streamCreate(&work, &status)) {
-          return status;
-        }
-        ownStream = true;
-      }
-
-      const hipError_t err = hipFreeAsync(buf->ptr, work);
+      const hipError_t err = hipFreeAsync(buf->ptr, stream);
       if (err != hipSuccess) {
-        if (ownStream && !streamDestroy(work, &status)) {
-          return status;
-        }
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
         return status;
       }
-
-      if (ownStream) {
-        if (!streamSync(work, &status)) {
-          if (!streamDestroy(work, &status)) {
-            return status;
-          }
-          return status;
-        }
-        if (!streamDestroy(work, &status)) {
-          return status;
-        }
+      if (stream == nullptr && !streamSync(nullptr, &status)) {
+        return status;
       }
     } else {
       const hipError_t err = hipFree(buf->ptr);
@@ -336,18 +241,15 @@ novaStatus_t hipRelease(hipBuffer_t *buf, hipStream_t stream) {
  * Allocates a new buffer, copies @c min(old, new) bytes, then frees
  * the old buffer.  For pinned memory the copy uses
  * @c std::memcpy; for device memory the alloc, copy, and free all run
- * on @p stream when given (no sync), or on a temporary synchronized
- * stream when @p stream is null.
+ * on @p stream when given (no sync), or on the null stream with a
+ * final null-stream wait when @p stream is null.
  *
  * @param[in,out] buf       Buffer descriptor to resize.
  * @param[in]     new_bytes New size in bytes.
  * @param[in]     stream    Caller stream for chaining, or null for
- *                          the synchronous internal path. Never
- *                          destroyed here.
+ *                          the synchronous null-stream path.
  *
  * @return @ref HIP_OK on success, or an error status.
- *
- * @post On success, @p buf->ptr and @p buf->bytes are updated.
  *
  * @warning On failure the original buffer may be freed.
  */
@@ -382,92 +284,48 @@ novaStatus_t hipResize(hipBuffer_t *buf, std::size_t new_bytes,
     }
   } else {
     if (supportMemoryPool()) {
-      hipStream_t work = stream;
-      bool ownStream = false;
-      if (work == nullptr) {
-        if (!streamCreate(&work, &status)) {
-          return status;
-        }
-        ownStream = true;
-      }
-
-      hipError_t err = hipMallocAsync(&newPtr, new_bytes, work);
+      hipError_t err = hipMallocAsync(&newPtr, new_bytes, stream);
       if (err != hipSuccess) {
-        if (ownStream && !streamDestroy(work, &status)) {
-          return status;
-        }
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
         return status;
       }
 
       err = hipMemcpyAsync(newPtr, buf->ptr, copyBytes, hipMemcpyDeviceToDevice,
-                           work);
+                           stream);
       if (err != hipSuccess) {
-        const hipError_t freeAsyncErr = hipFreeAsync(newPtr, work);
+        const hipError_t freeAsyncErr = hipFreeAsync(newPtr, stream);
         if (freeAsyncErr != hipSuccess) {
-          if (ownStream) {
-            if (!streamSync(work, &status)) {
-              if (!streamDestroy(work, &status)) {
-                return status;
-              }
-              return status;
-            }
-          }
           status.err = mapError(freeAsyncErr);
           status.message = nova_get_error_msg(status.err, nullptr);
           return status;
         }
-        if (ownStream) {
-          if (!streamSync(work, &status)) {
-            if (!streamDestroy(work, &status)) {
-              return status;
-            }
-            return status;
-          }
-          if (!streamDestroy(work, &status)) {
-            return status;
-          }
+        if (stream == nullptr && !streamSync(nullptr, &status)) {
+          return status;
         }
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
         return status;
       }
 
-      err = hipFreeAsync(buf->ptr, work);
+      err = hipFreeAsync(buf->ptr, stream);
       if (err != hipSuccess) {
-        const hipError_t freeAsyncErr = hipFreeAsync(newPtr, work);
+        const hipError_t freeAsyncErr = hipFreeAsync(newPtr, stream);
         if (freeAsyncErr != hipSuccess) {
           status.err = mapError(freeAsyncErr);
           status.message = nova_get_error_msg(status.err, nullptr);
           return status;
         }
-        if (ownStream) {
-          if (!streamSync(work, &status)) {
-            if (!streamDestroy(work, &status)) {
-              return status;
-            }
-            return status;
-          }
-          if (!streamDestroy(work, &status)) {
-            return status;
-          }
+        if (stream == nullptr && !streamSync(nullptr, &status)) {
+          return status;
         }
         status.err = mapError(err);
         status.message = nova_get_error_msg(status.err, nullptr);
         return status;
       }
 
-      if (ownStream) {
-        if (!streamSync(work, &status)) {
-          if (!streamDestroy(work, &status)) {
-            return status;
-          }
-          return status;
-        }
-        if (!streamDestroy(work, &status)) {
-          return status;
-        }
+      if (stream == nullptr && !streamSync(nullptr, &status)) {
+        return status;
       }
     } else {
       hipError_t err = hipMalloc(&newPtr, new_bytes);

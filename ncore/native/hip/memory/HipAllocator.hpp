@@ -5,37 +5,31 @@
  * @details
  * Declares the @ref hipBuffer_t descriptor and the three core allocation
  * functions (@ref hipReserve, @ref hipRelease, @ref hipResize) that
- * manage HIP device and pinned-host memory.
+ * manage HIP device and pinned-host memory.  All functions return a
+ * @ref novaStatus_t (see @ref status.h).
  *
- * @section memory-types Memory Types
+ * Device memory is allocated via @c hipMallocAsync when memory pools
+ * are supported, or @c hipMalloc otherwise; pinned (page-locked) host
+ * memory comes from @c hipHostMalloc and suits fast host-device
+ * transfers with @c hipMemcpyAsync.
  *
- * This module handles two kinds of HIP memory:
- * @li Device memory — allocated via @c hipMallocAsync on a temporary stream
- *   when memory pools are supported, or @c hipMalloc otherwise.
- * @li Pinned (page-locked) host memory — allocated via
- *   @c hipHostMalloc, suitable for fast host-device transfers
- *   with @c hipMemcpyAsync.
- *
- * @section error-handling Error Handling
- *
- * All functions return a @ref novaStatus_t defined in @ref status.h.
- *
- * @section stream-lifecycle Stream Lifecycle
- *
- * Device-memory operations (reserve, release, resize) run on a HIP
- * stream selected per call:
- * @li @c stream == nullptr (default) — a temporary stream is created,
- *   the operation runs on it, the stream is synchronized, and the
- *   stream is destroyed before returning. Synchronous contract.
+ * Device-memory operations run on a HIP stream selected per call:
+ * @li @c stream == nullptr (default) — nothing is created; the
+ *   operation enqueues on the null stream and the call returns after
+ *   @c hipStreamSynchronize(nullptr).  The null wait also drains any
+ *   kernels the caller already enqueued there.  No private stream is
+ *   ever created: rocclr silently cancels a pending null-stream
+ *   kernel at @c hipStreamCreate, so the previous create-per-call
+ *   shape could drop user work.
  * @li @c stream != nullptr — the operation is enqueued on the caller
- *   stream with no synchronization and no stream destruction. The
- *   caller owns ordering: every access to the buffer must be ordered
- *   after the allocation and before the free in stream order, per the
- *   stream-ordered allocator rules. Pinned-host paths ignore @p stream.
+ *   stream with no synchronization.  The caller owns ordering: every
+ *   access to the buffer must be ordered after the allocation and
+ *   before the free in stream order, per the stream-ordered allocator
+ *   rules. Pinned-host paths ignore @p stream.
  *
- * This header is the HIP counterpart of @c CudaAllocator.hpp and
- * provides an identical API surface.  The dispatch layer in
- * @c ffi.cpp selects between CUDA and HIP at runtime.
+ * This header is the HIP counterpart of @c CudaAllocator.hpp with an
+ * identical API surface; the dispatch layer in @c ffi.cpp selects
+ * between CUDA and HIP at runtime.
  *
  * @see HipAllocator.cpp  Implementation of the allocation functions.
  * @see HipIO.hpp         HIP data transfer functions.
@@ -83,15 +77,16 @@ const inline novaStatus_t HIP_OK{
  * @details
  * For pinned memory, calls @c hipHostMalloc (synchronous; @p stream
  * is ignored).  For device memory with memory pools, calls
- * @c hipMallocAsync on @p stream when given, or on a temporary
- * synchronized stream when @p stream is null.  Without memory pools,
- * falls back to @c hipMalloc (synchronous; @p stream is ignored).
+ * @c hipMallocAsync on @p stream when given, or on the null stream
+ * with a null-stream wait when @p stream is null.  Without memory
+ * pools, falls back to @c hipMalloc (synchronous; @p stream is
+ * ignored).
  *
  * @param[in]  bytes  Requested allocation size in bytes.
  * @param[in]  pinned If @c true, allocate page-locked host memory.
  * @param[out] out    Receives the buffer descriptor on success.
  * @param[in]  stream Caller stream for chaining, or null for the
- *                    synchronous internal path. Never destroyed here.
+ *                    synchronous null-stream path.
  *
  * @return @ref HIP_OK on success, or an error status with a
  *         descriptive message.
@@ -120,15 +115,15 @@ novaStatus_t hipReserve(std::size_t bytes, bool pinned, hipBuffer_t *out,
  * @details
  * For pinned memory, calls @c hipFreeHost (synchronous; @p stream
  * is ignored).  For device memory with memory pools, calls
- * @c hipFreeAsync on @p stream when given, or on a temporary
- * synchronized stream when @p stream is null.  On success, the
+ * @c hipFreeAsync on @p stream when given, or on the null stream
+ * with a null-stream wait when @p stream is null.  On success, the
  * buffer descriptor is zeroed.
  *
  * @param[in,out] buf    Pointer to the buffer descriptor to free.
  *                       Must not be null, and @p buf->ptr must be
  *                       valid.
  * @param[in]     stream Caller stream for chaining, or null for the
- *                       synchronous internal path. Never destroyed here.
+ *                       synchronous null-stream path.
  *
  * @return @ref HIP_OK on success, or an error status.
  *
@@ -158,15 +153,16 @@ novaStatus_t hipRelease(hipBuffer_t *buf, hipStream_t stream = nullptr);
  * @c min(old_size, new_size) bytes from the old buffer to
  * the new one, then frees the old buffer.  For pinned memory the
  * copy uses @c std::memcpy; for device memory it uses
- * @c hipMemcpyAsync on a temporary stream.
+ * @c hipMemcpyAsync on @p stream, or on the null stream with a final
+ * null-stream wait when @p stream is null.
  *
  * @param[in,out] buf       Pointer to the buffer descriptor to
  *                          resize.  Must not be null.
  * @param[in]     new_bytes New size in bytes.
  * @param[in]     stream    Caller stream for chaining, or null for
- *                          the synchronous internal path. The alloc,
- *                          copy, and free all run on this stream.
- *                          Never destroyed here.
+ *                          the synchronous null-stream path. The
+ *                          alloc, copy, and free all run on this
+ *                          stream.
  *
  * @return @ref HIP_OK on success, or an error status.
  *
