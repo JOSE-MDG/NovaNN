@@ -2,26 +2,16 @@
 CheckCompilerVersion
 --------------------
 
-Utility module for verifying that the C and C++ compilers meet the
-minimum versions required by NovaNN.
-
-This module defines the following functions:
-
-.. command:: check_min_compiler_version
-
-  Enforce the minimum compiler version for the active C and C++
-  compilers:
-
-  .. code-block:: cmake
-
-    check_min_compiler_version()
-
+Verify that the C and C++ compilers meet the minimum versions required
+by NovaNN (GCC, Clang, clang-cl only; any other compiler ID is
+rejected).
 #]=======================================================================]
 
 #[=======================================================================[.rst:
 .. command:: check_min_compiler_version
 
-  Enforce the minimum C and C++ compiler versions required by NovaNN:
+  Enforce the minimum compiler version for the active C and C++
+  compilers:
 
   .. code-block:: cmake
 
@@ -32,14 +22,6 @@ This module defines the following functions:
 
   ``Clang``
     Minimum ``20.1.0`` (including clang-cl on Windows).
-
-  NovaNN only supports GCC/G++ and Clang/Clang++ (including clang-cl).
-  Any other compiler ID (for example ``MSVC``, ``AppleClang``, or
-  ``IntelLLVM``) is rejected.
-
-  On failure the function calls :command:`message` with
-  ``FATAL_ERROR``, reporting the compiler path, the detected version,
-  and the minimum required version, then halts configuration.
 
 #]=======================================================================]
 function(check_min_compiler_version)

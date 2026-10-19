@@ -4,19 +4,15 @@ DetectAVX10.1
 
 Detect AVX10.1 converged vector ISA support.  AVX10.1 is Intel's unified
 vector ISA baseline that consolidates AVX-512 features under a single
-CPUID flag -- it does not introduce new instructions beyond those already
+CPUID flag; it introduces no new instructions beyond those already
 exposed by AVX512F/BW/DQ/VL/VNNI.
 
 Detection is performed by executing the CPUID instruction at configure
 time (leaf 0x24, subleaf 0, EBX[7:0] >= 1), gated behind CPUID leaf 7,
-subleaf 0, EDX[19] (AVX10 presence flag) -- leaf 0x24 is only
+subleaf 0, EDX[19] (AVX10 presence flag): leaf 0x24 is only
 architecturally valid when that bit is set. Compiler-flag-based probing
 is unreliable for AVX10 because the ISA defines no unique instruction
 mnemonic to test.
-
-.. note::
-  This snippet is compiled and run via :command:`check_simd`, which
-  wraps ``-m`` flags with ``/clang:`` prefix when using clang-cl.
 
 Variables defined:
 

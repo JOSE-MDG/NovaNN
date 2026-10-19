@@ -3,31 +3,24 @@ NCore
 -----
 
 Core module of the NovaNN project.  Includes the native and Rust
-subdirectories, then builds the core object libraries from C and C++
-source files.
+subdirectories and builds the core object libraries.
 
 Targets created:
 
 ``ncore_obj`` — alias ``ncore::obj::core``
-  OBJECT library containing core C sources (``repr/`` and ``core/``
-  subdirectories).
+  OBJECT library with the core C sources (``repr/`` and ``core/``).
 
 ``autograd_obj`` — alias ``ncore::obj::autograd``
-  OBJECT library containing autograd C++ sources.
+  OBJECT library with the autograd C++ sources.
 
 ``dtypes_obj`` — alias ``ncore::obj::dtypes``
-  OBJECT library containing reduced-precision dtype sources.
-
-The object libraries link against the ``native`` backend (alias
-``ncore::native``) and receive build flags, CPU configuration, and
-optional CUDA/HIP configuration.
+  OBJECT library with the reduced-precision dtype sources.
 
 #]=======================================================================]
 
 add_subdirectory(native)
 add_subdirectory(memory)
 
-# Create the core object library from C sources in the repr and core subdirectories.
 file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/src/repr/*.c"
     "${CMAKE_SOURCE_DIR}/ncore/src/core/*.c"
@@ -67,7 +60,6 @@ endif()
 
 add_dependencies(ncore_obj nova::codegen)
 
-# Autograd object library
 file(GLOB_RECURSE AUTOGRAD_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/src/autograd/*.cpp"
 )
@@ -99,7 +91,6 @@ endif()
 
 add_dependencies(autograd_obj nova::codegen)
 
-# Custom dtypes object library
 file(GLOB DTYPES_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/ncore/src/dtypes/*.cpp"
 )

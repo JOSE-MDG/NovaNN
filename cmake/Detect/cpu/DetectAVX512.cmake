@@ -4,7 +4,7 @@ DetectAVX512
 
 Detect AVX-512 family instruction set support.  Sets ``HAS_AVX512F``
 to ``1`` if the compiler can emit AVX-512 Foundation intrinsics.
-When AVX-512F is available, the module probes for additional extensions.
+When AVX-512F is available, the module probes for extensions.
 
 Variables defined:
 

@@ -135,11 +135,9 @@ endfunction()
 
     nova_configure_hip_target(<target>)
 
-  The ``<target>`` argument specifies the CMake target to configure.
-
-  This function adds the ``NOVA_HAS_HIP=1`` compile definition when
-  the HIP backend is available.  It does not link against the HIP
-  runtime; use ``nova_configure_hip_runtime_target`` for that.
+  Adds the ``NOVA_HAS_HIP=1`` compile definition when the HIP
+  backend is available.  Does not link against the HIP runtime; use
+  ``nova_configure_hip_runtime_target`` for that.
 
 #]=======================================================================]
 function(nova_configure_hip_target TARGET)
@@ -159,10 +157,9 @@ endfunction()
 
     _nova_configure_hip_common(<target>)
 
-  Sets ``HIP_STANDARD`` to 23 and sets the ``HIP_ARCHITECTURES``
-  target property from ``CMAKE_HIP_ARCHITECTURES``.  Validates the
-  architectures against ``_NOVA_HIP_REJECTED_PREFIXES`` (legacy
-  Polaris/Vega/RDNA1).  Defines ``NOVA_HAS_HIP=1``.
+  Sets ``HIP_STANDARD`` and ``HIP_ARCHITECTURES`` and rejects the
+  legacy architectures in ``_NOVA_HIP_REJECTED_PREFIXES``
+  (Polaris/Vega/RDNA1).
 
 #]=======================================================================]
 function(_nova_configure_hip_common TARGET)
@@ -194,11 +191,6 @@ endfunction()
 
     nova_configure_hip_runtime_target(<target>)
 
-  The ``<target>`` argument specifies the CMake target to configure.
-
-  This function calls ``_nova_configure_hip_common`` and links the
-  target against ``hip::host``.
-
 #]=======================================================================]
 function(nova_configure_hip_runtime_target TARGET)
     if(NOT NOVA_HAS_HIP)
@@ -221,11 +213,6 @@ endfunction()
 
     nova_configure_hip_includes_target(<target>)
 
-  The ``<target>`` argument specifies the CMake target to configure.
-
-  This function calls ``_nova_configure_hip_common`` and include
-  the ``INTERFACE_INCLUDE_DIRECTORIES`` headers.
-
 #]=======================================================================]
 function(nova_configure_hip_includes_target TARGET)
     if(NOT NOVA_HAS_HIP)
@@ -246,10 +233,7 @@ endfunction()
 
     nova_configure_hip_kernels_target(<target> [EXTRA_LIBS <lib> ...])
 
-  The ``<target>`` argument specifies the CMake target to configure.
-
-  Additional ``EXTRA_LIBS`` are parsed as a keyword argument and linked
-  as private libraries.
+  Additional ``EXTRA_LIBS`` are linked as private libraries.
 
 #]=======================================================================]
 function(nova_configure_hip_kernels_target TARGET)

@@ -7,10 +7,6 @@ support.  Sets ``HAS_AMX_TILE`` to ``1`` if the compiler can emit
 AMX tile intrinsics.  When tile support is present, the module probes
 for FP16, BF16, and INT8 extensions.
 
-.. note::
-  Detection is performed via :command:`check_simd`, which wraps
-  ``-m`` flags with ``/clang:`` prefix when using clang-cl.
-
 Variables defined:
 
 ``HAS_AMX_TILE``

@@ -4,20 +4,15 @@ DetectLTO
 
 Detect Link-Time Optimization (LTO / IPO) support.  When the user
 option ``USE_LTO`` is enabled the module uses
-:command:`check_ipo_supported` to verify compiler and linker support.
-
-This module sets the following cache variables:
+:command:`check_ipo_supported` to verify compiler and linker support
+and sets ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` to ``ON`` globally.
 
 ``NOVA_HAS_LTO``
   ``1`` if LTO is supported and enabled, ``0`` otherwise.
 
-When LTO is available the module also sets
-``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` to ``ON`` globally.
-
-The module is idempotent: it skips the detection when ``NOVA_HAS_LTO``
-already matches the requested ``USE_LTO`` state.  If ``USE_LTO`` is
-``OFF`` the module sets ``NOVA_HAS_LTO`` to ``0`` and returns without
-performing a detection check.
+The module is idempotent: it returns early when ``NOVA_HAS_LTO`` is
+already set, and sets it to ``0`` without probing when ``USE_LTO`` is
+``OFF``.
 
 #]=======================================================================]
 
