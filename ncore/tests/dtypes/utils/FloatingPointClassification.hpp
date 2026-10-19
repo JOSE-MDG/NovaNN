@@ -3,7 +3,7 @@
  * @brief Independent pattern classifiers and reference decoders for the
  *        reduced-precision dtype suites.
  *
- * This header is the dtypes-side oracle. Like
+ * Dtypes-side oracle. Like
  * @c ncore/tests/dtypeCasting/utils/Oracle.hpp it is deliberately implemented
  * without calling into the conversion code under test: classify() inspects raw
  * bit fields against a declarative FormatModel, and the referenceDecode*

@@ -60,9 +60,9 @@ TEST(BitPatternIdentityFloat4_e2m1fn_x2,
     float lo = 0.0F;
     float hi = 0.0F;
     fp4e2m1x2_to_floats(byte, &lo, &hi);
-    EXPECT_FLOAT_EQ(lo, referenceDecodeFp4Nibble(b & 0xFU))
+    EXPECT_FLOAT_EQ(lo, referenceDecodeFp4Nibble(static_cast<uint8_t>(b & 0xFU)))
         << "byte=0x" << std::hex << b << " (low lane)";
-    EXPECT_FLOAT_EQ(hi, referenceDecodeFp4Nibble(b >> 4))
+    EXPECT_FLOAT_EQ(hi, referenceDecodeFp4Nibble(static_cast<uint8_t>(b >> 4)))
         << "byte=0x" << std::hex << b << " (high lane)";
   }
 }

@@ -377,7 +377,7 @@ TEST_P(SimdCapsMapping, MapsCpuidBitsToExpectedFlags) {
 
 INSTANTIATE_TEST_SUITE_P(SyntheticCpus, SimdCapsMapping,
                          ::testing::ValuesIn(buildCpuCatalog()),
-                         [](const ::testing::TestParamInfo<CpuModel> &info)
-                             -> std::string { return info.param.name; });
+                         [](const ::testing::TestParamInfo<CpuModel> &paramInfo)
+                             -> std::string { return paramInfo.param.name; });
 
 } // namespace

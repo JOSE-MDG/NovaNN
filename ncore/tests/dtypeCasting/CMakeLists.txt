@@ -7,12 +7,6 @@ utilities (``utils/Oracle.hpp``), cast table metadata and dispatch over
 the generated lookup tables, scalar casting kernels and their SIMD
 variants.
 
-Current suites: ``Dispatch_test.cpp`` (dispatch matrix and metadata),
-``ScalarOracle_test.cpp`` (scalar kernels vs. the independent oracle),
-``SaturationInvariant_test.cpp`` (saturation and int conversion
-policies), ``SpecialValueInvariant_test.cpp`` (NaN/Inf/zero/subnormal
-propagation) and ``ISAEquivalence_test.cpp`` (SIMD variant equivalence).
-
 The executable is only created when ``*.cpp`` files exist, so this file
 stays valid even if the directory is emptied.
 

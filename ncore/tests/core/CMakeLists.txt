@@ -6,10 +6,8 @@ GoogleTest suite for the core runtime (``ncore/src/core/``): status code
 propagation, device detection, SIMD capability flags, the Rust-backed
 memory allocator and tensor copy/transfer operations.
 
-The suite grows incrementally; the executable is only created when
-``*.cpp`` files exist, so this file is valid before the first test
-file lands.  The current sources are placeholders that verify the
-test harness builds.
+The executable is only created when ``*.cpp`` files exist, so the file
+stays valid even if the directory is emptied.
 
 Targets created:
 
