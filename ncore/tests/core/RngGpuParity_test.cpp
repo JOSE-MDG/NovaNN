@@ -25,7 +25,7 @@
 #include <ncore/core/status.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/wrappers/tensor.hh>
-#include <ncore/native/kernels/rng.h>
+#include <ncore/native/kernels/random/rng.h>
 #include <ncore/rand/generator.h>
 #include <ncore/rand/philox.h>
 

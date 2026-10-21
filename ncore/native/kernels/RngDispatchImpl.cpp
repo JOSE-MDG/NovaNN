@@ -17,7 +17,7 @@
 
 #include <ncore/core/status.h>
 #include <ncore/headeronly/macros.h>
-#include <ncore/native/kernels/rng.h>
+#include <ncore/native/kernels/random/rng.h>
 
 #include "utils/KernelDispatcher.hpp"
 
