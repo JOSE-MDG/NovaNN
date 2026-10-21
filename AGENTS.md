@@ -367,9 +367,8 @@ exists because skipping it caused a concrete failure during development.
 
 - Manual edits with unique anchors; re-read after multi-line replacements.
   Do not use `sed -i`.
-- Comments state rationale, never narration. Banned: the word "production"
-  (use "the kernels", "the implementation"); em-dash "--" separators in
-  comments (use colon, semicolon, parentheses).
+- Comments state rationale, never narration. Banned: em-dash "--" separators in
+  comments or documentation (use something else).
 - Headers shared with C++ cast through `STATIC_CAST` from
   `ncore/include/ncore/headeronly/macros.h`. A C-style cast in a C header
   raises `-Wold-style-cast` in every C++ translation unit that includes it.
@@ -380,7 +379,7 @@ exists because skipping it caused a concrete failure during development.
 - Struct and table aggregates use designated initializers with one member
   per line (`{.name = ..., .pattern = ...}`). Plain scalar arrays remain
   positional.
-- Header suffixes: test-tree utilities `.hpp`, production C `.h`,
+- Header suffixes: test-tree utilities `.hpp`, C `.h`,
   header-only C++ `.hh`.
 - Kernel defects are reported and pinned by tests; kernel semantics are
   never changed unilaterally. Propose the change and await the owner's
