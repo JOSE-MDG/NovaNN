@@ -3,12 +3,11 @@ CPU Backend
 -----------
 
 Builds the ``cpu_obj`` OBJECT library from the CPU backend C sources:
-vectorised (SIMD) implementations of the CPU kernels.
+vectorized (SIMD) implementations of the CPU kernels.
 #]=======================================================================]
 
 file(GLOB_RECURSE CPU_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/ncore/native/cpu/dtype/DTypeCasting.c"
-    "${CMAKE_SOURCE_DIR}/ncore/native/cpu/layout/*.c"
+    "${CMAKE_SOURCE_DIR}/ncore/native/cpu/*.c"
 )
 
 add_library(cpu_obj OBJECT ${CPU_SOURCES})
