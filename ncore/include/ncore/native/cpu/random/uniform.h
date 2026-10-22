@@ -31,9 +31,8 @@ extern "C" {
  * in-place. Without a private generator the live process default is
  * consumed, which advances the shared stream.
  *
- * The caller provides a live CPU tensor of a floating point type, with
- * its elements contiguous, and a generator that lives on the same
- * device.
+ * The caller provides a live CPU tensor of a floating point type
+ * and a generator that lives on the same device.
  *
  * @param[in,out] ten       Destination tensor, filled in place.
  * @param[in]     low       Lower bound of the sampling interval.
@@ -48,8 +47,6 @@ novaStatus_t uniform_cpu_impl(Tensor *ten, float low, float high,
 
 /**
  * @brief Fill @p ten with uniform float32 samples using AVX-512.
- *
- * @copydetails UniformFunc
  */
 void uniform_cpu_impl_f32_avx512(Tensor *ten, float low, float high,
                                  Generator_ *generator, novaStatus_t *st);

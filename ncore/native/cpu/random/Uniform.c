@@ -1460,7 +1460,8 @@ novaStatus_t uniform_cpu_impl(Tensor *ten, float low, float high,
   const UniformVariant *variant = uniform_pick_variant(ten->dtype);
   if (variant == nullptr) {
     return (novaStatus_t){.err = novaDtypeNotSupported,
-                          .message = "No uniform operation for this data type.\n"};
+                          .message =
+                              "No uniform operation for this data type.\n"};
   }
 
   novaStatus_t result = {0};
