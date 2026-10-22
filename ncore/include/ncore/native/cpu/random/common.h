@@ -1,6 +1,6 @@
 /**
  * @file common.h
- * @brief Shared plumbing for the CPU random kernels.
+ * @brief Shared plumbing for the CPU random operations.
  */
 
 #pragma once
@@ -21,12 +21,12 @@ extern "C" {
 
 /**
  * @enum UniformISA_
- * @brief Instruction set a CPU random kernel variant requires.
+ * @brief Instruction set a CPU random operation variant requires.
  *
  * @details
  * Each value names one capability set the host must provide before the
  * matching variant may run. The sets mirror the ones the dtype-cast
- * kernels dispatch on, so both families read the same hardware facts.
+ * operations dispatch on, so both families read the same hardware facts.
  */
 typedef enum UniformISA_ : uint8_t {
   UniformISANone = 0,    ///< Portable fallback, no instruction set needed.
@@ -39,10 +39,10 @@ typedef enum UniformISA_ : uint8_t {
 
 /**
  * @typedef UniformFunc
- * @brief Signature of a CPU uniform kernel.
+ * @brief Signature of a CPU uniform operation.
  *
  * @details
- * The kernel fills the destination in place and reports through the
+ * The operation fills the destination in place and reports through the
  * status pointer.
  *
  * @param[in]  ten        Destination tensor, filled in place. Must be a
@@ -59,11 +59,11 @@ typedef void (*UniformFunc)(Tensor *, float, float, Generator_ *,
 
 /**
  * @struct UniformVariant
- * @brief Kernel implementation paired with the instruction set it needs.
+ * @brief Variant paired with the instruction set it needs.
  */
 typedef struct {
-  UniformFunc fn;  ///< Kernel entry point.
-  UniformISA_ isa; ///< Instruction set the kernel requires.
+  UniformFunc fn;  ///< Operation entry point.
+  UniformISA_ isa; ///< Instruction set the operation requires.
 } UniformVariant;
 
 /**

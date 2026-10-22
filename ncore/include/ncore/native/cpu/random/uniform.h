@@ -1,9 +1,9 @@
 /**
  * @file uniform.h
- * @brief CPU uniform kernel entry point and per-ISA variants.
+ * @brief CPU uniform operation entry point and per-ISA variants.
  *
  * @details
- * The kernel fills a tensor that already exists: the storage is
+ * The operation fills a tensor that already exists: the storage is
  * neither replaced nor resized. The per-ISA variants are declared
  * here so a harness can exercise each instruction set on hosts that
  * do not run it.

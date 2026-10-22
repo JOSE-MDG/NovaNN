@@ -1,6 +1,6 @@
 /**
  * @file Uniform.c
- * @brief CPU uniform sampling kernels.
+ * @brief CPU uniform sampling operation.
  *
  * @details
  * Fills a tensor that already exists with samples drawn uniformly from
@@ -563,7 +563,7 @@ static bool uniform_prepare_narrow(Generator_ *generator,
 }
 
 /* =========================================================================
- * Scalar kernels
+ * Scalar variants
  * ========================================================================= */
 
 /**
@@ -833,7 +833,7 @@ void uniform_cpu_impl_fp8e5m2_scalar(Tensor *ten, float low, float high,
 }
 
 /* =========================================================================
- * SIMD kernels
+ * SIMD variants
  * ========================================================================= */
 
 #ifdef _GNUC_CLANG_
@@ -1377,7 +1377,7 @@ static const UniformVariant uniform_variants_fp8e5m2[] = {
  * @brief Variant tables indexed by the tensor data type.
  *
  * @details
- * The table spans every data type, so a type without a kernel reads
+ * The table spans every data type, so a type without a variant reads
  * as a null entry instead of stepping past the end of the table.
  */
 static const UniformVariant *const uniform_variant_tables[NUM_DTYPES] = {
@@ -1423,7 +1423,7 @@ static const UniformVariant *uniform_pick_variant(DType_ dtype) {
  *
  * The caller provides a live CPU tensor of a floating point type, with
  * its elements contiguous, and a generator that lives on the same
- * device. A data type without a kernel is reported as
+ * device. A data type without a variant is reported as
  * @c novaDtypeNotSupported.
  *
  * @param[in,out] ten       Destination tensor, filled in place.
@@ -1460,7 +1460,7 @@ novaStatus_t uniform_cpu_impl(Tensor *ten, float low, float high,
   const UniformVariant *variant = uniform_pick_variant(ten->dtype);
   if (variant == nullptr) {
     return (novaStatus_t){.err = novaDtypeNotSupported,
-                          .message = "No uniform kernel for this data type.\n"};
+                          .message = "No uniform operation for this data type.\n"};
   }
 
   novaStatus_t result = {0};
