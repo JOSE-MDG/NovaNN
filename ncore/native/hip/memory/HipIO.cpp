@@ -22,13 +22,14 @@
  * NVIDIA platform macros are set, so clangd and clang-tidy can
  * parse the HIP headers correctly.
  *
- * All HIP errors are mapped to a @ref novaStatus_t via a single
- * @ref mapError function.  HIP exposes no @c hipErrorExternalDevice
- * equivalent; unsupported or otherwise unclassified failures map to
- * @ref novaNotImplemented.
+ * All HIP errors are mapped to a @ref novaStatus_t via the shared
+ * @ref mapError2Status function.  HIP exposes no
+ * @c hipErrorExternalDevice equivalent; unsupported or otherwise
+ * unclassified failures map to @ref novaNotImplemented.
  *
  * @see HipIO.hpp        Function declaration.
  * @see HipAllocator.cpp HIP memory allocation implementation.
+ * @see common.hh        Shared error-mapping and stream helpers.
  * @see ffi.cpp          Dispatch layer that calls into this file.
  */
 
@@ -41,81 +42,9 @@
 #endif
 #include <hip/hip_runtime_api.h>
 
-#include "../DetectHipDevice.hpp"
 #include "HipAllocator.hpp"
 #include "HipIO.hpp"
-
-namespace {
-
-/**
- * @brief Map a HIP runtime error to a @ref novaStatus_t.
- *
- * @details
- * Converts @c hipError_t codes returned by @c hipMemcpyAsync
- * and @c hipStreamSynchronize into the project-standard
- * @ref novaStatus_t format. Each error category is mapped to the shared Nova
- * error enumeration and the corresponding standard message is selected from
- * the Nova status table.
- *
- * The mapped categories include invalid values, invalid transfer direction,
- * invalid resource handles, and the generic unsupported-operation fallback.
- *
- * @param[in] err  The HIP error to map.
- *
- * @return @ref novaStatus_t with the mapped error and message.
- */
-novaStatus_t mapError(hipError_t err) {
-  novaStatus_t status = {};
-  switch (err) {
-  case hipSuccess:
-    status.err = novaSuccess;
-    break;
-  case hipErrorInvalidValue:
-    status.err = novaInvalidValue;
-    break;
-  case hipErrorInvalidMemcpyDirection:
-    status.err = novaInvalidTransfDirection;
-    break;
-  case hipErrorInvalidResourceHandle:
-    status.err = novaInvalidResourceHandle;
-    break;
-  default:
-    status.err = novaNotImplemented;
-    break;
-  }
-  status.message = nova_get_error_msg(status.err, nullptr);
-  return status;
-}
-
-/**
- * @brief Convert @ref DeviceMemcpyKind to @c hipMemcpyKind.
- *
- * @details
- * Maps the backend-agnostic @ref DeviceMemcpyKind enum to the
- * HIP-specific @c hipMemcpyKind enum used by @c hipMemcpyAsync.
- * The mapping is: @c deviceMemcpyHostToDevice →
- * @c hipMemcpyHostToDevice, @c deviceMemcpyDeviceToHost →
- * @c hipMemcpyDeviceToHost, @c deviceMemcpyDeviceToDevice →
- * @c hipMemcpyDeviceToDevice, default → @c hipMemcpyDefault.
- *
- * @param[in] kind  The device-agnostic copy direction.
- *
- * @return The corresponding HIP memcpy kind.
- */
-hipMemcpyKind mapMemcpyKind(DeviceMemcpyKind kind) {
-  switch (kind) {
-  case DeviceMemcpyKind::deviceMemcpyHostToDevice:
-    return hipMemcpyHostToDevice;
-  case DeviceMemcpyKind::deviceMemcpyDeviceToHost:
-    return hipMemcpyDeviceToHost;
-  case DeviceMemcpyKind::deviceMemcpyDeviceToDevice:
-    return hipMemcpyDeviceToDevice;
-  default:
-    return hipMemcpyDefault;
-  }
-}
-
-} // namespace
+#include "common.hh"
 
 /**
  * @brief Copy memory between host and device (or device to device).
@@ -131,7 +60,7 @@ hipMemcpyKind mapMemcpyKind(DeviceMemcpyKind kind) {
  *
  * Errors surface at two points: the @c hipMemcpyAsync launch and,
  * only on the null path, the @c hipStreamSynchronize wait; both map
- * through @ref mapError.
+ * through @ref mapError2Status.
  *
  * @param[in]  bytes     Number of bytes to copy.
  * @param[in]  kind      Copy direction (@ref DeviceMemcpyKind).
@@ -149,7 +78,7 @@ novaStatus_t hipTransfer(std::size_t bytes, DeviceMemcpyKind kind,
     const hipError_t err =
         hipMemcpyAsync(dst, src, bytes, mapMemcpyKind(kind), stream);
     if (err != hipSuccess) {
-      return mapError(err);
+      return mapError2Status(err);
     }
     return HIP_OK;
   }
@@ -161,11 +90,11 @@ novaStatus_t hipTransfer(std::size_t bytes, DeviceMemcpyKind kind,
   const hipError_t err =
       hipMemcpyAsync(dst, src, bytes, mapMemcpyKind(kind), nullptr);
   if (err != hipSuccess) {
-    return mapError(err);
+    return mapError2Status(err);
   }
   const hipError_t syncErr = hipStreamSynchronize(nullptr);
   if (syncErr != hipSuccess) {
-    return mapError(syncErr);
+    return mapError2Status(syncErr);
   }
 
   return HIP_OK;

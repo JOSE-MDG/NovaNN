@@ -7,7 +7,7 @@
  * device-agnostic FFI layer (@c ffi.cpp).  All device-memory
  * operations use a temporary CUDA stream for async allocation
  * and synchronize before returning; errors are mapped through
- * @ref mapError().
+ * @ref mapError from @ref common.hh.
  *
  * Compiled only behind @c NOVA_HAS_CUDA with
  * @c __has_include(<cuda_runtime_api.h>); otherwise stubs that
@@ -15,6 +15,7 @@
  *
  * @see CudaAllocator.hpp  Type declarations and function signatures.
  * @see CudaIO.cpp         CUDA data transfer implementation.
+ * @see common.hh          Shared error-mapping and stream helpers.
  * @see ffi.cpp            Dispatch layer that calls into this file.
  */
 
@@ -25,114 +26,8 @@
 #include <cstring>
 #include <cuda_runtime_api.h>
 
-#include "../DetectCudaDevice.hpp"
 #include "CudaAllocator.hpp"
-
-namespace {
-
-/**
- * @brief Map a CUDA error code to a @ref novaError_t.
- *
- * @param[in] err  The CUDA error to map.
- *
- * @return The corresponding Nova error category.
- */
-novaError_t mapError(cudaError_t err) {
-  switch (err) {
-  case cudaSuccess:
-    return novaSuccess;
-  case cudaErrorInvalidValue:
-    return novaInvalidValue;
-  case cudaErrorMemoryAllocation:
-    return novaOutOfMemory;
-  case cudaErrorNotSupported:
-    return novaNotImplemented;
-  case cudaErrorExternalDevice:
-    return novaExternalDeviceError;
-  case cudaErrorInvalidResourceHandle:
-    return novaInvalidResourceHandle;
-  default:
-    return novaNotImplemented;
-  }
-}
-
-/**
- * @brief Query whether the active CUDA device supports memory pools.
- *
- * @details
- * Queries the @c cudaDevAttrMemoryPoolsSupported attribute through
- * @c getCudaDeviceId().  Safe because CUDA device detection runs
- * before any device memory is allocated and the detection result is
- * saved under lock, so @c getCudaDeviceId() always returns a valid
- * id here.
- *
- * @return @c true if memory pools are supported, @c false otherwise.
- */
-bool supportMemoryPool() {
-  static const bool supported = [] {
-    int value = 0;
-    const cudaError_t err = cudaDeviceGetAttribute(
-        &value, cudaDevAttrMemoryPoolsSupported, getCudaDeviceId());
-    return err == cudaSuccess && value != 0;
-  }();
-  return supported;
-}
-
-/**
- * @brief Create a CUDA stream.
- *
- * @param[out] stream  Receives the new stream handle.
- * @param[out] status  Receives the error status on failure.
- *
- * @return @c true on success, @c false on failure.
- */
-bool streamCreate(cudaStream_t *stream, novaStatus_t *status) {
-  const cudaError_t err = cudaStreamCreate(stream);
-  if (err != cudaSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
-  }
-  return true;
-}
-
-/**
- * @brief Block until all work on @p stream has completed.
- *
- * @param[in]  stream  The stream to synchronize.
- * @param[out] status  Receives the error status on failure.
- *
- * @return @c true on success, @c false on failure.
- */
-bool streamSync(cudaStream_t stream, novaStatus_t *status) {
-  const cudaError_t err = cudaStreamSynchronize(stream);
-  if (err != cudaSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
-  }
-  return true;
-}
-
-/**
- * @brief Destroy a CUDA stream.
- *
- * @param[in]  stream  The stream to destroy.
- * @param[out] status  Receives the error status on failure.
- *
- * @return @c true on success, @c false on failure.
- */
-bool streamDestroy(cudaStream_t stream, novaStatus_t *status) {
-  const cudaError_t err = cudaStreamDestroy(stream);
-  if (err != cudaSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
-  }
-  return true;
-}
-
-} // namespace
+#include "common.hh"
 
 /**
  * @brief Allocate a CUDA memory buffer.

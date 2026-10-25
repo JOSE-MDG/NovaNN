@@ -19,8 +19,8 @@
  * null queue.
  *
  * Errors from @c hipMemcpyAsync and @c hipStreamSynchronize are
- * mapped to @ref novaStatus_t codes via the internal @ref mapError
- * function.  @ref hipTransfer is safe to call from multiple threads:
+ * mapped to @ref novaStatus_t codes via @ref mapError2Status.
+ * @ref hipTransfer is safe to call from multiple threads:
  * the null path serializes through the device null stream, and HIP
  * runtime calls are thread-safe.
  *
@@ -30,6 +30,7 @@
  *
  * @see HipIO.cpp        Implementation of the transfer function.
  * @see HipAllocator.hpp HIP memory allocation operations.
+ * @see common.hh        Shared error-mapping and stream helpers.
  * @see ffi.hpp          Device-agnostic FFI layer that wraps these.
  */
 

@@ -72,6 +72,7 @@ endif()
 
 target_include_directories(native
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
+    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
 if(TARGET nova::compiler_rt_builtins)

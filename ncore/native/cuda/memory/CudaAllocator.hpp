@@ -30,6 +30,7 @@
  *
  * @see CudaAllocator.cpp  Implementation of the allocation functions.
  * @see CudaIO.hpp         CUDA data transfer functions.
+ * @see common.hh          Shared error-mapping and stream helpers.
  * @see ffi.hpp            Device-agnostic FFI layer that wraps these.
  */
 

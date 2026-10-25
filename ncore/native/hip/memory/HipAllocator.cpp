@@ -17,13 +17,14 @@
  * NVIDIA platform macros are set, so clangd and clang-tidy can
  * parse the HIP headers correctly.
  *
- * All HIP errors are mapped via @ref mapError to the common Nova error
- * enumeration.  HIP has no @c hipErrorExternalDevice equivalent, so
- * only the error categories exposed by the HIP runtime are mapped
- * here.
+ * All HIP errors are mapped via @ref mapError from @ref common.hh to the
+ * shared Nova error enumeration.  HIP has no @c hipErrorExternalDevice
+ * equivalent, so only the error categories exposed by the HIP runtime
+ * are mapped here.
  *
  * @see HipAllocator.hpp  Type declarations and function signatures.
  * @see HipIO.cpp         HIP data transfer implementation.
+ * @see common.hh         Shared error-mapping and stream helpers.
  * @see ffi.cpp           Dispatch layer that calls into this file.
  */
 
@@ -37,77 +38,8 @@
 #include <cstring>
 #include <hip/hip_runtime_api.h>
 
-#include "../DetectHipDevice.hpp"
 #include "HipAllocator.hpp"
-
-namespace {
-
-/**
- * @brief Map a HIP error code to a @ref novaError_t.
- *
- * @param[in] err  The HIP error to map.
- *
- * @return The corresponding Nova error category.
- */
-novaError_t mapError(hipError_t err) {
-  switch (err) {
-  case hipSuccess:
-    return novaSuccess;
-  case hipErrorInvalidValue:
-    return novaInvalidValue;
-  case hipErrorOutOfMemory:
-    return novaOutOfMemory;
-  case hipErrorNotSupported:
-    return novaNotImplemented;
-  case hipErrorInvalidDevicePointer:
-    return novaInvalidPointer;
-  case hipErrorInvalidResourceHandle:
-    return novaInvalidResourceHandle;
-  default:
-    return novaNotImplemented;
-  }
-}
-
-/**
- * @brief Query whether the active HIP device supports memory pools.
- *
- * @details
- * Queries the @c hipDeviceAttributeMemoryPoolsSupported attribute
- * through @c getHipDeviceId().  Safe because HIP device detection
- * runs before any device memory is allocated, so
- * @c getHipDeviceId() always returns a valid id here.
- *
- * @return @c true if memory pools are supported, @c false otherwise.
- */
-bool supportMemoryPool() {
-  static const bool supported = [] {
-    int value = 0;
-    const hipError_t err = hipDeviceGetAttribute(
-        &value, hipDeviceAttributeMemoryPoolsSupported, getHipDeviceId());
-    return err == hipSuccess && value != 0;
-  }();
-  return supported;
-}
-
-/**
- * @brief Block until all work on @p stream has completed.
- *
- * @param[in]  stream  The stream to synchronize.
- * @param[out] status  Receives the error status on failure.
- *
- * @return @c true on success, @c false on failure.
- */
-bool streamSync(hipStream_t stream, novaStatus_t *status) {
-  const hipError_t err = hipStreamSynchronize(stream);
-  if (err != hipSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
-  }
-  return true;
-}
-
-} // namespace
+#include "common.hh"
 
 /**
  * @brief Allocate a HIP memory buffer.

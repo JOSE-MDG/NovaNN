@@ -7,14 +7,14 @@
  * Declares the single memcpy function @ref cudaTransfer that
  * handles all copy directions via a @ref DeviceMemcpyKind tag.
  * By default the module maintains a single reusable CUDA stream,
- * created on first call to @ref cudaTransfer under @c std::call_once:
+ * created on first call to @ref getStream under @c std::call_once:
  * transfers are serialized on it and synchronized before returning.
  * The stream is never destroyed during execution; the CUDA runtime
  * reclaims it at process exit.  A caller stream may instead be
  * passed via @p stream to chain the copy with surrounding work:
  * enqueued with no synchronization, the caller owns ordering.
  *
- * Errors map to @ref novaStatus_t through the internal @ref mapError.
+ * Errors map to @ref novaStatus_t through @ref mapError2Status.
  * @ref cudaTransfer is safe to call from multiple threads: the
  * internal stream serializes transfers and CUDA runtime calls are
  * thread-safe.
@@ -25,6 +25,7 @@
  *
  * @see CudaIO.cpp        Implementation of the transfer function.
  * @see CudaAllocator.hpp CUDA memory allocation operations.
+ * @see common.hh         Shared error-mapping and stream helpers.
  * @see ffi.hpp           Device-agnostic FFI layer that wraps these.
  */
 
