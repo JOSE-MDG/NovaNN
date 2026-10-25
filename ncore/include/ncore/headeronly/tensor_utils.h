@@ -360,7 +360,7 @@ static inline TensorGrad
 create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
                                Device_ device, bool pin_memory, size_t ndims,
                                novaStatus_t *status) {
-#if defined(_WIN64)
+#ifdef _WIN64
   TensorGrad grad = STATIC_CAST(TensorGrad, malloc(sizeof(Tensor)));
 #else
   void *raw = nullptr;
@@ -458,7 +458,7 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
 static inline TensorGrad
 create_unallocated_scalar_grad_tensor(DType_ dtype, Device_ device,
                                       bool pin_memory, novaStatus_t *status) {
-#if defined(_WIN64)
+#ifdef _WIN64
   TensorGrad grad = STATIC_CAST(TensorGrad, malloc(sizeof(Tensor)));
 #else
   void *raw = nullptr;
