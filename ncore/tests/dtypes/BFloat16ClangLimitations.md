@@ -72,7 +72,7 @@ above. Disassembling our own binaries makes this directly visible:
 * Debug builds, argument edge of a scalar kernel calling
   `bf16_to_float(bfloat16)`:
   `movzwl (%..),%eax ; shl $0x10,%eax ; vmovd %eax,%xmm0 ;
-  vcvtneps2bf16 %xmm0,%xmm0 ; call ...` — the value is destroyed *before*
+  vcvtneps2bf16 %xmm0,%xmm0 ; call ...` - the value is destroyed *before*
   the callee runs.
 * Release builds, return edge of `bf16_from_float`:
   `shl $0x10,%ebx ; vmovd %ebx,%xmm0 ; vcvtneps2bf16 %xmm0,%xmm0 ; ret`.
@@ -107,7 +107,7 @@ make every suite pass unchanged; that is the day we look forward to.
 ## References
 
 1. Intel Corporation, *Intel® Architecture Instruction Set Extensions and
-   Future Features Programming Reference*, chapter 2, "VCVTNEPS2BF16 —
+   Future Features Programming Reference*, chapter 2, "VCVTNEPS2BF16 -
    Convert Packed Single Data to Packed BF16 Data".
    <https://www.intel.com/content/dam/develop/external/us/en/documents/architecture-instruction-set-extensions-programming-reference-737410.pdf>
 2. The Clang Team, *Clang Language Extensions*, section "Half-Precision

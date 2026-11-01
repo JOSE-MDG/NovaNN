@@ -2,7 +2,7 @@
  * @file GpuCasting.hpp
  * @brief Device tensor fixtures for the GPU dtype casting suites.
  *
- * Builds on the CPU oracle fixtures (utils/Oracle.hpp): a host pair
+ * Builds on the CPU oracle fixtures (CastingOracle.hpp): a host pair
  * provides staging buffers, while matching DEVICE_GPU tensors carry
  * the conversion under test. Results come home through a
  * device-to-host transfer and compare byte-exact against the scalar
@@ -30,8 +30,8 @@
 #include <ncore/headeronly/wrappers/tensor.hh>
 #include <ncore/tensor.h>
 
-#include "utils/Oracle.hpp"
-#include "utils/TensorUtils.hpp"
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/tensor/TensorUtils.hpp>
 
 #ifdef NOVA_HAS_CUDA
 extern "C" novaStatus_t launchCudaDtypeCastingKernel(const Tensor *restrict src,
@@ -220,18 +220,8 @@ inline void expectHomeEqualRef(GpuCastPair &pair, const char *label) {
   const size_t homeBytes = pair.home.getSize() * pair.home.itemSize();
   const size_t refBytes = pair.host.dst.getSize() * pair.host.dst.itemSize();
   ASSERT_EQ(homeBytes, refBytes) << label;
-  EXPECT_EQ(std::memcmp(home.data.data, ref.data.data, homeBytes), 0) << label;
-}
-
-/**
- * @brief Sanitizes a pair label into a valid GoogleTest case name.
- */
-inline std::string sanitizeLabel(const std::string &label) {
-  std::string name;
-  for (const char c : label) {
-    name.push_back((c == '-' || c == '>') ? '_' : c);
-  }
-  return name;
+  tests::tensor::expectBytesEqual(home.data.data, ref.data.data, homeBytes,
+                                  label);
 }
 
 } // namespace tests::gpu

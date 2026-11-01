@@ -1,6 +1,7 @@
 /**
  * @file RngGenerator_test.cpp
- * @brief Tests for the shared fixture fill generator (utils/Rng.hpp).
+ * @brief Tests for the production generator wrapper
+ *        (<ncore/headeronly/wrappers/generator.hh>).
  *
  * Determinism, subsequence independence, byte to lane mapping, zero
  * demand, snapshot and restore, clone, host device parity and the
@@ -20,57 +21,36 @@
 #include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
 #include <ncore/core/status.h>
+#include <ncore/headeronly/wrappers/generator.hh>
 #include <ncore/headeronly/wrappers/tensor.hh>
 #include <ncore/tensor.h>
 
-#include "utils/Rng.hpp"
-#include "utils/TensorUtils.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/common/Status.hpp>
+#include <tests/tensor/DeviceMirror.hpp>
+#include <tests/tensor/TensorUtils.hpp>
 
 namespace {
 
+using ncore::wrappers::GeneratorCXX;
 using ncore::wrappers::TensorCXX;
-using tests::rng::Generator;
+using tests::common::expectOk;
+using tests::tensor::DeviceMirror;
 
 constexpr uint64_t kSeed = 123;
 constexpr uint64_t kSub = 7;
 constexpr uint64_t kSubDev = 11;
 
-/** Asserts @p st holds the success code (message included on failure). */
-void expectOk(const novaStatus_t st, const char *ctx) {
-  ASSERT_EQ(st.err, novaSuccess)
-      << ctx << (st.message != nullptr ? st.message : "");
-}
-
 /** One CPU Philox handle for the host side checks. */
-Generator hostGen(uint64_t seed, uint64_t subsequence) {
-  return Generator(DEVICE_CPU, seed, subsequence);
+GeneratorCXX hostGen(uint64_t seed, uint64_t subsequence) {
+  return GeneratorCXX(Philox4x32, DEVICE_CPU, seed, subsequence);
 }
-
-/** GPU buffer plus its CPU mirror, allocated through the tensor layer. */
-struct DeviceMirror {
-  novaStatus_t st{};
-  TensorCXX dev;
-  TensorCXX home;
-  Tensor devTen;
-  Tensor homeTen;
-
-  DeviceMirror(size_t n, DType_ dtype)
-      : st{}, dev(std::vector<size_t>{n}, dtype, DEVICE_GPU, false, false, &st),
-        home(std::vector<size_t>{n}, dtype, DEVICE_CPU, false, false, &st),
-        devTen(dev.mutableCTensor()), homeTen(home.mutableCTensor()) {}
-
-  /// D2H copy after a device fill.
-  void fetch() {
-    st = transf_tensor_from_device(&devTen, &homeTen);
-    EXPECT_EQ(st.err, novaSuccess) << (st.message != nullptr ? st.message : "");
-  }
-};
 
 /** Identical inputs reproduce bit-identical lanes. */
 TEST(RngGenerator, SameInputsProduceSameBits) {
   constexpr size_t kN = 256;
-  Generator a = hostGen(kSeed, kSub);
-  Generator b = hostGen(kSeed, kSub);
+  GeneratorCXX a = hostGen(kSeed, kSub);
+  GeneratorCXX b = hostGen(kSeed, kSub);
   uint32_t x[kN] = {};
   uint32_t y[kN] = {};
   expectOk(a.fillU32(x, kN), "a fill");
@@ -81,8 +61,8 @@ TEST(RngGenerator, SameInputsProduceSameBits) {
 /** Distinct subsequences draw independently. */
 TEST(RngGenerator, DistinctSubsequencesDrawIndependently) {
   constexpr size_t kN = 256;
-  Generator a = hostGen(kSeed, 3);
-  Generator b = hostGen(kSeed, 4);
+  GeneratorCXX a = hostGen(kSeed, 3);
+  GeneratorCXX b = hostGen(kSeed, 4);
   uint32_t x[kN] = {};
   uint32_t y[kN] = {};
   expectOk(a.fillU32(x, kN), "a fill");
@@ -99,12 +79,12 @@ TEST(RngGenerator, ByteFillMapsLanesLittleEndFirst) {
 
   uint32_t lanes[kLanes] = {};
   uint32_t tailLane = 0;
-  Generator laneStream = hostGen(kSeed, kSub);
+  GeneratorCXX laneStream = hostGen(kSeed, kSub);
   expectOk(laneStream.fillU32(lanes, kLanes), "lane fill");
   expectOk(laneStream.fillU32(&tailLane, 1), "tail lane fill");
 
   uint8_t bytes[kBytes] = {};
-  Generator byteStream = hostGen(kSeed, kSub);
+  GeneratorCXX byteStream = hostGen(kSeed, kSub);
   expectOk(byteStream.fillBytes(bytes, kBytes), "byte fill");
 
   EXPECT_EQ(0, std::memcmp(bytes, lanes, kLanes * 4));
@@ -120,7 +100,7 @@ TEST(RngGenerator, ZeroDemandDoesNotAdvanceTheStream) {
   uint32_t fresh[8] = {};
   expectOk(hostGen(kSeed, kSub).fillU32(fresh, 8), "fresh fill");
 
-  Generator advanced = hostGen(kSeed, kSub);
+  GeneratorCXX advanced = hostGen(kSeed, kSub);
   EXPECT_EQ(advanced.fillU32(nullptr, 0).err, novaSuccess);
 
   uint32_t cont[8] = {};
@@ -130,7 +110,7 @@ TEST(RngGenerator, ZeroDemandDoesNotAdvanceTheStream) {
 
 /** A restore resumes the exact stream position of the snapshot. */
 TEST(RngGenerator, SnapshotRestoreReproducesBoundaryFills) {
-  Generator a = hostGen(kSeed, kSub + 1);
+  GeneratorCXX a = hostGen(kSeed, kSub + 1);
 
   uint32_t first[4] = {};
   expectOk(a.fillU32(first, 4), "first fill");
@@ -139,7 +119,7 @@ TEST(RngGenerator, SnapshotRestoreReproducesBoundaryFills) {
   uint32_t second[4] = {};
   expectOk(a.fillU32(second, 4), "second fill");
 
-  Generator b = hostGen(kSeed, kSub + 1);
+  GeneratorCXX b = hostGen(kSeed, kSub + 1);
   uint32_t mirror[4] = {};
   expectOk(b.fillU32(mirror, 4), "mirror fill");
   EXPECT_EQ(0, std::memcmp(first, mirror, sizeof first));
@@ -151,11 +131,11 @@ TEST(RngGenerator, SnapshotRestoreReproducesBoundaryFills) {
 
 /** A clone continues the shared stream at its own pace. */
 TEST(RngGenerator, CloneForksAndDiverges) {
-  Generator base = hostGen(kSeed, kSub + 2);
+  GeneratorCXX base = hostGen(kSeed, kSub + 2);
   uint32_t prefix[4] = {};
   expectOk(base.fillU32(prefix, 4), "prefix fill");
 
-  Generator forked = base.clone();
+  GeneratorCXX forked = base.clone();
   uint32_t baseNext[4] = {};
   uint32_t baseThird[4] = {};
   uint32_t forkNext[4] = {};
@@ -170,12 +150,12 @@ TEST(RngGenerator, CloneForksAndDiverges) {
 /** An implicit copy and a clone continue the source identically,
     parked lanes included. */
 TEST(RngGenerator, CopyForkMatchesClone) {
-  Generator base = hostGen(kSeed, kSub + 3);
+  GeneratorCXX base = hostGen(kSeed, kSub + 3);
   uint32_t prefix[5] = {};
   expectOk(base.fillU32(prefix, 5), "prefix fill");
 
-  Generator copied = base;
-  Generator forked = base.clone();
+  GeneratorCXX copied = base;
+  GeneratorCXX forked = base.clone();
   uint32_t copyNext[4] = {};
   uint32_t cloneNext[4] = {};
   expectOk(copied.fillU32(copyNext, 4), "copy fill");
@@ -189,8 +169,8 @@ TEST(RngGenerator, CopyForkMatchesClone) {
 
 /** A clone of a failed handle reports the same failure. */
 TEST(RngGenerator, FailedInitCloneSurfacesOnNextCall) {
-  Generator bad(DEVICE_GPU, kSeed, 0, Xoshiro256);
-  Generator forked = bad.clone();
+  GeneratorCXX bad(Xoshiro256, DEVICE_GPU, kSeed, 0);
+  GeneratorCXX forked = bad.clone();
   const novaStatus_t st = forked.fillU32(nullptr, 0);
   EXPECT_EQ(st.err, novaInvalidValue)
       << (st.message != nullptr ? st.message : "");
@@ -198,7 +178,7 @@ TEST(RngGenerator, FailedInitCloneSurfacesOnNextCall) {
 
 /** A failed init surfaces on the next call. */
 TEST(RngGenerator, FailedInitSurfacesOnNextCall) {
-  Generator bad(DEVICE_GPU, kSeed, 0, Xoshiro256);
+  GeneratorCXX bad(Xoshiro256, DEVICE_GPU, kSeed, 0);
   const novaStatus_t st = bad.fillU32(nullptr, 0);
   EXPECT_EQ(st.err, novaInvalidValue)
       << (st.message != nullptr ? st.message : "");
@@ -206,7 +186,7 @@ TEST(RngGenerator, FailedInitSurfacesOnNextCall) {
 
 /** A handle and tensor placement mix reports novaInvalidDevice. */
 TEST(RngGenerator, TensorPlacementMixReportsInvalidDevice) {
-  Generator dev(DEVICE_GPU, kSeed, 0);
+  GeneratorCXX dev(Philox4x32, DEVICE_GPU, kSeed, 0);
   novaStatus_t st{};
   TensorCXX homeTen(std::vector<size_t>{4}, DType_::UnSigned32, DEVICE_CPU,
                     false, false, &st);
@@ -220,19 +200,19 @@ TEST(RngGenerator, DeviceFillMatchesHostBitwise) {
   NOVA_TEST_REQUIRE_GPU();
   constexpr size_t kN = 64;
 
-  Generator host = hostGen(kSeed, kSubDev);
+  GeneratorCXX host = hostGen(kSeed, kSubDev);
   uint32_t hostBits[kN] = {};
   expectOk(host.fillU32(hostBits, kN), "host fill");
 
-  Generator dev(DEVICE_GPU, kSeed, kSubDev);
+  GeneratorCXX dev(Philox4x32, DEVICE_GPU, kSeed, kSubDev);
   DeviceMirror mirror(kN, DType_::UnSigned32);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  expectOk(dev.fillU32(mirror.devTen.data.u32, kN), "device fill");
+  expectOk(dev.fillU32(mirror.devTen().data.u32, kN), "device fill");
   mirror.fetch();
 
   EXPECT_EQ(
-      0, std::memcmp(hostBits, mirror.homeTen.data.u32, kN * sizeof(uint32_t)));
+      0, std::memcmp(hostBits, mirror.homeTen().data.u32, kN * sizeof(uint32_t)));
 }
 
 /** Masked tail and parked lane continuation stay aligned on device. */
@@ -242,31 +222,31 @@ TEST(RngGenerator, DeviceTailAndContinuationMatchHost) {
   constexpr size_t kNext = 8;
   constexpr size_t kN = kHead + kNext;
 
-  Generator host = hostGen(kSeed, kSubDev + 1);
+  GeneratorCXX host = hostGen(kSeed, kSubDev + 1);
   uint32_t hostBits[kN] = {};
   expectOk(host.fillU32(hostBits, kHead), "host head");
   expectOk(host.fillU32(hostBits + kHead, kNext), "host tail");
 
-  Generator dev(DEVICE_GPU, kSeed, kSubDev + 1);
+  GeneratorCXX dev(Philox4x32, DEVICE_GPU, kSeed, kSubDev + 1);
   DeviceMirror mirror(kN, DType_::UnSigned32);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  expectOk(dev.fillU32(mirror.devTen.data.u32, kHead), "device head");
-  expectOk(dev.fillU32(mirror.devTen.data.u32 + kHead, kNext), "device tail");
+  expectOk(dev.fillU32(mirror.devTen().data.u32, kHead), "device head");
+  expectOk(dev.fillU32(mirror.devTen().data.u32 + kHead, kNext), "device tail");
   mirror.fetch();
 
   EXPECT_EQ(
-      0, std::memcmp(hostBits, mirror.homeTen.data.u32, kN * sizeof(uint32_t)));
+      0, std::memcmp(hostBits, mirror.homeTen().data.u32, kN * sizeof(uint32_t)));
 }
 
 /** A nonzero device tail is rejected before any lane is consumed. */
 TEST(RngGenerator, DeviceByteTailRejected) {
   NOVA_TEST_REQUIRE_GPU();
-  Generator dev(DEVICE_GPU, kSeed, 0);
+  GeneratorCXX dev(Philox4x32, DEVICE_GPU, kSeed, 0);
   DeviceMirror mirror(4, DType_::UnSigned32);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  const novaStatus_t rejected = dev.fillBytes(mirror.devTen.data.data, 6);
+  const novaStatus_t rejected = dev.fillBytes(mirror.devTen().data.data, 6);
   EXPECT_EQ(rejected.err, novaInvalidValue)
       << (rejected.message != nullptr ? rejected.message : "");
 }
@@ -279,38 +259,38 @@ TEST(RngGenerator, DeviceU64FillMatchesHostBitwise) {
   constexpr size_t kNext = 8;
   constexpr size_t kN = kHead + kNext;
 
-  Generator host = hostGen(kSeed, kSubDev + 2);
+  GeneratorCXX host = hostGen(kSeed, kSubDev + 2);
   uint64_t hostBits[kN] = {};
   expectOk(host.fillU64(hostBits, kHead), "host head");
   expectOk(host.fillU64(hostBits + kHead, kNext), "host tail");
 
-  Generator dev(DEVICE_GPU, kSeed, kSubDev + 2);
+  GeneratorCXX dev(Philox4x32, DEVICE_GPU, kSeed, kSubDev + 2);
   DeviceMirror mirror(kN, DType_::UnSigned64);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  expectOk(dev.fillU64(mirror.devTen.data.u64, kHead), "device head");
-  expectOk(dev.fillU64(mirror.devTen.data.u64 + kHead, kNext), "device tail");
+  expectOk(dev.fillU64(mirror.devTen().data.u64, kHead), "device head");
+  expectOk(dev.fillU64(mirror.devTen().data.u64 + kHead, kNext), "device tail");
   mirror.fetch();
 
   EXPECT_EQ(
-      0, std::memcmp(hostBits, mirror.homeTen.data.u64, kN * sizeof(uint64_t)));
+      0, std::memcmp(hostBits, mirror.homeTen().data.u64, kN * sizeof(uint64_t)));
 }
 
 /** A device byte fill round-trips through the tensor layer. */
 TEST(RngGenerator, DeviceByteFillRoundTrip) {
   NOVA_TEST_REQUIRE_GPU();
-  Generator host = hostGen(kSeed, kSubDev + 3);
+  GeneratorCXX host = hostGen(kSeed, kSubDev + 3);
   uint8_t hostBits[8] = {};
   expectOk(host.fillBytes(hostBits, 8), "host byte fill");
 
-  Generator dev(DEVICE_GPU, kSeed, kSubDev + 3);
+  GeneratorCXX dev(Philox4x32, DEVICE_GPU, kSeed, kSubDev + 3);
   DeviceMirror mirror(2, DType_::UnSigned32);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  expectOk(dev.fillBytes(mirror.devTen.data.data, 8), "device byte fill");
+  expectOk(dev.fillBytes(mirror.devTen().data.data, 8), "device byte fill");
   mirror.fetch();
 
-  EXPECT_EQ(0, std::memcmp(hostBits, mirror.homeTen.data.data, 8));
+  EXPECT_EQ(0, std::memcmp(hostBits, mirror.homeTen().data.data, 8));
 }
 
 /** A fill survives a host side delay before the read: the null-path
@@ -318,20 +298,20 @@ TEST(RngGenerator, DeviceByteFillRoundTrip) {
     guarded by the launcher sync and the wrapper drain. */
 TEST(RngGenerator, DeviceFillSurvivesHostDelayBeforeRead) {
   NOVA_TEST_REQUIRE_GPU();
-  Generator host = hostGen(kSeed, kSubDev + 4);
+  GeneratorCXX host = hostGen(kSeed, kSubDev + 4);
   uint32_t hostBits[8] = {};
   expectOk(host.fillU32(hostBits, 8), "host fill");
 
-  Generator dev(DEVICE_GPU, kSeed, kSubDev + 4);
+  GeneratorCXX dev(Philox4x32, DEVICE_GPU, kSeed, kSubDev + 4);
   DeviceMirror mirror(8, DType_::UnSigned32);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  expectOk(dev.fillU32(mirror.devTen.data.u32, 8), "device fill");
+  expectOk(dev.fillU32(mirror.devTen().data.u32, 8), "device fill");
   std::this_thread::sleep_for(std::chrono::milliseconds(2));
   mirror.fetch();
 
   EXPECT_EQ(
-      0, std::memcmp(hostBits, mirror.homeTen.data.u32, 8 * sizeof(uint32_t)));
+      0, std::memcmp(hostBits, mirror.homeTen().data.u32, 8 * sizeof(uint32_t)));
 }
 
 } // namespace

@@ -32,7 +32,9 @@
 #include <ncore/native/cpu/dtype/casting.h>
 #endif
 
-#include "utils/Oracle.hpp"
+#include <tests/common/Naming.hpp>
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/rng/Fill.hpp>
 
 namespace {
 
@@ -42,6 +44,7 @@ using tests::casting::findPairFor;
 using tests::casting::hostCaps;
 using tests::casting::isaSupported;
 using tests::casting::makePair;
+using tests::common::sanitize;
 using tests::rng::kDefaultSeed;
 
 struct IseParam {
@@ -57,15 +60,6 @@ std::vector<IseParam> buildParams() {
     params.push_back(IseParam{.src = p.src, .dst = p.dst, .label = p.label});
   }
   return params;
-}
-
-std::string sanitize(std::string label) {
-  for (char &c : label) {
-    if (c == '-' || c == '>') {
-      c = '_';
-    }
-  }
-  return label;
 }
 
 /// Runs scalar and wrapper on identical generator-filled inputs and
@@ -156,7 +150,7 @@ TEST(ISAEquivalence, SingleEntryPairsDelegateToScalar) {
   }
 }
 
-#if defined(_GNUC_CLANG_)
+#ifdef _GNUC_CLANG_
 
 namespace {
 

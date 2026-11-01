@@ -20,19 +20,16 @@
 #include <ncore/headeronly/wrappers/tensor.hh>
 #include <ncore/rand/generator.h>
 
-#include "utils/TensorUtils.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/common/Status.hpp>
+#include <tests/tensor/TensorUtils.hpp>
 
 namespace {
 
 using ncore::wrappers::TensorCXX;
+using tests::common::expectOk;
 
 constexpr uint64_t kSeed = 42;
-
-/// Asserts @p st holds the success code (message included on failure).
-void expectOk(const novaStatus_t st, const char *ctx) {
-  ASSERT_EQ(st.err, novaSuccess)
-      << ctx << (st.message != nullptr ? st.message : "");
-}
 
 TEST(RngFillContinuity, PhiloxU32SplitFillsMatchWholeFill) {
   Generator_ whole = {};

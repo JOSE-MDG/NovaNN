@@ -25,7 +25,7 @@
 #include <ncore/core/fp_utils.h>
 #include <ncore/headeronly/dtypes/bfloat16.hh>
 
-#include "utils/FloatingPointClassification.hpp"
+#include <tests/oracle/FpClassification.hpp>
 
 namespace {
 
@@ -224,7 +224,7 @@ TEST(BitPatternIdentityBFloat16, StorageBitsAreIdentity) {
  *        extern C API over the full domain.
  *
  * Finite patterns (including inf) must agree bitwise: both paths are pure
- * widenings. NaN patterns agree on class and sign only — the struct path is
+ * widenings. NaN patterns agree on class and sign only - the struct path is
  * a software shift while the C API uses the native __bf16 widening, and the
  * two differ in NaN payload handling.
  */

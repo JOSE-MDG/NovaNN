@@ -1,10 +1,10 @@
 /**
- * @file FloatingPointClassification.hpp
+ * @file FpClassification.hpp
  * @brief Independent pattern classifiers and reference decoders for the
  *        reduced-precision dtype suites.
  *
  * Dtypes-side oracle. Like
- * @c ncore/tests/dtypeCasting/utils/Oracle.hpp it is deliberately implemented
+ * @c CastingOracle.hpp it is deliberately implemented
  * without calling into the conversion code under test: classify() inspects raw
  * bit fields against a declarative FormatModel, and the referenceDecode*
  * functions compute exact dyadic values in @c double from the format

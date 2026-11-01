@@ -34,10 +34,6 @@ if(TEST_SOURCES)
         PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
         PRIVATE ${CMAKE_BINARY_DIR}
-        # Reuse the CPU oracle fixtures and the GPU skip macro instead of
-        # duplicating them here.
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../dtypeCasting
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../core
     )
 
     target_link_libraries(ncore_dtype_casting_gpu_tests

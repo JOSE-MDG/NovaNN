@@ -6,7 +6,7 @@
  * The scalar fallbacks are the semantic bedrock of the casting subsystem:
  * SIMD variants are only ever measured relative to them, so this suite
  * anchors them to a reference implemented from the format definitions alone
- * (referenceDecode/referenceEncode in utils/Oracle.hpp), never another
+ * (referenceDecode/referenceEncode in CastingOracle.hpp), never another
  * kernel. Whole-tensor sweeps use curated candidate lists plus
  * deterministic LCG fills; no unseeded randomness.
  *
@@ -33,7 +33,8 @@
 #include <ncore/headeronly/cast.h>
 #include <ncore/headeronly/macros.h>
 
-#include "utils/Oracle.hpp"
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/rng/Fill.hpp>
 
 namespace {
 

@@ -29,11 +29,15 @@
 #include <ncore/rand/generator.h>
 #include <ncore/rand/philox.h>
 
-#include "utils/TensorUtils.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/common/Status.hpp>
+#include <tests/tensor/DeviceMirror.hpp>
+#include <tests/tensor/TensorUtils.hpp>
 
 namespace {
 
-using ncore::wrappers::TensorCXX;
+using tests::common::expectOk;
+using tests::tensor::DeviceMirror;
 
 constexpr uint64_t kSeed = 123;
 constexpr uint64_t kSubsequence = 5;
@@ -61,32 +65,6 @@ void expectCtr(const uint32_t actual[4], const uint32_t expected[4]) {
   for (size_t i = 0; i < 4; ++i) {
     EXPECT_EQ(actual[i], expected[i]) << "lane " << i;
   }
-}
-
-/** GPU buffer plus its CPU mirror, allocated through the tensor layer. */
-struct DeviceMirror {
-  novaStatus_t st{};
-  TensorCXX dev;
-  TensorCXX home;
-
-  DeviceMirror(size_t n, DType_ dtype)
-      : st{}, dev(std::vector<size_t>{n}, dtype, DEVICE_GPU, false, false, &st),
-        home(std::vector<size_t>{n}, dtype, DEVICE_CPU, false, false, &st) {}
-
-  Tensor &devTen() { return dev.mutableCTensor(); }
-  Tensor &homeTen() { return home.mutableCTensor(); }
-
-  /// D2H copy after a device fill.
-  void fetch() {
-    st = transf_tensor_from_device(&devTen(), &homeTen());
-    EXPECT_EQ(st.err, novaSuccess) << (st.message != nullptr ? st.message : "");
-  }
-};
-
-/// Asserts @p st holds the success code (message included on failure).
-void expectOk(const novaStatus_t st, const char *ctx) {
-  ASSERT_EQ(st.err, novaSuccess)
-      << ctx << (st.message != nullptr ? st.message : "");
 }
 
 TEST(RngPhiloxCounter, CtrAddCarriesOnEveryWordBoundary) {

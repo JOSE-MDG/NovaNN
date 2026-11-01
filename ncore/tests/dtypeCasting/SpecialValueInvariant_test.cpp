@@ -25,7 +25,9 @@
 #include <ncore/headeronly/cast.h>
 #include <ncore/headeronly/macros.h>
 
-#include "utils/Oracle.hpp"
+#include <tests/common/Naming.hpp>
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/rng/Fill.hpp>
 
 namespace {
 
@@ -425,9 +427,5 @@ TEST(SpecialValueInvariant, PackedFp4LanesCarrySpecialsIndependently) {
 INSTANTIATE_TEST_SUITE_P(
     AllPairs, SpecialValueInvariant, ::testing::ValuesIn(buildParams()),
     [](const ::testing::TestParamInfo<SviParam> &paramInfo) {
-      std::string name;
-      for (const char c : paramInfo.param.label) {
-        name.push_back((c == '-' || c == '>') ? '_' : c);
-      }
-      return name;
+      return tests::common::sanitize(paramInfo.param.label);
     });

@@ -32,10 +32,11 @@
 #include <ncore/core/fp_utils.h>
 #include <ncore/headeronly/dtypes/bfloat16.hh>
 #include <ncore/headeronly/dtypes/fp4_e2m1fn_x2.hh>
+#include <ncore/headeronly/wrappers/generator.hh>
 
-#include "utils/FloatingPointClassification.hpp"
-#include "utils/Oracle.hpp"
-#include "utils/Rng.hpp"
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/oracle/FpClassification.hpp>
+#include <tests/rng/Fill.hpp>
 
 namespace {
 
@@ -306,7 +307,7 @@ TEST(IEEESemantic, QuantizationIsMonotonic) {
 
     // Seeded pseudo-random mantissas inside [1, 2) scaled across binades.
     std::vector<uint32_t> draws(2048);
-    tests::rng::Generator rng(DEVICE_CPU, kDefaultSeed);
+    ncore::wrappers::GeneratorCXX rng(Philox4x32, DEVICE_CPU, kDefaultSeed);
     ASSERT_EQ(rng.fillU32(draws.data(), draws.size()).err, novaSuccess);
     for (int i = 0; i < 1024; ++i) {
       const double frac =
@@ -390,7 +391,7 @@ TEST(IEEESemantic, SignSymmetryHolds) {
     const uint64_t signBit = 1ULL << (tests::casting::totalBits(fmt.spec) - 1);
 
     std::vector<uint32_t> draws(1024);
-    tests::rng::Generator rng(DEVICE_CPU, kDefaultSeed, 1U);
+    ncore::wrappers::GeneratorCXX rng(Philox4x32, DEVICE_CPU, kDefaultSeed, 1U);
     ASSERT_EQ(rng.fillU32(draws.data(), draws.size()).err, novaSuccess);
     for (int i = 0; i < 512; ++i) {
       const double frac =

@@ -8,7 +8,7 @@
  * NaN/inf/overflow are values, not precondition violations). Integer
  * width/sign changes follow the kernels' per-pair policy: clamping into
  * the destination range for the documented 8-bit-target set, modular
- * truncation elsewhere (see kKernelClamps in utils/Oracle.hpp). Tail
+ * truncation elsewhere (see kKernelClamps in CastingOracle.hpp). Tail
  * loops of the SIMD paths must saturate exactly like the vectorized bodies.
  *
  * All kernels are driven through their portable _scalar entry points plus,
@@ -30,7 +30,9 @@
 #include <ncore/headeronly/cast.h>
 #include <ncore/headeronly/macros.h>
 
-#include "utils/Oracle.hpp"
+#include <tests/common/Naming.hpp>
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/rng/Fill.hpp>
 
 namespace {
 
@@ -378,9 +380,5 @@ TEST(SaturationInvariant, Fp4SourcesNeverTriggerUb) {
 INSTANTIATE_TEST_SUITE_P(
     AllPairs, SaturationInvariant, ::testing::ValuesIn(buildParams()),
     [](const ::testing::TestParamInfo<SatParam> &paramInfo) {
-      std::string name;
-      for (const char c : paramInfo.param.label) {
-        name.push_back((c == '-' || c == '>') ? '_' : c);
-      }
-      return name;
+      return tests::common::sanitize(paramInfo.param.label);
     });

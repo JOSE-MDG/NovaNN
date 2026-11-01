@@ -3,7 +3,7 @@ DType Casting Tests
 -------------------
 
 GoogleTest suite for the dtype casting pipeline: soft-float oracle
-utilities (``utils/Oracle.hpp``), cast table metadata and dispatch over
+utilities (``CastingOracle.hpp``), cast table metadata and dispatch over
 the generated lookup tables, scalar casting kernels and their SIMD
 variants.
 
@@ -27,7 +27,6 @@ if(TEST_SOURCES)
 
     target_include_directories(ncore_dtype_casting_tests
         PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
-        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/tests/core
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
         PRIVATE ${CMAKE_BINARY_DIR}
     )

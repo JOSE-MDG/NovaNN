@@ -1,14 +1,13 @@
 /**
  * @file TensorUtils.hpp
- * @brief Shared deterministic fixtures for the tensor copy/transfer suites.
+ * @brief Shared comparisons and allocation helpers for the tensor suites.
  *
- * Deterministic pattern generation, bitwise comparison, metadata
- * equality, and GPU availability guards shared by the copy/transfer
- * suites.
+ * Deterministic data entry stays outside: fills come from the generator
+ * wrapper at each call site.
  *
  * Ownership rule: every tensor is owned by `ncore::wrappers::TensorCXX`.
  * Unallocated tensors (e.g. `deepcopy()` destinations) are built through
- * its tagged constructors — `TensorCXX(unallocated, ...)` — and handed to
+ * its tagged constructors `TensorCXX(unallocated, ...)` and handed to
  * C out-param APIs via `mutableCTensor()`.
  */
 
@@ -16,7 +15,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstdint>
 #include <cstring>
 
 #include <ncore/core/alloc.h>
@@ -72,29 +70,4 @@ inline novaStatus_t allocateGrad(Tensor &ten) {
                         ten.grad->is_pinned_, nullptr, ten.grad, true);
 }
 
-/**
- * @brief True when a GPU backend is compiled in and a device is present.
- */
-inline bool gpuAvailable() {
-#if defined(NOVA_HAS_CUDA) or defined(NOVA_HAS_HIP)
-  return is_cuda_available() || is_hip_available();
-#else
-  return false;
-#endif
-}
-
 } // namespace tests::tensor
-
-/**
- * @brief Skips the current test when no usable GPU backend/device.
- *
- * Must be invoked as the first statement of a GPU-guarded test body so
- * `GTEST_SKIP` returns from the test itself. Probing also warms the one-shot
- * device-detection cache consulted by `copy_device_buffer()`.
- */
-#define NOVA_TEST_REQUIRE_GPU()                                                \
-  do {                                                                         \
-    if (!tests::tensor::gpuAvailable()) {                                      \
-      GTEST_SKIP() << "GPU backend/device not available";                      \
-    }                                                                          \
-  } while (0)

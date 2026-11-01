@@ -22,8 +22,10 @@
 #include <ncore/headeronly/wrappers/tensor.hh>
 #include <ncore/tensor.h>
 
-#include "utils/GpuCasting.hpp"
-#include "utils/Oracle.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/gpu/Casting.hpp>
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/rng/Fill.hpp>
 
 namespace {
 

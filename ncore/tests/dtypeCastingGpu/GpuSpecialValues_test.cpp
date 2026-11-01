@@ -22,8 +22,11 @@
 #include <ncore/core/status.h>
 #include <ncore/tensor.h>
 
-#include "utils/GpuCasting.hpp"
-#include "utils/Oracle.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/common/Naming.hpp>
+#include <tests/gpu/Casting.hpp>
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/rng/Fill.hpp>
 
 namespace {
 
@@ -35,10 +38,10 @@ using tests::casting::readRaw;
 using tests::casting::specialValuesOf;
 using tests::casting::writeFloatValue;
 using tests::casting::writeRaw;
+using tests::common::sanitize;
 using tests::gpu::castOnDevice;
 using tests::gpu::fetchHome;
 using tests::gpu::makeDevicePair;
-using tests::gpu::sanitizeLabel;
 using tests::gpu::scalarRef;
 using tests::gpu::stageToDevice;
 using tests::rng::kDefaultSeed;
@@ -135,5 +138,5 @@ TEST(GpuSpecialValues, Bf16NaNIsCanonical) {
 INSTANTIATE_TEST_SUITE_P(
     FloatSources, GpuSpecialValues, ::testing::ValuesIn(floatSourcePairs()),
     [](const ::testing::TestParamInfo<PairInfo> &paramInfo) {
-      return sanitizeLabel(paramInfo.param.label);
+      return sanitize(paramInfo.param.label);
     });

@@ -1,5 +1,5 @@
 /**
- * @file Oracle.hpp
+ * @file CastingOracle.hpp
  * @brief Independent test oracle and fixtures for the dtype-casting suites.
  *
  * @li referenceDecode() / referenceEncode() re-derive reduced-format
@@ -11,7 +11,7 @@
  *     families in @ref ncore/headeronly/cast.h, so codegen drift breaks the
  *     count assertion rather than silently passing.
  * @li Tensor fixtures follow the ownership conventions of
- *     @c ncore/tests/core/utils/TensorUtils.hpp (TensorCXX owns, raw views go
+ *     @c tests/tensor/TensorUtils.hpp (TensorCXX owns, raw views go
  *     to the C API), extended with packing-aware raw element access for
  *     Float4E2M1fn.
  *
@@ -41,7 +41,7 @@
 #include <ncore/tables/cast_tables.h>
 #include <ncore/tensor.h>
 
-#include "utils/Rng.hpp"
+#include <ncore/headeronly/wrappers/generator.hh>
 
 namespace tests::casting {
 
@@ -767,8 +767,10 @@ struct CastPair {
   if (!pair.ok) {
     return pair;
   }
-  tests::rng::Generator fillSrc(DEVICE_CPU, seed, subsequenceBase);
-  tests::rng::Generator fillDst(DEVICE_CPU, seed, subsequenceBase + 1U);
+  ncore::wrappers::GeneratorCXX fillSrc(Philox4x32, DEVICE_CPU, seed,
+                                        subsequenceBase);
+  ncore::wrappers::GeneratorCXX fillDst(Philox4x32, DEVICE_CPU, seed,
+                                        subsequenceBase + 1U);
   Tensor sv = pair.src.mutableCTensor();
   Tensor dv = pair.dst.mutableCTensor();
   EXPECT_EQ(fillSrc.fill(sv).err, novaSuccess) << "makePair: src fill";
