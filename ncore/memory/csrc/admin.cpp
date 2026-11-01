@@ -4,16 +4,14 @@
  *
  * @details
  * Calls into the ncore C API to probe CUDA and HIP runtime
- * availability.  The result is used by @ref deviceReserve,
- * @ref deviceRelease, @ref deviceResize, and @ref deviceTransfer
- * in @c ffi.cpp to dispatch operations to the correct backend.
+ * availability.
  *
  * @see admin.hpp      deviceKind_t enum and function declaration.
  * @see ffi.cpp        FFI dispatch layer that consumes this probe.
  * @see device.h       Provides is_cuda_available() and is_hip_available().
  */
 
-#include "admin.hpp"
+#include <ncore/memory/admin.hpp>
 #include <ncore/core/device.h>
 
 /**
@@ -21,8 +19,8 @@
  *
  * @details
  * Checks CUDA first, then HIP.  The first detected runtime
- * wins.  This function is called by @ref deviceTransfer,
- *  and FFI Rust wrappers (in @c ncore/memory/src)
+ * wins.  Called by @c deviceTransfer() and the
+ * FFI Rust wrappers (in @c ncore/memory/src)
  * to auto-detect the active backend for data transfers.
  *
  * @return @ref deviceKind_t::DeviceCUDA if CUDA is available,

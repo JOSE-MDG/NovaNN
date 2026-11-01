@@ -32,16 +32,18 @@
 #include <ncore/core/fp_utils.h>
 #include <ncore/headeronly/dtypes/bfloat16.hh>
 #include <ncore/headeronly/dtypes/fp4_e2m1fn_x2.hh>
+#include <ncore/headeronly/wrappers/generator.hh>
 
-#include "../dtypeCasting/utils/Oracle.hpp"
-#include "utils/FloatingPointClassification.hpp"
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/oracle/FpClassification.hpp>
+#include <tests/rng/Fill.hpp>
 
 namespace {
 
-using tests::casting::kDefaultSeed;
 using tests::fpc::f32BitsOf;
 using tests::fpc::f32FromBits;
 using tests::fpc::isInfF32Bits;
+using tests::rng::kDefaultSeed;
 
 /// One reduced format wired to its conversion entry points.
 struct FormatUnderTest {
@@ -89,7 +91,7 @@ std::array<FormatUnderTest, 5> buildFormats() {
            },
        .decodeBits =
            [](uint64_t p) {
-#if defined(__clang__)
+#ifdef __clang__
              return static_cast<double>(ncore::dtypes::detail::f32_from_bits(
                  static_cast<uint16_t>(p)));
 #else
@@ -234,16 +236,6 @@ int64_t patternRank(uint64_t pattern, const tests::casting::FormatSpec &spec) {
              : static_cast<int64_t>(magnitude);
 }
 
-/// Deterministic LCG state for sweeps.
-struct Lcg {
-  uint32_t state;
-  explicit Lcg(uint32_t seed) : state(seed) {}
-  uint32_t next() {
-    state = (state * 1664525U) + 1013904223U;
-    return state;
-  }
-};
-
 } // namespace
 
 /**
@@ -314,11 +306,19 @@ TEST(IEEESemantic, QuantizationIsMonotonic) {
     }
 
     // Seeded pseudo-random mantissas inside [1, 2) scaled across binades.
-    Lcg rng(kDefaultSeed);
+    std::vector<uint32_t> draws(2048);
+    ncore::wrappers::GeneratorCXX rng(Philox4x32, DEVICE_CPU, kDefaultSeed);
+    ASSERT_EQ(rng.fillU32(draws.data(), draws.size()).err, novaSuccess);
     for (int i = 0; i < 1024; ++i) {
       const double frac =
-          1.0 + (static_cast<double>(rng.next() >> 8) / 16777216.0);
-      const int e = -20 + static_cast<int>(rng.next() % 32U);
+          1.0 +
+          (static_cast<double>(
+               draws[static_cast<size_t>(2) * static_cast<size_t>(i)] >> 8) /
+           16777216.0);
+      const int e =
+          -20 +
+          static_cast<int>(
+              draws[static_cast<size_t>(2) * static_cast<size_t>(i) + 1] % 32U);
       values.push_back(frac * std::ldexp(1.0, e));
     }
 
@@ -390,11 +390,19 @@ TEST(IEEESemantic, SignSymmetryHolds) {
     SCOPED_TRACE(fmt.label);
     const uint64_t signBit = 1ULL << (tests::casting::totalBits(fmt.spec) - 1);
 
-    Lcg rng(kDefaultSeed ^ 0x5EEDU);
+    std::vector<uint32_t> draws(1024);
+    ncore::wrappers::GeneratorCXX rng(Philox4x32, DEVICE_CPU, kDefaultSeed, 1U);
+    ASSERT_EQ(rng.fillU32(draws.data(), draws.size()).err, novaSuccess);
     for (int i = 0; i < 512; ++i) {
       const double frac =
-          1.0 + (static_cast<double>(rng.next() >> 8) / 16777216.0);
-      const int e = -12 + static_cast<int>(rng.next() % 20U);
+          1.0 +
+          (static_cast<double>(
+               draws[static_cast<size_t>(2) * static_cast<size_t>(i)] >> 8) /
+           16777216.0);
+      const int e =
+          -12 +
+          static_cast<int>(
+              draws[static_cast<size_t>(2) * static_cast<size_t>(i) + 1] % 20U);
       const double v = frac * std::ldexp(1.0, e);
 
       const uint64_t positive = fmt.encodeBits(v);
@@ -421,8 +429,12 @@ TEST(IEEESemantic, OverflowBoundaryRoundsPerPolicy) {
 
   // BF16: f32 bit patterns bracketing the overflow midpoint
   // (midpoint between max finite and the hypothetical next value).
-  EXPECT_EQ(formats[1].encodeBits(f32FromBits(0x7F7F7FFFU)), UINT64_C(0x7F7F));
-  EXPECT_EQ(formats[1].encodeBits(f32FromBits(0x7F7F8000U)), UINT64_C(0x7F80));
+  EXPECT_EQ(
+      formats[1].encodeBits(static_cast<double>(f32FromBits(0x7F7F7FFFU))),
+      UINT64_C(0x7F7F));
+  EXPECT_EQ(
+      formats[1].encodeBits(static_cast<double>(f32FromBits(0x7F7F8000U))),
+      UINT64_C(0x7F80));
 
   // E4M3FN: saturates to max finite; no infinity exists.
   EXPECT_EQ(formats[2].encodeBits(460.0), UINT64_C(0x7E));

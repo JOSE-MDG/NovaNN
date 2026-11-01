@@ -4,19 +4,15 @@
  * implementation.
  *
  * @details
- * This module provides runtime detection of CPU SIMD (Single Instruction,
- * Multiple Data) capabilities using the CPUID instruction. It supports
- * detection of SSE, AVX, AVX-512, FMA, F16C, VNNI, AMX, and AVX10
- * instruction sets on both x86_64 Linux and Windows platforms, giving the
- * rest of NovaNN a single, reliable source of truth for which vectorized
- * kernel variants are safe to dispatch to on the current machine.
+ * Runtime detection of CPU SIMD features through CPUID: SSE, AVX,
+ * AVX-512, FMA, F16C, VNNI, AMX and AVX10 on x86_64 Linux and
+ * Windows, giving the rest of the build a single source of truth for
+ * which vectorized kernel variants are safe to dispatch to on the
+ * current machine.
  *
- * The detected capabilities are cached in a thread-safe singleton pattern
- * using platform-specific threading primitives (C11 @c call_once on Linux,
- * Windows @c InitOnceExecuteOnce on @c _WIN64) to ensure the detection is
- * performed only once, even when called from multiple threads.
- *
- * The module is split in two layers:
+ * Detection runs once behind a platform one-shot guard (C11
+ * @c call_once on Linux, @c InitOnceExecuteOnce on @c _WIN64) and is
+ * split in two layers:
  *
  * @li @ref get_simd_capabilities_from_cpuid() — pure decoding of raw CPUID
  *     registers into a @ref SIMDCapabilities structure. No hardware access;
@@ -24,12 +20,6 @@
  * @li @ref detect_simd_capabilities() — platform-specific reader that fills
  *     a @ref SIMDCpuidSnapshot through the CPUID intrinsics and delegates
  *     the decoding to the pure layer.
- *
- * @section platform-support Platform Support
- * @li Windows (_WIN64): Uses __cpuid() and __cpuidex() from intrin.h;
- *   threading via @c INIT_ONCE + @c InitOnceExecuteOnce from @c <windows.h>.
- * @li Linux/Unix: Uses __get_cpuid() and __cpuid_count() from cpuid.h;
- *   threading via C11 @c once_flag + @c call_once from @c <threads.h>.
  *
  * @see simd.h                     Public interface and @ref SIMDCapabilities structure.
  * @see get_simd_capabilities()    Thread-safe singleton accessor.
@@ -42,10 +32,8 @@
 #endif
 
 #ifdef _WIN64
-/** @brief Windows intrinsics for CPUID support. */
 #include <intrin.h>
 #else
-/** @brief GCC/Clang CPUID intrinsic support. */
 #include <cpuid.h>
 #endif
 
@@ -80,10 +68,10 @@ static SIMDCapabilities simd = {};
  * @see get_simd_capabilities()
  */
 static once_flag init_flag = {};
-#elif defined(_WIN64)
+#elifdef _WIN64
 /**
  * @var static INIT_ONCE init_flag
- * @brief Windows one-time initialisation guard for thread-safe lazy
+ * @brief Windows one-time initialization guard for thread-safe lazy
  *        initialization.
  *
  * @details
@@ -127,11 +115,6 @@ static INIT_ONCE init_flag = INIT_ONCE_STATIC_INIT;
  * @param[in,out] caps      Destination capabilities. Must not be null;
  *                          every flag is overwritten.
  *
- * @pre snapshot must point to a valid SIMDCpuidSnapshot structure.
- * @pre caps must point to a valid SIMDCapabilities structure.
- * @post All capability flags in caps reflect the bits in snapshot; the
- *       amx_ and vnni_ composite flags equal the OR of their constituents.
- *
  * @see get_simd_capabilities()
  */
 void get_simd_capabilities_from_cpuid(const SIMDCpuidSnapshot *snapshot,
@@ -150,9 +133,10 @@ void get_simd_capabilities_from_cpuid(const SIMDCpuidSnapshot *snapshot,
   const uint32 ecx70 = snapshot->leaf7_0[2];
   const uint32 edx70 = snapshot->leaf7_0[3];
 
-  caps->avx2_ = ((ebx70 & (1 << 5)) != 0);       ///< AVX2
-  caps->avx512f_ = ((ebx70 & (1 << 16)) != 0);   ///< AVX-512 Foundation
-  caps->avx512_dq_ = ((ebx70 & (1 << 17)) != 0); ///< AVX-512 Doubleword/Quadword
+  caps->avx2_ = ((ebx70 & (1 << 5)) != 0);     ///< AVX2
+  caps->avx512f_ = ((ebx70 & (1 << 16)) != 0); ///< AVX-512 Foundation
+  caps->avx512_dq_ =
+      ((ebx70 & (1 << 17)) != 0); ///< AVX-512 Doubleword/Quadword
   caps->avx512_bw_ = ((ebx70 & (1 << 30)) != 0); ///< AVX-512 Byte/Word
   caps->avx512_vl_ =
       ((ebx70 & (1U << 31)) != 0); ///< AVX-512 Vector Length extensions
@@ -213,22 +197,8 @@ void get_simd_capabilities_from_cpuid(const SIMDCpuidSnapshot *snapshot,
  * not be queried there.
  *
  * @param[in,out] caps Pointer to the SIMDCapabilities structure to populate.
- *                  Must be zero-initialised by the caller, since fields
+ *                  Must be zero-initialized by the caller, since fields
  *                  are only written when their CPUID leaf is available.
- *
- * @pre caps must point to a valid SIMDCapabilities structure.
- * @post All capability flags in caps are set to true/false based
- *       on CPU support. The amx_ and vnni_ composite flags are computed
- *       from their constituent features.
- *
- * @note On non-Windows platforms, if CPUID leaf 1 is not supported,
- *       the function returns early leaving caps untouched.  Callers
- *       should zero-initialise the structure (e.g., @c = @c {})
- *       beforehand.
- *
- * @note This function is platform-specific:
- *       @li Windows (_WIN64): Uses __cpuid() and __cpuidex() from intrin.h
- *       @li Linux/Unix: Uses __get_cpuid() and __cpuid_count() from cpuid.h
  *
  * @see get_simd_capabilities()          Public API accessor.
  * @see get_simd_capabilities_from_cpuid()  Pure decoding layer.
@@ -316,35 +286,26 @@ static inline void detect_simd_capabilities(SIMDCapabilities *restrict caps) {
  * @brief One-time initializer for thread-safe lazy initialization.
  *
  * @details
- * This function is registered with call_once() and executes
- * @ref detect_simd_capabilities() to populate the global @ref simd structure.
- * It is guaranteed to be called exactly once, regardless of how many
- * threads invoke @ref get_simd_capabilities() concurrently.
+ * Registered with @c call_once(); populates the global @ref simd
+ * structure via @ref detect_simd_capabilities().
  *
  * @see get_simd_capabilities()
- * @see init_flag
- * @see detect_simd_capabilities()
  */
 static inline void init_once(void) { detect_simd_capabilities(&simd); }
-#elif defined(_WIN64)
+#elifdef _WIN64
 /**
  * @brief Windows one-time initialization callback.
  *
  * @details
- * This function matches the @c PINIT_ONCE_FN signature required by
- * Windows @c InitOnceExecuteOnce().  It delegates to
- * @ref detect_simd_capabilities() to populate the global @ref simd
- * structure.
+ * Matches the @c PINIT_ONCE_FN signature required by
+ * @c InitOnceExecuteOnce(); populates the global @ref simd structure
+ * via @ref detect_simd_capabilities().
  *
- * @param[in] once   Pointer to the one-time initialisation structure.
+ * @param[in] once   Pointer to the one-time initialization structure.
  * @param[in] param  Optional callback data (unused).
  * @param[in] ctx    Optional callback context (unused).
  *
- * @return Always @c TRUE (initialisation always succeeds).
- *
- * @see get_simd_capabilities()
- * @see init_flag
- * @see detect_simd_capabilities()
+ * @return Always @c TRUE (initialization always succeeds).
  */
 static BOOL CALLBACK init_once_win(PINIT_ONCE once, PVOID param, PVOID *ctx) {
   (void)once;
@@ -359,36 +320,20 @@ static BOOL CALLBACK init_once_win(PINIT_ONCE once, PVOID param, PVOID *ctx) {
  * @brief Get CPU capabilities (thread-safe singleton accessor).
  *
  * @details
- * Returns a pointer to the global @ref SIMDCapabilities structure containing
- * all detected SIMD features. The first call triggers detection via
- * @ref detect_simd_capabilities(); subsequent calls return the cached result.
+ * First call triggers detection; subsequent calls return the cached
+ * result.
  *
- * @return Pointer to the global SIMDCapabilities structure.
- *         The returned pointer is valid for the lifetime of the process
- *         and must not be freed by the caller.
- *
- * @note This function is thread-safe. The detection is performed at most
- *       once using C11 @c call_once on Linux or @c InitOnceExecuteOnce on
- *       Windows.
- *
- * @par Example:
- * @code{.c}
- *   const SIMDCapabilities *simd = get_simd_capabilities();
- *   if (simd->avx2_) {
- *       // Use AVX2-optimized code path
- *   } else if (simd->sse4_2_) {
- *       // Use SSE4.2 fallback
- *   }
- * @endcode
+ * @return Pointer to the global @ref SIMDCapabilities structure.  The
+ *         pointer is valid for the lifetime of the process and must
+ *         not be freed by the caller.
  *
  * @see SIMDCapabilities
  * @see detect_simd_capabilities()
- * @see init_once()
  */
 const SIMDCapabilities *get_simd_capabilities() {
 #ifdef __linux__
   call_once(&init_flag, init_once);
-#elif defined(_WIN64)
+#elifdef _WIN64
   InitOnceExecuteOnce(&init_flag, init_once_win, nullptr, nullptr);
 #endif
   return &simd;

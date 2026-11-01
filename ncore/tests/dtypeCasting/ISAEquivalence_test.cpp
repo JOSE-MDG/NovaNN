@@ -32,7 +32,9 @@
 #include <ncore/native/cpu/dtype/casting.h>
 #endif
 
-#include "utils/Oracle.hpp"
+#include <tests/common/Naming.hpp>
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/rng/Fill.hpp>
 
 namespace {
 
@@ -41,8 +43,9 @@ using tests::casting::expectEqualSkippingSrcNan;
 using tests::casting::findPairFor;
 using tests::casting::hostCaps;
 using tests::casting::isaSupported;
-using tests::casting::kDefaultSeed;
 using tests::casting::makePair;
+using tests::common::sanitize;
+using tests::rng::kDefaultSeed;
 
 struct IseParam {
   DType_ src;
@@ -59,20 +62,11 @@ std::vector<IseParam> buildParams() {
   return params;
 }
 
-std::string sanitize(std::string label) {
-  for (char &c : label) {
-    if (c == '-' || c == '>') {
-      c = '_';
-    }
-  }
-  return label;
-}
-
-/// Runs scalar and wrapper on identical LCG-filled inputs and requires
-/// equal destinations over @p count logical elements (source-NaN elements
-/// are exempt from bitwise equality; see expectEqualSkippingSrcNan).
+/// Runs scalar and wrapper on identical generator-filled inputs and
+/// requires equal destinations over @p count logical elements (source-NaN
+/// elements are exempt from bitwise equality; see expectEqualSkippingSrcNan).
 void expectWrapperMatchesScalar(DType_ src, DType_ dst, size_t count,
-                                uint32_t seed, const char *label) {
+                                uint64_t seed, const char *label) {
   const tests::casting::PairInfo *pair = findPairFor(src, dst);
   ASSERT_NE(pair, nullptr) << label;
 
@@ -156,20 +150,15 @@ TEST(ISAEquivalence, SingleEntryPairsDelegateToScalar) {
   }
 }
 
-#if defined(_GNUC_CLANG_)
+#ifdef _GNUC_CLANG_
 
 namespace {
 
-/// One directly-invocable SIMD variant plus its cast_tables.h requirement.
-///
-/// The owning registry pair is identified by DTYPE PAIR, not by wrapper
-/// pointer: cast.h's dispatchers are static inline (internal linkage), so
-/// every translation unit holds its own copy and their addresses are only
-/// comparable within one TU, while the allPairs() singleton may have
-/// been materialized in any of them. The scalar reference and dispatch
-/// wrapper under comparison are taken from the registry entry itself, so a
-/// typo in this table cannot pit kernels of different pairs against each
-/// other.
+/**
+ * @struct LadderEntry
+ *
+ * @brief One directly-invocable SIMD variant plus its cast_tables.h requirement.
+ */
 struct LadderEntry {
   const char *label;        ///< Diagnostic tag for failure messages.
   const char *requirements; ///< ISA requirement string per cast_tables.h.
@@ -421,8 +410,8 @@ TEST(ISAEquivalence, NonGnuClangDegeneratesToScalar) {
 
 #endif
 
-INSTANTIATE_TEST_SUITE_P(AllPairs, ISAEquivalence,
-                         ::testing::ValuesIn(buildParams()),
-                         [](const ::testing::TestParamInfo<IseParam> &info) {
-                           return sanitize(info.param.label);
-                         });
+INSTANTIATE_TEST_SUITE_P(
+    AllPairs, ISAEquivalence, ::testing::ValuesIn(buildParams()),
+    [](const ::testing::TestParamInfo<IseParam> &paramInfo) {
+      return sanitize(paramInfo.param.label);
+    });

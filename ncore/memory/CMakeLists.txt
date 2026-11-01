@@ -3,9 +3,7 @@ Rust Crate Build
 ----------------
 
 Build the ``ncore_memory`` Rust crate via Cargo and expose it as an
-imported static library.  The Cargo build is orchestrated through a
-custom target that passes all required environment variables to
-``cargo build``.
+imported static library.
 
 Variables defined:
 

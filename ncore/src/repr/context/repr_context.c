@@ -6,20 +6,16 @@
  * Implements @ref build_repr_context(), which performs a one-time
  * analysis of a tensor and its formatting options to produce a
  * persistent @ref ReprContext. This context drives all subsequent
- * layout and formatting operations, ensuring consistent alignment
- * and uniform numeric representation.
+ * layout and formatting operations, keeping alignment and numeric
+ * representation uniform.
  *
- * @section context-building-process Context Building Process
- *
- * The builder performs three passes:
- *
- * @li 1. Classification: Maps the tensor's metadata (dtype, device,
- *    ndims) to categorical flags in the context.
- * @li 2. Sampling: Walks head and tail logical elements through
- *    shape-derived coordinates (correct for strided views), bounded
- *    by the options, recording the maximum sampled magnitude.
- * @li 3. Analysis: Applies the notation rule to the maximum and
- *    measures formatted widths over the same sample.
+ * The builder works in three passes: it maps the tensor's metadata
+ * (dtype, device, ndims) to categorical flags in the context, walks
+ * head and tail logical elements through shape-derived coordinates
+ * (correct for strided views) bounded by the options while recording
+ * the maximum sampled magnitude, and finally applies the notation
+ * rule to the maximum and measures formatted widths over the same
+ * sample.
  *
  * The notation rule keys on the maximum alone because maxima
  * concentrate across samples while minima do not: identical data
@@ -109,7 +105,7 @@ static inline double lane_abs_double(const Tensor *ten, const void *ptr,
  * @param[in]  opts Pointer to formatting options. If @c nullptr,
  *                  defaults are used.
  *
- * @return A fully initialised @ref ReprContext structure.
+ * @return A fully initialized @ref ReprContext structure.
  */
 ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
   ReprContext ctx = {};
@@ -225,7 +221,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
 
     char fmt_buf[128];
     ReprContext lane = ctx;
-    lane.sub_element_index = (size_t)(logical % (packing != 0 ? packing : 1U));
+    lane.sub_element_index = (logical % (packing != 0 ? packing : 1U));
     const int w = format_element(fmt_buf, sizeof(fmt_buf), ptr, ten, &lane);
     if (w > 0 && (size_t)w > max_w) {
       max_w = (size_t)w;

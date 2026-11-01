@@ -2,24 +2,7 @@
  * @file storage.h
  * @brief Memory storage primitives for tensor data.
  *
- * @details
- * Provides the low-level building blocks for tensor memory management:
- *
- * @li 1. data_ptr — A typed pointer union that enables zero-cost
- *    type-safe access to tensor element buffers.  The active member
- *    is selected at runtime based on the tensor's @ref DType_.
- *
- * @li 2. RustHandle — An opaque handle returned by the Rust FFI
- *    allocator (@c reserve()).  Carries the allocation ID, usable
- *    byte size, and alignment.  Reference-counted lifetime
- *    management is performed through @c retain() / @c release().
- *
- * @li 3. TensorStorage — A composite descriptor that bundles the
- *    typed pointer and the Rust handle into a single struct suitable
- *    for embedding in the @c Tensor struct.  The handle carries both
- *    the theoretical and the real reservation sizes.
- *
- * @section memory-lifecycle Memory Lifecycle
+ * Allocation, share, free and resize all go through the Rust FFI:
  *
  * @code
  * allocate:  reserve()  → RustHandle { id, requested, bytes, align } + novaStatus_t
@@ -29,17 +12,10 @@
  * query:     get_data_from() → CPU-visible pointer
  * @endcode
  *
- * @section thread-safety Thread Safety
- *
- * All functions in this header are thread-safe with respect to the Rust
- * storage registry.  Handles themselves remain caller-owned values and must
- * not be concurrently mutated by multiple threads without external
- * synchronisation. Detailed status messages are valid until the next storage
+ * The Rust storage registry is thread-safe; the handle structs are
+ * caller-owned values and need external synchronization for concurrent
+ * mutation. Detailed status messages stay valid until the next storage
  * operation on the same thread.
- *
- * @see dtype.h       DType_ enumeration used by data_ptr members.
- * @see tensor.h      Tensor struct embedding a TensorStorage.
- * @see alloc.h       Higher-level safe_allocator() wrapper.
  */
 
 #pragma once
@@ -61,19 +37,9 @@ extern "C" {
  * @union data_ptr
  * @brief Typed pointer union for tensor data buffers.
  *
- * @details
- * All 14 members point to the same memory address. The active member
- * is determined by the tensor's @ref DType_ at runtime.  Using the
- * correct member eliminates casts and enables natural pointer
- * arithmetic (e.g., @c ptr.f32[i] for a Float32 tensor).
- *
- * The @c v member provides a type-agnostic @c void* for generic code,
- * while @c data provides a raw byte pointer for serialization and
- * @c memcpy.
- *
- * @see DType_         Enum selecting the active union member.
- * @see dtype_size()   Returns the byte-width of a DType_.
- * @see TensorStorage  Embeds a data_ptr as its @c ptr field.
+ * All members alias the same address; the active member follows the
+ * tensor's @ref DType_. @c v and @c data serve generic and raw-byte
+ * access.
  */
 typedef union {
   void *v;                        ///< Untyped pointer (generic access).
@@ -104,37 +70,20 @@ typedef union {
 
 /**
  * @struct RustHandle
- * @brief Opaque handle to a Rust-allocated memory region.
+ * @brief Handle to a Rust-allocated memory region, FFI bridge.
  *
- * @details
- * Returned by @c reserve() and passed to @c retain() / @c release() for
- * reference-counted lifetime management.  The actual allocation lives
- * on the Rust side. This struct is a thin FFI bridge.
+ * @li @c id — allocation ID; 0 marks an invalid or failed allocation.
+ * @li @c requested_bytes — theoretical size asked by the caller.
+ * @li @c bytes — real backend reservation, at least @c requested_bytes
+ *   (size-class rounding may pad it).
+ * @li @c align — alignment constraint in bytes.
  *
- * @section fields Fields
- *
- * @li @c id — Unique identifier for the allocation.  A value of @c 0
- *   indicates an invalid / failed allocation.
- * @li @c requested_bytes — Theoretical size asked by the caller, in bytes.
- * @li @c bytes — Real backend reservation in bytes.  Greater than or equal
- *   to @c requested_bytes. It may be larger due to size-class rounding.
- * @li @c align — Alignment constraint in bytes (e.g., 64 for
- *   cache-line alignment).
- *
- * @section validity Validity
- *
- * A handle is structurally valid when @c id != 0 and @c bytes != 0.  Use
- * @c is_valid_handle() to check whether that ID is also registered. Query
- * functions tolerate null or invalid handles by returning their documented
- * sentinel values; lifecycle and resize functions require a live handle.
+ * A handle is structurally valid when @c id != 0 and @c bytes != 0.
+ * @c is_valid_handle() also checks that the ID is still registered.
+ * Query functions tolerate null or invalid handles with sentinel
+ * values, lifecycle and resize functions need a live handle.
  * @c gt_bytes() performs the structural check only: callers holding a
  * stale copy after the final release must not read it.
- *
- * @see reserve()        Creates a RustHandle.
- * @see retain()         Increments the reference count.
- * @see release()        Decrements the reference count.
- * @see is_valid_handle()  Validates a handle.
- * @see TensorStorage    Embeds a RustHandle as its @c handle field.
  */
 typedef struct {
   uint64_t id;            ///< Unique identifier for the allocation.
@@ -146,13 +95,9 @@ typedef struct {
 /**
  * @brief Allocate a buffer on the specified memory device.
  *
- * @details
- * Routes the allocation request to the Rust allocator, which supports:
- * @li CPU host RAM (@c cpu) — standard @c malloc-style allocation.
- * @li Pinned host memory (@c cpu + @c pin_memory=true) —
- *   page-locked memory for efficient GPU ↔ CPU transfers.
- * @li GPU device VRAM (@c device) — allocated through the active
- *   CUDA or HIP backend.
+ * Routes to the Rust allocator: host RAM, page-locked host memory for
+ * fast GPU transfers (@c pin_memory = true, CPU only), or GPU VRAM
+ * through the active CUDA/HIP backend.
  *
  * On failure, @p status receives the error code and detailed message.
  *
@@ -171,20 +116,8 @@ typedef struct {
  * @param[out] status     Receives the operation result. Must not be
  *                        @c nullptr.
  *
- * @return A valid @ref RustHandle on success, or a handle with
- *         @c id == 0 on failure.
- *
- * @pre  @c size must be > 0.
- * @pre  @c requested must be > 0 and <= @c size.
- * @pre  If non-null, @c device must be @c cpu or @c device.
- * @pre  For CPU allocations, @c align must be a power of two.
- * @post On success, the returned handle has @c id != 0 and the
- *       caller owns one reference.
- * @post @p status describes the result of the operation.
- *
- * @see retain()           Increments the reference count.
- * @see release()          Decrements the reference count.
- * @see TensorStorage      Embeds the returned handle.
+ * @return A valid @ref RustHandle on success (the caller owns one
+ *         reference), or a handle with @c id == 0 on failure.
  */
 RustHandle reserve(size_t size, size_t requested, const char *device,
                    bool pin_memory, size_t align, novaStatus_t *status);
@@ -192,209 +125,140 @@ RustHandle reserve(size_t size, size_t requested, const char *device,
 /**
  * @brief Increment the reference count of a Rust allocation.
  *
- * @details
- * Marks the allocation as shared by an additional owner.  Must be
- * paired with a corresponding @c release() call to avoid leaks.
- *
  * @param[in,out] handle  Pointer to a valid @ref RustHandle.
  *                        Must not be @c nullptr.
  *
- * @pre  @p handle must point to a valid RustHandle (@c id != 0).
- * @post On success, the allocation reference count is incremented by one.
+ * @pre  @p handle must point to a live handle (@c id != 0).
+ *
  * @return @ref novaStatus_t describing the operation.
  *
- * @see release()   Decrements the reference count.
- * @see reserve()   Creates a handle with an initial count of one.
+ * Pair with a @c release() call or the allocation leaks.
  */
 novaStatus_t retain(RustHandle *handle);
 
 /**
  * @brief Decrement the reference count and free memory at zero.
  *
- * @details
- * Releases one owner reference.  If the count reaches zero, the
- * underlying Rust allocation is explicitly freed before the handle is
- * invalidated (@c id set to @c 0).
+ * On the final successful release the underlying allocation is freed
+ * and the handle is invalidated (@c id set to @c 0).
  *
  * @param[in,out] handle  Pointer to the @ref RustHandle to release.
  *                        Must not be @c nullptr.
  * @param[out] status     Receives the operation result. Must not be
  *                        @c nullptr.
  *
- * @pre  @p handle must point to a valid RustHandle (@c id != 0).
- * @post On success, the reference count is decremented by one.
- * @post On successful final release, @c handle->id is set to @c 0 and
- *       the underlying memory is freed.
- * @post On failure, the handle remains valid and the reference ownership is
- *       retained so the caller can report or retry the operation.
- *
  * @return @c true if the underlying memory was freed (count reached
  *         zero), @c false if it is still alive or an error occurred.
- *
- * @see retain()    Increments the reference count.
- * @see is_valid_handle()  Check if the handle is still valid.
+ *         On failure the handle stays valid and the caller still owns
+ *         the reference.
  */
 bool release(RustHandle *handle, novaStatus_t *status);
 
 /**
  * @brief Resize an existing allocation (may relocate).
  *
- * @details
- * Attempts to grow or shrink the allocation to a new theoretical size while
- * preserving existing data.  Device-backed storage rounds the request to its
- * size class with the same rules as the initial reservation.  The active
- * allocator may relocate the buffer.  The handle's cached @c requested_bytes
- * and @c bytes fields are updated after a successful resize.
+ * Device-backed storage rounds the request to its size class with the
+ * same rules as the initial reservation. On success the handle's
+ * cached @c requested_bytes and @c bytes are updated; @c align may
+ * change when the backend relocates the buffer. On validation or
+ * allocation failure the cache is unchanged. A backend-specific
+ * failure must be treated according to its returned status and message.
  *
  * @param[in,out] handle    Pointer to the @ref RustHandle to resize.
  *                          Must not be @c nullptr.
  * @param[in]     requested New theoretical size in bytes.  Must be > 0.
  *
- * @pre  @p handle must point to a valid RustHandle (@c id != 0).
- * @pre  @c requested must be > 0.
- * @post On success, @c handle->requested_bytes == @p requested and
- *       @c handle->bytes is its rounded reservation.  The cached
- *       @c align may change when the backend relocates the buffer.
- * @post On ordinary validation or allocation failure, the handle cache is
- *       unchanged. A backend-specific failure must be treated according to
- *       its returned status and message.
- *
  * @return @ref novaStatus_t describing success or failure.
- *
- * @see reserve()   Creates a new allocation.
- * @see release()   Frees the allocation.
  */
 novaStatus_t resize(RustHandle *handle, size_t requested);
+
+/**
+ * @brief Return the reclaimable backing of the device memory pool.
+ *
+ * Asks the active GPU backend to release the pool memory that no live
+ * allocation holds, keeping at least @p min_bytes_to_keep resident
+ * bytes.  Buffers that are still allocated stay valid, so the call is
+ * safe at any point of a pipeline.  On a system without a GPU backend
+ * the call reports @ref novaDeviceNotAvailable.
+ *
+ * @param[in] device_id         Runtime device ordinal owning the pool.
+ * @param[in] min_bytes_to_keep Minimum resident bytes the pool retains.
+ *
+ * @return @ref novaStatus_t describing success or failure.
+ */
+novaStatus_t empty_cache(int device_id, size_t min_bytes_to_keep);
+
 /**
  * @brief Obtain the CPU-visible address of a Rust allocation.
  *
- * @details
- * For CPU and pinned-host allocations, this returns a pointer that is
- * directly accessible by the host. For GPU device allocations, the returned
- * pointer has the device accessibility guarantees provided by the active
- * CUDA or HIP backend and must not be dereferenced by host code as if it were
- * CPU memory.
+ * The pointer is host-accessible for CPU and pinned allocations. For
+ * GPU device allocations it is only meaningful on the device side.
  *
  * @param[in] handle  Pointer to a valid @ref RustHandle.
  *                    Must not be @c nullptr.
  *
- * @pre  @p handle must point to a valid RustHandle (@c id != 0).
- *
  * @return Pointer to the start of the data buffer, or @c nullptr on
  *         error.
- *
- * @see data_ptr     Typed pointer union for element access.
- * @see TensorStorage  Embeds the returned pointer as @c ptr.
  */
 void *get_data_from(RustHandle *handle);
 
 /**
  * @brief Check whether a RustHandle refers to a live allocation.
  *
- * @details
- * A handle is valid when its @c id field is non-zero and the ID remains in
- * the Rust registry. This is the case after a successful @c reserve() and
- * before the final successful @c release() that frees the memory.
- *
- * @param[in] handle  Pointer to the @ref RustHandle to validate.
- *                    May be @c nullptr (returns @c false).
+ * True from a successful @c reserve() until the final @c release()
+ * frees the memory. @p handle may be @c nullptr (returns @c false).
  *
  * @return @c true if the handle is valid (@c id != 0), @c false
- *         otherwise (including @c nullptr).
- *
- * @see reserve()   Creates a valid handle.
- * @see release()   Invalidates a handle when refcount reaches zero.
+ *         otherwise.
  */
 bool is_valid_handle(RustHandle *handle);
 
 /**
  * @brief Obtain the alignment recorded for a Rust allocation.
  *
- * @details
- * Returns the alignment value that was either requested during
- * @c reserve() or rounded up by the allocator.  Useful for asserts
- * and SIMD-friendly buffer checks.
- *
  * @param[in] handle  Pointer to the @ref RustHandle to query.
  *                    May be @c nullptr (returns @c 0).
  *
- * @return Alignment in bytes, or @c 0 if @p handle is @c nullptr or
- *         invalid.
- *
- * @see reserve()   Specifies the alignment constraint.
- * @see TensorStorage  Stores the alignment in its @c align field.
+ * @return Alignment in bytes as requested or rounded up at
+ *         reservation, or @c 0 if @p handle is @c nullptr or invalid.
  */
 size_t get_align_from(RustHandle *handle);
 
 /**
  * @brief Check whether a Rust allocation is backed by device-managed memory.
  *
- * @details
- * Returns @c true for:
- * @li GPU device VRAM allocations (@c device == device).
- * @li Pinned host allocations (@c pin_memory == true), because they
- *   are allocated through the active GPU backend and are
- *   managed by it.
+ * True for GPU device VRAM and for pinned host allocations, which are
+ * allocated through, and managed by, the active GPU backend.
  *
  * @param[in] handle  Pointer to the @ref RustHandle to query.
  *                    May be @c nullptr (returns @c false).
  *
  * @return @c true for device-backed storage (including pinned
  *         host), @c false otherwise.
- *
- * @see is_pinned_handle()  Narrower check for pinned-only.
- * @see reserve()           Creates allocations with device tracking.
  */
 bool is_device_memory_handle(RustHandle *handle);
 
 /**
  * @brief Check whether a Rust allocation is pinned host memory.
  *
- * @details
- * Returns @c true only for page-locked host allocations created
- * with @c pin_memory == true.  These allocations are accessible
- * from both CPU and GPU and enable asynchronous DMA transfers.
+ * Pinned memory is host-accessible and readable by the GPU, which is
+ * what makes asynchronous transfers possible.
  *
  * @param[in] handle  Pointer to the @ref RustHandle to query.
  *                    May be @c nullptr (returns @c false).
  *
  * @return @c true for pinned host memory, @c false otherwise.
- *
- * @see is_device_memory_handle()  Broader check including device.
- * @see reserve()                  Creates pinned allocations.
  */
 bool is_pinned_handle(RustHandle *handle);
 
 /**
  * @struct TensorStorage
- * @brief Complete tensor storage descriptor.
+ * @brief Typed pointer plus Rust handle, embedded in @c Tensor.
  *
- * @details
- * Bundles the typed pointer and the Rust-side handle so that the @c Tensor
- * struct can manage memory transparently.  A @c Tensor owns a
- * @c TensorStorage that holds the backing buffer. The @c TensorStorage in
- * turn holds the @c RustHandle that controls the allocation lifetime and
- * carries both the theoretical and the real reservation sizes.
- *
- * @section fields Fields
- *
- * @li @c ptr — Typed pointer union for element access.  The active
- *   member matches the tensor's @ref DType_.
- * @li @c handle — Rust FFI handle for reference-counted lifetime
- *   management.  Its @c requested_bytes is the theoretical size and its
- *   @c bytes is the real reservation.
- *
- * @section lifecycle Lifecycle
- *
- * @li 1. Created by @c safe_allocator() (in @ref alloc.h)
- *    which calls @c reserve() with status propagation.
- * @li 2. Shared via @c retain() when a view references the same data.
- * @li 3. Freed via @c release() when the last reference is dropped.
- *
- * @see data_ptr        Typed pointer stored in @c ptr.
- * @see RustHandle      FFI handle stored in @c handle.
- * @see alloc.h         safe_allocator() creates TensorStorage.
- * @see tensor.h        Tensor struct embedding a TensorStorage pointer.
+ * The handle controls the allocation lifetime and carries both the
+ * theoretical (@c requested_bytes) and the real reservation sizes.
+ * @c safe_allocator() in @ref alloc.h creates it, @c retain()/@c release()
+ * share and free it.
  */
 typedef struct {
   data_ptr ptr;      ///< Typed pointer to the data buffer.

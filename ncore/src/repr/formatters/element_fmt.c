@@ -10,12 +10,10 @@
  * formatter); shared behavior lives in the table doc and the
  * formatter units, not repeated per handler.
  *
- * @section dispatch-table Dispatch Table
- *
  * @ref g_element_formatters is a @c NUM_DTYPES-sized array populated
- * via designated initializers. Every entry @c 0 .. @c NUM_DTYPES-1 is
- * explicitly filled, ensuring that @ref format_element() is always
- * safe to call for any valid @ref DType_.
+ * via designated initializers with every entry filled, so
+ * @ref format_element() is always safe to call for any valid
+ * @ref DType_.
  *
  * @see element_fmt.h          Dispatch table interface.
  * @see float_formatter.h      Floating-point formatting logic.
@@ -231,9 +229,9 @@ static inline int fmt_qunsigned32(char *buf, size_t cap, const void *ptr,
  * @brief Global dispatch table for element formatting.
  *
  * @details
- * Every entry @c 0 .. @c NUM_DTYPES-1 is explicitly populated via
- * designated initializers. This ensures that @ref format_element()
- * is always safe to call for any valid @ref DType_.
+ * Every entry is explicitly populated via designated initializers,
+ * so @ref format_element() is always safe to call for any valid
+ * @ref DType_.
  *
  * @see format_element()
  * @see element_formatter_t

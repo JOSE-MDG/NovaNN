@@ -45,8 +45,7 @@
  * @pre  @p dst's data buffer must be large enough for @c src->size
  *       elements.
  * @post On success, the elements of @p src are stored contiguously in
- *       @p dst's data buffer, or @p dst is a view of @p src when no
- *       copy was required.
+ *       @p dst's data buffer.
  *
  * @see collapse()  Collapses contiguous dimensions before copying.
  * @see odometer()  Iterates over the collapsed view.

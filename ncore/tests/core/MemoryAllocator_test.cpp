@@ -32,6 +32,9 @@
 #include <ncore/core/status.h>
 #include <ncore/core/storage.h>
 
+#include <tests/common/Gpu.hpp>
+#include <tests/tensor/TensorUtils.hpp>
+
 #include "utils/Pool.hpp"
 
 namespace {
@@ -125,7 +128,7 @@ TEST(MemoryAllocator, HostAllocationAndDeallocation) {
  *       buffer.
  */
 TEST(MemoryAllocator, DeviceAllocationAndDeallocation) {
-
+  NOVA_TEST_REQUIRE_GPU();
   const size_t bytes = 512;
   const char *device = "device";
   const size_t align = 512; // is ignored
@@ -267,7 +270,7 @@ TEST(MemoryAllocator, HostBufferResizing) {
  *       and its requested_bytes cache is updated.
  */
 TEST(MemoryAllocator, DeviceBufferResizing) {
-
+  NOVA_TEST_REQUIRE_GPU();
   const size_t bytes = 512;
   const size_t newBytes = 1024;
   const char *device = "device";
@@ -328,7 +331,7 @@ TEST(MemoryAllocator, HostAllocationLimit) {
  *       (see the @note below).
  */
 TEST(MemoryAllocator, DeviceAllocationLimit) {
-
+  NOVA_TEST_REQUIRE_GPU();
   const size_t bytes = SIZE_MAX; // -> 16EB
   const char *device = "device";
   const size_t align = 512; // is ignored
@@ -482,6 +485,8 @@ TEST(MemoryAllocator, ConcurrentRandomDeviceAllocFree) {
                   "teardown on this stress pattern";
 #endif
 #endif
+
+  NOVA_TEST_REQUIRE_GPU();
   const unsigned int nthreads = std::thread::hardware_concurrency();
   const char *device = "device";
   const auto duration = std::chrono::seconds(30);

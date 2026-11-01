@@ -28,7 +28,7 @@
 #include <ncore/headeronly/wrappers/tensor.hh>
 #include <ncore/tensor.h>
 
-#include "utils/Oracle.hpp"
+#include <tests/oracle/CastingOracle.hpp>
 
 namespace {
 

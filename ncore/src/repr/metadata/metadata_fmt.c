@@ -8,19 +8,12 @@
  * placement, and autograd status, depending on the display mode
  * (@c ReprModeNormal vs @c ReprModeDebug).
  *
- * @section mode-behavior Mode Behavior
- *
- * @li Normal mode: Suppresses "default" information (e.g.,
- *   @c Float32, @c CPU) to reduce visual noise. Meta and GPU tensors
- *   always show dtype and device.
- * @li Debug mode: Forces emission of all metadata fields on a new
- *   line for diagnostic clarity.
- *
- * @section string-mapping String Mapping
- *
- * Uses precomputed string tables (@c g_dtype_string,
- * @c g_device_string) for @ref DType_ and @ref Device_ enumeration
- * values.
+ * Normal mode suppresses default information (e.g., @c Float32,
+ * @c CPU) to reduce visual noise, though meta and GPU tensors always
+ * show dtype and device.  Debug mode forces emission of all metadata
+ * fields on a new line for diagnostic clarity.  Enumerated values
+ * come from the precomputed string tables (@c g_dtype_string,
+ * @c g_device_string).
  *
  * @see metadata_fmt.h    Footer interface.
  * @see repr_options.h    Mode definitions.
@@ -120,7 +113,7 @@ void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
   const Tensor *ten = ctx->tensor;
   ReprMode mode = ctx->options.mode;
 
-  /* ---- Normal mode ---- */
+  /* Normal mode */
   if (mode == ReprModeNormal) {
     /* Meta tensors always show dtype + device. */
     if (ctx->is_meta) {
@@ -167,7 +160,7 @@ void metadata_fmt_append(const ReprContext *ctx, StringBuilder *sb) {
     return;
   }
 
-  /* ---- Debug mode ---- */
+  /* Debug mode */
   sb_append(sb, ",\n       ");
   sb_append(sb, "dtype=");
   sb_append(sb, dtype_string(ten->dtype));

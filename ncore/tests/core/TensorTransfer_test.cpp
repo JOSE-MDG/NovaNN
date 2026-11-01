@@ -21,20 +21,20 @@
 #include <ncore/headeronly/wrappers/tensor.hh>
 #include <ncore/tensor.h>
 
-#include "utils/TensorUtils.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/rng/Fill.hpp>
+#include <tests/tensor/TensorUtils.hpp>
 
 namespace {
 
 using ncore::wrappers::TensorCXX;
 using ncore::wrappers::unallocated;
+using tests::rng::fillTensor;
 using tests::tensor::expectBytesEqual;
-using tests::tensor::fillTensor;
 
-/* Defined in ncore/memory/csrc/ffi.cpp (linked through ncore::memory);
-   re-declared here because ncore/core/device.h intentionally does not
-   expose this bridge-level wrapper. */
 extern "C" novaStatus_t deviceTransfer(const void *src, void *dst,
-                                       TransferKind kind, size_t bytes);
+                                       TransferKind kind, size_t bytes,
+                                       void *stream = nullptr);
 
 TEST(TensorTransfer, FromHostRejectsCpuDestination) {
   novaStatus_t st{};
@@ -62,12 +62,8 @@ TEST(TensorTransfer, FromDeviceRejectsCpuPair) {
   EXPECT_NE(st.message, nullptr);
 }
 
-/* An unallocated host source trips the allocation clause of
-   transf_tensor_from_host() itself: with src CPU-tagged, the
-   !is_allocated(src) term is the first one to fire (the destination is
-   GPU-tagged and unallocated too, but the short-circuit never reaches
-   it). */
 TEST(TensorTransfer, FromHostRejectsUnallocatedSource) {
+  NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};
   TensorCXX src(unallocated, {4}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -101,11 +97,6 @@ TEST(TensorTransfer, ValidatorsRejectMetaTensors) {
   EXPECT_NE(st.message, nullptr);
 }
 
-/* Direct coverage for the last-line-of-defense guard in deviceTransfer()
-   (ncore/memory/csrc/ffi.cpp): an out-of-range TransferKind is rejected
-   before any backend probe or pointer dereference, so null buffers are
-   safe here even on CPU-only builds. Kind 0 is what the dispatch table
-   yields for pairs it does not initialise (e.g. META pairs). */
 TEST(TensorTransfer, DeviceTransferRejectsUnknownKind) {
   const novaStatus_t st =
       deviceTransfer(nullptr, nullptr, static_cast<TransferKind>(0), 0);
@@ -114,9 +105,8 @@ TEST(TensorTransfer, DeviceTransferRejectsUnknownKind) {
   EXPECT_NE(st.message, nullptr);
 }
 
-/* An unallocated GPU-tagged tensor has no storage handle; the validator
-   must reject it instead of dereferencing it. */
 TEST(TensorTransfer, FromDeviceRejectsGpuTaggedUnallocatedSource) {
+  NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};
   TensorCXX src(unallocated, {4}, Float32, DEVICE_GPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -131,8 +121,8 @@ TEST(TensorTransfer, FromDeviceRejectsGpuTaggedUnallocatedSource) {
   EXPECT_NE(st.message, nullptr);
 }
 
-/* Mirror case for the from_host destination side. */
 TEST(TensorTransfer, FromHostRejectsGpuTaggedUnallocatedDestination) {
+  NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};
   TensorCXX src({4}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -157,7 +147,7 @@ TEST(TensorTransfer, HostDeviceRoundTrip) {
   TensorCXX host(shape, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
   Tensor hv = host.getCTensor();
-  fillTensor(hv);
+  EXPECT_EQ(fillTensor(hv).err, novaSuccess);
 
   TensorCXX dev(shape, Float32, DEVICE_GPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -187,7 +177,7 @@ TEST(TensorTransfer, ByteSizeVarietyRoundTrip) {
     TensorCXX host({count}, UnSigned8, DEVICE_CPU, false, false, &st);
     ASSERT_EQ(st.err, novaSuccess);
     Tensor hv = host.getCTensor();
-    fillTensor(hv);
+    EXPECT_EQ(fillTensor(hv).err, novaSuccess);
 
     TensorCXX dev({count}, UnSigned8, DEVICE_GPU, false, false, &st);
     ASSERT_EQ(st.err, novaSuccess);
@@ -218,7 +208,7 @@ TEST(TensorTransfer, DtypeSubsetRoundTrip) {
     TensorCXX host(shape, dtype, DEVICE_CPU, false, false, &st);
     ASSERT_EQ(st.err, novaSuccess);
     Tensor hv = host.getCTensor();
-    fillTensor(hv);
+    EXPECT_EQ(fillTensor(hv).err, novaSuccess);
 
     TensorCXX dev(shape, dtype, DEVICE_GPU, false, false, &st);
     ASSERT_EQ(st.err, novaSuccess);
@@ -247,7 +237,7 @@ TEST(TensorTransfer, PinnedStagingBuffer) {
   TensorCXX pinnedSrc(shape, Float32, DEVICE_CPU, false, true, &st);
   ASSERT_EQ(st.err, novaSuccess);
   Tensor psv = pinnedSrc.getCTensor();
-  fillTensor(psv);
+  EXPECT_EQ(fillTensor(psv).err, novaSuccess);
 
   TensorCXX dev(shape, Float32, DEVICE_GPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -263,13 +253,10 @@ TEST(TensorTransfer, PinnedStagingBuffer) {
   st = transf_tensor_from_device(&dv, &pdv);
   ASSERT_EQ(st.err, novaSuccess);
 
-  expectBytesEqual(psv.data.data, pdv.data.data,
-                   psv.size * psv.item_size, "pinned staging payload");
+  expectBytesEqual(psv.data.data, pdv.data.data, psv.size * psv.item_size,
+                   "pinned staging payload");
 }
 
-/* With a fully valid GPU source, the rejection can only come from the
-   unallocated CPU destination: isolates the destination-side allocation
-   clause of transf_tensor_from_device(). */
 TEST(TensorTransfer, FromDeviceRejectsUnallocatedDestination) {
   NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};

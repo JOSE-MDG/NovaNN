@@ -29,29 +29,24 @@ extern "C" {
  * @brief Launch a dtype casting kernel from @p src to @p dst.
  *
  * @details
- * Performs an element-wise type cast from the source tensor's dtype to
- * the destination tensor's dtype.  Both tensors must have identical
- * shape and be located on the same device.  The dispatch logic selects
- * the appropriate backend kernel (CUDA or HIP) based on the detected
- * device.
+ * Element-wise cast from @p src's dtype to @p dst's dtype; both
+ * tensors must have identical shape and live on the same device.
  *
- * @param[in]      src  Source tensor.  Must have a supported dtype and be
- *                      allocated on the active compute device.
- * @param[in,out]  dst  Destination tensor.  Must have the target dtype,
- *                      matching shape, and be allocated on the same
- *                      device as @p src.
+ * @param[in]          src  Source tensor with a supported dtype,
+ *                          allocated on the active compute device.
+ * @param[in,out]      dst  Destination tensor with the target dtype,
+ *                          matching shape, and allocated on the same
+ *                          device as @p src.
  *
  * @return @ref novaSuccess on success, or an error status describing
  *         the failure.
  *
- * @pre  Both @p src and @p dst must be valid, non-null tensors.
- * @pre  @p src and @p dst must have the same shape.
- * @pre  A compute device (CUDA or HIP) must be available and
- *       initialised.
- * @post On success, @p dst contains the casted elements.
+ * @pre A compute device (CUDA or HIP) must be available and
+ *      initialized.
+ * @post On success, @p dst holds the cast values.
  *
- * @warning Calling this function without a valid compute device
- *          results in @ref novaDeviceNotAvailable.
+ * @warning Without a valid compute device this fails with
+ *          @ref novaDeviceNotAvailable.
  */
 novaStatus_t launchDtypeCastingKernel(const Tensor *restrict src,
                                       Tensor *restrict dst);

@@ -64,11 +64,9 @@ This module defines the following functions:
 
     _nova_configure_cuda_common(<target>)
 
-  Sets ``CUDA_STANDARD`` to 20 and sets the ``CUDA_ARCHITECTURES``
-  target property from ``CMAKE_CUDA_ARCHITECTURES``.  Enables
-  separable compilation for non-OBJECT libraries.  Validates that
-  each SM in ``CMAKE_CUDA_ARCHITECTURES`` is at least SM 75.
-  Defines ``NOVA_HAS_CUDA=1``.
+  Sets ``CUDA_STANDARD``, ``CUDA_ARCHITECTURES`` and separable
+  compilation for non-OBJECT libraries, and rejects SM versions
+  below 75.
 
 #]=======================================================================]
 function(_nova_configure_cuda_common TARGET)
@@ -135,11 +133,9 @@ endfunction()
 
     nova_configure_cuda_target(<target>)
 
-  The ``<target>`` argument specifies the CMake target to configure.
-
-  This function adds the ``NOVA_HAS_CUDA=1`` compile definition when
-  the CUDA backend is available.  It does not link against the CUDA
-  runtime; use ``nova_configure_cuda_runtime_target`` for that.
+  Adds the ``NOVA_HAS_CUDA=1`` compile definition when the CUDA
+  backend is available.  Does not link against the CUDA runtime; use
+  ``nova_configure_cuda_runtime_target`` for that.
 
 #]=======================================================================]
 function(nova_configure_cuda_target TARGET)
@@ -158,11 +154,6 @@ endfunction()
   .. code-block:: cmake
 
     nova_configure_cuda_runtime_target(<target>)
-
-  The ``<target>`` argument specifies the CMake target to configure.
-
-  This function calls ``_nova_configure_cuda_common`` and links the
-  target against ``CUDA::cudart``.
 
 #]=======================================================================]
 function(nova_configure_cuda_runtime_target TARGET)
@@ -186,11 +177,6 @@ endfunction()
 
     nova_configure_cuda_includes_target(<target>)
 
-  The ``<target>`` argument specifies the CMake target to configure.
-
-  This function calls ``_nova_configure_cuda_common`` and include
-  the ``${CUDAToolkit_INCLUDE_DIRS}`` headers.
-
 #]=======================================================================]
 function(nova_configure_cuda_includes_target TARGET)
     if(NOT NOVA_HAS_CUDA)
@@ -199,7 +185,7 @@ function(nova_configure_cuda_includes_target TARGET)
 
     _nova_configure_cuda_common(${TARGET})
 
-    target_include_directories(${TARGET} INTERFACE ${CUDAToolkit_INCLUDE_DIRS})
+    target_include_directories(${TARGET} SYSTEM INTERFACE ${CUDAToolkit_INCLUDE_DIRS})
 endfunction()
 
 #[=======================================================================[.rst:
@@ -211,10 +197,7 @@ endfunction()
 
     nova_configure_cuda_kernels_target(<target> [EXTRA_LIBS <lib> ...])
 
-  The ``<target>`` argument specifies the CMake target to configure.
-
-  Additional ``EXTRA_LIBS`` are parsed as a keyword argument and linked
-  as private libraries.
+  Additional ``EXTRA_LIBS`` are linked as private libraries.
 
 #]=======================================================================]
 function(nova_configure_cuda_kernels_target TARGET)

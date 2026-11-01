@@ -3,14 +3,8 @@
  * @brief Configuration options for tensor string representation.
  *
  * @details
- * Declares @ref ReprOptions and the @ref ReprMode enumeration that
- * control the visual behavior of the tensor representation module.
- * Users can customize verbosity, summarization thresholds, numeric
- * precision, and platform-specific interpretations (e.g., boolean
- * or quantized values).
- *
- * Every field in @ref ReprOptions has a sensible, library-standard
- * default value provided by @ref repr_default_options().
+ * Every field gets a library-standard default from
+ * @ref repr_default_options().
  *
  * @see repr_context.h  Internal context built from these options.
  * @see tensor_repr.h   Top-level public API.
@@ -27,10 +21,6 @@ extern "C" {
 /**
  * @enum ReprMode
  * @brief Display verbosity mode for tensor representation.
- *
- * @details
- * Determines the amount of auxiliary information appended to the
- * tensor data block.
  */
 typedef enum {
   /**
@@ -55,9 +45,8 @@ typedef enum {
  * @brief Primary configuration structure for the representation module.
  *
  * @details
- * Holds all user-tunable parameters. Obtain an instance via
- * @ref repr_default_options() and then modify only the fields
- * required for the specific representation call.
+ * Obtain an instance via @ref repr_default_options(), then modify
+ * only the fields needed for the specific call.
  */
 typedef struct {
   ReprMode mode; ///< Formatting mode (@c ReprModeNormal or @c ReprModeDebug).
@@ -80,7 +69,7 @@ typedef struct {
  * @brief Return a default-initialized ReprOptions structure.
  *
  * @details
- * Initialises all fields to library-standard, framework-agnostic
+ * Initializes all fields to library-standard, framework-agnostic
  * values:
  * @li @c mode: @c ReprModeNormal
  * @li @c threshold: @c 1000
@@ -88,7 +77,7 @@ typedef struct {
  * @li @c precision: @c 4
  * @li @c sci_mode_auto: @c true
  *
- * @return A correctly initialised @ref ReprOptions structure.
+ * @return A default-initialized @ref ReprOptions structure.
  *
  * @see ReprOptions
  */

@@ -34,13 +34,11 @@ Cache Variables
 
 #]=======================================================================]
 
-# Guard: only on Windows with Clang compiler
 if(NOT WIN32 OR NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
     set(NOVA_HAS_COMPILER_RT_BUILTINS 0 CACHE INTERNAL "")
     return()
 endif()
 
-# Query the compiler for its resource directory
 execute_process(
     COMMAND ${CMAKE_C_COMPILER} -print-resource-dir
     OUTPUT_VARIABLE _nova_clang_resource_dir
@@ -58,7 +56,6 @@ if(NOT _nova_clang_resource_dir_rc EQUAL 0 OR NOT _nova_clang_resource_dir)
     return()
 endif()
 
-# Construct the path to the builtins library
 set(_nova_clang_rt_builtins_path
     "${_nova_clang_resource_dir}/lib/windows/clang_rt.builtins-x86_64.lib"
 )

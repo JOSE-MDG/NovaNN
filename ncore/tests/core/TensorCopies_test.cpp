@@ -24,23 +24,25 @@
 #include <ncore/headeronly/wrappers/tensor.hh>
 #include <ncore/tensor.h>
 
-#include "utils/TensorUtils.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/rng/Fill.hpp>
+#include <tests/tensor/TensorUtils.hpp>
 
 namespace {
 
 using ncore::wrappers::TensorCXX;
 using ncore::wrappers::unallocated;
+using tests::rng::fillBytes;
+using tests::rng::fillTensor;
 using tests::tensor::expectBytesEqual;
 using tests::tensor::expectMetadataEqual;
-using tests::tensor::fillPattern;
-using tests::tensor::fillTensor;
 
 TEST(TensorCopies, MetadataAndDataEquality) {
   novaStatus_t st{};
   TensorCXX src({3, 4, 5}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
   Tensor srcView = src.getCTensor();
-  fillTensor(srcView);
+  EXPECT_EQ(fillTensor(srcView).err, novaSuccess);
 
   TensorCXX dst(unallocated, {3, 4, 5}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -65,7 +67,7 @@ TEST(TensorCopies, ShapeVariantsAreCopied) {
     TensorCXX src(shape, Float32, DEVICE_CPU, false, false, &st);
     ASSERT_EQ(st.err, novaSuccess);
     Tensor sv = src.getCTensor();
-    fillTensor(sv);
+    EXPECT_EQ(fillTensor(sv).err, novaSuccess);
 
     TensorCXX dst(unallocated, shape, Float32, DEVICE_CPU, false, false, &st);
     ASSERT_EQ(st.err, novaSuccess);
@@ -75,15 +77,15 @@ TEST(TensorCopies, ShapeVariantsAreCopied) {
 
     const Tensor dcv = dst.getCTensor();
     expectMetadataEqual(sv, dcv);
-    expectBytesEqual(sv.data.data, dcv.data.data,
-                     sv.size * sv.item_size, "deep-copied payload");
+    expectBytesEqual(sv.data.data, dcv.data.data, sv.size * sv.item_size,
+                     "deep-copied payload");
   }
 
   /* Scalar variant: created through the scalar constructors. */
   TensorCXX ssrc(Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
   Tensor ssv = ssrc.getCTensor();
-  fillTensor(ssv);
+  EXPECT_EQ(fillTensor(ssv).err, novaSuccess);
 
   TensorCXX sdst(unallocated, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -92,8 +94,8 @@ TEST(TensorCopies, ShapeVariantsAreCopied) {
   ASSERT_EQ(st.err, novaSuccess);
 
   const Tensor sdcv = sdst.getCTensor();
-  expectBytesEqual(ssv.data.data, sdcv.data.data,
-                   ssv.size * ssv.item_size, "scalar deep-copied payload");
+  expectBytesEqual(ssv.data.data, sdcv.data.data, ssv.size * ssv.item_size,
+                   "scalar deep-copied payload");
 }
 
 TEST(TensorCopies, GradientSubtreeDeepCopied) {
@@ -101,13 +103,15 @@ TEST(TensorCopies, GradientSubtreeDeepCopied) {
   TensorCXX src({2, 3}, Float32, DEVICE_CPU, true, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
   Tensor sv = src.getCTensor();
-  fillTensor(sv);
+  EXPECT_EQ(fillTensor(sv).err, novaSuccess);
   ASSERT_TRUE(sv.grad != nullptr);
 
   st = tests::tensor::allocateGrad(sv);
   ASSERT_EQ(st.err, novaSuccess);
-  fillPattern(sv.grad->data.data,
-              sv.grad->size * sv.grad->item_size, 0xDEADBEEFu);
+  EXPECT_EQ(fillBytes(sv.grad->data.data, sv.grad->size * sv.grad->item_size,
+                      0xDEADBEEFu)
+                .err,
+            novaSuccess);
 
   /* Destination without a pre-existing grad: deepcopy attaches the copy. */
   TensorCXX dst(unallocated, {2, 3}, Float32, DEVICE_CPU, false, false, &st);
@@ -139,7 +143,9 @@ TEST(TensorCopies, ScalarGradientBranch) {
 
   st = tests::tensor::allocateGrad(sv);
   ASSERT_EQ(st.err, novaSuccess);
-  fillPattern(sv.grad->data.data, sv.grad->size * sv.grad->item_size);
+  EXPECT_EQ(
+      fillBytes(sv.grad->data.data, sv.grad->size * sv.grad->item_size).err,
+      novaSuccess);
 
   TensorCXX dst(unallocated, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -160,7 +166,7 @@ TEST(TensorCopies, CopyIsIndependentFromSource) {
   TensorCXX src({8}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
   Tensor sv = src.getCTensor();
-  fillTensor(sv);
+  EXPECT_EQ(fillTensor(sv).err, novaSuccess);
 
   TensorCXX dst(unallocated, {8}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -172,7 +178,7 @@ TEST(TensorCopies, CopyIsIndependentFromSource) {
   std::vector<uint8_t> snapshot(bytes);
   std::memcpy(snapshot.data(), dst.getCTensor().data.data, bytes);
 
-  fillPattern(sv.data.data, bytes, 0xBADFACE5u);
+  EXPECT_EQ(fillBytes(sv.data.data, bytes, 0xBADFACE5u).err, novaSuccess);
   expectBytesEqual(snapshot.data(), dst.getCTensor().data.data, bytes,
                    "destination snapshot after source mutation");
 }
@@ -224,6 +230,7 @@ TEST(TensorCopies, AllocatedDestinationRejected) {
 }
 
 TEST(TensorCopies, DeviceMismatchReportsInvalidDevice) {
+  NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};
   TensorCXX src({2, 2}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -238,6 +245,7 @@ TEST(TensorCopies, DeviceMismatchReportsInvalidDevice) {
 
 /* A dtype mismatch takes precedence over the device mismatch. */
 TEST(TensorCopies, DeviceAndDtypeMismatchReportsInvalidDtype) {
+  NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};
   TensorCXX src({2, 2}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -260,18 +268,18 @@ namespace {
  * Setup utility for GPU cases; uses the tensor-level transfer API.
  */
 void fillDeviceTensor(Tensor &dev, const std::vector<size_t> &logical_shape,
-                      uint32_t seed) {
+                      uint64_t seed) {
   novaStatus_t st{};
   TensorCXX host(logical_shape, dev.dtype, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
   Tensor hv = host.getCTensor();
-  fillTensor(hv, seed);
+  EXPECT_EQ(fillTensor(hv, seed).err, novaSuccess);
   st = transf_tensor_from_host(&hv, &dev);
   ASSERT_EQ(st.err, novaSuccess);
 }
 
 /// Short label for parameterized dtype names.
-std::string dtypeLabel(DType_ dtype) {
+std::string_view dtypeLabel(DType_ dtype) {
   switch (dtype) {
   case Float32:
     return "f32";
@@ -299,7 +307,7 @@ TEST_P(TensorCopiesDevice, DeviceDeepCopyRoundTrip) {
   TensorCXX src(shape, dtype, DEVICE_GPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
   Tensor sv = src.getCTensor();
-  fillDeviceTensor(sv, shape, tests::tensor::kDefaultSeed);
+  fillDeviceTensor(sv, shape, tests::rng::kDefaultSeed);
 
   TensorCXX dst(unallocated, shape, dtype, DEVICE_GPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -334,8 +342,8 @@ TEST_P(TensorCopiesDevice, DeviceDeepCopyRoundTrip) {
 
 INSTANTIATE_TEST_SUITE_P(DeviceDtypes, TensorCopiesDevice,
                          ::testing::Values(Float32, Signed32, Float16),
-                         [](const ::testing::TestParamInfo<DType_> &info) {
-                           switch (info.param) {
+                         [](const ::testing::TestParamInfo<DType_> &paramInfo) {
+                           switch (paramInfo.param) {
                            case Float32:
                              return std::string("f32");
                            case Signed32:
@@ -355,14 +363,14 @@ TEST(TensorCopies, DeviceGradientSubtree) {
   TensorCXX src(shape, Float32, DEVICE_GPU, true, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
   Tensor sv = src.getCTensor();
-  fillDeviceTensor(sv, shape, tests::tensor::kDefaultSeed);
+  fillDeviceTensor(sv, shape, tests::rng::kDefaultSeed);
   ASSERT_TRUE(sv.grad != nullptr);
 
   st = tests::tensor::allocateGrad(sv);
   ASSERT_EQ(st.err, novaSuccess);
   TensorCXX gsrc(shape, Float32, DEVICE_CPU, false, false, &st);
   Tensor gv = gsrc.getCTensor();
-  fillTensor(gv);
+  EXPECT_EQ(fillTensor(gv).err, novaSuccess);
   st = transf_tensor_from_host(&gv, sv.grad);
   ASSERT_EQ(st.err, novaSuccess);
 
@@ -380,8 +388,8 @@ TEST(TensorCopies, DeviceGradientSubtree) {
   Tensor gb = gback.getCTensor();
   st = transf_tensor_from_device(dcv.grad, &gb);
   ASSERT_EQ(st.err, novaSuccess);
-  expectBytesEqual(gv.data.data, gb.data.data,
-                   gv.size * gv.item_size, "device gradient payload");
+  expectBytesEqual(gv.data.data, gb.data.data, gv.size * gv.item_size,
+                   "device gradient payload");
 }
 
 TEST(TensorCopies, PinnedHostDeepCopy) {
@@ -391,7 +399,7 @@ TEST(TensorCopies, PinnedHostDeepCopy) {
   TensorCXX src({64}, Float32, DEVICE_CPU, false, true, &st);
   ASSERT_EQ(st.err, novaSuccess);
   Tensor sv = src.getCTensor();
-  fillTensor(sv);
+  EXPECT_EQ(fillTensor(sv).err, novaSuccess);
 
   TensorCXX dst(unallocated, {64}, Float32, DEVICE_CPU, false, true, &st);
   ASSERT_EQ(st.err, novaSuccess);

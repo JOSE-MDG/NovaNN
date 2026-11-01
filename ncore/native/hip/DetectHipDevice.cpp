@@ -8,29 +8,22 @@
  * (@c hipGetDeviceCount) to probe for an available GPU and caches
  * the result in module-level atomics for subsequent queries.
  *
- * The file is conditionally compiled behind @c NOVA_HAS_HIP and
- * @c __has_include(<hip/hip_runtime_api.h>).  When HIP headers are
- * unavailable, stub functions that return @c false / @c -1 are
- * provided.
+ * Compiled only behind @c NOVA_HAS_HIP and
+ * @c __has_include(<hip/hip_runtime_api.h>); otherwise stubs that
+ * return @c false / @c -1 are provided.
  *
  * A @c __HIP_PLATFORM_AMD__ macro is defined when neither AMD nor
- * NVIDIA platform macros are set, ensuring clangd and clang-tidy
- * can parse the HIP headers correctly.
+ * NVIDIA platform macros are set, so clangd and clang-tidy can
+ * parse the HIP headers correctly.
  *
- * @section thread-safety Thread Safety
- *
- * The initial probe is guarded by @c std::call_once, ensuring that
+ * The initial probe is guarded by @c std::call_once, so
  * @c hipGetDeviceCount is called exactly once even under concurrent
- * access.  The cached results are stored in @c std::atomic variables
- * with @c std::memory_order_release (write) and
- * @c std::memory_order_acquire (read) semantics.
- *
- * @section one-shot-caching One-shot Caching
- *
- * After the first call to @ref isHipDeviceAvailable, the probe
- * result is cached.  All subsequent calls — regardless of the
- * @p log or @p verbose arguments — return the cached value without
- * touching the HIP runtime API.
+ * access; cached results are stored in @c std::atomic variables with
+ * @c std::memory_order_release (write) and
+ * @c std::memory_order_acquire (read) semantics.  After the first
+ * call to @ref isHipDeviceAvailable every later call, regardless of
+ * the @p log or @p verbose arguments, returns the cached value
+ * without touching the HIP runtime API.
  *
  * @see DetectHipDevice.hpp  Public function declarations.
  * @see DetectHipDeviceInfo.cpp  Device property queries.
@@ -74,7 +67,7 @@ std::atomic_bool hipDeviceAvailable{false};
 
 /**
  * @var hipDeviceProbeOnce
- * @brief One-shot initialisation guard for the HIP device probe.
+ * @brief One-shot initialization guard for the HIP device probe.
  *
  * Ensures @ref probeHipDevice is called exactly once, even from
  * multiple threads.
@@ -162,7 +155,7 @@ bool isHipDeviceAvailable(bool log, bool verbose) {
   if (!result.available &&
       !hipDeviceAvailable.load(std::memory_order_acquire)) {
     if (log && result.errorMessage != nullptr) {
-      const std::lock_guard<std::mutex> lock(hipDeviceLogMtx);
+      const std::scoped_lock lock(hipDeviceLogMtx);
       std::cerr << "[HIP] isHipDeviceAvailable: error obtaining device count.\n"
                 << "Error message: '" << result.errorMessage << "'\n";
     }

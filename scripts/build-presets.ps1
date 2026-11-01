@@ -159,6 +159,10 @@ if ($ListOnly) {
     exit 0
 }
 
+# Prefer NovaNN's pinned vcpkg for this build and all child processes.
+Import-Module (Join-Path $ScriptDir 'lib/vcpkg-env.psm1') -Force
+Set-VcpkgEnvironment -ProjectRoot $ProjectRoot
+
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
 Write-Host ''

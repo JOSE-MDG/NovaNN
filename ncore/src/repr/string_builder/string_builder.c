@@ -33,7 +33,7 @@
 #include "string_builder.h"
 
 /**
- * @brief Initialise a StringBuilder with a specific starting capacity.
+ * @brief Initialize a StringBuilder with a specific starting capacity.
  *
  * @details
  * Allocates an initial heap buffer.  On allocation failure, the

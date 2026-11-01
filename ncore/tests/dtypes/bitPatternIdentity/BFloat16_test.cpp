@@ -25,7 +25,7 @@
 #include <ncore/core/fp_utils.h>
 #include <ncore/headeronly/dtypes/bfloat16.hh>
 
-#include "utils/FloatingPointClassification.hpp"
+#include <tests/oracle/FpClassification.hpp>
 
 namespace {
 
@@ -60,7 +60,7 @@ constexpr bool isNanPattern(uint16_t bits) {
   return (bits & 0x7F80U) == 0x7F80U && (bits & 0x007FU) != 0U;
 }
 
-#if defined(__clang__)
+#ifdef __clang__
 // Clang lowers bfloat16 to __bf16 and re-narrows every value crossing a call
 // boundary with VCVTNEPS2BF16, flushing subnormals and quieting NaN payloads.
 // Under this compiler the suites pin the software reference path instead; see
@@ -73,9 +73,7 @@ inline uint16_t softEncode(float value) {
   return ncore::dtypes::detail::round_to_nearest_even(value);
 }
 
-inline uint32_t softWiden(uint16_t bits) {
-  return f32BitsOf(softDecode(bits));
-}
+inline uint32_t softWiden(uint16_t bits) { return f32BitsOf(softDecode(bits)); }
 #endif
 
 } // namespace
@@ -94,7 +92,7 @@ inline uint32_t softWiden(uint16_t bits) {
 TEST(BitPatternIdentityBFloat16, AllPatternsDecodeToReferenceValue) {
   for (uint32_t b = 0; b < kBf16Patterns; ++b) {
     const auto bits = static_cast<uint16_t>(b);
-#if defined(__clang__)
+#ifdef __clang__
     const float got = softDecode(bits);
 #else
     const float got = bf16_to_float(bitsToBf16(bits));
@@ -124,7 +122,7 @@ TEST(BitPatternIdentityBFloat16, DecodeReencodeRoundTripsFinitePatterns) {
     if (isNanPattern(bits)) {
       continue;
     }
-#if defined(__clang__)
+#ifdef __clang__
     EXPECT_EQ(softEncode(softDecode(bits)), bits)
         << "pattern=0x" << std::hex << b;
 #else
@@ -152,7 +150,7 @@ TEST(BitPatternIdentityBFloat16, NanPatternsCanonicalizeOnReencode) {
     }
     const bfloat16 v = bitsToBf16(bits);
     const uint16_t reencoded = bf16ToBits(bf16_from_float(bf16_to_float(v)));
-#if defined(_GNUC_CLANG_)
+#ifdef _GNUC_CLANG_
     EXPECT_EQ(reencoded, UINT16_C(0x7FC0)) << "pattern=0x" << std::hex << b;
 #else
     EXPECT_EQ(reencoded, bits) << "pattern=0x" << std::hex << b;
@@ -167,7 +165,7 @@ TEST(BitPatternIdentityBFloat16, NanPatternsCanonicalizeOnReencode) {
 TEST(BitPatternIdentityBFloat16, ToF32BitsIsPureShift) {
   for (uint32_t b = 0; b < kBf16Patterns; ++b) {
     const auto bits = static_cast<uint16_t>(b);
-#if defined(__clang__)
+#ifdef __clang__
     EXPECT_EQ(softWiden(bits), static_cast<uint32_t>(bits) << 16)
         << "pattern=0x" << std::hex << b;
 #else
@@ -190,7 +188,7 @@ TEST(BitPatternIdentityBFloat16, FromF32BitsInvertsToF32Bits) {
       continue;
     }
     const uint32_t wide = static_cast<uint32_t>(bits) << 16;
-#if defined(__clang__)
+#ifdef __clang__
     const uint32_t roundTrip =
         f32BitsOf(softDecode(softEncode(std::bit_cast<float>(wide))));
 #else
@@ -207,15 +205,13 @@ TEST(BitPatternIdentityBFloat16, StorageBitsAreIdentity) {
   for (uint32_t b = 0; b < kBf16Patterns; ++b) {
     const auto bits = static_cast<uint16_t>(b);
     const ncore::dtypes::BFloat16 v{bits, ncore::dtypes::BFloat16::from_bits()};
-    EXPECT_EQ(v.x, bits)
-        << "pattern=0x" << std::hex << b;
-#if defined(__clang__)
+    EXPECT_EQ(v.x, bits) << "pattern=0x" << std::hex << b;
+#ifdef __clang__
     // The C API takes bfloat16 by value, which crosses a poisoned ABI edge
     // under Clang; the storage-identity claim is pinned on the raw pattern.
     uint16_t stored = 0;
     std::memcpy(&stored, &bits, sizeof(stored));
-    EXPECT_EQ(stored, bits)
-        << "pattern=0x" << std::hex << b;
+    EXPECT_EQ(stored, bits) << "pattern=0x" << std::hex << b;
 #else
     EXPECT_EQ(bf16_to_bits(bitsToBf16(v.x)), bits)
         << "pattern=0x" << std::hex << b;
@@ -228,7 +224,7 @@ TEST(BitPatternIdentityBFloat16, StorageBitsAreIdentity) {
  *        extern C API over the full domain.
  *
  * Finite patterns (including inf) must agree bitwise: both paths are pure
- * widenings. NaN patterns agree on class and sign only — the struct path is
+ * widenings. NaN patterns agree on class and sign only - the struct path is
  * a software shift while the C API uses the native __bf16 widening, and the
  * two differ in NaN payload handling.
  */
@@ -237,7 +233,7 @@ TEST(BitPatternIdentityBFloat16, StructConversionAgreesWithCApi) {
     const auto bits = static_cast<uint16_t>(b);
     const ncore::dtypes::BFloat16 v{bits, ncore::dtypes::BFloat16::from_bits()};
     const uint32_t viaStruct = f32BitsOf(static_cast<float>(v));
-#if defined(__clang__)
+#ifdef __clang__
     const uint32_t viaCApi = softWiden(bits);
 #else
     const uint32_t viaCApi = f32BitsOf(bf16_to_float(bitsToBf16(bits)));
@@ -283,7 +279,7 @@ TEST(BitPatternIdentityBFloat16, KnownSpecialsDecodeExactly) {
     ASSERT_FALSE(std::isnan(s.want)) << s.name;
     EXPECT_DOUBLE_EQ(got, s.want) << s.name;
 
-#if defined(__clang__)
+#ifdef __clang__
     const float viaKernel = softDecode(s.bits);
 #else
     const float viaKernel = bf16_to_float(bitsToBf16(s.bits));

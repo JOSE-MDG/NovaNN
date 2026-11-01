@@ -18,20 +18,23 @@
 #include <ncore/core/dtype.h>
 #include <ncore/core/status.h>
 
-#include "utils/GpuCasting.hpp"
-#include "utils/Oracle.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/common/Naming.hpp>
+#include <tests/gpu/Casting.hpp>
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/rng/Fill.hpp>
 
 namespace {
 
 using tests::casting::allPairs;
-using tests::casting::kDefaultSeed;
 using tests::casting::PairInfo;
+using tests::common::sanitize;
 using tests::gpu::castOnDevice;
 using tests::gpu::expectHomeEqualRef;
 using tests::gpu::fetchHome;
 using tests::gpu::makeDevicePair;
-using tests::gpu::sanitizeLabel;
 using tests::gpu::scalarRef;
+using tests::rng::kDefaultSeed;
 
 /// Parameterized fixture over every supported cast pair.
 class GpuOracleEquivalence : public ::testing::TestWithParam<PairInfo> {};
@@ -53,8 +56,8 @@ TEST_P(GpuOracleEquivalence, DeviceMatchesCpuBitwise) {
   expectHomeEqualRef(gp, prm.label.c_str());
 }
 
-INSTANTIATE_TEST_SUITE_P(AllPairs, GpuOracleEquivalence,
-                         ::testing::ValuesIn(allPairs()),
-                         [](const ::testing::TestParamInfo<PairInfo> &info) {
-                           return sanitizeLabel(info.param.label);
-                         });
+INSTANTIATE_TEST_SUITE_P(
+    AllPairs, GpuOracleEquivalence, ::testing::ValuesIn(allPairs()),
+    [](const ::testing::TestParamInfo<PairInfo> &paramInfo) {
+      return sanitize(paramInfo.param.label);
+    });

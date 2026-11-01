@@ -19,13 +19,13 @@ use crate::storage::RustStorage;
 /// # Arguments
 ///
 /// * `rounded`      - Reservation size in bytes, already rounded to its size
-///                    class by the caller. Must be non-zero.
+///   class by the caller. Must be non-zero.
 /// * `requested`    - Theoretical size asked by the caller. Must be non-zero
-///                    and not greater than `rounded`.
+///   and not greater than `rounded`.
 /// * `device`       - Target memory device: `"cpu"` for host RAM,
-///                    `"device"` for GPU VRAM.
+///   `"device"` for GPU VRAM.
 /// * `pin_memory`   - If `true`, allocate page-locked host memory.
-///                    Only valid when `device` is `"cpu"`.
+///   Only valid when `device` is `"cpu"`.
 /// * `align` - Required memory alignment. Must be a power of two. Ignored for device and pinned host allocations.
 ///
 /// # Errors

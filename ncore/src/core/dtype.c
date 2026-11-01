@@ -3,34 +3,12 @@
  * @brief Implementation of dtype classification and casting functions.
  *
  * @details
- * This file provides functions to check the properties of a tensor's
- * data type using lookup tables defined in @ref dtype_tables.h, as
- * well as a generic cast function that dispatches to the appropriate
- * cast implementation based on source and target dtypes.
- *
- * @section classification Classification
- *
- * The six classification functions (@c is_floating, @c is_integer,
- * etc.) each index into a precomputed @c uint8_t lookup table
- * (e.g., @c floating[NUM_DTYPES][1]) and cast the result to @c bool.
- * The tables are populated at compile time from the @ref DType_
- * enumeration.  This avoids switch statements and gives O(1)
- * classification for any dtype.
- *
- * @section cast-dispatch Cast Dispatch
- *
- * The @c cast() function resolves the correct element-wise
- * conversion via the @c cast_dispatch 2D array (indexed by
- * @c [source_dtype][target_dtype]) and calls the matching
- * @c castFn implementation.  The actual cast kernels are defined
- * in the @c cast_dispatch_tables and @c cast_tables translation
- * units.
- *
- * @section thread-safety Thread Safety
- *
- * All functions are pure lookups or dispatch calls and are
- * thread-safe.  The classification tables and the cast dispatch
- * table are read-only after process startup.
+ * Classification queries index precomputed boolean lookup tables
+ * from @ref dtype_tables.h (O(1), no switch); casting resolves the
+ * element-wise kernel through the @c cast_dispatch 2D array,
+ * defined in @c cast_dispatch_tables.c.  GPU-resident tensors go to
+ * the GPU casting kernels.  All state is read-only after process
+ * startup, so every function is thread-safe.
  *
  * @see dtype.h          Public API declarations and DType_ enum.
  * @see dtype_tables.h   Precomputed classification and size tables.
@@ -55,9 +33,6 @@
  * the appropriate cast implementation.  Populated at compile time
  * from @ref cast_dispatch_tables.
  *
- * For example, @c cast_dispatch[Float32][Signed32] points to the
- * function that converts float32 elements to int32 elements.
- *
  * @see cast()
  * @see castFn
  */
@@ -65,13 +40,6 @@ extern CastFn cast_dispatch[NUM_DTYPES][NUM_DTYPES];
 
 /**
  * @brief Check whether a tensor's dtype is a floating-point type.
- *
- * @details
- * Indexes into the @c floating lookup table with @c input->dtype
- * as the row index.  The table entry is @c 1 for float types
- * (@c Float32, @c Float64, @c Float16, @c BFloat16,
- * @c Float8E4M3fn, @c Float8E5M2, @c Float4E2M1fn) and @c 0 for all
- * others.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr and must have a valid @c dtype field.
@@ -90,12 +58,6 @@ bool is_floating(const Tensor *restrict input) {
 /**
  * @brief Check whether a tensor's dtype is an integer type
  *
- * @details
- * Indexes into the @c integer lookup table with @c input->dtype as
- * the row index.  Returns @c true for all non-quantized integer
- * types (@c Signed8, @c Signed16, @c Signed32, @c Signed64,
- * @c UnSigned8, @c UnSigned16, @c UnSigned32, @c UnSigned64).
- *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr and must have a valid @c dtype field.
  *
@@ -113,11 +75,6 @@ bool is_integer(const Tensor *restrict input) {
 /**
  * @brief Check whether a tensor's dtype is a signed integer type
  *
- * @details
- * Indexes into the @c signed_integer lookup table with
- * @c input->dtype as the row index.  Returns @c true for
- * @c Signed8, @c Signed16, @c Signed32, and @c Signed64.
- *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr and must have a valid @c dtype field.
  *
@@ -134,11 +91,6 @@ bool is_signed_integer(const Tensor *restrict input) {
 
 /**
  * @brief Check whether a tensor's dtype is an unsigned integer type
- *
- * @details
- * Indexes into the @c unsigned_integer lookup table with
- * @c input->dtype as the row index.  Returns @c true for
- * @c UnSigned8, @c UnSigned16, @c UnSigned32, and @c UnSigned64.
  *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr and must have a valid @c dtype field.
@@ -158,11 +110,6 @@ bool is_unsigned_integer(const Tensor *restrict input) {
  * @brief Check whether a tensor's dtype is a quantized signed
  *        integer type.
  *
- * @details
- * Indexes into the @c quantized_signed_integer lookup table with
- * @c input->dtype as the row index.  Returns @c true only for
- * @c QSigned8.
- *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr and must have a valid @c dtype field.
  *
@@ -181,11 +128,6 @@ bool is_quantized_signed_integer(const Tensor *restrict input) {
  * @brief Check whether a tensor's dtype is a quantized unsigned
  *        integer type.
  *
- * @details
- * Indexes into the @c quantized_unsigned_integer lookup table with
- * @c input->dtype as the row index.  Returns @c true only for
- * @c QUnSigned8.
- *
  * @param[in] input  Pointer to the tensor to query.  Must not be
  *                   @c nullptr and must have a valid @c dtype field.
  *
@@ -202,12 +144,6 @@ bool is_quantized_unsigned_integer(const Tensor *restrict input) {
 
 /**
  * @brief Check whether a given @ref DType_ can be quantized.
- *
- * @details
- * Indexes into the @c quantizable_dtype lookup table with @p dtype as
- * the index.  Returns @c true for @c Float4E2M1fn, @c QSigned8,
- * @c QUnSigned8, @c QSigned16, @c QUnSigned16, @c QSigned32, and
- * @c QUnSigned32.
  *
  * @param[in] dtype  The data type to query.
  *
@@ -251,8 +187,6 @@ bool is_quantizable_dtype(DType_ dtype) { return quantizable_dtype[dtype][0]; }
  *       @c create_unallocated_tensor() with the correct shape and
  *       the target dtype.
  * @pre  @p src must have a valid, allocated storage buffer.
- * @post On success, @p dst contains the type-converted copy of
- *       @p src's data.
  *
  * @see cast_dispatch  Dispatch table mapping (src, dst) dtype
  *                     pairs to cast kernels.

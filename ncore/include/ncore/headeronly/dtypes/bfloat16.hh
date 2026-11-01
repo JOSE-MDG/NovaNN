@@ -131,7 +131,9 @@ struct alignas(2) BFloat16 {
 
 /**
  * @brief Stream output operator for @ref BFloat16.
- * @details Promotes the bf16 value to float before writing to the stream.
+ *
+ * Promotes to float before writing to the stream.
+ *
  * @param[in,out] out The output stream.
  * @param[in]     value The @ref BFloat16 value to write.
  * @return Reference to the output stream.
@@ -167,8 +169,7 @@ NCORE_HOST_DEVICE inline float f32_from_bits(uint16_t src) {
 #elif defined(NOVA_HAS_HIP) && defined(__HIPCC__)
   float *tempRes;
 
-  // We should be using memcpy in order to respect the strict aliasing rule
-  // but it fails in the HIP environment.
+  // memcpy would respect strict aliasing, but it fails in the HIP environment.
   tempRes = reinterpret_cast<float *>(&tmp);
   res = *tempRes;
 #else
@@ -190,8 +191,7 @@ NCORE_HOST_DEVICE inline uint16_t bits_from_f32(float src) {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
   res = __float_as_uint(src);
 #elif defined(NOVA_HAS_HIP) && defined(__HIPCC__)
-  // We should be using memcpy in order to respect the strict aliasing rule
-  // but it fails in the HIP environment.
+  // memcpy would respect strict aliasing, but it fails in the HIP environment.
   uint32_t *tempRes = reinterpret_cast<uint32_t *>(&src);
   res = *tempRes;
 #else
@@ -287,56 +287,27 @@ inline NCORE_DEVICE BFloat16 __ldg(const BFloat16 *ptr) {
 /// @name Arithmetic Operators (BFloat16 & BFloat16)
 /// @{
 
-/**
- * @brief Addition operator for two @ref BFloat16 values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The sum as a @ref BFloat16.
- */
 inline NCORE_HOST_DEVICE BFloat16 operator+(const BFloat16 &a,
                                             const BFloat16 &b) {
   return static_cast<float>(a) + static_cast<float>(b);
 }
 
-/**
- * @brief Subtraction operator for two @ref BFloat16 values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The difference as a @ref BFloat16.
- */
 inline NCORE_HOST_DEVICE BFloat16 operator-(const BFloat16 &a,
                                             const BFloat16 &b) {
   return static_cast<float>(a) - static_cast<float>(b);
 }
 
-/**
- * @brief Multiplication operator for two @ref BFloat16 values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The product as a @ref BFloat16.
- */
 inline NCORE_HOST_DEVICE BFloat16 operator*(const BFloat16 &a,
                                             const BFloat16 &b) {
   return static_cast<float>(a) * static_cast<float>(b);
 }
 
-/**
- * @brief Division operator for two @ref BFloat16 values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The quotient as a @ref BFloat16.
- */
 NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO
 inline NCORE_HOST_DEVICE BFloat16 operator/(const BFloat16 &a,
                                             const BFloat16 &b) {
   return static_cast<float>(a) / static_cast<float>(b);
 }
 
-/**
- * @brief Unary minus operator for @ref BFloat16.
- * @param[in] a The operand.
- * @return The negated value as a @ref BFloat16.
- */
 inline NCORE_HOST_DEVICE BFloat16 operator-(const BFloat16 &a) {
   return -static_cast<float>(a);
 }
@@ -385,34 +356,19 @@ inline NCORE_HOST_DEVICE BFloat16 &operator/=(BFloat16 &a, const BFloat16 &b) {
   return a;
 }
 
-/**
- * @brief Bitwise OR, applied directly to the raw 16-bit storage.
- * @param[in,out] a The destination operand (mutated in place).
- * @param[in]     b The operand to OR with.
- * @return Reference to the updated destination operand.
- */
+/// Bitwise OR applied to the raw 16-bit storage.
 inline NCORE_HOST_DEVICE BFloat16 &operator|(BFloat16 &a, const BFloat16 &b) {
   a.x = a.x | b.x;
   return a;
 }
 
-/**
- * @brief Bitwise XOR, applied directly to the raw 16-bit storage.
- * @param[in,out] a The destination operand (mutated in place).
- * @param[in]     b The operand to XOR with.
- * @return Reference to the updated destination operand.
- */
+/// Bitwise XOR applied to the raw 16-bit storage.
 inline NCORE_HOST_DEVICE BFloat16 &operator^(BFloat16 &a, const BFloat16 &b) {
   a.x = a.x ^ b.x;
   return a;
 }
 
-/**
- * @brief Bitwise AND, applied directly to the raw 16-bit storage.
- * @param[in,out] a The destination operand (mutated in place).
- * @param[in]     b The operand to AND with.
- * @return Reference to the updated destination operand.
- */
+/// Bitwise AND applied to the raw 16-bit storage.
 inline NCORE_HOST_DEVICE BFloat16 &operator&(BFloat16 &a, const BFloat16 &b) {
   a.x = a.x & b.x;
   return a;
@@ -582,25 +538,15 @@ inline NCORE_HOST_DEVICE BFloat16 operator/(int64_t a, BFloat16 b) {
 /// @}
 
 /**
- * @brief Greater-than comparison.
- * @details Explicitly overloaded (rather than relying solely on the implicit
- * float conversion) because @c std::max / @c std::min require an lvalue-ref
- * accepting @c operator>/@c operator< to resolve unambiguously once the
- * bitwise operators above are in overload resolution scope.
- * @param[in] lhs The left-hand operand.
- * @param[in] rhs The right-hand operand.
- * @return @c true if @p lhs is strictly greater than @p rhs.
+ * @brief Greater-than comparison. Takes lvalue refs so @c std::max /
+ * @c std::min resolve unambiguously once the bitwise ops are in overload
+ * resolution scope.
  */
 inline NCORE_HOST_DEVICE bool operator>(BFloat16 &lhs, BFloat16 &rhs) {
   return static_cast<float>(lhs) > static_cast<float>(rhs);
 }
 
-/**
- * @brief Less-than comparison.
- * @param[in] lhs The left-hand operand.
- * @param[in] rhs The right-hand operand.
- * @return @c true if @p lhs is strictly less than @p rhs.
- */
+/// Less-than comparison with the same lvalue-ref signature as @ref operator>.
 inline NCORE_HOST_DEVICE bool operator<(BFloat16 &lhs, BFloat16 &rhs) {
   return static_cast<float>(lhs) < static_cast<float>(rhs);
 }
@@ -656,7 +602,7 @@ public:
   static constexpr int max_exponent = 128;   ///< Maximum positive power of 2.
   static constexpr int max_exponent10 = 38;  ///< Maximum positive power of 10.
   static constexpr auto traps =
-      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
+      numeric_limits<float>::traps; ///< Inherits float32 trap behavior.
   static constexpr auto tinyness_before =
       numeric_limits<float>::tinyness_before; ///< Inherits float32
                                               ///< tinyness-before semantics.

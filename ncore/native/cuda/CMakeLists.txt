@@ -2,21 +2,8 @@
 CUDA Backend
 ------------
 
-Builds the CUDA host-side object library and its device kernels.
-
-Targets created
-^^^^^^^^^^^^^^^
-
-``cuda_obj`` — alias ``ncore::native::obj::cuda``
-  OBJECT library containing all CUDA host-side translation units
-  (``*.cpp``, ``memory/*.cpp``).
-
-``cuda_kernels_obj`` — alias ``ncore::native::obj::cuda::kernels``
-  (via ``add_subdirectory(kernels)``)
-  OBJECT library containing compiled CUDA device code (``*.cu``).
-  Collected by ``native/CMakeLists.txt`` via
-  ``$<TARGET_OBJECTS:ncore::native::obj::cuda::kernels>``.
-
+Builds the CUDA host-side object library (``cuda_obj``) and its device
+kernels (``cuda_kernels_obj``, see ``kernels/``).
 #]=======================================================================]
 
 file(GLOB CUDA_RESOURCES CONFIGURE_DEPENDS
@@ -35,7 +22,8 @@ set_target_properties(cuda_obj PROPERTIES
 
 target_include_directories(cuda_obj
   PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
-  PRIVATE ${CMAKE_SOURCE_DIR}/ncore/memory/csrc
+  PRIVATE ${CMAKE_SOURCE_DIR}/ncore
+  PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/memory
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )

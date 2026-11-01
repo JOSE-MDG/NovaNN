@@ -15,37 +15,12 @@
 
 #include <ncore/core/dtype.h>
 #include <ncore/headeronly/heuristics/kernels/launch_config.hh>
+#include <tests/heuristics/Caps.hpp>
 
-namespace hk = ncore::heuristics::kernels;
+using tests::heuristics::testCaps;
+using tests::heuristics::testKernel;
 
 namespace {
-
-hk::DeviceCaps testCaps() {
-  hk::DeviceCaps d{};
-  d.warpSize = 32U;
-  d.maxThreadsPerBlockDevice = 1024U;
-  d.maxThreadsPerSM = 2048U;
-  d.maxBlocksPerSM = 32U;
-  d.smCount = 8U;
-  d.smemPerBlock = 49152U;
-  d.smemPerSM = 166912U;
-  d.regsPerSM = 65536U;
-  d.regsAllocGranularity = 8U;
-  d.maxGridX = 2147483647U;
-  d.maxGridY = 65535U;
-  d.maxGridZ = 65535U;
-  d.archVersion = 90U;
-  d.memBandwidthBytesPerSec = 900000000000ULL;
-  d.peakFlops = 100000000000000ULL;
-  return d;
-}
-
-hk::KernelAttrs testKernel(uint32_t regs = 16U) {
-  hk::KernelAttrs k{};
-  k.regsPerThread = regs;
-  k.maxThreadsPerBlockKernel = 1024U;
-  return k;
-}
 
 hk::ElementWiseParams testElementWise(uint64_t n) {
   hk::ElementWiseParams p{};

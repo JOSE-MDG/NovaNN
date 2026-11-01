@@ -68,10 +68,7 @@ struct alignas(1) Float8_e5m2 {
    */
   struct from_bits_t {};
 
-  /**
-   * @brief Returns a tag instance of @ref from_bits_t.
-   * @return A default-constructed @ref from_bits_t.
-   */
+  /// Returns a default-constructed @ref from_bits_t.
   NCORE_HOST_DEVICE static constexpr from_bits_t from_bits() { return {}; }
 
   /**
@@ -102,21 +99,21 @@ struct alignas(1) Float8_e5m2 {
   inline NCORE_HOST_DEVICE operator float() const;
 
   /**
-   * @brief Checks whether this value encodes NaN.
-   * @return @c true if this is a NaN pattern.
+   * @brief Checks whether this value encodes NaN (patterns 0x7D-0x7F).
    */
   inline NCORE_HOST_DEVICE bool isnan() const;
 
   /**
-   * @brief Checks whether this value encodes infinity.
-   * @return @c true if this is +/-infinity.
+   * @brief Checks whether this value encodes infinity (pattern 0x7C).
    */
   inline NCORE_HOST_DEVICE bool isinf() const;
 };
 
 /**
  * @brief Stream output operator for @ref Float8_e5m2.
- * @details Promotes the fp8 value to float before writing to the stream.
+ *
+ * Promotes to float before writing to the stream.
+ *
  * @param[in,out] out The output stream.
  * @param[in]     value The @ref Float8_e5m2 value to write.
  * @return Reference to the output stream.
@@ -243,102 +240,49 @@ inline NCORE_HOST_DEVICE bool Float8_e5m2::isinf() const {
 /// @name Arithmetic Operators (Float8_e5m2 & Float8_e5m2)
 /// @{
 
-/**
- * @brief Addition operator for two @ref Float8_e5m2 values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The sum as a @ref Float8_e5m2.
- */
 inline NCORE_HOST_DEVICE Float8_e5m2 operator+(const Float8_e5m2 &a,
                                                const Float8_e5m2 &b) {
   return static_cast<float>(a) + static_cast<float>(b);
 }
 
-/**
- * @brief Subtraction operator for two @ref Float8_e5m2 values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The difference as a @ref Float8_e5m2.
- */
 inline NCORE_HOST_DEVICE Float8_e5m2 operator-(const Float8_e5m2 &a,
                                                const Float8_e5m2 &b) {
   return static_cast<float>(a) - static_cast<float>(b);
 }
 
-/**
- * @brief Multiplication operator for two @ref Float8_e5m2 values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The product as a @ref Float8_e5m2.
- */
 inline NCORE_HOST_DEVICE Float8_e5m2 operator*(const Float8_e5m2 &a,
                                                const Float8_e5m2 &b) {
   return static_cast<float>(a) * static_cast<float>(b);
 }
 
-/**
- * @brief Division operator for two @ref Float8_e5m2 values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The quotient as a @ref Float8_e5m2.
- */
 NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO
 inline NCORE_HOST_DEVICE Float8_e5m2 operator/(const Float8_e5m2 &a,
                                                const Float8_e5m2 &b) {
   return static_cast<float>(a) / static_cast<float>(b);
 }
 
-/**
- * @brief Unary minus operator for @ref Float8_e5m2.
- * @param[in] a The operand.
- * @return The negated value as a @ref Float8_e5m2.
- */
 inline NCORE_HOST_DEVICE Float8_e5m2 operator-(const Float8_e5m2 &a) {
   return -static_cast<float>(a);
 }
 
-/**
- * @brief Addition assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to add.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float8_e5m2 &operator+=(Float8_e5m2 &a,
                                                  const Float8_e5m2 &b) {
   a = a + b;
   return a;
 }
 
-/**
- * @brief Subtraction assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to subtract.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float8_e5m2 &operator-=(Float8_e5m2 &a,
                                                  const Float8_e5m2 &b) {
   a = a - b;
   return a;
 }
 
-/**
- * @brief Multiplication assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to multiply.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float8_e5m2 &operator*=(Float8_e5m2 &a,
                                                  const Float8_e5m2 &b) {
   a = a * b;
   return a;
 }
 
-/**
- * @brief Division assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The divisor.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float8_e5m2 &operator/=(Float8_e5m2 &a,
                                                  const Float8_e5m2 &b) {
   a = a / b;
@@ -559,7 +503,7 @@ public:
   static constexpr int max_exponent = 16;   ///< Maximum positive power of 2.
   static constexpr int max_exponent10 = 4;  ///< Maximum positive power of 10.
   static constexpr auto traps =
-      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
+      numeric_limits<float>::traps; ///< Inherits float32 trap behavior.
   static constexpr auto tinyness_before =
       numeric_limits<float>::tinyness_before; ///< Inherits float32
                                               ///< tinyness-before semantics.

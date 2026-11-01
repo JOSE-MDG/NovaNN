@@ -7,7 +7,7 @@
  * host (AMX, AVX10, AVX-512 FP16) are still covered.
  *
  * Bit positions are declared independently from the implementation, so a
- * wrong constant on either side fails instead of cancelling out.
+ * wrong constant on either side fails instead of canceling out.
  *
  * Synthetic models mirror the CPUID enumeration of their real-silicon
  * counterparts (e.g. Sapphire Rapids ships AMX-BF16/AMX-INT8 and
@@ -377,7 +377,7 @@ TEST_P(SimdCapsMapping, MapsCpuidBitsToExpectedFlags) {
 
 INSTANTIATE_TEST_SUITE_P(SyntheticCpus, SimdCapsMapping,
                          ::testing::ValuesIn(buildCpuCatalog()),
-                         [](const ::testing::TestParamInfo<CpuModel> &info)
-                             -> std::string { return info.param.name; });
+                         [](const ::testing::TestParamInfo<CpuModel> &paramInfo)
+                             -> std::string { return paramInfo.param.name; });
 
 } // namespace

@@ -127,6 +127,10 @@ if [[ "$LIST_ONLY" -eq 1 ]]; then
     exit 0
 fi
 
+# Prefer NovaNN's pinned vcpkg for this build and all child processes.
+# shellcheck source=lib/vcpkg-env.sh
+source "$SCRIPT_DIR/lib/vcpkg-env.sh"
+
 mkdir -p "$LOG_DIR"
 
 printf '\n%sNovaNN — configure presets%s\n' "$C_BOLD" "$C_RESET"

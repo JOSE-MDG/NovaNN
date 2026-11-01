@@ -110,6 +110,16 @@ ParallelDecision decide_gather(const GatherWork *work, uint32 threads);
 ParallelDecision decide_sort(const SortWork *work, uint32 threads);
 
 /**
+ * @brief Decide a counter-based random-fill region.
+ *
+ * @param[in] work     Facts for the fill. May be @c nullptr.
+ * @param[in] threads  Available threads. Values below 2 refuse.
+ *
+ * @return Verdict with the effective count capped by useful grains.
+ */
+ParallelDecision decide_rng(const RngWork *work, uint32 threads);
+
+/**
  * @brief Refuse unconditionally (serial family).
  *
  * @param[in] threads  Available threads, ignored.

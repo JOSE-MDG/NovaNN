@@ -3,23 +3,17 @@
  * @brief Global and per-group thread-count management.
  *
  * @details
- * Implements the public threading API declared in @ref threads.h:
- *
- * @li Global budget: @ref atomic_global_thread_counter with its
- *   initialized flag, written by @ref set_num_logical_threads() and
- *   read by @ref get_configured_num_logical_threads().
- * @li Per-group counters: assigned through the @ref set_threads_funcs
- *   dispatch table (@ref set_num_threads_to()) and read through
- *   @ref get_threads_funcs (@ref get_num_threads_from()).
- * @li Stratification: @ref get_stratified_threads() resolves the total
- *   and splits it once via @ref stratify_threads(), serving later
- *   calls from the recorded result;
- *   @ref distribute_stratified_threads() writes a validated budget
- *   into the counters.
- * @li Inspection: @ref print_thread_config() renders the budget, the
- *   recorded split and the live counters to stdout.
- *
- * @section thread-safety Thread Safety
+ * Implements the public threading API declared in @ref threads.h.
+ * A global budget (@ref atomic_global_thread_counter with its
+ * initialized flag) is written by @ref set_num_logical_threads() and
+ * read by @ref get_configured_num_logical_threads(); per-group
+ * counters are assigned through the @ref set_threads_funcs dispatch
+ * table and read through @ref get_threads_funcs.
+ * @ref get_stratified_threads() resolves the total, splits it once
+ * via @ref stratify_threads(), and serves later calls from the
+ * recorded result; @ref distribute_stratified_threads() writes a
+ * validated budget into the counters.  @ref print_thread_config()
+ * renders the budget, the recorded split and the live counters.
  *
  * All shared state in this unit is atomic. The global budget and its
  * flag pair a relaxed counter with a release/acquire flag, and each
@@ -164,7 +158,7 @@ static _Atomic GroupOrigin group_origin[NUM_PARALLEL_GROUPS] = {
 /**
  * @brief Display label for a group origin flag.
  */
-static const char *origin_label(GroupOrigin origin) {
+static inline const char *origin_label(GroupOrigin origin) {
   switch (origin) {
   case ThreadsOriginAuto:
     return "auto";
@@ -219,19 +213,19 @@ DistributionKind current_distribution_kind() {
  * @brief Print the oversubscription warning block.
  *
  * @details
- * Yellow, single block, fully computed numbers. Advisory only:
- * the assignment stands.
+ * Yellow, two-line factual report with fully computed numbers.
+ * Advisory only: the assignment stands.
  */
-static void print_oversubscription_warning(uint32 compute, uint32 autograd,
-                                           uint32 dtloader, uint32 total,
-                                           uint64_t counted) {
-  printf("-- " NCORE_LOG_YELLOW
-         "[Threads] WARNING: manual assignment oversubscribes the machine: "
-         "counted %" PRIu64 " (compute %" PRIu32 " + autograd %" PRIu32
-         " + dtloader %" PRIu32
-         "; groups at 1 excluded) > machine total %" PRIu32
-         ". Expect context-switching losses.\n" NCORE_LOG_RESET,
-         counted, compute, autograd, dtloader, total);
+static inline void print_oversubscription_warning(uint32 compute,
+                                                  uint32 autograd,
+                                                  uint32 dtloader, uint32 total,
+                                                  uint64_t counted) {
+  printf(NCORE_LOG_PREFIX NCORE_LOG_YELLOW
+         " [Threads] WARNING: thread assignment exceeds available "
+         "threads\n" NCORE_LOG_YELLOW "   requested %" PRIu64
+         " > available %" PRIu32 " (compute %" PRIu32 ", autograd %" PRIu32
+         ", dtloader %" PRIu32 ")\n" NCORE_LOG_RESET,
+         counted, total, compute, autograd, dtloader);
 }
 
 typedef novaStatus_t (*set_threads_func_t)(uint32);
@@ -265,8 +259,8 @@ static const get_threads_func_t get_threads_funcs[NUM_PARALLEL_GROUPS] = {
  * stratification distribute (auto). Range-checks the group;
  * per-group minimums are enforced by the dispatched setter.
  */
-static novaStatus_t assign_group_threads(ParallelGroups group, uint32 threads,
-                                         GroupOrigin origin) {
+static inline novaStatus_t
+assign_group_threads(ParallelGroups group, uint32 threads, GroupOrigin origin) {
   if (group >= NUM_PARALLEL_GROUPS) {
     return (novaStatus_t){
         .err = novaInvalidParallelGroup,
@@ -610,6 +604,13 @@ novaStatus_t print_thread_config(bool verbose) {
              "%" PRIu32 NCORE_LOG_RESET " dtloader " NCORE_LOG_VALUE
              "%" PRIu32 NCORE_LOG_RESET ")\n",
              live_compute, live_autograd, live_dtloader);
+      if (logical_ok &&
+          manual_counts_oversubscribed(live_compute, live_autograd,
+                                       live_dtloader, logical)) {
+        print_oversubscription_warning(
+            live_compute, live_autograd, live_dtloader, logical,
+            counted_thread_sum(live_compute, live_autograd, live_dtloader));
+      }
     } else if (initialized) {
       const uint32 total = get_configured_num_logical_threads(nullptr);
       const StratifiedThreads strat = get_last_stratification_result();

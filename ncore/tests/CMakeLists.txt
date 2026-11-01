@@ -2,23 +2,10 @@
 NCore Tests
 -----------
 
-Top-level test orchestrator for the NCore module.  Each subdirectory
-under this tree produces one or more GoogleTest executables that are
-automatically registered with CTest when :variable:`BUILD_TESTING` is
-``ON``.
-
-Subdirectories
-^^^^^^^^^^^^^^
-
-- ``dtypeCasting/`` — dtype casting tests (oracle utilities, cast
-  table counts, kernel dispatch).  Registered in W0 of the rewrite.
-- ``dtypeCastingGpu/`` — on-device dtype casting tests (GPU dispatch,
-  bitwise equivalence, saturation, special values).
-- ``dtypes/`` — reduced-precision dtype tests.
-- ``core/`` — core runtime tests (status propagation, device
-  detection, memory allocator, tensor copies/transfers).
-- ``heuristics/`` — kernel launch heuristic tests (tier routing,
-  Fast/Full geometry per pattern, shared clamps, Full cache).
+GoogleTest suites for the NCore module, registered with CTest when
+:variable:`BUILD_TESTING` is ``ON``. The terminal-state memory-pool test
+uses a separate executable because destroying a device pool permanently
+closes that process-local pool slot.
 #]=======================================================================]
 
 if(BUILD_TESTING)
@@ -43,6 +30,8 @@ if(BUILD_TESTING)
     endif()
 
     add_subdirectory(core)
+    add_subdirectory(engineStream)
+    add_subdirectory(memoryPoolTerminal)
     add_subdirectory(dtypeCasting)
     add_subdirectory(dtypeCastingGpu)
     add_subdirectory(dtypes)

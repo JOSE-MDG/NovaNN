@@ -40,23 +40,19 @@ enum class deviceKind_t : std::int8_t {
   DeviceNull = 2  ///< No supported GPU runtime detected.
 };
 
-extern "C" {
-
 /**
  * @brief Query the system to determine which GPU runtime is
  *        available.
  *
  * @details
  * Probes CUDA and HIP runtime availability in order.  The first
- * runtime found wins:
- * @li 1. CUDA — returns @ref deviceKind_t::DeviceCUDA.
- * @li 2. HIP  — returns @ref deviceKind_t::DeviceHIP.
- * @li 3. Neither — returns @ref deviceKind_t::DeviceNull.
+ * runtime found wins: CUDA maps to @ref deviceKind_t::DeviceCUDA,
+ * HIP to @ref deviceKind_t::DeviceHIP, neither to
+ * @ref deviceKind_t::DeviceNull.
  *
  * @return The detected GPU backend.
  *
  * @see is_cuda_available()  CUDA runtime probe.
  * @see is_hip_available()   HIP runtime probe.
  */
-deviceKind_t getDeviceBackend();
-}
+extern "C" deviceKind_t getDeviceBackend();

@@ -2,52 +2,15 @@
 Native Backend
 --------------
 
-Aggregates all native backend object libraries into a single static
-archive ``libnative.a``.
+Aggregates all backend object libraries into a single static archive
+``libnative.a``.
 
-Object collection
-^^^^^^^^^^^^^^^^^
-
-Each backend produces one or more OBJECT libraries.  All of them must
-be listed explicitly here via ``$<TARGET_OBJECTS:...>`` so that every
-``.o`` file is physically written into the archive.
-
-``target_link_libraries`` between OBJECT libraries only propagates
-compile flags and include paths — it does not embed object files.
+All of them must be listed explicitly here via
+``$<TARGET_OBJECTS:...>`` so every ``.o`` file is physically written
+into the archive: ``target_link_libraries`` between OBJECT libraries
+only propagates compile flags and include paths, and
 ``target_sources($<TARGET_OBJECTS:...>)`` on an OBJECT library is not
-reliably expanded by downstream consumers when using the Makefile
-generator.  Explicit enumeration at this level is therefore the only
-portable, generator-agnostic approach.
-
-Targets created
-^^^^^^^^^^^^^^^
-
-``native`` — alias ``ncore::native``
-  STATIC library containing all active backend object files.
-
-Subdirectories
-^^^^^^^^^^^^^^
-
-``cpu/``
-  Vectorized CPU implementations. Defines ``cpu_obj`` (alias
-  ``ncore::native::obj::cpu``)
-
-``kernels/``
-  CPU-side dispatch.  Always included. Defines ``kernels_obj`` (alias
-  ``ncore::native::obj::kernels``)
-
-``cuda/``
-  CUDA host-side code and device kernels.  Included when
-  ``NOVA_HAS_CUDA`` is set.  Defines ``cuda_obj`` (alias
-  ``ncore::native::obj::cuda``) and ``cuda_kernels_obj`` (alias
-  ``ncore::native::obj::cuda::kernels``).
-
-``hip/``
-  HIP host-side code and device kernels.  Included when
-  ``NOVA_HAS_HIP`` is set.  Defines ``hip_obj`` (alias
-  ``ncore::native::obj::hip``) and ``hip_kernels_obj`` (alias
-  ``ncore::native::obj::hip::kernels``).
-
+reliably expanded by downstream consumers with the Makefile generator.
 #]=======================================================================]
 
 set(NATIVE_SOURCES "")
@@ -109,6 +72,7 @@ endif()
 
 target_include_directories(native
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
+    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
 if(TARGET nova::compiler_rt_builtins)

@@ -54,7 +54,7 @@ typedef struct {
 } StringBuilder;
 
 /**
- * @brief Initialise a new StringBuilder instance.
+ * @brief Initialize a new StringBuilder instance.
  *
  * @details
  * Allocates an initial heap buffer. Recommended starting capacity

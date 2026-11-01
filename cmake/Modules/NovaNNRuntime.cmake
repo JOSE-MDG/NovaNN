@@ -2,35 +2,22 @@
 NovaNNRuntime
 -------------
 
-Top-level orchestrator module for the NovaNN build system.  Includes
-all detection and configuration modules, then prints a summary of
-available runtime capabilities.
-
-This module includes:
-
-- ``DetectSIMD`` — CPU SIMD instruction detection.
-- ``NovaNNCPU`` — CPU target configuration (threading, OpenMP).
-- ``NovaNNBuildFlags`` — compiler warnings, optimization, LTO, sanitizers.
-- ``DetectGTest`` — GoogleTest testing framework detection (only when
-  ``BUILD_TESTING`` is ``ON``).
-- ``NovaNNCUDA`` — CUDA backend (when ``USE_CUDA`` is ``ON``).
-- ``NovaNNHIP`` — HIP/ROCm backend (when ``USE_HIP`` is ``ON``).
+Top-level orchestrator: includes all detection and configuration
+modules and prints a capabilities summary (SIMD flags, threading
+backends, GPU backends, GTest, LTO, sanitizer status).
 
 When ``USE_CUDA`` or ``USE_HIP`` is ``OFF`` the module defines empty
 stub functions for the corresponding ``nova_configure_*`` API so that
 callers do not need to guard every call site.  The same is done for
 GTest when ``BUILD_TESTING`` is ``OFF`` or the library is not found.
 
-After printing a status summary to the CMake output (SIMD flags,
-threading backends, GPU backends, GTest, LTO, and sanitizer status),
-this module defines the ``nova_codegen`` custom target (aliased as
+Finally defines the ``nova_codegen`` custom target (aliased as
 ``nova::codegen``) that runs the auto-code generation command
 ``uv run tools/codegen/generate.py gen --all`` at build time.
-
-The list of generated files consumed as ``OUTPUT`` by the codegen
-custom command (``NOVA_CODEGEN_FILES``).
-``uv run tools/codegen/generate.py gen --all --list-outputs``, which
-prints the candidate paths one per line without generating anything.
+``NOVA_CODEGEN_FILES``, the ``OUTPUT`` list of that custom command, is
+filled by ``uv run tools/codegen/generate.py gen --all
+--list-outputs``, which prints the candidate paths one per line
+without generating anything.
 
 #]=======================================================================]
 
@@ -203,7 +190,6 @@ add_custom_command(
     VERBATIM
 )
 
-# Build target that runs the code generator at build time.
 add_custom_target(nova_codegen DEPENDS ${NOVA_CODEGEN_FILES})
 
 add_library(nova_codegen_iface INTERFACE)

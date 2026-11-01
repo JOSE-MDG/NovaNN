@@ -650,6 +650,11 @@ class CodeGenEngine:
         If a formatter is provided, it is executed on the target file
         after writing.
 
+        The modification time is restored when the file keeps its bytes:
+        the generated sources live in the source tree, and a fresh
+        timestamp makes the build recompile them and keeps the tree
+        changing under a running build.
+
         Args:
             file_path: Destination path for the rendered output.
             result: Rendered template string to write.
@@ -659,9 +664,22 @@ class CodeGenEngine:
             RuntimeError: If writing the file or running the formatter
                 fails.
         """
+        previous_mtime: int | None = None
+        previous_atime: int | None = None
+        previous_bytes: bytes | None = None
+
         try:
+            if file_path.exists():
+                previous_stat = file_path.stat()
+                previous_mtime = previous_stat.st_mtime_ns
+                previous_atime = previous_stat.st_atime_ns
+                previous_bytes = file_path.read_bytes()
+
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, "w", encoding="utf-8") as f:
+            # newline="\n" keeps the rendered file byte-identical on every
+            # platform: text mode would translate "\n" into "\r\n" on
+            # Windows and rewrite the whole file on every run.
+            with open(file_path, "w", encoding="utf-8", newline="\n") as f:
                 f.write(result)
         except OSError as exc:
             raise RuntimeError(
@@ -701,6 +719,14 @@ class CodeGenEngine:
                     f"Unsupported formatter type: {type(formatter).__name__}. "
                     f"Expected ClangFormatter or RuffFormatter."
                 )
+
+        if (
+            previous_bytes is not None
+            and previous_mtime is not None
+            and previous_atime is not None
+            and file_path.read_bytes() == previous_bytes
+        ):
+            os.utime(file_path, ns=(previous_atime, previous_mtime))
 
     def _run_formatter(
         self, formatter: ClangFormatter | RuffFormatter, command: list[str]

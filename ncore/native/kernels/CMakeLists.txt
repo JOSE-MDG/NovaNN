@@ -2,19 +2,9 @@
 Kernels
 -------
 
-Device-agnostic kernel dispatch layer for the native backend.  Collects
-all C++ source files in this directory and builds the ``kernels_obj``
-OBJECT library.
-
-This module does not compile device-specific kernels directly; those
-live in the ``cuda/kernels/`` and ``hip/kernels/`` subdirectories
-under their respective backend targets.
-
-Targets created:
-
-``kernels_obj`` — alias ``ncore::native::obj::kernels``
-  OBJECT library containing the device-agnostic dispatch code.
-
+Device-agnostic kernel dispatch layer, built as the ``kernels_obj``
+OBJECT library.  Device-specific kernels live in ``cuda/kernels/``
+and ``hip/kernels/`` under their respective backend targets.
 #]=======================================================================]
 
 file(GLOB_RECURSE KERNEL_RESOURCES CONFIGURE_DEPENDS
@@ -33,6 +23,7 @@ set_target_properties(kernels_obj PROPERTIES
 target_include_directories(kernels_obj
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native
 )
 
 nova_configure_build_flags(kernels_obj)

@@ -2,29 +2,13 @@
  * @file macros.h
  * @brief Foundational preprocessor macros and compile-time constants.
  *
- * @details
- * Every public and internal header includes this file, so it must stay
- * free of function definitions and external dependencies. It provides
- * portability helpers (@c restrict, @c ALIGN, @c ATTR, @c INITIALIZE),
- * compile-time constants (@c NOVA_MAX_DIMS, @c NUM_DTYPES, @c NUM_FLOATS,
- * @c NUM_INTEGERS, @c NUM_ERRORS, @c NUM_BACKENDS), the
- * @c NOVA_INTERNAL_ASSERT diagnostic, SIMD lane counts (@c NOVA_SIMD_*),
- * terminal colour codes (@c NCORE_LOG_*), CUDA/HIP qualifiers
- * (@c NCORE_HOST_DEVICE, @c NCORE_HOST, @c NCORE_DEVICE) and compiler
- * detection macros (@c _GNUC_CLANG_, @c NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO).
+ * Every public and internal header includes this file, so it stays free
+ * of function definitions and depends on nothing beyond the standard C
+ * headers (and @c iostream in C++).  The OS mutex macros live apart, in
+ * @c mtx.h, because they need @c <windows.h> on Windows and that header
+ * defines macros that collide with ordinary identifiers.
  *
- * Three design rules keep this header usable everywhere:
- *
- * @li No function definitions — purely preprocessor constants and macros.
- * @li No dependencies — only standard C headers (@c stdio.h, @c stdlib.h,
- *     @c stdalign.h).
- * @li C and C++ compatible — @c restrict maps to @c __restrict__, and the
- *     assertion macro uses @c fprintf(stderr, ...) in C and @c std::cerr
- *     in C++.
- *
- * @see dtype.h   DType_ enum referenced by the @c NUM_DTYPES family.
- * @see simd.h    Runtime SIMD capability detection.
- * @see status.h  novaError_t enum referenced by @c NUM_ERRORS.
+ * @see mtx.h  Portable mutex macros.
  */
 
 #pragma once
@@ -36,6 +20,20 @@
 #ifdef __cplusplus
 #include <iostream>
 #endif
+
+/**
+ * @def NCORE_COMPILE_TIME_MAX_GPUS
+ * @brief Maximum number of devices on the same machine.
+ *
+ * @details
+ * Used to reserve the physical size of the data structures that
+ * manage hardware-accelerated resources (such as CUDA or HIP)
+ * in system memory (CPU).
+ *
+ * @note In the current version of NovaNN, it only supports one
+ * GPU, but future versions will offer full support for more than one GPU.
+ */
+#define NCORE_COMPILE_TIME_MAX_GPUS 1
 
 /**
  * @def restrict
@@ -54,12 +52,25 @@
 #endif
 
 /**
+ * @def STATIC_CAST(T, ...)
+ * @brief Portable value cast for shared C/C++ headers.
+ *
+ * @param T    Target type (may contain commas, e.g. @c unsigned int).
+ * @param ...  Expression to convert (single argument).
+ */
+#ifdef __cplusplus
+#define STATIC_CAST(T, ...) static_cast<T>(__VA_ARGS__)
+#else
+#define STATIC_CAST(T, ...) ((T)(__VA_ARGS__))
+#endif
+
+/**
  * @def ALIGN(N)
- * @brief Align a type or variable to N bytes.
+ * @brief Align a member or variable to N bytes (standard alignas).
  *
  * @param N  Alignment boundary in bytes.  Must be a power of two.
  */
-#define ALIGN(N) __attribute__((aligned(N)))
+#define ALIGN(N) alignas(N)
 
 /**
  * @def ATTR(mode)
@@ -79,13 +90,13 @@
 
 /**
  * @def INITIALIZE(f)
- * @brief Register a function to run automatically at library initialisation
+ * @brief Register a function to run automatically at library initialization
  * time.
  *
  * @details
  * On GCC/Clang, expands to @c ATTR(constructor) static inline void f(void),
  * which causes the compiler to emit a @c .init_array entry that runs @p f
- * at library initialisation time.
+ * at library initialization time.
  *
  * @param f  Name of the @c static inline function to register.  The function
  *           must take no arguments and return @c void.
@@ -109,14 +120,14 @@
  *
  * @see ATTR
  */
-#define INITIALIZE(f) ATTR(constructor) static inline void f(void)
+#define INITIALIZE(f) ATTR(constructor) static inline void f()
 
 /**
  * @def NOVA_MAX_DIMS
  * @brief Maximum number of tensor dimensions supported.
  *
  * @details
- * Fixed at 64 — well beyond the typical 4–8 dimensions used in
+ * Fixed at 64, well beyond the typical 4-8 dimensions used in
  * deep learning.  Used to size the @c shape_t and @c strides_t
  * fixed arrays in @ref Tensor.
  *
@@ -128,30 +139,15 @@
 /**
  * @def NUM_DTYPES
  * @brief Total number of supported data types.
- *
- * @details
- * Equals 21, covering Float32, Float64, Float16, BFloat16,
- * Float8E4M3fn, Float8E5M2, Float4E2M1fn, Signed8, UnSigned8,
- * QSigned8, QUnSigned8, Signed16, UnSigned16, QSigned16,
- * QUnSigned16, Signed32, UnSigned32, QSigned32, QUnSigned32,
- * Signed64, and UnSigned64.
- *
- * @see DType_ enum in dtype.h.
  */
 #define NUM_DTYPES 21
 
 /**
  * @def NUM_ERRORS
- * @brief Total number of @ref novaError_t enumerators.
- *
- * @details
- * Counts @c novaSuccess plus every error code across all categories
- * (parameters, memory, transfers, device/backend, OS, dtype/cast, GPU,
- * internal, general and threads). Use it to size arrays indexed by error code.
- *
- * @see novaError_t in status.h.
+ * @brief Total number of @ref novaError_t enumerators, useful to size
+ *        arrays indexed by error code.
  */
-#define NUM_ERRORS 38
+#define NUM_ERRORS 41
 
 /**
  * @def NUM_PARALLEL_GROUPS
@@ -250,7 +246,7 @@
  * @c EXIT_FAILURE.  Uses @c __VA_OPT__ for clean expansion when
  * no variadic arguments are provided.
  *
- * This macro is for debugging aid — it guards
+ * This macro is for debugging aid: it guards
  * invariants that, if violated, indicate a bug in NovaNN
  * itself (e.g., null storage after a successful allocation).
  *
@@ -305,7 +301,7 @@ inline void nova_internal_assert_deprecated_marker() {}
  * The naming convention is @c NOVA_SIMD_{TYPE}_WITH_{ISA}.
  */
 
-/** @name SIMD lane counts — SSE
+/** @name SIMD lane counts: SSE
  *  128-bit register width.
  */
 ///@{
@@ -323,7 +319,7 @@ inline void nova_internal_assert_deprecated_marker() {}
 #define NOVA_SIMD_QU8_WITH_SSE 16 ///< quint8:    128 / 8  = 16
 ///@}
 
-/** @name SIMD lane counts — AVX / AVX2
+/** @name SIMD lane counts: AVX / AVX2
  *  256-bit register width.
  */
 ///@{
@@ -341,7 +337,7 @@ inline void nova_internal_assert_deprecated_marker() {}
 #define NOVA_SIMD_QU8_WITH_AVX_AVX2 32  ///< quint8:    256 / 8  = 32
 ///@}
 
-/** @name SIMD lane counts — AVX-512F
+/** @name SIMD lane counts: AVX-512F
  *  512-bit register width.
  */
 ///@{
@@ -362,21 +358,13 @@ inline void nova_internal_assert_deprecated_marker() {}
 /** @} */
 
 /**
- * @defgroup LOG_COLOURS Terminal colour codes
+ * @defgroup LOG_COLORS Terminal color codes
  * @{
  * @brief ANSI escape sequences for subtle, cmake-style terminal
  *        output.
  *
- * @details
- * Used by @c print_* functions in @c device.c, @c alloc.c, etc.
- * The colour palette is intentionally muted:
- * @li Green prefix (@c --): status messages.
- * @li Cyan values: highlighted data (device names, sizes).
- * @li Bold: section headings or emphasis.
- * @li Dim: field labels and secondary text.
- * @li Yellow: pending or uninitialized states.
- * @li Red: errors and failures.
- * @li Reset: restores default terminal colour.
+ * Used by the @c print_* functions. Colors must be paired with
+ * @ref NCORE_LOG_RESET where noted.
  */
 
 /**
@@ -399,34 +387,34 @@ inline void nova_internal_assert_deprecated_marker() {}
 
 /**
  * @def NCORE_LOG_VALUE
- * @brief Cyan colour for highlighted values.
+ * @brief Cyan color for highlighted values.
  */
 #define NCORE_LOG_VALUE "\033[36m"
 
 /**
  * @def NCORE_LOG_DIM
- * @brief Dim colour for field labels and secondary text.  Must be
+ * @brief Dim color for field labels and secondary text.  Must be
  *        paired with @ref NCORE_LOG_RESET.
  */
 #define NCORE_LOG_DIM "\033[2m"
 
 /**
  * @def NCORE_LOG_YELLOW
- * @brief Yellow colour for pending or uninitialized states.  Must be
+ * @brief Yellow color for pending or uninitialized states.  Must be
  *        paired with @ref NCORE_LOG_RESET.
  */
 #define NCORE_LOG_YELLOW "\033[33m"
 
 /**
  * @def NCORE_LOG_RED
- * @brief Red colour for errors and failures.  Must be paired with
+ * @brief Red color for errors and failures.  Must be paired with
  *        @ref NCORE_LOG_RESET.
  */
 #define NCORE_LOG_RED "\033[31m"
 
 /**
  * @def NCORE_LOG_RESET
- * @brief Reset to default terminal colour.
+ * @brief Reset to default terminal color.
  */
 #define NCORE_LOG_RESET "\033[0m"
 
@@ -477,7 +465,7 @@ inline void nova_internal_assert_deprecated_marker() {}
  * warnings on IEEE 754 division by zero (which yields +/-inf
  * rather than trapping).
  */
-#if defined(__clang__)
+#ifdef __clang__
 #define NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO                                      \
   [[clang::no_sanitize("float-divide-by-zero")]]
 #elif defined(__GNUC__)

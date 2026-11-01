@@ -22,7 +22,7 @@
 #include <ncore/core/fp_utils.h>
 #include <ncore/headeronly/dtypes/fp8_e4m3fn.hh>
 
-#include "utils/FloatingPointClassification.hpp"
+#include <tests/oracle/FpClassification.hpp>
 
 namespace {
 

@@ -2,21 +2,8 @@
 HIP Backend
 -----------
 
-Builds the HIP host-side object library and its device kernels.
-
-Targets created
-^^^^^^^^^^^^^^^
-
-``hip_obj`` — alias ``ncore::native::obj::hip``
-  OBJECT library containing all HIP host-side translation units
-  (``*.cpp``, ``memory/*.cpp``).
-
-``hip_kernels_obj`` — alias ``ncore::native::obj::hip::kernels``
-  (via ``add_subdirectory(kernels)``)
-  OBJECT library containing compiled HIP device code (``*.hip``).
-  Collected by ``native/CMakeLists.txt`` via
-  ``$<TARGET_OBJECTS:ncore::native::obj::hip::kernels>``.
-
+Builds the HIP host-side object library (``hip_obj``) and its device
+kernels (``hip_kernels_obj``, see ``kernels/``).
 #]=======================================================================]
 
 file(GLOB HIP_RESOURCES CONFIGURE_DEPENDS
@@ -35,7 +22,8 @@ set_target_properties(hip_obj PROPERTIES
 
 target_include_directories(hip_obj
   PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
-  PRIVATE ${CMAKE_SOURCE_DIR}/ncore/memory/csrc
+  PRIVATE ${CMAKE_SOURCE_DIR}/ncore
+  PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/memory
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
