@@ -3,10 +3,10 @@
  * @brief Shared CUDA and HIP runtime helpers for the memory backends.
  *
  * Private to the native backends. The two scopes expose the same
- * error-mapping and stream helpers, and exactly one is active per
- * build. The HIP stream is created lazily, so callers must resolve it
- * before enqueuing null-stream work: rocclr cancels pending null-stream
- * kernels at @c hipStreamCreate.
+ * error-mapping and device helpers, and exactly one is active per
+ * build. Device work never runs on the null stream: rocclr cancels
+ * pending null-stream kernels when a stream is created, so every
+ * backend operation resolves the device engine stream instead.
  *
  * @see CudaIO.cpp
  * @see CudaAllocator.cpp
@@ -22,9 +22,11 @@
 
 #include <mutex>
 
-#include "../memory/csrc/ffi.hpp"
-#include "cuda/DetectCudaDevice.hpp"
 #include <ncore/core/status.h>
+#include <ncore/headeronly/macros.h>
+#include <ncore/memory/ffi.hpp>
+
+#include "cuda/DetectCudaDevice.hpp"
 
 /**
  * @brief Map a CUDA error code to a @ref novaError_t.
@@ -39,6 +41,8 @@ static inline novaError_t mapError(cudaError_t err) {
     return novaSuccess;
   case cudaErrorInvalidValue:
     return novaInvalidValue;
+  case cudaErrorInvalidDevice:
+    return novaInvalidDeviceId;
   case cudaErrorMemoryAllocation:
     return novaOutOfMemory;
   case cudaErrorNotSupported:
@@ -65,6 +69,9 @@ static inline novaError_t mapError(cudaError_t err) {
  *
  * The mapped codes are: @c cudaSuccess → @ref novaSuccess,
  * @c cudaErrorInvalidValue → @ref novaInvalidValue,
+ * @c cudaErrorInvalidDevice → @ref novaInvalidDeviceId,
+ * @c cudaErrorMemoryAllocation → @ref novaOutOfMemory,
+ * @c cudaErrorNotSupported → @ref novaNotImplemented,
  * @c cudaErrorExternalDevice → @ref novaExternalDeviceError,
  * @c cudaErrorInvalidMemcpyDirection → @ref novaInvalidTransfDirection,
  * @c cudaErrorInvalidResourceHandle → @ref novaInvalidResourceHandle,
@@ -76,32 +83,34 @@ static inline novaError_t mapError(cudaError_t err) {
  *         the message string obtained from @ref nova_get_error_msg.
  */
 static inline novaStatus_t mapError2Status(cudaError_t err) {
-  novaStatus_t st = {};
   switch (err) {
   case cudaSuccess:
-    st.err = novaSuccess;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaSuccess,
+            .message = nova_get_error_msg(novaSuccess, nullptr)};
   case cudaErrorInvalidValue:
-    st.err = novaInvalidValue;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaInvalidValue,
+            .message = nova_get_error_msg(novaInvalidValue, nullptr)};
+  case cudaErrorMemoryAllocation:
+    return {.err = novaOutOfMemory,
+            .message = nova_get_error_msg(novaOutOfMemory, nullptr)};
+  case cudaErrorNotSupported:
+    return {.err = novaNotImplemented,
+            .message = nova_get_error_msg(novaNotImplemented, nullptr)};
+  case cudaErrorInvalidDevice:
+    return {.err = novaInvalidDeviceId,
+            .message = nova_get_error_msg(novaInvalidDeviceId, nullptr)};
   case cudaErrorExternalDevice:
-    st.err = novaExternalDeviceError;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaExternalDeviceError,
+            .message = nova_get_error_msg(novaExternalDeviceError, nullptr)};
   case cudaErrorInvalidMemcpyDirection:
-    st.err = novaInvalidTransfDirection;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaInvalidTransfDirection,
+            .message = nova_get_error_msg(novaInvalidTransfDirection, nullptr)};
   case cudaErrorInvalidResourceHandle:
-    st.err = novaInvalidResourceHandle;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaInvalidResourceHandle,
+            .message = nova_get_error_msg(novaInvalidResourceHandle, nullptr)};
   default:
-    st.err = novaNotImplemented;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaNotImplemented,
+            .message = nova_get_error_msg(novaNotImplemented, nullptr)};
   }
 }
 
@@ -134,118 +143,140 @@ static inline cudaMemcpyKind mapMemcpyKind(DeviceMemcpyKind kind) {
 }
 
 /**
- * @brief Get or create the reusable CUDA stream.
+ * @brief Validates a device ordinal against the compiled and runtime limits.
  *
  * @details
- * Returns a singleton CUDA stream created exactly once via
- * @c std::call_once and reused for all subsequent default-path
- * @ref cudaTransfer operations.  The stream is created with default
- * flags (non-blocking, no priority override).
+ * Rejects ordinals below zero or at or above
+ * @ref NCORE_COMPILE_TIME_MAX_GPUS before querying the runtime, then
+ * rejects ordinals the runtime does not expose.
  *
- * The stream is never explicitly destroyed.  The CUDA runtime
- * reclaims all resources on process exit.  This avoids the
- * overhead of create/destroy per transfer and eliminates the
- * risk of use-after-free in concurrent scenarios.
+ * @param[in] device_id Runtime device ordinal to validate.
  *
- * @param[out] status  Receives an error status if stream creation
- *                     fails.  Unchanged on success.
- *
- * @return The singleton @c cudaStream_t, or null on failure.
- *
- * @warning A failed creation is sticky: @c std::call_once never
- *          retries, so every later call also fails until process
- *          restart.  Stream creation failure implies a broken device.
+ * @return @ref novaStatus_t; @c novaInvalidDeviceId when the ordinal is out
+ *         of range, or the mapped runtime error when the probe fails.
  */
-static inline cudaStream_t getStream(novaStatus_t *status) {
-  static cudaStream_t stream = nullptr;
-  static std::once_flag flag;
-  static novaStatus_t initStatus = {};
-  std::call_once(flag, [] {
-    const cudaError_t err = cudaStreamCreate(&stream);
+static inline novaStatus_t validateDeviceId(std::int32_t device_id) {
+  if (device_id < 0 || device_id >= NCORE_COMPILE_TIME_MAX_GPUS) {
+    return {.err = novaInvalidDeviceId,
+            .message = nova_get_error_msg(novaInvalidDeviceId, nullptr)};
+  }
+  int deviceCount = 0;
+  const cudaError_t err = cudaGetDeviceCount(&deviceCount);
+  if (err != cudaSuccess) {
+    return mapError2Status(err);
+  }
+  if (device_id >= deviceCount) {
+    return {.err = novaInvalidDeviceId,
+            .message = nova_get_error_msg(novaInvalidDeviceId, nullptr)};
+  }
+  return {.err = novaSuccess,
+          .message = nova_get_error_msg(novaSuccess, nullptr)};
+}
+
+/**
+ * @brief Runs an operation with the backend device set to @p device_id.
+ *
+ * @details
+ * Saves the current device, switches to @p device_id if different,
+ * runs @p operation, then restores the previous device.  If the switch
+ * back fails and the operation itself succeeded, the restore error is
+ * reported instead so transient state loss is not masked.
+ *
+ * @tparam Operation Callable taking no arguments and returning
+ *                   @ref novaStatus_t.
+ * @param[in]  device_id Target runtime device ordinal.
+ * @param[in]  operation Work to execute on @p device_id.
+ *
+ * @return Status from @p operation, or the device-switch/restore error.
+ */
+template <typename Operation>
+static inline novaStatus_t withDeviceId(std::int32_t device_id,
+                                        Operation &&operation) {
+  int previousDevice = -1;
+  cudaError_t err = cudaGetDevice(&previousDevice);
+  if (err != cudaSuccess) {
+    return mapError2Status(err);
+  }
+  const bool changed = previousDevice != device_id;
+  if (changed) {
+    err = cudaSetDevice(device_id);
     if (err != cudaSuccess) {
-      initStatus = mapError2Status(err);
+      return mapError2Status(err);
     }
-  });
-  if (stream == nullptr) {
-    *status = initStatus;
   }
-  return stream;
+
+  novaStatus_t status = operation();
+  if (changed) {
+    const cudaError_t restoreError = cudaSetDevice(previousDevice);
+    if (restoreError != cudaSuccess && status.err == novaSuccess) {
+      status = mapError2Status(restoreError);
+    }
+  }
+  return status;
 }
 
 /**
- * @brief Query whether the active CUDA device supports memory pools.
+ * @brief Validates that @p stream belongs to @p device_id.
  *
  * @details
- * Queries the @c cudaDevAttrMemoryPoolsSupported attribute through
- * @c getCudaDeviceId().  Safe because CUDA device detection runs
- * before any device memory is allocated and the detection result is
- * saved under lock, so @c getCudaDeviceId() always returns a valid
- * id here.
+ * A null stream is always accepted (it denotes the device engine
+ * stream).  A non-null stream is queried for its device via
+ * @c cudaStreamGetDevice and rejected when it does not match.
  *
- * @return @c true if memory pools are supported, @c false otherwise.
+ * @param[in]  device_id Expected runtime device ordinal.
+ * @param[in]  stream    Stream to validate, or null.
+ *
+ * @return @ref novaStatus_t; @c novaInvalidDeviceId when the stream
+ *         belongs to a different device.
  */
-static inline bool supportMemoryPool() {
-  static const bool supported = [] {
-    int value = 0;
-    const cudaError_t err = cudaDeviceGetAttribute(
-        &value, cudaDevAttrMemoryPoolsSupported, getCudaDeviceId());
-    return err == cudaSuccess && value != 0;
-  }();
-  return supported;
+static inline novaStatus_t validateStreamDevice(std::int32_t device_id,
+                                                cudaStream_t stream) {
+  if (stream == nullptr) {
+    return {.err = novaSuccess,
+            .message = nova_get_error_msg(novaSuccess, nullptr)};
+  }
+  int streamDevice = -1;
+  const cudaError_t err = cudaStreamGetDevice(stream, &streamDevice);
+  if (err != cudaSuccess) {
+    return mapError2Status(err);
+  }
+  if (streamDevice != device_id) {
+    return {.err = novaInvalidDeviceId,
+            .message = nova_get_error_msg(novaInvalidDeviceId, nullptr)};
+  }
+  return {.err = novaSuccess,
+          .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 /**
- * @brief Create a CUDA stream.
+ * @brief Reports whether the backend device supports native memory pools.
  *
- * @param[out] stream  Receives the new stream handle.
- * @param[out] status  Receives the error status on failure.
+ * @details
+ * Queries the device attribute for memory-pool support.  When the query
+ * fails the error is mapped through @ref mapError2Status and reported;
+ * the device is then treated as pool-less by the caller.
  *
- * @return @c true on success, @c false on failure.
+ * @param[in]     device_id Runtime device ordinal.
+ * @param[in,out] supported Receives @c true when pools are supported.
+ *
+ * @return @ref novaStatus_t; @c novaInvalidPointer when @p supported is
+ *         null.
  */
-static inline bool streamCreate(cudaStream_t *stream, novaStatus_t *status) {
-  const cudaError_t err = cudaStreamCreate(stream);
-  if (err != cudaSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
+static inline novaStatus_t supportMemoryPool(std::int32_t device_id,
+                                             bool *supported) {
+  if (supported == nullptr) {
+    return {.err = novaInvalidPointer,
+            .message = nova_get_error_msg(novaInvalidPointer, nullptr)};
   }
-  return true;
-}
-
-/**
- * @brief Block until all work on @p stream has completed.
- *
- * @param[in]  stream  The stream to synchronize.
- * @param[out] status  Receives the error status on failure.
- *
- * @return @c true on success, @c false on failure.
- */
-static inline bool streamSync(cudaStream_t stream, novaStatus_t *status) {
-  const cudaError_t err = cudaStreamSynchronize(stream);
+  int value = 0;
+  const cudaError_t err = cudaDeviceGetAttribute(
+      &value, cudaDevAttrMemoryPoolsSupported, device_id);
   if (err != cudaSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
+    return mapError2Status(err);
   }
-  return true;
-}
-
-/**
- * @brief Destroy a CUDA stream.
- *
- * @param[in]  stream  The stream to destroy.
- * @param[out] status  Receives the error status on failure.
- *
- * @return @c true on success, @c false on failure.
- */
-static inline bool streamDestroy(cudaStream_t stream, novaStatus_t *status) {
-  const cudaError_t err = cudaStreamDestroy(stream);
-  if (err != cudaSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
-  }
-  return true;
+  *supported = value != 0;
+  return {.err = novaSuccess,
+          .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 #elif defined(NOVA_HAS_HIP) && __has_include(<hip/hip_runtime_api.h>)
@@ -257,9 +288,10 @@ static inline bool streamDestroy(cudaStream_t stream, novaStatus_t *status) {
 
 #include <mutex>
 
-#include "../memory/csrc/ffi.hpp"
-#include "hip/DetectHipDevice.hpp"
 #include <ncore/core/status.h>
+#include <ncore/memory/ffi.hpp>
+
+#include "hip/DetectHipDevice.hpp"
 
 /**
  * @brief Map a HIP error code to a @ref novaError_t.
@@ -278,6 +310,8 @@ static inline novaError_t mapError(hipError_t err) {
     return novaSuccess;
   case hipErrorInvalidValue:
     return novaInvalidValue;
+  case hipErrorInvalidDevice:
+    return novaInvalidDeviceId;
   case hipErrorOutOfMemory:
     return novaOutOfMemory;
   case hipErrorNotSupported:
@@ -305,6 +339,9 @@ static inline novaError_t mapError(hipError_t err) {
  * HIP exposes no @c hipErrorExternalDevice equivalent, so the
  * mapped codes are: @c hipSuccess → @ref novaSuccess,
  * @c hipErrorInvalidValue → @ref novaInvalidValue,
+ * @c hipErrorInvalidDevice → @ref novaInvalidDeviceId,
+ * @c hipErrorOutOfMemory → @ref novaOutOfMemory,
+ * @c hipErrorNotSupported → @ref novaNotImplemented,
  * @c hipErrorInvalidMemcpyDirection → @ref novaInvalidTransfDirection,
  * @c hipErrorInvalidResourceHandle → @ref novaInvalidResourceHandle,
  * and every other error → @ref novaNotImplemented.
@@ -315,28 +352,31 @@ static inline novaError_t mapError(hipError_t err) {
  *         the message string obtained from @ref nova_get_error_msg.
  */
 static inline novaStatus_t mapError2Status(hipError_t err) {
-  novaStatus_t st = {};
   switch (err) {
   case hipSuccess:
-    st.err = novaSuccess;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaSuccess,
+            .message = nova_get_error_msg(novaSuccess, nullptr)};
   case hipErrorInvalidValue:
-    st.err = novaInvalidValue;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaInvalidValue,
+            .message = nova_get_error_msg(novaInvalidValue, nullptr)};
+  case hipErrorOutOfMemory:
+    return {.err = novaOutOfMemory,
+            .message = nova_get_error_msg(novaOutOfMemory, nullptr)};
+  case hipErrorNotSupported:
+    return {.err = novaNotImplemented,
+            .message = nova_get_error_msg(novaNotImplemented, nullptr)};
+  case hipErrorInvalidDevice:
+    return {.err = novaInvalidDeviceId,
+            .message = nova_get_error_msg(novaInvalidDeviceId, nullptr)};
   case hipErrorInvalidMemcpyDirection:
-    st.err = novaInvalidTransfDirection;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaInvalidTransfDirection,
+            .message = nova_get_error_msg(novaInvalidTransfDirection, nullptr)};
   case hipErrorInvalidResourceHandle:
-    st.err = novaInvalidResourceHandle;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaInvalidResourceHandle,
+            .message = nova_get_error_msg(novaInvalidResourceHandle, nullptr)};
   default:
-    st.err = novaNotImplemented;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
+    return {.err = novaNotImplemented,
+            .message = nova_get_error_msg(novaNotImplemented, nullptr)};
   }
 }
 
@@ -369,120 +409,140 @@ static inline hipMemcpyKind mapMemcpyKind(DeviceMemcpyKind kind) {
 }
 
 /**
- * @brief Get or create the reusable HIP stream.
+ * @brief Validates a device ordinal against the compiled and runtime limits.
  *
  * @details
- * Returns a singleton HIP stream created exactly once via
- * @c std::call_once and reused for all subsequent default-path
- * transfers.  The stream is created with default flags (non-blocking,
- * no priority override).
+ * Rejects ordinals below zero or at or above
+ * @ref NCORE_COMPILE_TIME_MAX_GPUS before querying the runtime, then
+ * rejects ordinals the runtime does not expose.
  *
- * The stream is never explicitly destroyed.  The HIP runtime
- * reclaims all resources on process exit.  This avoids the
- * overhead of create/destroy per transfer and eliminates the
- * risk of use-after-free in concurrent scenarios.
+ * @param[in] device_id Runtime device ordinal to validate.
  *
- * @param[out] status  Receives an error status if stream creation
- *                     fails.  Unchanged on success.
- *
- * @return The singleton @c hipStream_t, or null on failure.
- *
- * @warning A failed creation is sticky: @c std::call_once never
- *          retries, so every later call also fails until process
- *          restart.  rocclr silently cancels pending null-stream
- *          work at @c hipStreamCreate, so the first call must
- *          happen before any null-stream operation is enqueued.
+ * @return @ref novaStatus_t; @c novaInvalidDeviceId when the ordinal is out
+ *         of range, or the mapped runtime error when the probe fails.
  */
-static inline hipStream_t getStream(novaStatus_t *status) {
-  static hipStream_t stream = nullptr;
-  static std::once_flag flag;
-  static novaStatus_t initStatus = {};
-  std::call_once(flag, [] {
-    const hipError_t err = hipStreamCreate(&stream);
+static inline novaStatus_t validateDeviceId(std::int32_t device_id) {
+  if (device_id < 0 || device_id >= NCORE_COMPILE_TIME_MAX_GPUS) {
+    return {.err = novaInvalidDeviceId,
+            .message = nova_get_error_msg(novaInvalidDeviceId, nullptr)};
+  }
+  int deviceCount = 0;
+  const hipError_t err = hipGetDeviceCount(&deviceCount);
+  if (err != hipSuccess) {
+    return mapError2Status(err);
+  }
+  if (device_id >= deviceCount) {
+    return {.err = novaInvalidDeviceId,
+            .message = nova_get_error_msg(novaInvalidDeviceId, nullptr)};
+  }
+  return {.err = novaSuccess,
+          .message = nova_get_error_msg(novaSuccess, nullptr)};
+}
+
+/**
+ * @brief Runs an operation with the backend device set to @p device_id.
+ *
+ * @details
+ * Saves the current device, switches to @p device_id if different,
+ * runs @p operation, then restores the previous device.  If the switch
+ * back fails and the operation itself succeeded, the restore error is
+ * reported instead so transient state loss is not masked.
+ *
+ * @tparam Operation Callable taking no arguments and returning
+ *                   @ref novaStatus_t.
+ * @param[in]  device_id Target runtime device ordinal.
+ * @param[in]  operation Work to execute on @p device_id.
+ *
+ * @return Status from @p operation, or the device-switch/restore error.
+ */
+template <typename Operation>
+static inline novaStatus_t withDeviceId(std::int32_t device_id,
+                                        Operation &&operation) {
+  int previousDevice = -1;
+  hipError_t err = hipGetDevice(&previousDevice);
+  if (err != hipSuccess) {
+    return mapError2Status(err);
+  }
+  const bool changed = previousDevice != device_id;
+  if (changed) {
+    err = hipSetDevice(device_id);
     if (err != hipSuccess) {
-      initStatus = mapError2Status(err);
+      return mapError2Status(err);
     }
-  });
-  if (stream == nullptr) {
-    *status = initStatus;
   }
-  return stream;
+
+  novaStatus_t status = operation();
+  if (changed) {
+    const hipError_t restoreError = hipSetDevice(previousDevice);
+    if (restoreError != hipSuccess && status.err == novaSuccess) {
+      status = mapError2Status(restoreError);
+    }
+  }
+  return status;
 }
 
 /**
- * @brief Query whether the active HIP device supports memory pools.
+ * @brief Validates that @p stream belongs to @p device_id.
  *
  * @details
- * Queries the @c hipDeviceAttributeMemoryPoolsSupported attribute
- * through @c getHipDeviceId().  Safe because HIP device detection
- * runs before any device memory is allocated and the detection
- * result is saved under lock, so @c getHipDeviceId() always returns
- * a valid id here.
+ * A null stream is always accepted (it denotes the device engine
+ * stream).  A non-null stream is queried for its device and
+ * rejected when it does not match.
  *
- * @return @c true if memory pools are supported, @c false otherwise.
+ * @param[in]  device_id Expected runtime device ordinal.
+ * @param[in]  stream    Stream to validate, or null.
+ *
+ * @return @ref novaStatus_t; @c novaInvalidDeviceId when the stream
+ *         belongs to a different device.
  */
-static inline bool supportMemoryPool() {
-  static const bool supported = [] {
-    int value = 0;
-    const hipError_t err = hipDeviceGetAttribute(
-        &value, hipDeviceAttributeMemoryPoolsSupported, getHipDeviceId());
-    return err == hipSuccess && value != 0;
-  }();
-  return supported;
+static inline novaStatus_t validateStreamDevice(std::int32_t device_id,
+                                                hipStream_t stream) {
+  if (stream == nullptr) {
+    return {.err = novaSuccess,
+            .message = nova_get_error_msg(novaSuccess, nullptr)};
+  }
+  hipDevice_t streamDevice{};
+  const hipError_t err = hipStreamGetDevice(stream, &streamDevice);
+  if (err != hipSuccess) {
+    return mapError2Status(err);
+  }
+  if (streamDevice != device_id) {
+    return {.err = novaInvalidDeviceId,
+            .message = nova_get_error_msg(novaInvalidDeviceId, nullptr)};
+  }
+  return {.err = novaSuccess,
+          .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 /**
- * @brief Create a HIP stream.
+ * @brief Reports whether the backend device supports native memory pools.
  *
- * @param[out] stream  Receives the new stream handle.
- * @param[out] status  Receives the error status on failure.
+ * @details
+ * Queries the device attribute for memory-pool support.  When the query
+ * fails the error is mapped through @ref mapError2Status and reported;
+ * the device is then treated as pool-less by the caller.
  *
- * @return @c true on success, @c false on failure.
+ * @param[in]     device_id Runtime device ordinal.
+ * @param[in,out] supported Receives @c true when pools are supported.
+ *
+ * @return @ref novaStatus_t; @c novaInvalidPointer when @p supported is
+ *         null.
  */
-static inline bool streamCreate(hipStream_t *stream, novaStatus_t *status) {
-  const hipError_t err = hipStreamCreate(stream);
-  if (err != hipSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
+static inline novaStatus_t supportMemoryPool(std::int32_t device_id,
+                                             bool *supported) {
+  if (supported == nullptr) {
+    return {.err = novaInvalidPointer,
+            .message = nova_get_error_msg(novaInvalidPointer, nullptr)};
   }
-  return true;
-}
-
-/**
- * @brief Block until all work on @p stream has completed.
- *
- * @param[in]  stream  The stream to synchronize.
- * @param[out] status  Receives the error status on failure.
- *
- * @return @c true on success, @c false on failure.
- */
-static inline bool streamSync(hipStream_t stream, novaStatus_t *status) {
-  const hipError_t err = hipStreamSynchronize(stream);
+  int value = 0;
+  const hipError_t err = hipDeviceGetAttribute(
+      &value, hipDeviceAttributeMemoryPoolsSupported, device_id);
   if (err != hipSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
+    return mapError2Status(err);
   }
-  return true;
-}
-
-/**
- * @brief Destroy a HIP stream.
- *
- * @param[in]  stream  The stream to destroy.
- * @param[out] status  Receives the error status on failure.
- *
- * @return @c true on success, @c false on failure.
- */
-static inline bool streamDestroy(hipStream_t stream, novaStatus_t *status) {
-  const hipError_t err = hipStreamDestroy(stream);
-  if (err != hipSuccess) {
-    status->err = mapError(err);
-    status->message = nova_get_error_msg(status->err, nullptr);
-    return false;
-  }
-  return true;
+  *supported = value != 0;
+  return {.err = novaSuccess,
+          .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 #endif

@@ -155,7 +155,7 @@ bool isHipDeviceAvailable(bool log, bool verbose) {
   if (!result.available &&
       !hipDeviceAvailable.load(std::memory_order_acquire)) {
     if (log && result.errorMessage != nullptr) {
-      const std::lock_guard<std::mutex> lock(hipDeviceLogMtx);
+      const std::scoped_lock lock(hipDeviceLogMtx);
       std::cerr << "[HIP] isHipDeviceAvailable: error obtaining device count.\n"
                 << "Error message: '" << result.errorMessage << "'\n";
     }

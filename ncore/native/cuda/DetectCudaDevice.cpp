@@ -147,7 +147,7 @@ bool isCudaDeviceAvailable(bool log, bool verbose) {
   if (!result.available &&
       !cudaDeviceAvailable.load(std::memory_order_acquire)) {
     if (log && result.errorMessage != nullptr) {
-      const std::lock_guard<std::mutex> lock(cudaDeviceLogMtx);
+      const std::scoped_lock lock(cudaDeviceLogMtx);
       std::cerr
           << "[CUDA] isCudaDeviceAvailable: Error obtaining device count.\n"
           << "Error message: '" << result.errorMessage << "'\n";
