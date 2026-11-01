@@ -287,8 +287,10 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
   dst->is_view_ = false;
   dst->is_pinned_ = src->is_pinned_;
   dst->grad_fn_ = nullptr;
-  dst->offset = 0;
+  dst->offset = src->offset;
   dst->version_ = 0;
+  dst->zero_point_ = src->zero_point_;
+  dst->scale_ = src->scale_;
 
   if (src->storage != nullptr) {
 

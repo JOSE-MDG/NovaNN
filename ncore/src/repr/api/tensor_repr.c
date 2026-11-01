@@ -93,8 +93,8 @@ static inline novaStatus_t render_owned(const Tensor *ten,
     rten.is_allocated_ = false;
 
     // Create a storage for rten (in-place)
-    auto st = safe_allocator(ten->storage->handle.requested_bytes, DEVICE_CPU,
-                             false, nullptr, &rten, true);
+    auto st = safe_allocator(ten->size * ten->item_size, DEVICE_CPU, false,
+                             nullptr, &rten, true);
     if (st.err != novaSuccess) {
       return st;
     }
@@ -131,7 +131,7 @@ static inline novaStatus_t render_owned(const Tensor *ten,
     if (!ctx.is_meta) {
       const Tensor *t = ctx.tensor;
       char buf[128];
-      const void *ptr = t->data.v;
+      const void *ptr = t->data.data + t->offset;
       /*
        * Packed dtypes (e.g. Float4E2M1fn) store multiple sub-elements
        * in one storage unit. Emit every lane, not just the first.

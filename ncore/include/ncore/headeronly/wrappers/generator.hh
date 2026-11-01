@@ -312,7 +312,7 @@ inline novaStatus_t GeneratorCXX::fill(Tensor &ten) {
                                    "handle placement.\n"};
   }
   return fillBytes(ten.data.data + ten.offset,
-                   ten.storage->handle.requested_bytes);
+                   ten.size * ten.item_size);
 }
 
 inline size_t GeneratorCXX::snapshotWords() const {

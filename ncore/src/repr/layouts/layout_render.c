@@ -24,7 +24,7 @@
  */
 static void *elem_ptr(const Tensor *ten, const coords_t coords) {
   size_t off = compute_linear_byte_offset(coords, ten->ndims, ten->strides);
-  return ten->data.data + off;
+  return ten->data.data + ten->offset + off;
 }
 
 /**
@@ -151,6 +151,6 @@ void layout_render(const ReprContext *ctx, StringBuilder *sb) {
   coords_t coords = {};
   /* Indent under the "tensor(" prefix. */
   const int indent = (int)(sizeof("tensor(") - 1);
-  const unsigned char *base = ctx->tensor->data.data;
+  const unsigned char *base = ctx->tensor->data.data + ctx->tensor->offset;
   render_dim(sb, ctx, 0, indent, coords, base);
 }
