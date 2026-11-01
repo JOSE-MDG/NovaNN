@@ -258,7 +258,8 @@ TEST(HeuristicCache, PreloadedHitReturnsStored) {
   p.accumItemSize = 4U;
   ASSERT_TRUE(hk::resolveTier(p) == hk::HeuristicTier::Full);
 
-  const hk::FullCacheKey key = hk::detail::fullKeyFor(p, p.device.archVersion);
+  hk::FullCacheKey key = hk::detail::fullKeyFor(p, p.device.archVersion);
+  key.kernelTag = hk::detail::kernelTagFor(p.kernel);
 
   hk::FullConfigCache cache{};
   hk::LaunchConfig stored{};
@@ -306,6 +307,64 @@ TEST(HeuristicCache, MissStoresForNextCall) {
   EXPECT_EQ(first.threads.x, second.threads.x);
   EXPECT_EQ(first.blocks.x, second.blocks.x);
   EXPECT_EQ(first.blocks.x, 32U);
+}
+
+/**
+ * @brief Identity and transpose of one shape never share a cache entry.
+ * @test A cached streaming entry must not be served to a tiled launch.
+ */
+TEST(HeuristicCache, LayoutKeysSeparatePermutation) {
+  hk::LayoutTransformParams p{};
+  p.device = testCaps();
+  p.kernel = testKernel();
+  p.layout.ndim = 2U;
+  p.layout.shape[0] = 4096;
+  p.layout.shape[1] = 4096;
+  p.itemSize = 4U;
+  p.perm[0] = 0U;
+  p.perm[1] = 1U;
+  ASSERT_TRUE(hk::resolveTier(p) == hk::HeuristicTier::Full);
+
+  hk::FullConfigCache cache{};
+  const hk::LaunchConfig identity = hk::resolveLaunchConfig(p, &cache);
+  EXPECT_EQ(identity.threads.x, 256U);
+
+  hk::LayoutTransformParams t = p;
+  t.perm[0] = 1U;
+  t.perm[1] = 0U;
+  const hk::LaunchConfig tiled = hk::resolveLaunchConfig(t, &cache);
+  EXPECT_EQ(tiled.threads.x, 32U);
+  EXPECT_EQ(tiled.threads.y, 8U);
+}
+
+/**
+ * @brief Element-wise keys separate contiguity and alignment.
+ * @test Same count and sizes, different proven access: buckets differ.
+ */
+TEST(HeuristicCache, ElementWiseKeysSeparateAccess) {
+  auto a = testElementWise(1ULL << 20U);
+  auto b = a;
+  b.inputContiguous = false;
+  auto c = a;
+  c.inputAlignBytes = 4U;
+
+  const auto ka = hk::detail::fullKeyFor(a, a.device.archVersion);
+  const auto kb = hk::detail::fullKeyFor(b, b.device.archVersion);
+  const auto kc = hk::detail::fullKeyFor(c, c.device.archVersion);
+  EXPECT_NE(ka.shapeBucket, kb.shapeBucket);
+  EXPECT_NE(ka.shapeBucket, kc.shapeBucket);
+}
+
+/**
+ * @brief Keys separate compiled kernels of one pattern.
+ * @test Same facts, different block limit: kernel tags differ.
+ */
+TEST(HeuristicCache, KeysSeparateKernelAttrs) {
+  auto p = testElementWise(1ULL << 30U);
+  hk::KernelAttrs a = testKernel();
+  hk::KernelAttrs b = testKernel();
+  b.maxThreadsPerBlockKernel = 64U;
+  EXPECT_NE(hk::detail::kernelTagFor(a), hk::detail::kernelTagFor(b));
 }
 
 /**

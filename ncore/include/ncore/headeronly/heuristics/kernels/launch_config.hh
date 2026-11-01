@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <bit>
+
 #include "patterns/routing.hh"
 
 namespace ncore::heuristics::kernels {
@@ -24,8 +26,18 @@ inline FullCacheKey fullKeyFor(const ElementWiseParams &p,
                                uint32_t arch) noexcept {
   FullCacheKey key{};
   key.pattern = ExecutionPattern::ElementWise;
-  key.shapeBucket =
-      foldU64(static_cast<uint64_t>(0xE1E4), nextPow2(p.numElements));
+  uint64_t h = foldU64(0xE1E4, nextPow2(p.numElements));
+  h = foldU64(h,
+              static_cast<uint64_t>(p.inputContiguous ? 1U : 0U) |
+                  (static_cast<uint64_t>(p.outputContiguous ? 1U : 0U) << 1U));
+  h = foldU64(h, p.inputAlignBytes);
+  h = foldU64(h, p.outputAlignBytes);
+  h = foldU64(h, p.packedElemsPerUnit);
+  h = foldU64(h, p.numInputs);
+  h = foldU64(h, static_cast<uint64_t>(p.ilpPreference));
+  h = foldU64(h, static_cast<uint64_t>(p.tailStrategy));
+  h = foldU64(h, std::bit_cast<uint32_t>(p.arithmeticIntensity));
+  key.shapeBucket = h;
   key.dtypeTag = foldDtypeTag(p.inputItemSize, p.outputItemSize);
   key.archTag = arch;
   return key;
@@ -47,12 +59,18 @@ inline FullCacheKey fullKeyFor(const LayoutTransformParams &p,
                                uint32_t arch) noexcept {
   FullCacheKey key{};
   key.pattern = ExecutionPattern::LayoutTransformation;
-  uint64_t h = 0x1A90U;
-  for (uint32_t i = 0; i < p.layout.ndim && i < LAYOUT_MAX_RANK; ++i) {
+  uint64_t h = foldU64(0x1A90U, p.layout.ndim);
+  const uint32_t dims =
+      p.layout.ndim < LAYOUT_MAX_RANK ? p.layout.ndim : LAYOUT_MAX_RANK;
+  for (uint32_t i = 0; i < dims; ++i) {
     h = foldU64(h, nextPow2(p.layout.shape[i] > 0
                                 ? static_cast<uint64_t>(p.layout.shape[i])
                                 : 0U));
+    h = foldU64(h, p.perm[i]);
   }
+  // perm decides tiled versus streaming, so a key without it would serve a
+  // tile grid to a linear kernel and the reverse.
+  h = foldU64(h, static_cast<uint64_t>(p.bankStrategy));
   key.shapeBucket = h;
   key.dtypeTag = p.itemSize;
   key.archTag = arch;
@@ -193,12 +211,19 @@ inline uint64_t fusedStageKey(const FusedStage &s, uint32_t arch,
   return foldU64(0x9E3779B9ULL, static_cast<uint64_t>(s.pattern));
 }
 
+/// Fold of the compiled-kernel facts every resolver reads back.
+inline uint32_t kernelTagFor(const KernelAttrs &k) noexcept {
+  return static_cast<uint32_t>(foldU64(
+      foldU64(k.regsPerThread, k.maxThreadsPerBlockKernel), k.staticSmemBytes));
+}
+
 /// Lookup-or-compute wrapper shared by every Full branch.
 template <typename Params, typename Resolver>
 inline LaunchConfig resolveCached(const Params &d, const DeviceCaps &dev,
                                   const KernelAttrs &k, FullConfigCache *cache,
                                   Resolver resolve) noexcept {
-  const FullCacheKey key = fullKeyFor(d, dev.archVersion);
+  FullCacheKey key = fullKeyFor(d, dev.archVersion);
+  key.kernelTag = kernelTagFor(k);
   LaunchConfig cfg{};
   if (cache != nullptr && cache->lookup(key, &cfg)) {
     return clampConfig(cfg, dev, k);
