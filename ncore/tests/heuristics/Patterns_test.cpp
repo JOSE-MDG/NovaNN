@@ -12,6 +12,7 @@
 
 #include <ncore/core/dtype.h>
 #include <ncore/headeronly/heuristics/kernels/launch_config.hh>
+#include <ncore/headeronly/macros.h>
 #include <tests/heuristics/Caps.hpp>
 
 using tests::heuristics::testCaps;
@@ -207,8 +208,78 @@ TEST(LayoutFull, OversizedRankFloors) {
 }
 
 /**
- * @brief Small scan batch takes one block per scan.
+ * @brief Every legal tensor rank resolves one streaming geometry.
+ * @test Ranks 1..64 with a fixed element count: no rank cliff and no
+ *       undefined shift in the permutation mask.
  */
+TEST(LayoutFull, RankSweepStreams) {
+  hk::LayoutTransformParams base{};
+  base.device = testCaps();
+  base.kernel = testKernel();
+  base.itemSize = 4U;
+  base.layout.ndim = 1U;
+  base.layout.shape[0] = 1LL << 20U;
+  base.perm[0] = 0U;
+  const hk::LaunchConfig ref = hk::resolveLaunchConfig(base);
+  ASSERT_EQ(ref.threads.x, 256U);
+  ASSERT_EQ(ref.blocks.x, 64U);
+
+  for (uint32_t rank = 1; rank <= hk::LAYOUT_MAX_RANK; ++rank) {
+    hk::LayoutTransformParams p{};
+    p.device = testCaps();
+    p.kernel = testKernel();
+    p.itemSize = 4U;
+    p.layout.ndim = static_cast<uint8_t>(rank);
+    p.layout.shape[0] = 1LL << 20U;
+    for (uint32_t i = 1; i < rank; ++i) {
+      p.layout.shape[i] = 1;
+    }
+    for (uint32_t i = 0; i < rank; ++i) {
+      p.perm[i] = static_cast<uint8_t>(i);
+    }
+    const hk::LaunchConfig cfg = hk::resolveLaunchConfig(p);
+    EXPECT_EQ(cfg.threads.x, ref.threads.x) << "rank " << rank;
+    EXPECT_EQ(cfg.blocks.x, ref.blocks.x) << "rank " << rank;
+  }
+}
+
+/**
+ * @brief Rank past the staging cap streams instead of serializing.
+ * @test Rank 65 with 1M elements must not fall to the all-ones floor.
+ */
+TEST(LayoutFull, RankPastStagingStreams) {
+  hk::LayoutTransformParams p{};
+  p.device = testCaps();
+  p.kernel = testKernel();
+  p.itemSize = 4U;
+  for (uint32_t i = 0; i < hk::LAYOUT_MAX_RANK; ++i) {
+    p.layout.shape[i] = 1;
+    p.perm[i] = static_cast<uint8_t>(i);
+  }
+  p.layout.shape[0] = 1LL << 20U;
+  p.layout.ndim = static_cast<uint8_t>(hk::LAYOUT_MAX_RANK + 1U);
+
+  const hk::LaunchConfig cfg = hk::resolveLaunchConfig(p);
+  EXPECT_EQ(cfg.threads.x, 256U);
+  EXPECT_EQ(cfg.blocks.x, 64U);
+}
+
+/**
+ * @brief The permutation seen-set covers ranks past 32.
+ * @test Rank-33 identity is valid; a duplicate inside it is not.
+ */
+TEST(LayoutValidation, PermMaskCoversRank33) {
+  hk::LayoutTransformParams p{};
+  p.layout.ndim = 33U;
+  for (uint32_t i = 0; i < 33U; ++i) {
+    p.perm[i] = static_cast<uint8_t>(i);
+  }
+  EXPECT_TRUE(hk::detail::layoutPermValid(p));
+
+  p.perm[32] = 0U;
+  EXPECT_FALSE(hk::detail::layoutPermValid(p));
+}
+
 TEST(ScanFast, OneBlockPerScan) {
   hk::ParallelScanParams p{};
   p.device = testCaps();
