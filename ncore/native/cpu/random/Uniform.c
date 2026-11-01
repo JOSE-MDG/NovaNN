@@ -434,7 +434,8 @@ static bool uniform_scratch_acquire(size_t bytes, UniformScratch *scratch,
  */
 static novaStatus_t uniform_scratch_release(UniformScratch *scratch) {
   novaStatus_t status = {0};
-  if (!release(&scratch->handle, &status)) {
+  release(&scratch->handle, &status);
+  if (status.err != novaSuccess) {
     return (novaStatus_t){.err = novaReleaseError,
                           .message = "Draws need somewhere to land. The "
                                      "scratch reservation could not be "
