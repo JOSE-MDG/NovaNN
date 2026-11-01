@@ -25,7 +25,8 @@ set_target_properties(cuda_kernels_obj PROPERTIES
 target_include_directories(cuda_kernels_obj
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
     PRIVATE ${CMAKE_BINARY_DIR}
-    PRIVATE ${CMAKE_SOURCE_DIR}/ncore/memory/csrc
+    PRIVATE ${CMAKE_SOURCE_DIR}/ncore
+    PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native
     PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/cuda/memory
     PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/cuda
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}

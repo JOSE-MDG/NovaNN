@@ -234,14 +234,6 @@ novaStatus_t launchHipRngFillU32(const uint32_t key[2],
   if (launched.err != novaSuccess) {
     return launched;
   }
-  // Null path: the shared queue can drop a freshly compiled kernel
-  // when the next null-stream op waits host side behind it, so the
-  // sync orders the fill out before the caller continues. Explicit
-  // stream callers keep enqueue only, ordering is theirs.
-  if (caller_stream == nullptr && hipStreamSynchronize(nullptr) != hipSuccess) {
-    return {.err = novaKernelLaunchError,
-            .message = "hipStreamSynchronize after launch failed"};
-  }
   return launched;
 }
 
@@ -283,14 +275,6 @@ novaStatus_t launchHipRngFillU64(const uint32_t key[2],
   const novaStatus_t launched = checkLaunch();
   if (launched.err != novaSuccess) {
     return launched;
-  }
-  // Null path: the shared queue can drop a freshly compiled kernel
-  // when the next null-stream op waits host side behind it, so the
-  // sync orders the fill out before the caller continues. Explicit
-  // stream callers keep enqueue only, ordering is theirs.
-  if (caller_stream == nullptr && hipStreamSynchronize(nullptr) != hipSuccess) {
-    return {.err = novaKernelLaunchError,
-            .message = "hipStreamSynchronize after launch failed"};
   }
   return launched;
 }

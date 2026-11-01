@@ -23,6 +23,7 @@ set_target_properties(kernels_obj PROPERTIES
 target_include_directories(kernels_obj
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native
 )
 
 nova_configure_build_flags(kernels_obj)

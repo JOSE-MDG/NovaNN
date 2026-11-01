@@ -28,57 +28,15 @@
 #include <ncore/headeronly/macros.h>
 #include <ncore/tensor.h>
 
-#include "utils/KernelDispatcher.hpp"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef NOVA_HAS_CUDA
-/**
- * @brief CUDA backend entry point for dtype casting dispatch.
- *
- * @details
- * Defined in @c DtypeCastingKernel.cu.  Dispatches to backend-specific
- * kernels based on the source and destination dtypes.
- *
- * @param[in]  src  Source tensor.  Must have a supported source dtype.
- * @param[in,out] dst  Destination tensor.  Must have the target dtype
- *                     and matching shape.
- *
- * @return @ref novaSuccess on success, or an error status.
- *
- * @see DtypeCastingKernel.cu
- * @see launchDtypeCastingKernel()
- */
-extern novaStatus_t launchCudaDtypeCastingKernel(const Tensor *restrict src,
-                                                 Tensor *restrict dst);
+#include "cuda/kernels/DtypeCastingKernel.h"
 #endif
 
 #ifdef NOVA_HAS_HIP
-/**
- * @brief HIP backend entry point for dtype casting dispatch.
- *
- * @details
- * Defined in @c DtypeCastingKernel.hip.  Dispatches to backend-specific
- * kernels based on the source and destination dtypes.
- *
- * @param[in]  src  Source tensor.  Must have a supported source dtype.
- * @param[in,out] dst  Destination tensor.  Must have the target dtype
- *                     and matching shape.
- *
- * @return @ref novaSuccess on success, or an error status.
- *
- * @see DtypeCastingKernel.hip
- * @see launchDtypeCastingKernel()
- */
-extern novaStatus_t launchHipDtypeCastingKernel(const Tensor *restrict src,
-                                                Tensor *restrict dst);
+#include "hip/kernels/DtypeCastingKernel.h"
 #endif
 
-#ifdef __cplusplus
-}
-#endif
+#include "utils/KernelDispatcher.hpp"
 
 namespace {
 

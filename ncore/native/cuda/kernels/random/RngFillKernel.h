@@ -18,6 +18,8 @@
 
 #include <ncore/core/status.h>
 
+#include <ncore/headeronly/stream_types.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,8 +37,9 @@ extern "C" {
  * @param[in]  base_ctr  Four counter entries locating the first block.
  * @param[out] dst       Destination buffer in CUDA device memory.
  * @param[in]  n         Values to emit.
- * @param[in]  caller_stream Nullable caller stream; null launches on the
- *                            default stream.
+ * @param[in]  caller_stream Stream that receives the launch, normally the
+ *                            device engine stream. Never synchronized or
+ *                            destroyed here.
  *
  * @return @ref novaStatus_t with the launch outcome
  *         (@ref novaKernelLaunchError on launch failure), or the
@@ -57,8 +60,9 @@ novaStatus_t launchCudaRngFillU64(const uint32_t key[2],
  * @param[in]  base_ctr  Four counter entries locating the first block.
  * @param[out] dst       Destination buffer in CUDA device memory.
  * @param[in]  n         Values to emit.
- * @param[in]  caller_stream Nullable caller stream; null launches on the
- *                            default stream.
+ * @param[in]  caller_stream Stream that receives the launch, normally the
+ *                            device engine stream. Never synchronized or
+ *                            destroyed here.
  *
  * @return @ref novaStatus_t with the launch outcome
  *         (@ref novaKernelLaunchError on launch failure), or the
