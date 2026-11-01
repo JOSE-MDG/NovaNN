@@ -21,8 +21,9 @@
 #include <ncore/headeronly/wrappers/tensor.hh>
 #include <ncore/tensor.h>
 
-#include "utils/Rng.hpp"
-#include "utils/TensorUtils.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/rng/Fill.hpp>
+#include <tests/tensor/TensorUtils.hpp>
 
 namespace {
 
@@ -31,11 +32,9 @@ using ncore::wrappers::unallocated;
 using tests::rng::fillTensor;
 using tests::tensor::expectBytesEqual;
 
-/* Defined in ncore/memory/csrc/ffi.cpp re-declared here
-   because ncore/core/device.h intentionally does not
-   expose this bridge-level wrapper. */
 extern "C" novaStatus_t deviceTransfer(const void *src, void *dst,
-                                       TransferKind kind, size_t bytes);
+                                       TransferKind kind, size_t bytes,
+                                       void *stream = nullptr);
 
 TEST(TensorTransfer, FromHostRejectsCpuDestination) {
   novaStatus_t st{};
@@ -64,6 +63,7 @@ TEST(TensorTransfer, FromDeviceRejectsCpuPair) {
 }
 
 TEST(TensorTransfer, FromHostRejectsUnallocatedSource) {
+  NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};
   TensorCXX src(unallocated, {4}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -106,6 +106,7 @@ TEST(TensorTransfer, DeviceTransferRejectsUnknownKind) {
 }
 
 TEST(TensorTransfer, FromDeviceRejectsGpuTaggedUnallocatedSource) {
+  NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};
   TensorCXX src(unallocated, {4}, Float32, DEVICE_GPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -121,6 +122,7 @@ TEST(TensorTransfer, FromDeviceRejectsGpuTaggedUnallocatedSource) {
 }
 
 TEST(TensorTransfer, FromHostRejectsGpuTaggedUnallocatedDestination) {
+  NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};
   TensorCXX src({4}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);

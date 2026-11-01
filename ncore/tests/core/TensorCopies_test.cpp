@@ -24,8 +24,9 @@
 #include <ncore/headeronly/wrappers/tensor.hh>
 #include <ncore/tensor.h>
 
-#include "utils/Rng.hpp"
-#include "utils/TensorUtils.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/rng/Fill.hpp>
+#include <tests/tensor/TensorUtils.hpp>
 
 namespace {
 
@@ -229,6 +230,7 @@ TEST(TensorCopies, AllocatedDestinationRejected) {
 }
 
 TEST(TensorCopies, DeviceMismatchReportsInvalidDevice) {
+  NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};
   TensorCXX src({2, 2}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -243,6 +245,7 @@ TEST(TensorCopies, DeviceMismatchReportsInvalidDevice) {
 
 /* A dtype mismatch takes precedence over the device mismatch. */
 TEST(TensorCopies, DeviceAndDtypeMismatchReportsInvalidDtype) {
+  NOVA_TEST_REQUIRE_GPU();
   novaStatus_t st{};
   TensorCXX src({2, 2}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess);
@@ -276,7 +279,7 @@ void fillDeviceTensor(Tensor &dev, const std::vector<size_t> &logical_shape,
 }
 
 /// Short label for parameterized dtype names.
-std::string dtypeLabel(DType_ dtype) {
+std::string_view dtypeLabel(DType_ dtype) {
   switch (dtype) {
   case Float32:
     return "f32";
