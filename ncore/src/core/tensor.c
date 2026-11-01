@@ -955,7 +955,7 @@ static inline novaStatus_t transf_tensor_common(const Tensor *restrict src,
   }
 
   return transfer_to(src->device, dst->device, src->data.data + src->offset,
-                     dst->data.data, src->storage->handle.requested_bytes);
+                     dst->data.data, src->size * src->item_size);
 }
 
 /**

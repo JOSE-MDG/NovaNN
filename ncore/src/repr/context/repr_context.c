@@ -193,7 +193,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
       coords_t coords = {};
       compute_coords_from_linear_index_(logical, ten->ndims, ten->shape,
                                         coords);
-      const void *ptr = ten->data.data + compute_linear_byte_offset(
+      const void *ptr = ten->data.data + ten->offset + compute_linear_byte_offset(
                                              coords, ten->ndims, ten->strides);
       const double av = lane_abs_double(ten, ptr, 0);
       if (!(av > max_abs)) {
@@ -216,7 +216,7 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
     const size_t logical = i < head ? i : total - limit + i;
     coords_t coords = {};
     compute_coords_from_linear_index_(logical, ten->ndims, ten->shape, coords);
-    const void *ptr = ten->data.data + compute_linear_byte_offset(
+    const void *ptr = ten->data.data + ten->offset + compute_linear_byte_offset(
                                            coords, ten->ndims, ten->strides);
 
     char fmt_buf[128];

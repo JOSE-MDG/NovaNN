@@ -7,6 +7,8 @@
 
 #include <array>
 
+#include <ncore/headeronly/macros.h>
+
 #include "common.hh"
 
 namespace ncore::heuristics::kernels {
@@ -17,15 +19,15 @@ namespace ncore::heuristics::kernels {
  */
 enum class BankStrategy : uint8_t { Auto, Padding, Swizzle };
 
-/// Maximum rank staged through shared memory.
-inline constexpr uint8_t LAYOUT_MAX_RANK = 8;
+/// Maximum rank a layout description can carry.
+inline constexpr uint8_t LAYOUT_MAX_RANK = NOVA_MAX_DIMS;
 
 /**
  * @struct LayoutShape
  * @brief Full shape plus strides on both sides, in elements.
  */
 struct LayoutShape {
-  uint8_t ndim = 0;                                  ///< Active rank, up to 8.
+  uint8_t ndim = 0; ///< Active rank, up to `LAYOUT_MAX_RANK`.
   std::array<int64_t, LAYOUT_MAX_RANK> shape{};      ///< Extents per dimension.
   std::array<int64_t, LAYOUT_MAX_RANK> inStrides{};  ///< Input strides.
   std::array<int64_t, LAYOUT_MAX_RANK> outStrides{}; ///< Output strides.
@@ -39,7 +41,7 @@ struct LayoutTransformParams : LaunchParamsBase {
   LayoutShape layout;    ///< Shape and strides.
   uint32_t itemSize = 0; ///< Bytes per element.
   std::array<uint8_t, LAYOUT_MAX_RANK>
-      perm{}; ///< Output dim i takes input dim perm[i]. ///< Output dim i takes input dim perm[i].
+      perm{}; ///< Output dim i takes input dim perm[i].
   BankStrategy bankStrategy = BankStrategy::Auto;
 
   [[nodiscard]] ExecutionPattern pattern() const noexcept override {
@@ -66,12 +68,12 @@ inline bool layoutPermValid(const LayoutTransformParams &p) noexcept {
   if (p.layout.ndim == 0 || p.layout.ndim > LAYOUT_MAX_RANK) {
     return false;
   }
-  uint32_t seen = 0;
+  uint64_t seen = 0;
   for (uint32_t i = 0; i < p.layout.ndim; ++i) {
     if (p.perm[i] >= p.layout.ndim) {
       return false;
     }
-    const uint32_t bit = 1U << p.perm[i];
+    const uint64_t bit = 1ULL << p.perm[i];
     if ((seen & bit) != 0) {
       return false;
     }
@@ -114,35 +116,34 @@ inline bool coversLayoutTransformFast(const LayoutTransformParams &p) noexcept {
   return p.layout.ndim >= 1 && p.layout.ndim <= 2 && detail::layoutPermValid(p);
 }
 
-/**
- * @brief Streaming copy or fixed padded 32x32 tile.
- */
-inline LaunchConfig
-resolveLayoutTransformFast(const LayoutTransformParams &p) noexcept {
-  const uint64_t n = detail::layoutElements(p);
-  if (n == 0 || !detail::layoutPermValid(p)) {
-    return LaunchConfig{};
-  }
+namespace detail {
+
+/// Contiguous stream over the linear index space.
+inline LaunchConfig layoutStream(const LayoutTransformParams &p,
+                                 uint64_t n) noexcept {
   const uint32_t threads = detail::fastThreads(p.device, p.kernel);
   LaunchConfig cfg{};
-  if (detail::layoutIsIdentity(p)) {
-    const uint64_t perThread =
-        static_cast<uint64_t>(threads) * FAST_ELEMS_PER_THREAD;
-    uint64_t blocks = detail::ceilDiv(n, perThread);
-    const uint64_t cap =
-        static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
-    if (cap != 0 && blocks > cap) {
-      blocks = cap;
-    }
-    cfg.threads.x = threads;
-    cfg.blocks.x = static_cast<uint32_t>(blocks > ~0U ? ~0U : blocks);
-    if (cfg.blocks.x == 0) {
-      cfg.blocks.x = 1;
-    }
-    return detail::clampConfig(cfg, p.device, p.kernel);
+  const uint64_t perThread =
+      static_cast<uint64_t>(threads) * FAST_ELEMS_PER_THREAD;
+  uint64_t blocks = detail::ceilDiv(n, perThread);
+  const uint64_t cap =
+      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  if (cap != 0 && blocks > cap) {
+    blocks = cap;
   }
-  // Fixed 32-column tile: one padding column staged for bank safety.
-  // Rows per block follow the fitted thread count, never a constant.
+  cfg.threads.x = threads;
+  cfg.blocks.x = static_cast<uint32_t>(blocks > ~0U ? ~0U : blocks);
+  if (cfg.blocks.x == 0) {
+    cfg.blocks.x = 1;
+  }
+  return detail::clampConfig(cfg, p.device, p.kernel);
+}
+
+/// Fixed 32-column tile: one padding column staged for bank safety.
+/// Rows per block follow the fitted thread count, never a constant.
+inline LaunchConfig layoutFastTile(const LayoutTransformParams &p) noexcept {
+  const uint32_t threads = detail::fastThreads(p.device, p.kernel);
+  LaunchConfig cfg{};
   const int64_t rows = p.layout.shape[0];
   const int64_t cols = p.layout.ndim > 1 ? p.layout.shape[1] : 1;
   cfg.threads.x = 32;
@@ -166,24 +167,35 @@ resolveLayoutTransformFast(const LayoutTransformParams &p) noexcept {
   return detail::clampConfig(cfg, p.device, p.kernel);
 }
 
+} // namespace detail
+
 /**
- * @brief Budgeted tile shortlist, bank-safe staging.
+ * @brief Streaming copy or fixed padded 32x32 tile.
  *
  * @details
- * Picks the largest tile whose padded staging fits the block budget
- * and scales rows per thread from register headroom. Padding is the
- * only bank strategy implemented; traversal and hardware staging
- * belong to kernel selection downstream.
+ * Identity permutations stream over the linear index space; a valid
+ * non-identity permutation takes the fixed 32-column tile. An
+ * unrepresentable permutation streams too: the tile cannot be staged,
+ * and the all-ones floor would serialize the copy.
  */
 inline LaunchConfig
-resolveLayoutTransform(const LayoutTransformParams &p) noexcept {
+resolveLayoutTransformFast(const LayoutTransformParams &p) noexcept {
   const uint64_t n = detail::layoutElements(p);
-  if (n == 0 || !detail::layoutPermValid(p) || p.itemSize == 0) {
+  if (n == 0) {
     return LaunchConfig{};
   }
-  if (detail::layoutIsIdentity(p)) {
-    return resolveLayoutTransformFast(p);
+  if (!detail::layoutIsIdentity(p) && detail::layoutPermValid(p)) {
+    return detail::layoutFastTile(p);
   }
+  return detail::layoutStream(p, n);
+}
+
+namespace detail {
+
+/// Budgeted tile: the widest staging that fits, rows per thread from
+/// register headroom.
+inline LaunchConfig
+layoutBudgetedTile(const LayoutTransformParams &p) noexcept {
   uint32_t tileX = 32;
   while (tileX > 8) {
     const uint64_t rowBytes = static_cast<uint64_t>(tileX) * p.itemSize;
@@ -247,6 +259,37 @@ resolveLayoutTransform(const LayoutTransformParams &p) noexcept {
     cfg.blocks.y = 1;
   }
   return detail::clampConfig(cfg, p.device, p.kernel);
+}
+
+} // namespace detail
+
+/**
+ * @brief Budgeted tile shortlist, bank-safe staging.
+ *
+ * @details
+ * Picks the largest tile whose padded staging fits the block budget
+ * and scales rows per thread from register headroom. Padding is the
+ * only bank strategy implemented; traversal and hardware staging
+ * belong to kernel selection downstream. Identity permutations skip
+ * the staging entirely; unrepresentable ones stream over the linear
+ * index space instead of collapsing to the all-ones floor.
+ */
+inline LaunchConfig
+resolveLayoutTransform(const LayoutTransformParams &p) noexcept {
+  const uint64_t n = detail::layoutElements(p);
+  if (n == 0) {
+    return LaunchConfig{};
+  }
+  // A permutation that cannot be staged still maps one element to one
+  // element, so streaming stays correct. A zero-byte element has
+  // nothing to move.
+  if (!detail::layoutIsIdentity(p) && detail::layoutPermValid(p)) {
+    if (p.itemSize == 0) {
+      return LaunchConfig{};
+    }
+    return detail::layoutBudgetedTile(p);
+  }
+  return detail::layoutStream(p, n);
 }
 
 } // namespace ncore::heuristics::kernels

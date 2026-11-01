@@ -30,12 +30,17 @@ constexpr uint64_t kU64PerBlock = 2U;
 constexpr uint32_t kBlockBytes = 16U;
 constexpr uint32_t kLaneBits = 32U;
 
-/// Compiled facts of one fill kernel. One build can serve devices of
-/// several generations whose register counts and block limits
-/// differ, so the query is keyed by the current device instead of
-/// running once per instantiation. The cache is thread-local with a
-/// bounded pool of device slots; devices beyond the pool query per
-/// call without aliasing the slots.
+/**
+ * @brief Query the kernel attributes for a given device and cache them.
+ *
+ * @details
+ * Compiled facts of one fill kernel. One build can serve devices of
+ * several generations whose register counts and block limits
+ * differ, so the query is keyed by the current device instead of
+ * running once per instantiation. The cache is thread-local with a
+ * bounded pool of device slots; devices beyond the pool query per
+ * call without aliasing the slots.
+ */
 template <typename Kernel> hk::KernelAttrs kernelAttrs(Kernel *func) {
   constexpr int kCachedDevices = 8;
   int device = 0;
@@ -75,15 +80,11 @@ template <typename Kernel> hk::KernelAttrs kernelAttrs(Kernel *func) {
 /// Map the pending launch error into status (also resets the sticky error).
 inline novaStatus_t checkLaunch() {
   if (hipGetLastError() != hipSuccess) {
-    novaStatus_t s{};
-    s.err = novaKernelLaunchError;
-    s.message = nova_get_error_msg(s.err, nullptr);
-    return s;
+    return {.err = novaKernelLaunchError,
+            .message = nova_get_error_msg(novaKernelLaunchError, nullptr)};
   }
-  novaStatus_t s{};
-  s.err = novaSuccess;
-  s.message = nova_get_error_msg(s.err, nullptr);
-  return s;
+  return {.err = novaSuccess,
+          .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 /// Shared launch geometry for a fill of @p blocks Philox blocks.
@@ -105,7 +106,7 @@ novaStatus_t fillGeometry(uint64_t blocks, uint32_t outAlignBytes,
   hp.inputContiguous = false;
   hp.outputContiguous = true;
   hp.numInputs = 0U;
-  hp.arithmeticIntensity = 4.0F;
+  hp.arithmeticIntensity = 0.0F;
   hp.reuseAfter = false;
   hp.kernel = attrs;
   thread_local hk::FullConfigCache cache;
@@ -125,7 +126,8 @@ novaStatus_t fillGeometry(uint64_t blocks, uint32_t outAlignBytes,
  */
 __global__ void rngFillU32Blocks(uint32_t key0, uint32_t key1, uint32_t c0,
                                  uint32_t c1, uint32_t c2, uint32_t c3,
-                                 uint32_t *out, uint64_t blocks, size_t n) {
+                                 uint32_t *restrict out, uint64_t blocks,
+                                 size_t n) {
   const uint32_t key[2] = {key0, key1};
   const uint32_t base[4] = {c0, c1, c2, c3};
   const bool aligned = (reinterpret_cast<uintptr_t>(out) % kBlockBytes) == 0U;
@@ -176,10 +178,10 @@ __global__ void rngFillU64Blocks(uint32_t key0, uint32_t key1, uint32_t c0,
     const size_t first = b * kU64PerBlock;
     if (aligned && first + kU64PerBlock <= n) {
       const ulonglong2 packed = {
-          static_cast<uint64_t>(lanes[0]) |
-              (static_cast<uint64_t>(lanes[1]) << kLaneBits),
-          static_cast<uint64_t>(lanes[2]) |
-              (static_cast<uint64_t>(lanes[3]) << kLaneBits),
+          .x = static_cast<uint64_t>(lanes[0]) |
+               (static_cast<uint64_t>(lanes[1]) << kLaneBits),
+          .y = static_cast<uint64_t>(lanes[2]) |
+               (static_cast<uint64_t>(lanes[3]) << kLaneBits),
       };
       *reinterpret_cast<ulonglong2 *>(out + first) = packed;
     } else {
@@ -230,11 +232,7 @@ novaStatus_t launchHipRngFillU32(const uint32_t key[2],
   rngFillU32Blocks<<<grid, threads, 0, caller_stream>>>(
       key[0], key[1], base_ctr[0], base_ctr[1], base_ctr[2], base_ctr[3], dst,
       blocks, n);
-  const novaStatus_t launched = checkLaunch();
-  if (launched.err != novaSuccess) {
-    return launched;
-  }
-  return launched;
+  return checkLaunch();
 }
 
 novaStatus_t launchHipRngFillU64(const uint32_t key[2],
@@ -272,9 +270,5 @@ novaStatus_t launchHipRngFillU64(const uint32_t key[2],
   rngFillU64Blocks<<<grid, threads, 0, caller_stream>>>(
       key[0], key[1], base_ctr[0], base_ctr[1], base_ctr[2], base_ctr[3], dst,
       blocks, n);
-  const novaStatus_t launched = checkLaunch();
-  if (launched.err != novaSuccess) {
-    return launched;
-  }
-  return launched;
+  return checkLaunch();
 }
