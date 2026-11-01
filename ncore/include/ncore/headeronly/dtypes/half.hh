@@ -453,7 +453,7 @@ inline uint32_t fp16_ieee_to_fp32_bits(uint16_t h) {
 } // namespace detail
 
 // ============================================================
-// Constructors and conversion operators — inline definitions
+// Constructors and conversion operators (inline definitions)
 // ============================================================
 
 inline NCORE_HOST_DEVICE Half::Half(float value)
