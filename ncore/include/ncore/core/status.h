@@ -75,6 +75,13 @@ typedef enum novaError_t : uint8_t {
   /* Threads */
   novaThreadNotInitialized,
 
+  /* Resource state */
+  novaInvalidDeviceId,
+  novaResourceBusy,
+
+  /* Memory pools */
+  novaMemoryPoolsNotNativelySupported,
+
 } novaError_t;
 
 /**

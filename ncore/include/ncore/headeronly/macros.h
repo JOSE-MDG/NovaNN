@@ -22,6 +22,20 @@
 #endif
 
 /**
+ * @def NCORE_COMPILE_TIME_MAX_GPUS
+ * @brief Maximum number of devices on the same machine.
+ *
+ * @details
+ * Used to reserve the physical size of the data structures that
+ * manage hardware-accelerated resources (such as CUDA or HIP)
+ * in system memory (CPU).
+ *
+ * @note In the current version of NovaNN, it only supports one
+ * GPU, but future versions will offer full support for more than one GPU.
+ */
+#define NCORE_COMPILE_TIME_MAX_GPUS 1
+
+/**
  * @def restrict
  * @brief Portable @c restrict qualifier for C++ compatibility.
  *
@@ -106,14 +120,14 @@
  *
  * @see ATTR
  */
-#define INITIALIZE(f) ATTR(constructor) static inline void f(void)
+#define INITIALIZE(f) ATTR(constructor) static inline void f()
 
 /**
  * @def NOVA_MAX_DIMS
  * @brief Maximum number of tensor dimensions supported.
  *
  * @details
- * Fixed at 64 — well beyond the typical 4–8 dimensions used in
+ * Fixed at 64, well beyond the typical 4-8 dimensions used in
  * deep learning.  Used to size the @c shape_t and @c strides_t
  * fixed arrays in @ref Tensor.
  *
@@ -133,7 +147,7 @@
  * @brief Total number of @ref novaError_t enumerators, useful to size
  *        arrays indexed by error code.
  */
-#define NUM_ERRORS 38
+#define NUM_ERRORS 41
 
 /**
  * @def NUM_PARALLEL_GROUPS
@@ -232,7 +246,7 @@
  * @c EXIT_FAILURE.  Uses @c __VA_OPT__ for clean expansion when
  * no variadic arguments are provided.
  *
- * This macro is for debugging aid — it guards
+ * This macro is for debugging aid: it guards
  * invariants that, if violated, indicate a bug in NovaNN
  * itself (e.g., null storage after a successful allocation).
  *
@@ -287,7 +301,7 @@ inline void nova_internal_assert_deprecated_marker() {}
  * The naming convention is @c NOVA_SIMD_{TYPE}_WITH_{ISA}.
  */
 
-/** @name SIMD lane counts — SSE
+/** @name SIMD lane counts: SSE
  *  128-bit register width.
  */
 ///@{
@@ -305,7 +319,7 @@ inline void nova_internal_assert_deprecated_marker() {}
 #define NOVA_SIMD_QU8_WITH_SSE 16 ///< quint8:    128 / 8  = 16
 ///@}
 
-/** @name SIMD lane counts — AVX / AVX2
+/** @name SIMD lane counts: AVX / AVX2
  *  256-bit register width.
  */
 ///@{
@@ -323,7 +337,7 @@ inline void nova_internal_assert_deprecated_marker() {}
 #define NOVA_SIMD_QU8_WITH_AVX_AVX2 32  ///< quint8:    256 / 8  = 32
 ///@}
 
-/** @name SIMD lane counts — AVX-512F
+/** @name SIMD lane counts: AVX-512F
  *  512-bit register width.
  */
 ///@{
@@ -451,7 +465,7 @@ inline void nova_internal_assert_deprecated_marker() {}
  * warnings on IEEE 754 division by zero (which yields +/-inf
  * rather than trapping).
  */
-#if defined(__clang__)
+#ifdef __clang__
 #define NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO                                      \
   [[clang::no_sanitize("float-divide-by-zero")]]
 #elif defined(__GNUC__)

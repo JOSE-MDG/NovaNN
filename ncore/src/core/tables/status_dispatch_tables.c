@@ -143,4 +143,14 @@ INITIALIZE(init_status_msg_dispatch) {
   /* Threads */
   status_msg_dispatch[novaThreadNotInitialized] =
       "Thread configuration has not been initialized\n";
+
+  /* Resource state */
+  status_msg_dispatch[novaInvalidDeviceId] =
+      "GPU device ID is outside the runtime or configured device range\n";
+  status_msg_dispatch[novaResourceBusy] =
+      "Resource is busy: outstanding allocations prevent pool destruction\n";
+
+  /* Memory pools */
+  status_msg_dispatch[novaMemoryPoolsNotNativelySupported] =
+      "The device does not natively support memory pools\n";
 }
