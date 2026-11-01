@@ -171,6 +171,23 @@ bool release(RustHandle *handle, novaStatus_t *status);
  * @return @ref novaStatus_t describing success or failure.
  */
 novaStatus_t resize(RustHandle *handle, size_t requested);
+
+/**
+ * @brief Return the reclaimable backing of the device memory pool.
+ *
+ * Asks the active GPU backend to release the pool memory that no live
+ * allocation holds, keeping at least @p min_bytes_to_keep resident
+ * bytes.  Buffers that are still allocated stay valid, so the call is
+ * safe at any point of a pipeline.  On a system without a GPU backend
+ * the call reports @ref novaDeviceNotAvailable.
+ *
+ * @param[in] device_id         Runtime device ordinal owning the pool.
+ * @param[in] min_bytes_to_keep Minimum resident bytes the pool retains.
+ *
+ * @return @ref novaStatus_t describing success or failure.
+ */
+novaStatus_t empty_cache(int device_id, size_t min_bytes_to_keep);
+
 /**
  * @brief Obtain the CPU-visible address of a Rust allocation.
  *

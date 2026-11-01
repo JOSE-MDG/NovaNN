@@ -10,12 +10,15 @@
 //! | [`lifecycle`]  | Reference counting (retain / release)|
 //! | [`resize`]     | Memory resizing                      |
 //! | [`query`]      | Data access, validity, and metadata  |
+//! | [`cache`]      | Device memory-cache trimming         |
 
+pub mod cache;
 pub mod lifecycle;
 pub mod query;
 pub mod reserve;
 pub mod resize;
 
+pub use cache::empty_cache_op;
 pub use lifecycle::{release_op, retain_op};
 pub use query::{get_align_op, get_data_op, is_device_memory_op, is_pinned_op, is_valid_op};
 pub use reserve::reserve_op;
