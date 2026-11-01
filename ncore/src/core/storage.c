@@ -27,12 +27,12 @@ static constexpr size_t device_small_step = 512;
 static constexpr size_t pinned_small_step = 4096;
 static constexpr size_t large_step = ((size_t)2 << 20);
 
-_Static_assert((device_small_step & (device_small_step - 1)) == 0,
-               "device step must be a power of two");
-_Static_assert((pinned_small_step & (pinned_small_step - 1)) == 0,
-               "pinned step must be a power of two");
-_Static_assert((large_step & (large_step - 1)) == 0,
-               "large step must be a power of two");
+static_assert((device_small_step & (device_small_step - 1)) == 0,
+              "device step must be a power of two");
+static_assert((pinned_small_step & (pinned_small_step - 1)) == 0,
+              "pinned step must be a power of two");
+static_assert((large_step & (large_step - 1)) == 0,
+              "large step must be a power of two");
 
 /**
  * @brief Round @p n up to a multiple of @p step.
@@ -184,8 +184,8 @@ size_t gt_bytes(const Tensor *ten, novaStatus_t *status) {
     status->message = nova_get_error_msg(status->err, nullptr);
     return 0;
   }
-  if (ten->storage == nullptr || ten->storage->handle.id == 0 ||
-      ten->storage->handle.bytes == 0) {
+  if (ten->storage == nullptr ||
+      (ten->storage != nullptr && !is_valid_handle(&ten->storage->handle))) {
     status->err = novaInvalidTensor;
     status->message = nova_get_error_msg(status->err, nullptr);
     return 0;

@@ -707,7 +707,8 @@ novaStatus_t collect(Tensor *ten) {
     cur->grad = nullptr;
     if (cur->storage != nullptr) {
       novaStatus_t release_status = {};
-      bool should_free = release(&cur->storage->handle, &release_status);
+      bool should_free =
+          release(&cur->storage->handle, &release_status);
       if (release_status.err != novaSuccess) {
         if (st.err == novaSuccess) {
           st = release_status;
@@ -972,6 +973,13 @@ static inline novaStatus_t transf_tensor_common(const Tensor *restrict src,
 novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
                                        Tensor *restrict dst) {
 
+  if ((src->storage != nullptr && !is_valid_handle(&src->storage->handle)) ||
+      (dst->storage != nullptr && !is_valid_handle(&dst->storage->handle))) {
+    return (novaStatus_t){.err = novaInvalidHandle,
+                          .message =
+                              nova_get_error_msg(novaInvalidHandle, nullptr)};
+  }
+
   bool condition = (src->device != DEVICE_GPU || !is_allocated(src) ||
                     !is_device_memory_handle(&src->storage->handle) ||
                     (dst->device != DEVICE_CPU || !is_allocated(dst))) != 0;
@@ -993,6 +1001,14 @@ novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
  */
 novaStatus_t transf_tensor_from_host(const Tensor *restrict src,
                                      Tensor *restrict dst) {
+
+  if ((src->storage != nullptr && !is_valid_handle(&src->storage->handle)) ||
+      (dst->storage != nullptr && !is_valid_handle(&dst->storage->handle))) {
+    return (novaStatus_t){.err = novaInvalidHandle,
+                          .message =
+                              nova_get_error_msg(novaInvalidHandle, nullptr)};
+  }
+
   bool condition = (src->device != DEVICE_CPU || !is_allocated(src) ||
                     (dst->device != DEVICE_GPU || !is_allocated(dst) ||
                      !is_device_memory_handle(&dst->storage->handle))) != 0;

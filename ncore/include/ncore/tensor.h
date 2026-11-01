@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include <ncore/core/backend.h>
@@ -99,7 +98,7 @@ struct Tensor {
   int64_t version_;      ///< Mutation counter for in-place alias detection.
 };
 
-/** @brief Gradient tensor type alias — a pointer to a @ref Tensor. */
+/** @brief Gradient tensor type alias: a pointer to a @ref Tensor. */
 typedef Tensor *TensorGrad;
 
 /**
