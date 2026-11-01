@@ -4,7 +4,7 @@ Core Tests
 
 GoogleTest suite for the core runtime (``ncore/src/core/``): status code
 propagation, device detection, SIMD capability flags, the Rust-backed
-memory allocator and tensor copy/transfer operations.
+memory allocator, per-device GPU memory pools, and stream-aware tensor layouts.
 
 The executable is only created when ``*.cpp`` files exist, so the file
 stays valid even if the directory is emptied.
@@ -44,10 +44,13 @@ if(TEST_SOURCES)
 
 if(NOVA_HAS_CUDA)
     nova_configure_cuda_target(ncore_core_tests)
+    nova_configure_cuda_runtime_target(ncore_core_tests)
 endif()
 
 if(NOVA_HAS_HIP)
     nova_configure_hip_target(ncore_core_tests)
+    nova_configure_hip_includes_target(ncore_core_tests)
+    nova_configure_hip_runtime_target(ncore_core_tests)
 endif()
 
     add_dependencies(ncore_core_tests nova::codegen)
