@@ -1264,8 +1264,8 @@ novaStatus_t launchCast(const Tensor *restrict src, Tensor *restrict dst,
   }
   hp.inputItemSize = static_cast<uint32_t>(src->item_size);
   hp.outputItemSize = static_cast<uint32_t>(dst->item_size);
-  hp.inputAlignBytes = hk::pointerAlign(src->data.v);
-  hp.outputAlignBytes = hk::pointerAlign(dst->data.v);
+  hp.inputAlignBytes = hk::pointerAlign(src->data.data + src->offset);
+  hp.outputAlignBytes = hk::pointerAlign(dst->data.data);
   hp.inputContiguous = is_contiguous(src);
   hp.outputContiguous = is_contiguous(dst);
   hp.numInputs = 1U;
@@ -1277,8 +1277,8 @@ novaStatus_t launchCast(const Tensor *restrict src, Tensor *restrict dst,
   const dim3 threads(cfg.threads.x, cfg.threads.y, cfg.threads.z);
   const dim3 grid(cfg.blocks.x, cfg.blocks.y, cfg.blocks.z);
 
-  const auto *s = reinterpret_cast<const ST *>(src->data.v);
-  auto *d = reinterpret_cast<DT *>(dst->data.v);
+  const auto *s = reinterpret_cast<const ST *>(src->data.data + src->offset);
+  auto *d = reinterpret_cast<DT *>(dst->data.data);
   if constexpr (K == CastKind::kPlain) {
     castPlainKernel<S, D, ST, DT><<<grid, threads, 0, stream>>>(s, d, n);
   } else if constexpr (K == CastKind::kUnpack) {
