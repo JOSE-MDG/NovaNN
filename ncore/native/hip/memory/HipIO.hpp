@@ -7,21 +7,20 @@
  * Declares the single memcpy function @ref hipTransfer that
  * handles all copy directions via a @ref DeviceMemcpyKind tag.
  * Transfers use @c hipMemcpyAsync everywhere: caller-stream copies
- * chain with no synchronization, and the null path runs on the null
- * stream, draining it before returning.
+ * chain with no synchronization, and the null path runs on the device
+ * engine stream, draining it before returning.
  *
- * With @p stream null the copy enqueues on the null stream and
- * @ref hipTransfer blocks on @c hipStreamSynchronize(nullptr), so the
- * device null queue drains first: the caller observes every kernel it
- * already enqueued there.  No private stream is created: rocclr
- * silently cancels a pending null-stream kernel at
- * @c hipStreamCreate, and a non-blocking work stream never drains the
- * null queue.
+ * With @p stream null the copy enqueues on the device engine stream
+ * and @ref hipTransfer blocks on @c hipStreamSynchronize, so the
+ * caller observes every operation already enqueued there.  No private
+ * stream is created per transfer: rocclr silently cancels a pending
+ * null-stream kernel at @c hipStreamCreate, and a non-blocking work
+ * stream never drains the null queue.
  *
  * Errors from @c hipMemcpyAsync and @c hipStreamSynchronize are
  * mapped to @ref novaStatus_t codes via @ref mapError2Status.
  * @ref hipTransfer is safe to call from multiple threads:
- * the null path serializes through the device null stream, and HIP
+ * the engine path serializes through the device engine stream, and HIP
  * runtime calls are thread-safe.
  *
  * This header is the HIP counterpart of @c CudaIO.hpp with an
@@ -40,15 +39,15 @@
 
 #include <ncore/core/status.h>
 
-#include "HipAllocator.hpp"
-#include "ffi.hpp"
+#include <ncore/memory/ffi.hpp>
+#include <ncore/headeronly/stream_types.h>
 
 /**
  * @brief Copy memory between host and device (or device to device).
  *
  * @details
- * Performs a memory transfer using @c hipMemcpyAsync on the null
- * stream when @p stream is null, blocking until the device null queue
+ * Performs a memory transfer using @c hipMemcpyAsync on the device
+ * engine stream when @p stream is null, blocking until that stream
  * drains before returning, or enqueued on @p stream with no
  * synchronization when given.  The transfer direction is determined
  * by @p kind.
@@ -57,8 +56,8 @@
  * @param[in]  kind      Copy direction (@ref DeviceMemcpyKind).
  * @param[in]  src       Source pointer (host or device memory).
  * @param[out] dst       Destination pointer (host or device memory).
- * @param[in]  stream    Caller stream for chaining, or null for the
- *                       synchronous null-stream path.
+ * @param[in]  stream    Caller stream for chaining, or null to select
+ *                       the device engine stream.
  *
  * @return @ref HIP_OK on success, or a @ref novaStatus_t with
  *         a non-zero error and a descriptive message.

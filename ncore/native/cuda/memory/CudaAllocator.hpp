@@ -9,20 +9,10 @@
  * CUDA device and pinned-host memory.  All functions return a
  * @ref novaStatus_t (see @ref status.h).
  *
- * Device memory is allocated via @c cudaMallocAsync on a temporary
- * stream, or @c cudaMalloc when MemoryPools is not supported;
- * pinned (page-locked) host memory comes from @c cudaMallocHost and
- * suits fast host-device transfers with @c cudaMemcpyAsync.
- *
- * Device-memory operations run on a CUDA stream selected per call:
- * @li @c stream == nullptr (default) — a temporary stream is created,
- *   the operation runs on it, the stream is synchronized, and the
- *   stream is destroyed before returning. Synchronous contract.
- * @li @c stream != nullptr — the operation is enqueued on the caller
- *   stream with no synchronization and no stream destruction. The
- *   caller owns ordering: every access to the buffer must be ordered
- *   after the allocation and before the free in stream order, per the
- *   stream-ordered allocator rules. Pinned-host paths ignore @p stream.
+ * Device memory uses the selected device's NovaNN pool when supported,
+ * and direct synchronous allocation otherwise. Pinned host memory stays
+ * outside device pools. A null stream selects the device engine stream;
+ * a caller stream is enqueued without synchronization.
  *
  * This header is the CUDA counterpart of @c HipAllocator.hpp with an
  * identical API surface; the dispatch layer in @c ffi.cpp selects
@@ -37,30 +27,30 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <ncore/core/status.h>
 
-#if defined(NOVA_HAS_CUDA) && __has_include(<cuda_runtime_api.h>)
-#include <cuda_runtime_api.h>
-#else
-struct CUstream_st;
-using cudaStream_t = CUstream_st *;
-#endif
+#include <ncore/headeronly/stream_types.h>
 
 /**
  * @struct cudaBuffer_t
  * @brief Descriptor for a CUDA-allocated memory region.
  *
  * @details
- * Tracks the raw pointer, usable size, and allocation type
- * (device or pinned-host).  This struct is owned by the
+ * Tracks the raw pointer, usable size, allocation type
+ * (device or pinned-host), and the stream the allocation ran on.
+ * This struct is owned by the
  * @ref deviceBuffer_t in the FFI layer and must not be freed
- * directly — use @ref cudaRelease instead.
+ * directly; use @ref cudaRelease instead.
  */
 struct cudaBuffer_t {
-  void *ptr = nullptr;   ///< Device or pinned-host pointer.
-  std::size_t bytes = 0; ///< Usable size in bytes.
-  bool isPinned = false; ///< Page-locked host memory flag.
+  void *ptr = nullptr;                 ///< Device or pinned-host pointer.
+  std::size_t bytes = 0;               ///< Usable size in bytes.
+  bool isPinned = false;               ///< Page-locked host memory flag.
+  cudaStream_t streamOrigin = nullptr; ///< Stream the allocation ran on.
 };
+
+struct DeviceMemoryPoolStats;
 
 /**
  * @brief Sentinel value representing a successful CUDA operation.
@@ -70,20 +60,33 @@ const inline novaStatus_t CUDA_OK{
     .err = novaSuccess, .message = nova_get_error_msg(novaSuccess, nullptr)};
 
 /**
+ * @brief Read the runtime ordinal of the currently selected CUDA device.
+ *
+ * @param[out] device_id Receives the 0-based runtime ordinal. Must not be
+ *                       null.
+ *
+ * @return @ref CUDA_OK on success, or an error status when @p device_id is
+ *         null or the runtime call fails.
+ *
+ * @pre  @p device_id must point to writable @c std::int32_t storage.
+ */
+novaStatus_t cudaCurrentDeviceId(std::int32_t *device_id);
+
+/**
  * @brief Allocate a CUDA memory buffer.
  *
  * @details
- * For pinned memory, calls @c cudaMallocHost (synchronous; @p stream
- * is ignored).  For device memory with memory pools, calls
- * @c cudaMallocAsync on @p stream when given, or on a temporary
- * synchronized stream when @p stream is null.  Without memory pools,
- * falls back to @c cudaMalloc (synchronous; @p stream is ignored).
+ * Device allocations use @c cudaMallocFromPoolAsync with the pool selected
+ * by @p device_id, on the device engine stream when @p stream is null.
+ * Devices without native pools use synchronous @c cudaMalloc. Pinned
+ * allocations use @c cudaMallocHost.
  *
- * @param[in]  bytes  Requested allocation size in bytes.
- * @param[in]  pinned If @c true, allocate page-locked host memory.
- * @param[out] out    Receives the buffer descriptor on success.
- * @param[in]  stream Caller stream for chaining, or null for the
- *                    synchronous internal path. Never destroyed here.
+ * @param[in]  device_id Runtime device ordinal selecting the pool.
+ * @param[in]  bytes     Requested allocation size in bytes.
+ * @param[in]  pinned    If @c true, allocate page-locked host memory.
+ * @param[out] out       Receives the buffer descriptor on success.
+ * @param[in]  stream    Caller stream for chaining, or null to select
+ *                       the device engine stream. Never destroyed here.
  *
  * @return @ref CUDA_OK on success, or an error status with a
  *         descriptive message.
@@ -102,25 +105,24 @@ const inline novaStatus_t CUDA_OK{
  * @see cudaRelease()  Frees a buffer allocated by this function.
  * @see cudaResize()   Resizes an existing buffer.
  */
-novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out,
-                         cudaStream_t stream = nullptr);
+novaStatus_t cudaReserve(std::int32_t device_id, std::size_t bytes, bool pinned,
+                         cudaBuffer_t *out, cudaStream_t stream = nullptr);
 
 /**
  * @brief Free a CUDA memory buffer previously allocated by
  *        @ref cudaReserve.
  *
  * @details
- * For pinned memory, calls @c cudaFreeHost (synchronous; @p stream
- * is ignored).  For device memory with memory pools, calls
- * @c cudaFreeAsync on @p stream when given, or on a temporary
- * synchronized stream when @p stream is null.  On success, the
- * buffer descriptor is zeroed.
+ * Device memory is freed through the pool selected by @p device_id, on
+ * the device engine stream when @p stream is null. Pinned memory uses
+ * @c cudaFreeHost.
  *
  * @param[in,out] buf    Pointer to the buffer descriptor to free.
  *                       Must not be null, and @p buf->ptr must be
  *                       valid.
- * @param[in]     stream Caller stream for chaining, or null for the
- *                       synchronous internal path. Never destroyed here.
+ * @param[in]     device_id Runtime device ordinal owning the buffer.
+ * @param[in]     stream Caller stream for chaining, or null to select
+ *                       the device engine stream. Never destroyed here.
  *
  * @return @ref CUDA_OK on success, or an error status.
  *
@@ -130,6 +132,9 @@ novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out,
  *       must be ordered before this call in @p stream order.
  * @post On success, @p buf is zeroed (ptr = nullptr, bytes = 0,
  *       isPinned = false).
+ * @post A free submitted on a stream other than the one that owns the
+ *       buffer is rejected; cross-stream use requires an explicit event
+ *       dependency.
  *
  * @note Safe to call with a null @p buf or null @p buf->ptr;
  *       returns a non-zero status without crashing.
@@ -140,23 +145,22 @@ novaStatus_t cudaReserve(std::size_t bytes, bool pinned, cudaBuffer_t *out,
  *
  * @see cudaReserve()  Allocates the buffer freed here.
  */
-novaStatus_t cudaRelease(cudaBuffer_t *buf, cudaStream_t stream = nullptr);
+novaStatus_t cudaRelease(std::int32_t device_id, cudaBuffer_t *buf,
+                         cudaStream_t stream = nullptr);
 
 /**
  * @brief Resize an existing CUDA memory buffer.
  *
  * @details
- * Allocates a new buffer of @p new_bytes, copies
- * @c min(old_size, new_size) bytes from the old buffer to
- * the new one, then frees the old buffer.  For pinned memory the
- * copy uses @c std::memcpy; for device memory it uses
- * @c cudaMemcpyAsync on a temporary stream.
+ * Allocates replacement storage, copies the preserved prefix, then frees the
+ * old buffer. Device operations use the selected pool and @p stream.
  *
  * @param[in,out] buf       Pointer to the buffer descriptor to
  *                          resize.  Must not be null.
  * @param[in]     new_bytes New size in bytes.
- * @param[in]     stream    Caller stream for chaining, or null for
- *                          the synchronous internal path. The alloc,
+ * @param[in]     device_id Runtime device ordinal owning the buffer.
+ * @param[in]     stream    Caller stream for chaining, or null to
+ *                       select the device engine stream. The alloc,
  *                          copy, and free all run on this stream.
  *                          Never destroyed here.
  *
@@ -174,5 +178,66 @@ novaStatus_t cudaRelease(cudaBuffer_t *buf, cudaStream_t stream = nullptr);
  * @see cudaReserve()  Initial allocation.
  * @see cudaRelease()  Explicit deallocation.
  */
-novaStatus_t cudaResize(cudaBuffer_t *buf, std::size_t new_bytes,
-                        cudaStream_t stream = nullptr);
+novaStatus_t cudaResize(std::int32_t device_id, cudaBuffer_t *buf,
+                        std::size_t new_bytes, cudaStream_t stream = nullptr);
+
+/**
+ * @brief Trim reclaimable backing from one device pool.
+ *
+ * @details
+ * Calls @c cudaMemPoolTrimTo so the pool releases cached blocks down to at
+ * least @p min_bytes_to_keep resident bytes. Devices without native pools
+ * treat the call as a no-op and report success.
+ *
+ * @param[in] device_id           Runtime device ordinal owning the pool.
+ * @param[in] min_bytes_to_keep   Minimum resident bytes to retain.
+ *
+ * @return @ref CUDA_OK on success, or an error status from the runtime.
+ */
+novaStatus_t cudaEmptyCache(std::int32_t device_id,
+                            std::size_t min_bytes_to_keep = 0);
+
+/**
+ * @brief Read runtime statistics for one device pool.
+ *
+ * @param[in]  device_id Runtime device ordinal owning the pool.
+ * @param[out] out       Receives the counters. Must not be null; zeroed
+ *                       before the query.
+ *
+ * @return @ref CUDA_OK on success, @ref novaInvalidPointer when @p out is
+ *         null, or @ref novaMemoryPoolsNotNativelySupported when the device
+ *         has no native pool.
+ */
+novaStatus_t cudaPoolStats(std::int32_t device_id, DeviceMemoryPoolStats *out);
+
+/**
+ * @brief Set the caching threshold for one device pool.
+ *
+ * @details
+ * Sets @c cudaMemPoolAttrReleaseThreshold, the byte count the pool may hold
+ * before returning cached memory to the driver.
+ *
+ * @param[in] device_id Runtime device ordinal owning the pool.
+ * @param[in] bytes     New release threshold in bytes.
+ *
+ * @return @ref CUDA_OK on success, or @ref novaMemoryPoolsNotNativelySupported
+ *         when the device has no native pool.
+ */
+novaStatus_t cudaPoolSetReleaseThreshold(std::int32_t device_id,
+                                         std::uint64_t bytes);
+
+/**
+ * @brief Destroy one idle device pool.
+ *
+ * @details
+ * The pool is destroyed only when no memory is currently in use. After
+ * success the slot is marked destroyed and rejects later operations.
+ * Devices without native pools treat the call as a no-op and report
+ * success.
+ *
+ * @param[in] device_id Runtime device ordinal owning the pool.
+ *
+ * @return @ref CUDA_OK on success, @ref novaResourceBusy when the pool still
+ *         holds memory, or an error status from the runtime.
+ */
+novaStatus_t cudaPoolDestroy(std::int32_t device_id);

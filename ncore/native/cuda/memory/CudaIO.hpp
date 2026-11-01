@@ -6,11 +6,9 @@
  * @details
  * Declares the single memcpy function @ref cudaTransfer that
  * handles all copy directions via a @ref DeviceMemcpyKind tag.
- * By default the module maintains a single reusable CUDA stream,
- * created on first call to @ref getStream under @c std::call_once:
- * transfers are serialized on it and synchronized before returning.
- * The stream is never destroyed during execution; the CUDA runtime
- * reclaims it at process exit.  A caller stream may instead be
+ * The null path resolves the device engine stream, the non-blocking
+ * stream owned by the backend: transfers on it are serialized and
+ * synchronized before returning.  A caller stream may instead be
  * passed via @p stream to chain the copy with surrounding work:
  * enqueued with no synchronization, the caller owns ordering.
  *
@@ -35,24 +33,24 @@
 
 #include <ncore/core/status.h>
 
-#include "CudaAllocator.hpp"
-#include "ffi.hpp"
+#include <ncore/memory/ffi.hpp>
+#include <ncore/headeronly/stream_types.h>
 
 /**
  * @brief Copy memory between host and device (or device to device).
  *
  * @details
- * Performs a memory transfer using @c cudaMemcpyAsync on the singleton
- * stream when @p stream is null (synchronized before returning), or
- * enqueued on @p stream with no synchronization when given.  The
+ * Performs a memory transfer using @c cudaMemcpyAsync on the device
+ * engine stream when @p stream is null (synchronized before returning),
+ * or enqueued on @p stream with no synchronization when given.  The
  * transfer direction is determined by @p kind.
  *
  * @param[in]  bytes     Number of bytes to copy.
  * @param[in]  kind      Copy direction (@ref DeviceMemcpyKind).
  * @param[in]  src       Source pointer (host or device memory).
  * @param[out] dst       Destination pointer (host or device memory).
- * @param[in]  stream    Caller stream for chaining, or null for the
- *                       synchronous singleton path. Never destroyed here.
+ * @param[in]  stream    Caller stream for chaining, or null to select
+ *                       the device engine stream. Never destroyed here.
  *
  * @return @ref CUDA_OK on success, or a @ref novaStatus_t with
  *         a non-zero error code and a descriptive message.

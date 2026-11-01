@@ -60,8 +60,9 @@ static inline const char *map_device2string(Device_ device) {
  * Resolves the theoretical @p bytes to its size class through
  * @ref resolve_rounded_bytes() and delegates to @ref reserve() through
  * the Rust FFI to obtain a @ref RustHandle carrying both the theoretical
- * and the real reservation sizes.  Alignment is selected automatically:
- * 512 bytes for GPU, 64 bytes otherwise.
+ * and the real reservation sizes. Alignment is 64 bytes on CPU.
+ * The reservation is submitted to the device engine stream, so later
+ * device work on that stream observes it in order.
  *
  * When @p create_storage is @c false, only a raw @ref RustHandle is
  * returned via @p handle.  When @c true, a @ref TensorStorage is

@@ -5,8 +5,8 @@
  * @details
  * Implements the master memcpy dispatcher @ref cudaTransfer using
  * @c cudaMemcpyAsync.  A caller stream enqueues with no
- * synchronization; the synchronous null path runs on the singleton
- * stream returned by @ref getStream.
+ * synchronization; the null path resolves the device engine stream
+ * and drains it before returning.
  *
  * Compiled only behind @c NOVA_HAS_CUDA and
  * @c __has_include(<cuda_runtime_api.h>); otherwise a stub
@@ -25,6 +25,7 @@
 #include <cuda_runtime_api.h>
 
 #include "CudaAllocator.hpp"
+#include "CudaEngineStream.hpp"
 #include "CudaIO.hpp"
 #include "common.hh"
 
@@ -33,32 +34,31 @@
  *
  * @details
  * Performs a memory transfer using @c cudaMemcpyAsync on @p stream
- * when given (no synchronization), or on the singleton stream with
+ * when given (no synchronization), or on the device engine stream with
  * synchronization before returning when @p stream is null.  The
  * transfer direction is determined by @p kind.
  *
- * Errors surface at the @c cudaMemcpyAsync launch and, on the
- * singleton path, at the @c cudaStreamSynchronize wait; both map
- * through @ref mapError2Status.
+ * Errors surface at the @c cudaMemcpyAsync launch and, on the engine
+ * path, at the @c cudaStreamSynchronize wait; both map through
+ * @ref mapError2Status.
  *
  * @param[in]  bytes     Number of bytes to copy.
  * @param[in]  kind      Copy direction (@ref DeviceMemcpyKind).
  * @param[in]  src       Source pointer (host or device memory).
  * @param[out] dst       Destination pointer (host or device memory).
- * @param[in]  stream    Caller stream for chaining, or null for the
- *                       synchronous singleton path. Never destroyed here.
+ * @param[in]  stream    Caller stream for chaining, or null to select
+ *                       the device engine stream. Never destroyed here.
  *
  * @return @ref CUDA_OK on success, or a @ref novaStatus_t with
  *         a non-zero code and a descriptive message.
  */
 novaStatus_t cudaTransfer(std::size_t bytes, DeviceMemcpyKind kind,
                           const void *src, void *dst, cudaStream_t stream) {
-  novaStatus_t status = {};
   cudaStream_t work = stream;
   if (work == nullptr) {
-    work = getStream(&status);
-    if (status.err != novaSuccess) {
-      return status;
+    const novaStatus_t engineStatus = CudaEngineStream::current(&work);
+    if (engineStatus.err != novaSuccess) {
+      return engineStatus;
     }
   }
 
