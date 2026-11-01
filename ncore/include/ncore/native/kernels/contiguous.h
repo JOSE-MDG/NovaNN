@@ -34,7 +34,7 @@ extern "C" {
  * a copy: dense one-dimensional tensors move through the device-to-device
  * fast path; column-contiguous two-dimensional views take a shared-memory
  * tile with fixed geometry; anything else is collapsed and gathered by a
- * grid-stride kernel with the widest provable vector width, sized for
+ * grid-stride kernel with one transaction per element, sized for
  * the detected backend.
  *
  * The backend kernel and any device transfer are submitted to the device

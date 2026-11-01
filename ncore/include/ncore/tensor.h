@@ -84,7 +84,7 @@ struct Tensor {
   ALIGN(64) strides_t strides; ///< Byte strides per dimension.
   TensorStorage
       *storage;    ///< Reference-counted backing buffer (nullptr for META).
-  data_ptr data;   ///< Typed pointer into @c storage (offset-adjusted).
+  data_ptr data;   ///< Typed pointer into @c storage.
   TensorGrad grad; ///< Gradient tensor (nullptr if no gradient tracked).
   BackwardNode grad_fn_; ///< Backward graph node (nullptr for leaves).
   bool requires_grad_;   ///< If @c true, track gradients during backward.

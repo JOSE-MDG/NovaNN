@@ -4,13 +4,14 @@
  *
  * @details
  * Grid-stride kernels for the 1-D collapsed and N-D cases, plus a
- * device-to-device fast path for 1-D tensors. Element moves go
- * through the widest vector transaction proven from sizes and
- * pointer alignment (16/8/4/2/1 bytes); column-contiguous 2-D views
- * take a shared-tile path coalesced on both sides. Launch geometry
- * comes from @ref ncore::heuristics::kernels::resolveLaunchConfig()
- * fed with the detected device properties, so no per-kernel magic
- * numbers are needed.
+ * device-to-device fast path for 1-D tensors. Element moves use one
+ * transaction per element, so the kernel index space stays in elements;
+ * column-contiguous 2-D views take a shared-tile path coalesced on both
+ * sides. Launch geometry comes from
+ * @ref ncore::heuristics::kernels::resolveLaunchConfig() fed with a
+ * @ref ncore::heuristics::kernels::LayoutTransformParams description and
+ * the detected device properties, so no per-kernel magic numbers are
+ * needed.
  *
  * @see launch_config.hh  Shared grid/block resolution.
  * @see ContiguousLayoutKernel.h  Launcher declarations.
@@ -36,46 +37,42 @@
 
 namespace hk = ncore::heuristics::kernels;
 
+static_assert(hk::LAYOUT_MAX_RANK == NOVA_MAX_DIMS,
+              "LayoutShape must describe every tensor rank");
+
 namespace {
 
-/// Every accessed address stays a multiple of @p vB.
-inline bool stridesVecOk(const CollapsedView &cv, size_t srcOff, size_t vB) {
-  if (srcOff % vB != 0U) {
-    return false;
-  }
-  for (size_t i = 0; i < cv.ndims; ++i) {
-    if (cv.strides[i] % vB != 0U) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/// Widest provable transaction in bytes, 0 for the byte fallback.
-inline size_t vecWidthBytes(size_t itemSize, size_t totalBytes, const void *sp,
-                            const void *dp, size_t srcOff,
-                            const CollapsedView &cv) {
-  if (itemSize == 0U) {
+/**
+ * @brief One element per transaction, 0 for the byte fallback.
+ *
+ * @details
+ * Both vector kernels index their input in element space: the N-D kernel
+ * rebuilds coordinates from @c cv.shape, whose product is the element
+ * count, and the 1-D kernel walks @c item * stride. A transaction wider
+ * than one element would cover several elements while the coordinates
+ * advance one at a time; a narrower one would copy a fragment at the
+ * element stride. Alignment and strides only prove the access is legal,
+ * not that the index space still matches.
+ */
+inline size_t elementTxnBytes(size_t itemSize, const void *sp, const void *dp,
+                              size_t srcOff, const CollapsedView &cv) {
+  if (itemSize == 0U || itemSize > 16U) {
     return 0U;
   }
-  const size_t sA = hk::pointerAlign(sp);
-  const size_t dA = hk::pointerAlign(dp);
-  for (size_t vB : {16U, 8U, 4U, 2U}) {
-    if (itemSize > vB || vB % itemSize != 0U) {
-      continue;
-    }
-    if (totalBytes % vB != 0U) {
-      continue;
-    }
-    if (sA < vB || dA < vB) {
-      continue;
-    }
-    if (!stridesVecOk(cv, srcOff, vB)) {
-      continue;
-    }
-    return vB;
+  if ((itemSize & (itemSize - 1U)) != 0U) {
+    return 0U;
   }
-  return 0U;
+  if (hk::pointerAlign(static_cast<const unsigned char *>(sp) + srcOff) <
+          itemSize ||
+      hk::pointerAlign(dp) < itemSize) {
+    return 0U;
+  }
+  for (size_t i = 0; i < cv.ndims; ++i) {
+    if (cv.strides[i] % itemSize != 0U) {
+      return 0U;
+    }
+  }
+  return itemSize;
 }
 
 /// Column-contiguous 2-D view with single-element transactions.
@@ -87,7 +84,9 @@ inline bool tile2DApplicable(const CollapsedView &cv, size_t itemSize,
   if (itemSize != 1U && itemSize != 2U && itemSize != 4U && itemSize != 8U) {
     return false;
   }
-  if (hk::pointerAlign(sp) < itemSize || hk::pointerAlign(dp) < itemSize) {
+  if (hk::pointerAlign(static_cast<const unsigned char *>(sp) + srcOff) <
+          itemSize ||
+      hk::pointerAlign(dp) < itemSize) {
     return false;
   }
   if (srcOff % itemSize != 0U) {
@@ -110,9 +109,9 @@ void contiguousKernelOneDimTensor(const Tensor *restrict src,
     return;
   }
 
-  *st = cudaTransfer(src->storage->handle.requested_bytes,
-                     DeviceMemcpyKind::deviceMemcpyDeviceToDevice, src->data.v,
-                     dst->data.v, stream);
+  *st = cudaTransfer(src->size * src->item_size,
+                     DeviceMemcpyKind::deviceMemcpyDeviceToDevice,
+                     src->data.data + src->offset, dst->data.data, stream);
   if (st->err != novaSuccess) {
     return;
   }
@@ -200,6 +199,7 @@ __global__ void contiguousKernelNDimVec(CollapsedView cv, size_t srcOffVec,
     coords_t coords = {0};
     compute_coords_from_linear_index_(item, cv.ndims, cv.shape, coords);
 
+#pragma unroll
     for (size_t dim = 0; dim < cv.ndims; ++dim) {
       offset += coords[dim] * cv.strides[dim];
     }
@@ -242,6 +242,7 @@ __global__ void contiguousKernelNDim(CollapsedView cv, size_t src_offset,
     coords_t coords = {0};
     compute_coords_from_linear_index_(item, cv.ndims, cv.shape, coords);
 
+#pragma unroll
     for (size_t dim = 0; dim < cv.ndims; ++dim) {
       offset += coords[dim] * cv.strides[dim];
     }
@@ -419,7 +420,9 @@ hk::KernelAttrs contiguousKernelAttrs(const CollapsedView &cv,
   }
 }
 
-/// Map the pending launch error into status (also resets the sticky error).
+/**
+ * Map the pending launch error into status (also resets the sticky error).
+ */
 inline novaStatus_t checkLaunch() {
   if (cudaGetLastError() != cudaSuccess) {
     novaStatus_t s{};
@@ -443,10 +446,11 @@ inline novaStatus_t checkLaunch() {
  * (see tensor.c); this launcher assumes a non-contiguous source and
  * always materializes a copy: 1-D tensors take the
  * device-to-device fast path; column-contiguous 2-D views take the
- * shared tile; anything else is collapsed and gathered with the
- * widest proven vector width, sized with
- * @ref ncore::heuristics::kernels::resolveLaunchConfig() from the
- * detected device properties.
+ * shared tile; anything else is collapsed and gathered one element
+ * per transaction, sized with
+ * @ref ncore::heuristics::kernels::resolveLaunchConfig() from a
+ * @ref ncore::heuristics::kernels::LayoutTransformParams description
+ * and the detected device properties.
  *
  * @param[in]  src  Source tensor in CUDA device memory.
  * @param[out] dst  Destination tensor in CUDA device memory.
@@ -464,6 +468,11 @@ novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
                                         cudaStream_t stream) {
 
   novaStatus_t st{};
+
+  if (src->size == 0) {
+    st.err = novaSuccess;
+    return st;
+  }
 
   if (src->ndims == 1 && src->strides[0] == src->item_size &&
       src->offset == 0) {
@@ -507,32 +516,34 @@ novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
   if (st.err != novaSuccess) {
     return st;
   }
-  hk::ElementWiseParams hp{};
-  hp.device = hk::capsFromDetected(props);
-  hp.numElements = src->size;
-  hp.inputItemSize = static_cast<uint32_t>(src->item_size);
-  hp.outputItemSize = static_cast<uint32_t>(dst->item_size);
-  hp.inputAlignBytes = hk::pointerAlign(src->data.v);
-  hp.outputAlignBytes = hk::pointerAlign(dst->data.v);
-  hp.packedElemsPerUnit = 1;
-  hp.inputContiguous = is_contiguous(src);
-  hp.outputContiguous = is_contiguous(dst);
-  hp.numInputs = 1;
-  hp.arithmeticIntensity = 0.0F;
-  hp.reuseAfter = false;
-
-  const size_t totalBytes = src->storage->handle.requested_bytes;
-  if (cv.ndims == 1 && cv.strides[0] == src->item_size) {
-    st = cudaTransfer(src->storage->handle.requested_bytes,
-                      DeviceMemcpyKind::deviceMemcpyDeviceToDevice,
-                      src->data.data + src->offset, dst->data.v, stream);
-    return st;
+  hk::LayoutTransformParams lp{};
+  lp.device = hk::capsFromDetected(props);
+  lp.layout.ndim = static_cast<uint8_t>(cv.ndims);
+  for (size_t i = 0; i < cv.ndims; ++i) {
+    lp.layout.shape[i] = static_cast<int64_t>(cv.shape[i]);
+    lp.layout.inStrides[i] =
+        static_cast<int64_t>(cv.strides[i] / src->item_size);
   }
-  const size_t vecBytes = vecWidthBytes(src->item_size, totalBytes, src->data.v,
-                                        dst->data.v, src->offset, cv);
-  hp.kernel = contiguousKernelAttrs(cv, vecBytes);
+  int64_t dense = 1;
+  for (size_t i = cv.ndims; i-- > 0;) {
+    lp.layout.outStrides[i] = dense;
+    dense *= static_cast<int64_t>(cv.shape[i]);
+  }
+  for (uint8_t i = 0; i < lp.layout.ndim; ++i) {
+    lp.perm[i] = i;
+  }
+  lp.itemSize = static_cast<uint32_t>(src->item_size);
+
+  const size_t viewBytes = src->size * src->item_size;
+  if (cv.ndims == 1 && cv.strides[0] == src->item_size) {
+    return cudaTransfer(viewBytes, DeviceMemcpyKind::deviceMemcpyDeviceToDevice,
+                        src->data.data + src->offset, dst->data.data, stream);
+  }
+  const size_t vecBytes = elementTxnBytes(src->item_size, src->data.v,
+                                          dst->data.v, src->offset, cv);
+  lp.kernel = contiguousKernelAttrs(cv, vecBytes);
   thread_local hk::FullConfigCache cache;
-  const hk::LaunchConfig cfg = hk::resolveLaunchConfig(hp, &cache);
+  const hk::LaunchConfig cfg = hk::resolveLaunchConfig(lp, &cache);
   dim3 threads(cfg.threads.x, cfg.threads.y, cfg.threads.z);
   dim3 grid(cfg.blocks.x, cfg.blocks.y, cfg.blocks.z);
 

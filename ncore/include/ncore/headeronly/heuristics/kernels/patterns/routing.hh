@@ -40,6 +40,7 @@ struct FullCacheKey {
   uint64_t shapeBucket = 0; ///< Hash-combine fold of quantized shape.
   uint32_t dtypeTag = 0;    ///< Caller-defined dtype pair tag.
   uint32_t archTag = 0;     ///< Caller-defined architecture tag.
+  uint32_t kernelTag = 0;   ///< Fold of the compiled-kernel attributes.
 };
 
 /**
@@ -82,6 +83,8 @@ struct FullConfigCache {
     h *= 1099511628211ULL;
     h ^= (static_cast<uint64_t>(key.dtypeTag) << 32U) | key.archTag;
     h *= 1099511628211ULL;
+    h ^= key.kernelTag;
+    h *= 1099511628211ULL;
     const uint32_t start = static_cast<uint32_t>(h % FULL_CACHE_CAPACITY);
     for (uint32_t i = 0; i < FULL_CACHE_CAPACITY; ++i) {
       const uint32_t idx = (start + i) % FULL_CACHE_CAPACITY;
@@ -91,7 +94,8 @@ struct FullConfigCache {
       }
       if (e.key.pattern == key.pattern &&
           e.key.shapeBucket == key.shapeBucket &&
-          e.key.dtypeTag == key.dtypeTag && e.key.archTag == key.archTag) {
+          e.key.dtypeTag == key.dtypeTag && e.key.archTag == key.archTag &&
+          e.key.kernelTag == key.kernelTag) {
         *out = e.config;
         return true;
       }
@@ -108,6 +112,8 @@ struct FullConfigCache {
     h *= 1099511628211ULL;
     h ^= (static_cast<uint64_t>(key.dtypeTag) << 32U) | key.archTag;
     h *= 1099511628211ULL;
+    h ^= key.kernelTag;
+    h *= 1099511628211ULL;
     const uint32_t start = static_cast<uint32_t>(h % FULL_CACHE_CAPACITY);
     for (uint32_t i = 0; i < FULL_CACHE_CAPACITY; ++i) {
       const uint32_t idx = (start + i) % FULL_CACHE_CAPACITY;
@@ -120,7 +126,8 @@ struct FullConfigCache {
       }
       if (e.key.pattern == key.pattern &&
           e.key.shapeBucket == key.shapeBucket &&
-          e.key.dtypeTag == key.dtypeTag && e.key.archTag == key.archTag) {
+          e.key.dtypeTag == key.dtypeTag && e.key.archTag == key.archTag &&
+          e.key.kernelTag == key.kernelTag) {
         e.config = cfg;
         return;
       }

@@ -31,12 +31,17 @@ constexpr uint64_t kU64PerBlock = 2U;
 constexpr uint32_t kBlockBytes = 16U;
 constexpr uint32_t kLaneBits = 32U;
 
-/// Compiled facts of one fill kernel. One build can serve devices of
-/// several generations whose register counts and block limits
-/// differ, so the query is keyed by the current device instead of
-/// running once per instantiation. The cache is thread-local with a
-/// bounded pool of device slots; devices beyond the pool query per
-/// call without aliasing the slots.
+/**
+ * @brief Query the kernel attributes for a given device and cache them.
+ *
+ * @details
+ * Compiled facts of one fill kernel. One build can serve devices of
+ * several generations whose register counts and block limits
+ * differ, so the query is keyed by the current device instead of
+ * running once per instantiation. The cache is thread-local with a
+ * bounded pool of device slots; devices beyond the pool query per
+ * call without aliasing the slots.
+ */
 template <typename Kernel> hk::KernelAttrs kernelAttrs(Kernel *func) {
   constexpr int kCachedDevices = 8;
   int device = 0;
@@ -76,15 +81,11 @@ template <typename Kernel> hk::KernelAttrs kernelAttrs(Kernel *func) {
 /// Map the pending launch error into status (also resets the sticky error).
 inline novaStatus_t checkLaunch() {
   if (cudaGetLastError() != cudaSuccess) {
-    novaStatus_t s{};
-    s.err = novaKernelLaunchError;
-    s.message = nova_get_error_msg(s.err, nullptr);
-    return s;
+    return {.err = novaKernelLaunchError,
+            .message = nova_get_error_msg(novaKernelLaunchError, nullptr)};
   }
-  novaStatus_t s{};
-  s.err = novaSuccess;
-  s.message = nova_get_error_msg(s.err, nullptr);
-  return s;
+  return novaStatus_t{.err = novaSuccess,
+                      .message = nova_get_error_msg(novaSuccess, nullptr)};
 }
 
 /// Shared launch geometry for a fill of @p blocks Philox blocks.
@@ -106,7 +107,7 @@ novaStatus_t fillGeometry(uint64_t blocks, uint32_t outAlignBytes,
   hp.inputContiguous = false;
   hp.outputContiguous = true;
   hp.numInputs = 0U;
-  hp.arithmeticIntensity = 4.0F;
+  hp.arithmeticIntensity = 0.0F;
   hp.reuseAfter = false;
   hp.kernel = attrs;
   thread_local hk::FullConfigCache cache;
@@ -209,10 +210,10 @@ __global__ void rngFillU64Blocks(uint32_t key0, uint32_t key1, uint32_t c0,
     const size_t first = b * kU64PerBlock;
     if (aligned && first + kU64PerBlock <= n) {
       const ulonglong2 packed = {
-          static_cast<uint64_t>(lanes[0]) |
-              (static_cast<uint64_t>(lanes[1]) << kLaneBits),
-          static_cast<uint64_t>(lanes[2]) |
-              (static_cast<uint64_t>(lanes[3]) << kLaneBits),
+          .x = static_cast<uint64_t>(lanes[0]) |
+               (static_cast<uint64_t>(lanes[1]) << kLaneBits),
+          .y = static_cast<uint64_t>(lanes[2]) |
+               (static_cast<uint64_t>(lanes[3]) << kLaneBits),
       };
       *reinterpret_cast<ulonglong2 *>(out + first) = packed;
     } else {
