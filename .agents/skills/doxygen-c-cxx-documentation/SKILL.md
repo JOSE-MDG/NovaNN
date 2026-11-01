@@ -90,17 +90,18 @@ after:   Meta,    ///< No-op backend; shape only, never allocates or launches.
 The "after" adds what the name cannot say (it never launches) instead
 of paraphrasing "shape inference".
 
-Class doc with a load-bearing detail (`ncore/tests/core/utils/Rng.hpp`):
+Class doc with a load-bearing detail
+(`ncore/include/ncore/headeronly/wrappers/generator.hh`):
 
 ```cpp
 /**
- * @class Generator
- * @brief One reproducible fixture stream.
+ * @class GeneratorCXX
+ * @brief One reproducible stream over the generator handle.
  *
- * A failed init is reported by the next call, not by the constructor.
- * Copies fork the stream and each copy advances on its own. If a
- * device drain fails the fill already landed: regard the handle as
- * spent.
+ * A copy forks the stream: both handles keep their own state and advance
+ * on their own. A failed initialization is reported through the
+ * constructor status and through every later call, so the handle never
+ * silently produces values it could not seed.
  */
 ```
 

@@ -155,7 +155,9 @@ Reverse-mode automatic differentiation engine.
 
 The three main backends (CPU, CUDA, HIP) are developed in parallel. CUDA and HIP are mutually exclusive at compile time (`-DUSE_CUDA=ON` or `-DUSE_HIP=ON`, not both). HIP is Linux-only; attempting `-DUSE_HIP=ON` on Windows produces a configure-time error.
 
-ROCm's null stream can drop a freshly compiled kernel when the next null-stream operation waits host side for milliseconds. Launchers on the null path synchronize before returning, and the test tree drains device fills before reading them back. Never run the suites with `HIP_LAUNCH_BLOCKING=1`: it serializes every launch, hides the drop, and makes the gates meaningless.
+Each GPU device owns one engine stream: a non-blocking stream created before any device work runs and reused by every allocation, transfer, and kernel launch the device performs. The null stream is never used for device work, because ROCm drops a pending null-stream kernel when the next null-stream operation waits host side for milliseconds. Launchers resolve the engine stream internally and never synchronize it, so a pipeline keeps its ordering without blocking the host. Draining is explicit and happens before a device pool is destroyed, because a free still queued on the engine stream keeps that pool alive. Never run the suites with `HIP_LAUNCH_BLOCKING=1`: it serializes every launch, hides the null-stream drop, and makes the gates meaningless.
+
+The stream handle of each runtime is declared once, in `ncore/include/ncore/headeronly/stream_types.h`. A module that names a stream in a signature includes that file instead of redeclaring the opaque runtime type: the runtime definition is used when the runtime header is reachable, and an opaque forward declaration covers the translation units compiled without the runtime include path. Both spellings denote the same pointer type. The file is C-compatible because the kernel headers that name a stream are shared with C translation units, and the fallback spells the alias with `using` under C++ and with `typedef` under C.
 
 ---
 
@@ -164,12 +166,12 @@ ROCm's null stream can drop a freshly compiled kernel when the next null-stream 
 `ncore_memory` is the Rust crate acting as the official memory allocator. All buffer allocation and deallocation goes through Rust.
 
 ```
-C/C++ calls:  reserve() / retain() / release() / resize()
+C/C++ calls:  reserve() / retain() / release() / resize() / empty_cache()
 
                       │
                       ▼
               ┌────────────────┐
-              │  ncore_memory  │  (Rust staticlib, 0 external dependencies)
+              │  ncore_memory  │  (Rust staticlib)
               │  ┌──────────┐  │
               │  │ manager  │  │  HashMap<ID, RustStorage> with Mutex
               │  │ storage  │  │  allocate/deallocate CPU (std::alloc) or GPU (via bridge)
@@ -185,7 +187,11 @@ C/C++ calls:  reserve() / retain() / release() / resize()
               └──────────────────────────────────────────────────────────────────┘
 ```
 
-Backend primitives (`cudaReserve/Release/Resize/Transfer` and HIP mirrors) take a trailing nullable caller stream: null keeps the synchronous internal path (the FFI layer always passes null, so Rust is unaffected); a given stream enqueues without synchronizing so allocs, copies, and kernels chain in stream order, with the caller owning all ordering.
+`empty_cache(device_id, min_bytes_to_keep)` returns the reclaimable backing of the device pool to the runtime. The memory that live allocations hold stays reserved, so the trim never invalidates a buffer. The Rust layer reaches the backend through the same bridge, and the backend drains the device engine stream first: a free still queued there keeps its block counted as used.
+
+Backend primitives (`cudaReserve/Release/Resize/Transfer` and HIP mirrors) are the only place where a stream handle crosses the native border, as a trailing nullable argument. Null selects the device engine stream; a given stream enqueues without synchronizing so allocations, copies, and kernels chain in stream order. The caller owns ordering across streams. Every buffer remembers the stream its allocation ran on, and releasing or resizing it on a different stream is rejected: crossing streams requires an explicit event dependency.
+
+The C ABI carries no stream at all: `reserve`, `release`, and `resize` take no stream argument, and `launchContiguousKernel(src, dst)` resolves the engine stream of the active device before dispatching. A pipeline therefore cannot mix the engine stream with a caller stream by accident. On HIP/ROCm, async H2D into a freshly pool-allocated buffer is not always observed by a subsequent kernel on the same stream, so callers that mix H2D with dependent device work must synchronize the stream at that boundary; CUDA does not require it. Mixing the engine stream with a caller stream in one pipeline breaks ordering and is not supported.
 
 ---
 
