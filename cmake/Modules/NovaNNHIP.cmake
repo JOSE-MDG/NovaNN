@@ -221,7 +221,7 @@ function(nova_configure_hip_includes_target TARGET)
 
     _nova_configure_hip_common(${TARGET})
 
-    target_include_directories(${TARGET} PRIVATE ${HIP_INCLUDE_DIRS})
+    target_include_directories(${TARGET} SYSTEM PRIVATE ${HIP_INCLUDE_DIRS})
 endfunction()
 
 #[=======================================================================[.rst:

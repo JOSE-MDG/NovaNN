@@ -185,7 +185,7 @@ function(nova_configure_cuda_includes_target TARGET)
 
     _nova_configure_cuda_common(${TARGET})
 
-    target_include_directories(${TARGET} INTERFACE ${CUDAToolkit_INCLUDE_DIRS})
+    target_include_directories(${TARGET} SYSTEM INTERFACE ${CUDAToolkit_INCLUDE_DIRS})
 endfunction()
 
 #[=======================================================================[.rst:
