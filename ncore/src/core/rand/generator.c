@@ -655,7 +655,7 @@ novaStatus_t manual_seed(uint64_t seed) {
  *
  * @return @c novaSuccess when the call may proceed; otherwise the
  *         rejection status for a null destination with a live demand
- *         or for a placement without a default stream.
+ *         or for a placement without a default generator.
  */
 static inline novaStatus_t default_fill_check(Device_ device, const void *out,
                                               size_t n) {
@@ -669,7 +669,7 @@ static inline novaStatus_t default_fill_check(Device_ device, const void *out,
   if (device != DEVICE_CPU && device != DEVICE_GPU) {
     return (novaStatus_t){
         .err = novaInvalidDevice,
-        .message = "No default stream exists for this placement. Use "
+        .message = "No default generator exists for this placement. Use "
                    "DEVICE_CPU or DEVICE_GPU.\n",
     };
   }
