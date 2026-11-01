@@ -112,7 +112,7 @@ std::string formatCudaVersion(int version) {
  * subsequent calls.
  *
  * If device detection has already been performed (via
- * @ref was_device_detection_done), uses the detected device index;
+ * @ref is_device_detection_done), uses the detected device index;
  * otherwise defaults to device 0.
  *
  * @param[out] status  Receives @c novaSuccess on success, or an
@@ -125,7 +125,7 @@ std::string formatCudaVersion(int version) {
 cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
   static const cudaDetectedDeviceProps_t result =
       [&status]() -> cudaDetectedDeviceProps_t {
-    const int deviceId = was_device_detection_done() ? getCudaDeviceId() : 0;
+    const int deviceId = is_device_detection_done() ? getCudaDeviceId() : 0;
     cudaDeviceProp prop{};
     cudaError_t err = cudaGetDeviceProperties(&prop, deviceId);
 
@@ -228,7 +228,7 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
 cudaDetectedDeviceAttrs_t
 getCudaDeviceAttributes(novaStatus_t *status) noexcept {
   static const cudaDetectedDeviceAttrs_t attrs = [] {
-    const int deviceId = was_device_detection_done() ? getCudaDeviceId() : 0;
+    const int deviceId = is_device_detection_done() ? getCudaDeviceId() : 0;
     int clockKHz = 0;
     int memClockKHz = 0;
     if (cudaDeviceGetAttribute(&clockKHz, cudaDevAttrClockRate, deviceId) !=

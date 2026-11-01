@@ -47,12 +47,15 @@
  * @param[out] dst   Pointer to the destination buffer.
  * @param[in]  kind  Copy direction (@ref TransferKind).
  * @param[in]  bytes Number of bytes to transfer.
+ * @param[in]  stream Nullable CUDA or HIP stream ordering the copy. Null
+ *                    selects the device engine stream.
  *
  * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
  *         success, or an appropriate error code on failure.
  */
 extern novaStatus_t deviceTransfer(const void *src, void *dst,
-                                   TransferKind kind, size_t bytes);
+                                   TransferKind kind, size_t bytes,
+                                   void *stream);
 
 #ifdef NOVA_HAS_CUDA
 
@@ -258,7 +261,6 @@ static TransferKind transf_dispatch[3][3] = {};
  * @see transfer_to()
  */
 INITIALIZE(init_transf_dispatch) {
-
   transf_dispatch[DEVICE_GPU][DEVICE_CPU] = deviceMemcpyDeviceToHost;
   transf_dispatch[DEVICE_CPU][DEVICE_GPU] = deviceMemcpyHostToDevice;
   transf_dispatch[DEVICE_GPU][DEVICE_GPU] = deviceMemcpyDeviceToDevice;
@@ -287,7 +289,7 @@ INITIALIZE(init_transf_dispatch) {
  * @see is_cuda_available()          Convenience wrapper for @c CUDA_DEVICE.
  * @see is_hip_available()           Convenience wrapper for @c HIP_DEVICE.
  * @see get_detected_device_kind()   Returns the cached backend.
- * @see was_device_detection_done()  Checks if detection ran.
+ * @see is_device_detection_done()  Checks if detection ran.
  */
 bool is_device_available(DeviceKind kind, bool verbose) {
   if (atomic_load_explicit(&atomic_device_detection_done,
@@ -468,7 +470,7 @@ novaStatus_t transfer_to(Device_ src, Device_ dst, const void *src_buf,
     return status;
   }
   TransferKind kind = transf_dispatch[src][dst];
-  return deviceTransfer(src_buf, dst_buf, kind, bytes);
+  return deviceTransfer(src_buf, dst_buf, kind, bytes, nullptr);
 }
 
 /**
@@ -559,7 +561,7 @@ novaStatus_t print_device_info(DeviceKind kind, bool verbose) {
  * @return The detected @ref DeviceKind, or @c NULL_DEVICE if no
  *         detection has occurred.
  *
- * @see was_device_detection_done()
+ * @see is_device_detection_done()
  * @see is_device_available()
  */
 DeviceKind get_detected_device_kind() {
@@ -582,7 +584,7 @@ DeviceKind get_detected_device_kind() {
  * @see get_detected_device_kind()
  * @see is_device_available()
  */
-bool was_device_detection_done() {
+bool is_device_detection_done() {
   return atomic_load_explicit(&atomic_device_detection_done,
                               memory_order_acquire);
 }

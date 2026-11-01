@@ -5,9 +5,9 @@
  *
  * Device tiers:
  *
- * @li @c DEVICE_CPU — 0 — Host memory (default).
- * @li @c DEVICE_GPU — 1 — Accelerator memory (CUDA/ROCm).
- * @li @c DEVICE_META — 2 — Placeholder with no backing storage.
+ * @li @c DEVICE_CPU - 0 - Host memory (default).
+ * @li @c DEVICE_GPU - 1 - Accelerator memory (CUDA/ROCm).
+ * @li @c DEVICE_META - 2 - Placeholder with no backing storage.
  *
  * META tensors carry dtype and shape metadata only; nothing is
  * allocated, which makes them useful for shape inference and graph
@@ -194,7 +194,7 @@ DeviceKind get_detected_device_kind();
  * @return @c true after any of the availability functions completed
  *         at least once.
  */
-bool was_device_detection_done();
+bool is_device_detection_done();
 
 #ifdef __cplusplus
 }

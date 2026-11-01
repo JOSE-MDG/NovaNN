@@ -72,7 +72,7 @@ novaStatus_t launch(const std::unordered_map<DeviceKind, KernelFn> &table,
     return kernel(std::forward<Args>(args)...);
   };
 
-  if (was_device_detection_done()) {
+  if (is_device_detection_done()) {
     return run(get_detected_device_kind());
   }
 

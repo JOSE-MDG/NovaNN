@@ -123,7 +123,7 @@ std::string formatHipVersion(int version) {
  * subsequent calls.
  *
  * If device detection has already been performed (via
- * @ref was_device_detection_done), uses the detected device index;
+ * @ref is_device_detection_done), uses the detected device index;
  * otherwise defaults to device 0.
  *
  * @param[out] status  Receives @c novaSuccess on success, or an
@@ -137,7 +137,7 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
   static const hipDetectedDeviceProps_t result =
       [&status]() -> hipDetectedDeviceProps_t {
     hipDeviceProp_t prop{};
-    hipError_t err = was_device_detection_done()
+    hipError_t err = is_device_detection_done()
                          ? hipGetDeviceProperties(&prop, getHipDeviceId())
                          : hipGetDeviceProperties(&prop, 0);
 
@@ -244,7 +244,7 @@ hipDetectedDeviceProps_t initHipDeviceProperties(novaStatus_t *status) {
  */
 hipDetectedDeviceAttrs_t getHipDeviceAttributes(novaStatus_t *status) noexcept {
   static const hipDetectedDeviceAttrs_t attrs = [] {
-    const int deviceId = was_device_detection_done() ? getHipDeviceId() : 0;
+    const int deviceId = is_device_detection_done() ? getHipDeviceId() : 0;
     int maxThreadsPerMP = 0;
     if (hipDeviceGetAttribute(&maxThreadsPerMP,
                               hipDeviceAttributeMaxThreadsPerMultiProcessor,
