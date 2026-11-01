@@ -1,24 +1,20 @@
 /**
  * @file status_dispatch_tables.c
- * @brief Initialisation of the global error message dispatch table.
+ * @brief Initialization of the global error message dispatch table.
  *
  * @details
  * Populates the @c status_msg_dispatch array that maps each @ref novaError_t
- * code to its corresponding human-readable message. The table is
- * populated once at program load time via an @c INITIALIZE(init_status_msg_dispatch)
- * function.
+ * code to its corresponding human-readable message, once at program
+ * load time via an INITIALIZE(init_status_msg_dispatch) function.
+ * The core status logic stays decoupled from the message strings,
+ * following the same pattern as other dispatch tables in the runtime.
  *
- * This separation ensures that the core status logic remains decoupled
- * from the specific message strings, following the same pattern as other
- * dispatch tables in the runtime.
+ * @c INITIALIZE(init_status_msg_dispatch) runs at program load time.
+ * Because this file only writes to the @c status_msg_dispatch array
+ * (no other globals depend on it), there are no inter-file ordering
+ * constraints.
  *
- * @section constructor-ordering Constructor ordering
- * @c INITIALIZE(init_status_msg_dispatch) runs at program load time. Because
- * this file only writes to the @c status_msg_dispatch array (no other
- * globals depend on it), there are no inter-file ordering constraints.
- *
- * @see status_msg_dispatch  The message lookup array.
- * @see novaError_t          The error code enumeration.
+ * @see status.h  @ref novaError_t enumeration and reporting API.
  */
 
 #include <ncore/core/status.h>
@@ -44,7 +40,7 @@ const char *status_msg_dispatch[NUM_ERRORS] = {};
  * @brief Populate every entry in @c status_msg_dispatch.
  *
  * @details
- * Called automatically at library initialisation time via @c INITIALIZE(init_status_msg_dispatch).
+ * Called automatically at library initialization time via @c INITIALIZE(init_status_msg_dispatch).
  * Assigns a descriptive string to each valid error code defined in
  * the @ref novaError_t enumeration.
  *
@@ -147,4 +143,14 @@ INITIALIZE(init_status_msg_dispatch) {
   /* Threads */
   status_msg_dispatch[novaThreadNotInitialized] =
       "Thread configuration has not been initialized\n";
+
+  /* Resource state */
+  status_msg_dispatch[novaInvalidDeviceId] =
+      "GPU device ID is outside the runtime or configured device range\n";
+  status_msg_dispatch[novaResourceBusy] =
+      "Resource is busy: outstanding allocations prevent pool destruction\n";
+
+  /* Memory pools */
+  status_msg_dispatch[novaMemoryPoolsNotNativelySupported] =
+      "The device does not natively support memory pools\n";
 }

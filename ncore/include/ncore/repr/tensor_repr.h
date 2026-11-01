@@ -3,34 +3,11 @@
  * @brief Public API for tensor string representation in NovaNN.
  *
  * @details
- * Declares the high-level entry points for generating human-readable
- * string representations of tensors. Supports various verbosity
- * modes (normal vs. debug) and provides both heap-allocating
- * functions and convenience printing wrappers.
- *
+ * Renders tensors to human-readable strings in normal or debug mode.
  * Every function returns @ref novaStatus_t: failures carry a reason
  * instead of an ambiguous null. Functions producing a string take an
  * output slot; on error the slot holds @c nullptr, on success a
  * heap-allocated buffer the caller must @c free().
- *
- * @section typical-usage Typical Usage
- *
- * @code{.c}
- *   Tensor t = create_tensor(...);
- *
- *   // Print to stdout immediately
- *   novaStatus_t st = tensor_print(&t);
- *
- *   // Or capture the string for logging
- *   char *s = nullptr;
- *   st = tensor_repr(&t, &s);
- *   if (st.err == novaSuccess) {
- *       LOG_INFO("Result: %s", s);
- *       free(s);
- *   }
- *
- *   st = collect(&t);
- * @endcode
  *
  * @see ReprOptions  Configuration for formatting behavior.
  * @see ReprContext  Internal derived state engine.
@@ -70,9 +47,9 @@ novaStatus_t tensor_repr(const Tensor *ten, char **out);
  * @brief Produce a debug-mode string representation of a tensor.
  *
  * @details
- * Similar to @ref tensor_repr(), but appends a comprehensive metadata
- * footer containing the tensor's dtype, shape, device placement, and
- * autograd information (@c requires_grad or @c grad_fn).
+ * Same rendering as @ref tensor_repr() plus a metadata footer:
+ * dtype, shape, device placement, and autograd info
+ * (@c requires_grad or @c grad_fn).
  *
  * @param[in]  ten Pointer to the tensor to render.
  * @param[out] out Slot for the heap-allocated null-terminated string.
@@ -86,9 +63,8 @@ novaStatus_t tensor_repr_debug(const Tensor *ten, char **out);
  *        options.
  *
  * @details
- * Advanced entry point that accepts a @ref ReprOptions struct to
- * customize thresholds, precision, scientific notation, and other
- * formatting parameters.
+ * Renders the tensor under a @ref ReprOptions controlling thresholds,
+ * precision, scientific notation, and other formatting parameters.
  *
  * @param[in]  ten  Pointer to the tensor to render.
  * @param[in]  opts Pointer to a @ref ReprOptions struct. If

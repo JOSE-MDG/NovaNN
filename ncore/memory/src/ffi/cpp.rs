@@ -1,4 +1,4 @@
-//! Bindings to the C++ device-memory FFI layer (`csrc/ffi.hpp`).
+//! Bindings to the C++ device-memory FFI layer (`ncore/include/ncore/memory/ffi.hpp`).
 //!
 //! | Path                       | Contents                                         |
 //! |----------------------------|--------------------------------------------------|
@@ -8,6 +8,6 @@
 pub mod bindings;
 pub use crate::status::{NovaError, NovaStatus};
 pub use bindings::{
-    DeviceBuffer, DeviceKind, DeviceMemcpyKind, deviceRelease, deviceReserve, deviceResize,
-    getDeviceBackend,
+    DeviceBuffer, DeviceKind, DeviceMemcpyKind, deviceEmptyCache, deviceRelease, deviceReserve,
+    deviceResize, getDeviceBackend,
 };

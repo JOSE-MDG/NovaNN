@@ -46,6 +46,11 @@ pub unsafe extern "C" fn retain(handle: *mut RustHandle) -> NovaStatus {
 /// valid. On failure, the handle and its ownership remain available to the
 /// caller, and `status` contains the failure details.
 ///
+/// # Arguments
+///
+/// * `handle` - Non-null pointer to the handle being released.
+/// * `status` - Non-null output status populated for every call.
+///
 /// # Safety
 ///
 /// `handle` must be non-null and point to a valid [`RustHandle`]. `status`

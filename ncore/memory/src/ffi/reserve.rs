@@ -21,14 +21,14 @@ use std::ffi::{CStr, c_char};
 /// # Arguments
 ///
 /// * `size`       - Reservation size in bytes, already rounded to its size
-///                  class by the caller. Must be non-zero.
+///   class by the caller. Must be non-zero.
 /// * `requested`  - Theoretical size asked by the caller. Must be non-zero
-///                  and not greater than `size`.
+///   and not greater than `size`.
 /// * `device`     - C string: `"cpu"` for host RAM, `"device"` for GPU VRAM.
-///                  A null pointer is treated as `"cpu"` for compatibility
-///                  with the native allocator wrapper.
+///   A null pointer is treated as `"cpu"` for compatibility
+///   with the native allocator wrapper.
 /// * `pin_memory` - If `true`, allocate page-locked host memory (only valid
-///                  when `device` is `"cpu"`).
+///   when `device` is `"cpu"`).
 /// * `align` - Required memory alignment. Must be a power of two. Ignored for device and pinned host allocations.
 /// * `status`     - Non-null output status populated for every call.
 ///

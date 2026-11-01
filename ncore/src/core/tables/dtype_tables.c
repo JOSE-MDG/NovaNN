@@ -3,25 +3,12 @@
  * @brief Definitions of dtype classification and size lookup tables.
  *
  * @details
- * This file contains the definitions of the global @c const lookup
- * tables declared in @ref dtype_tables.h.  Each classification
- * table is a @c NUM_DTYPES × 1 array of @c bool, populated using
- * C99 designated initializers so that only the @c true entries
- * need to be listed explicitly (all others default to @c false).
- *
- * The tables are:
- * @li @ref floating — floating-point types.
- * @li @ref integer — all non-quantized integer types (signed and unsigned).
- * @li @ref signed_integer — non-quantized signed integer types.
- * @li @ref unsigned_integer — non-quantized unsigned integer types.
- * @li @ref quantized_signed_integer — quantized signed only.
- * @li @ref quantized_unsigned_integer — quantized unsigned only.
- * @li @ref lookup_dtype_sizes — byte-width per dtype.
- *
- * @section thread-safety Thread Safety
- *
- * All tables are @c const and read-only after process startup.
- * They are safe to access from any thread.
+ * Global @c const lookup tables declared in @ref dtype_tables.h.
+ * Each classification table is a @c NUM_DTYPES × 1 array of @c bool,
+ * populated with C99 designated initializers so only the @c true
+ * entries are listed explicitly (all others default to @c false).
+ * All tables are read-only after process startup and safe to access
+ * from any thread.
  *
  * @see dtype_tables.h  Public declarations.
  * @see dtype.c         Classification functions using these tables.
@@ -186,14 +173,7 @@ const bool quantizable_dtype[NUM_DTYPES][1] = {
  *
  * @details
  * @c lookup_dtype_sizes[dtype] returns @c sizeof the corresponding
- * C type for that dtype.  For example:
- * @li @c lookup_dtype_sizes[Float32] = @c sizeof(float32) = 4
- * @li @c lookup_dtype_sizes[Float64] = @c sizeof(float64) = 8
- * @li @c lookup_dtype_sizes[Float8E4M3fn] = @c sizeof(float8_e4m3fn) = 1
- * @li @c lookup_dtype_sizes[Signed64] = @c sizeof(int64) = 8
- * @li @c lookup_dtype_sizes[QSigned8] = @c sizeof(qint8) = 1
- *
- * Used by @ref dtype_size() in @ref dtype.c.
+ * C type for that dtype.  Used by @ref dtype_size() in @ref dtype.c.
  */
 const size_t lookup_dtype_sizes[NUM_DTYPES] = {
     [Float32] = sizeof(float32),

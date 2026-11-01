@@ -62,21 +62,10 @@ inline constexpr UnallocatedTag unallocated{};
  * @class TensorCXX
  * @brief RAII wrapper around the C @ref Tensor, exposing a safe C++ interface.
  *
- * @details
-  * Manages the full lifecycle of a NovaNN tensor: allocation, shape
-  * metadata, reference counting (via the C core), copy/move semantics,
-  * element access, layout transforms, and device/dtype transfers.
-  * The class is aligned to 64 bytes for cache-line friendliness.
- *
- * @par Ownership
- * Constructing a @ref TensorCXX allocates the underlying buffer through
- * the C core; destruction releases it.  Copying performs a deep copy;
- * moving transfers ownership and leaves the source in a valid but empty
- * state.
- *
- * @par Thread safety
- * A single @ref TensorCXX instance must not be mutated concurrently from
- * multiple threads without external synchronisation.
+ * Copying deep-copies the underlying buffer, moving transfers it and
+ * leaves the source valid but empty. A single instance must not be
+ * mutated concurrently from multiple threads without external
+ * synchronization.
  */
 class alignas(64) TensorCXX {
 
@@ -93,10 +82,8 @@ public:
   /**
    * @brief Constructs a tensor with the given shape, dtype, and device.
    *
-   * @details
-   * Allocates the backing buffer through the C core via
-   * @ref create_tensor().  The tensor is fully independent — it owns its
-   * own storage.
+   * The backing buffer is allocated through the C core via
+   * @ref create_tensor(); the result owns its own storage.
    *
    * @param[in]  shape         Number of elements along each dimension.
    * @param[in]  dtype         Data type of the tensor elements.
@@ -104,8 +91,6 @@ public:
    * @param[in]  requires_grad Whether to track gradients for this tensor.
    * @param[in]  pin_memory    Whether to use page-locked (pinned) host memory.
    * @param[in,out] st         Status output; @ref novaSuccess on success.
-   *
-   * @see create_tensor()  Underlying C allocation.
    */
   TensorCXX(const std::vector<size_t> &shape, DType_ dtype, Device_ device,
             bool requires_grad, bool pin_memory, novaStatus_t *st);
@@ -151,11 +136,10 @@ public:
   /**
    * @brief Constructs an unallocated n-dimensional tensor.
    *
-   * @details
-   * Wraps @ref create_unallocated_tensor(): metadata (shape, strides,
-   * dtype, device, gradient handle) is populated but no backing buffer is
-   * reserved. This is the state required by C core APIs that populate a
-   * tensor through an out-pointer, such as @ref deepcopy().
+   * Metadata (shape, strides, dtype, device, gradient handle) is
+   * populated but no buffer reserved. This is the state required by
+   * C core APIs that populate a tensor through an out-pointer, such
+   * as @ref deepcopy().
    *
    * @param[in] tag           Must be @ref unallocated.
    * @param[in] shape         Logical dimension sizes.
@@ -175,9 +159,8 @@ public:
   /**
    * @brief Constructs an unallocated scalar (0-d) tensor.
    *
-   * @details
-   * Wraps @ref create_unallocated_scalar_tensor(). Same contract as the
-   * tagged n-dimensional constructor with a trivial layout.
+   * Same contract as the tagged n-dimensional constructor with a
+   * trivial layout.
    *
    * @param[in] tag           Must be @ref unallocated.
    * @param[in] dtype         Data type of the tensor elements.
@@ -417,11 +400,10 @@ public:
   /**
    * @brief Returns a mutable reference to the underlying C tensor.
    *
-   * @details
    * Intended for C core APIs that populate a tensor through an
-   * out-pointer (e.g. @ref deepcopy()). Note that the mirrored metadata
-   * members held by this wrapper are not refreshed automatically; if a
-   * call reshapes the tensor, prefer reconstructing the wrapper.
+   * out-pointer (e.g. @ref deepcopy()). The mirrored metadata members
+   * held by this wrapper are not refreshed automatically; if a call
+   * reshapes the tensor, prefer reconstructing the wrapper.
    *
    * @return Mutable reference to the wrapped C tensor.
    */
@@ -456,16 +438,12 @@ public:
   /**
    * @brief Returns a new tensor with the given dtype (same device).
    *
-   * @details
-   * Allocates a new tensor on the same device and casts the elements
-   * via @ref cast().  When @p dtype equals the current dtype, a copy
-   * of the tensor is returned unchanged.
+   * Allocates on the same device and casts via @ref cast(). Equal
+   * input and target dtype returns @c this.
    *
    * @param[in]  dtype Target data type.
    * @param[out] st    Status output; @ref novaSuccess on success.
    * @return A new tensor with elements cast to @p dtype.
-   *
-   * @see cast()  Underlying C casting routine.
    */
   [[nodiscard]] TensorCXX to(DType_ dtype, novaStatus_t &st) const noexcept;
 
@@ -570,17 +548,17 @@ private:
 inline TensorCXX::TensorCXX() = default;
 
 /// @brief Allocates the backing buffer and mirrors the C tensor metadata.
-inline TensorCXX::TensorCXX(const std::vector<size_t> &shape, DType_ dtype,
+inline TensorCXX::TensorCXX(const std::vector<size_t> &init_shape, DType_ dtype,
                             Device_ device, bool requires_grad, bool pin_memory,
                             novaStatus_t *st) {
   shape_t local_shape = {0};
-  for (size_t i = 0; i < shape.size(); ++i) {
-    local_shape[i] = shape[i];
+  for (size_t i = 0; i < init_shape.size(); ++i) {
+    local_shape[i] = init_shape[i];
   }
   c_tensor = create_tensor(local_shape, dtype, device, requires_grad,
-                           pin_memory, shape.size(), st);
+                           pin_memory, init_shape.size(), st);
 
-  this->shape = shape;
+  this->shape = init_shape;
   size = c_tensor.size;
   ndims = c_tensor.ndims;
   item_size = c_tensor.item_size;
@@ -591,10 +569,10 @@ inline TensorCXX::TensorCXX(const std::vector<size_t> &shape, DType_ dtype,
 /// @brief Releases the underlying tensor buffer via the C core.
 inline TensorCXX::~TensorCXX() { (void)collect(&c_tensor); }
 
-inline TensorCXX::TensorCXX(std::initializer_list<size_t> shape, DType_ dtype,
-                            Device_ device, bool requires_grad, bool pin_memory,
-                            novaStatus_t *st)
-    : TensorCXX(std::vector<size_t>(shape), dtype, device, requires_grad,
+inline TensorCXX::TensorCXX(std::initializer_list<size_t> init_shape,
+                            DType_ dtype, Device_ device, bool requires_grad,
+                            bool pin_memory, novaStatus_t *st)
+    : TensorCXX(std::vector<size_t>(init_shape), dtype, device, requires_grad,
                 pin_memory, st) {}
 
 /// @brief Deep-copy constructor. Allocates a new buffer and copies data.
@@ -929,17 +907,19 @@ inline TensorCXX TensorCXX::contiguous(novaStatus_t &st) const noexcept {
   return out;
 }
 /// @brief Constructs an unallocated n-dimensional tensor.
-inline TensorCXX::TensorCXX(UnallocatedTag, const std::vector<size_t> &shape,
-                            DType_ dtype, Device_ device, bool requires_grad,
-                            bool pin_memory, novaStatus_t *st) {
+inline TensorCXX::TensorCXX(UnallocatedTag,
+                            const std::vector<size_t> &init_shape, DType_ dtype,
+                            Device_ device, bool requires_grad, bool pin_memory,
+                            novaStatus_t *st) {
   shape_t local_shape = {0};
-  for (size_t i = 0; i < shape.size(); ++i) {
-    local_shape[i] = shape[i];
+  for (size_t i = 0; i < init_shape.size(); ++i) {
+    local_shape[i] = init_shape[i];
   }
-  c_tensor = create_unallocated_tensor(
-      local_shape, dtype, device, requires_grad, pin_memory, shape.size(), st);
+  c_tensor =
+      create_unallocated_tensor(local_shape, dtype, device, requires_grad,
+                                pin_memory, init_shape.size(), st);
 
-  this->shape = shape;
+  this->shape = init_shape;
   size = c_tensor.size;
   ndims = c_tensor.ndims;
   item_size = c_tensor.item_size;

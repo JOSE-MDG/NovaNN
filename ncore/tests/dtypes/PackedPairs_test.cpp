@@ -64,7 +64,8 @@ TEST(PackedPairs, StructCtorFromScalarStructsMatchesFloatCtor) {
           << "lo=0x" << std::hex << static_cast<unsigned>(loBits) << " hi=0x"
           << std::hex << static_cast<unsigned>(hiBits);
       EXPECT_EQ(fromLanes.val_,
-                static_cast<uint8_t>((hiBits << 4) | (loBits & 0x0FU)));
+                static_cast<uint8_t>((static_cast<unsigned>(hiBits) << 4U) |
+                                     (static_cast<unsigned>(loBits) & 0x0FU)));
     }
   }
 }

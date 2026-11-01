@@ -88,10 +88,7 @@ struct alignas(2) Half {
    */
   struct from_bits_t {};
 
-  /**
-   * @brief Returns a tag instance of @ref from_bits_t.
-   * @return A default-constructed @ref from_bits_t.
-   */
+  /// Returns a default-constructed @ref from_bits_t.
   NCORE_HOST_DEVICE static constexpr from_bits_t from_bits() { return {}; }
 
 #ifdef NOVA_HAS_HIP
@@ -145,8 +142,9 @@ struct alignas(2) Half {
 
 /**
  * @brief Stream output operator for @ref Half.
- * @details Promotes the half-precision value to float before writing to the
- * stream.
+ *
+ * Promotes to float before writing to the stream.
+ *
  * @param[in,out] out The output stream.
  * @param[in]     value The @ref Half value to write.
  * @return Reference to the output stream.
@@ -203,10 +201,9 @@ NCORE_HOST_DEVICE inline uint32_t fp32_to_bits(float f) {
 /**
  * @brief Converts a 16-bit IEEE half-precision bit pattern to a 32-bit float
  * value.
- * @details
- * Uses hardware acceleration if F16C instruction set is available.
- * Otherwise fallback to software conversion handling normalized, denormalized,
- * and special values (zero, infinity, NaN).
+ *
+ * Hardware path through F16C when available; the software fallback
+ * handles normalized, denormalized, and special values.
  *
  * @param[in] h The 16-bit half-precision bit pattern.
  * @return The single-precision float value.
@@ -312,10 +309,9 @@ NCORE_HOST_DEVICE inline float fp16_ieee_to_fp32_value(uint16_t h) {
 /**
  * @brief Converts a 32-bit float value to a 16-bit IEEE half-precision bit
  * pattern.
- * @details
- * Uses hardware acceleration if F16C instruction set is available.
- * Otherwise fallback to software conversion performing proper rounding to
- * nearest-even.
+ *
+ * Hardware path through F16C when available; the software fallback
+ * rounds to nearest-even.
  *
  * @param[in] f The single-precision float value to convert.
  * @return The 16-bit half-precision bit pattern.
@@ -457,7 +453,7 @@ inline uint32_t fp16_ieee_to_fp32_bits(uint16_t h) {
 } // namespace detail
 
 // ============================================================
-// Constructors and conversion operators — inline definitions
+// Constructors and conversion operators (inline definitions)
 // ============================================================
 
 inline NCORE_HOST_DEVICE Half::Half(float value)
@@ -509,52 +505,24 @@ inline __device__ Half __ldg(const Half *ptr) {
 /// @name Arithmetic Operators (Half & Half)
 /// @{
 
-/**
- * @brief Addition operator for two @ref Half values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The sum as a @ref Half.
- */
 inline NCORE_HOST_DEVICE Half operator+(const Half &a, const Half &b) {
   return static_cast<float>(a) + static_cast<float>(b);
 }
 
-/**
- * @brief Subtraction operator for two @ref Half values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The difference as a @ref Half.
- */
 inline NCORE_HOST_DEVICE Half operator-(const Half &a, const Half &b) {
   return static_cast<float>(a) - static_cast<float>(b);
 }
 
-/**
- * @brief Multiplication operator for two @ref Half values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The product as a @ref Half.
- */
 inline NCORE_HOST_DEVICE Half operator*(const Half &a, const Half &b) {
   return static_cast<float>(a) * static_cast<float>(b);
 }
 
-/**
- * @brief Division operator for two @ref Half values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The quotient as a @ref Half.
- */
 NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO
 inline NCORE_HOST_DEVICE Half operator/(const Half &a, const Half &b) {
   return static_cast<float>(a) / static_cast<float>(b);
 }
 
-/**
- * @brief Unary minus operator for @ref Half.
- * @param[in] a The operand.
- * @return The negated value as a @ref Half.
- */
+/// Unary minus; uses @c __hneg on sm_53+.
 inline NCORE_HOST_DEVICE Half operator-(const Half &a) {
 #if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530) ||                        \
     defined(__HIP_DEVICE_COMPILE__)
@@ -564,45 +532,21 @@ inline NCORE_HOST_DEVICE Half operator-(const Half &a) {
 #endif
 }
 
-/**
- * @brief Addition assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to add.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Half &operator+=(Half &a, const Half &b) {
   a = a + b;
   return a;
 }
 
-/**
- * @brief Subtraction assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to subtract.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Half &operator-=(Half &a, const Half &b) {
   a = a - b;
   return a;
 }
 
-/**
- * @brief Multiplication assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to multiply.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Half &operator*=(Half &a, const Half &b) {
   a = a * b;
   return a;
 }
 
-/**
- * @brief Division assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The divisor.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Half &operator/=(Half &a, const Half &b) {
   a = a / b;
   return a;
@@ -821,7 +765,7 @@ public:
   static constexpr int max_exponent = 16;   ///< Maximum positive power of 2.
   static constexpr int max_exponent10 = 4;  ///< Maximum positive power of 10.
   static constexpr auto traps =
-      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
+      numeric_limits<float>::traps; ///< Inherits float32 trap behavior.
   static constexpr auto tinyness_before =
       numeric_limits<float>::tinyness_before; ///< Inherits float32
                                               ///< tinyness-before semantics.

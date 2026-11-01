@@ -1,15 +1,13 @@
 /**
  * @file status.c
- * @brief Implementation of error message retrieval.
+ * @brief Error message retrieval.
  *
  * @details
- * This module provides the implementation for retrieving human-readable
- * error messages from @ref novaError_t codes. It utilizes a global
- * dispatch table defined in @ref status_dispatch_tables.c to provide
- * O(1) retrieval time.
+ * Human-readable messages for @ref novaError_t codes, served from the
+ * global dispatch table defined in @ref status_dispatch_tables.c.
  *
- * @see status.h                     Public interface and @ref novaError_t definition.
- * @see status_dispatch_tables.c     Global message table definition.
+ * @see status.h                 Public interface and @ref novaError_t definition.
+ * @see status_dispatch_tables.c Global message table definition.
  */
 
 #include <ncore/core/status.h>
@@ -26,21 +24,20 @@
 extern const char *status_msg_dispatch[NUM_ERRORS];
 
 /**
- * @brief Retrieves the human-readable message for a given error code.
+ * @brief Retrieve the human-readable message for an error code.
  *
  * @details
- * Validates the provided error code against the table bounds (@ref NUM_ERRORS)
- * and returns the corresponding message string from @ref status_msg_dispatch.
- * If the code is out of bounds or the table entry is nullptr, returns the
- * caller-provided @p fallback message, or "Unknown error" if @p fallback
- * is nullptr.
+ * Validates @p err against the table bounds (@ref NUM_ERRORS) and
+ * returns the corresponding message from @ref status_msg_dispatch.
+ * Out-of-bounds codes or null table entries return @p fallback, or
+ * "Unknown error" if @p fallback is nullptr.
  *
  * @param[in] err      The @ref novaError_t code to look up.
  * @param[in] fallback Custom fallback message.  May be nullptr.
  * @return A constant pointer to the error message string.
  *
- * @note This function is thread-safe as it only performs read operations
- *       on the global table after it has been initialized at load time.
+ * @note Thread-safe: read-only access to a table initialized at load
+ *       time.
  */
 const char *nova_get_error_msg(novaError_t err, const char *fallback) {
   if (err < NUM_ERRORS) {

@@ -16,6 +16,8 @@
 #include <ncore/core/status.h>
 #include <ncore/tensor.h>
 
+#include <ncore/headeronly/stream_types.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,13 +36,17 @@ extern "C" {
  *
  * @param[in]  src  Source tensor in CUDA device memory.
  * @param[out] dst  Destination tensor in CUDA device memory.
+ * @param[in]  stream CUDA stream that receives the device copy and the
+ *                    kernel launch, normally the device engine stream.
+ *                    Never synchronized or destroyed here.
  *
  * @return @ref novaStatus_t with the launch outcome
  *         (@ref novaKernelLaunchError on launch failure), or the property
  *         query error when the device caps cannot be read.
  */
 novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
-                                        Tensor *restrict dst);
+                                        Tensor *restrict dst,
+                                        cudaStream_t stream);
 
 #ifdef __cplusplus
 }

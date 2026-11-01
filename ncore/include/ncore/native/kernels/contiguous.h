@@ -37,6 +37,11 @@ extern "C" {
  * grid-stride kernel with the widest provable vector width, sized for
  * the detected backend.
  *
+ * The backend kernel and any device transfer are submitted to the device
+ * engine stream without synchronizing it. The caller orders allocation
+ * and later use of @p dst on the same device, or establishes explicit
+ * event dependencies for cross-stream consumption.
+ *
  * @param[in]  src  Source tensor in device memory.
  * @param[in,out] dst  Destination tensor receiving the contiguous copy.
  *

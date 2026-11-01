@@ -7,14 +7,10 @@ with new VNNI INT8/FP variants, MOVRS, and media/AI-oriented instructions
 but, like AVX10.1, is identified by a CPUID version-number check rather
 than by testing a unique instruction.
 
-Requires ``HAS_AVX10_1`` -- this module only probes when AVX10.1 was
+Requires ``HAS_AVX10_1``: this module only probes when AVX10.1 was
 already detected.  Detection uses CPUID leaf 0x24, subleaf 0, EBX[7:0]
 >= 2, gated behind CPUID leaf 7, subleaf 0, EDX[19] (AVX10 presence
 flag), same as ``DetectAVX10.1``.
-
-.. note::
-  This snippet is compiled and run via :command:`check_simd`, which
-  wraps ``-m`` flags with ``/clang:`` prefix when using clang-cl.
 
 Variables defined:
 

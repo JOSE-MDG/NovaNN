@@ -163,10 +163,19 @@ def build_rules() -> dict[str, Any]:
 
 
 def write_rules(path: Path = RULES_PATH) -> None:
-    """Write the cast-table rules JSON file."""
+    """Write the cast-table rules JSON file.
+
+    The file is rewritten only when its bytes change: the codegen runs
+    during the CMake configure step, and touching the file on every
+    configure keeps the source tree dirty and, on Windows, rewrites it
+    with CRLF endings.
+    """
     rules = build_rules()
+    payload = (json.dumps(rules, indent=2) + "\n").encode("utf-8")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(rules, indent=2) + "\n")
+    if path.exists() and path.read_bytes() == payload:
+        return
+    path.write_bytes(payload)
 
 
 def main() -> None:

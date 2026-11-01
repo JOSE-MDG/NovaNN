@@ -30,8 +30,8 @@
 #include <ncore/headeronly/dtypes/fp8_e5m2.hh>
 #include <ncore/headeronly/dtypes/half.hh>
 
-#include "../dtypeCasting/utils/Oracle.hpp"
-#include "utils/FloatingPointClassification.hpp"
+#include <tests/oracle/CastingOracle.hpp>
+#include <tests/oracle/FpClassification.hpp>
 
 namespace {
 
@@ -402,7 +402,8 @@ TEST(RangeAndDensity, EncodeJustBeyondMaxSaturatesPerPolicy) {
   auto formats = buildFormats();
 
   EXPECT_EQ(formats[0].encodeBits(65520.0), UINT64_C(0x7C00)); // inf
-  EXPECT_EQ(formats[1].encodeBits(tests::fpc::f32FromBits(0x7F800000U)),
+  EXPECT_EQ(formats[1].encodeBits(
+                static_cast<double>(tests::fpc::f32FromBits(0x7F800000U))),
             UINT64_C(0x7F80));                               // inf
   EXPECT_EQ(formats[2].encodeBits(1000.0), UINT64_C(0x7E));  // clamp 448
   EXPECT_EQ(formats[3].encodeBits(65535.0), UINT64_C(0x7C)); // inf

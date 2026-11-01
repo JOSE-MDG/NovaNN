@@ -1,7 +1,7 @@
 {
   "default-registry": {
     "kind": "builtin",
-    "baseline": "3cbc1db4d867ec83c89fba4c461321c11f78b5e3"
+    "baseline": "9a5dfef5d1a0438a7d24856a85bd60f309d355e9"
   },
   "overlay-ports": [
     "ports"

@@ -34,8 +34,7 @@ if(NOVA_HAS_CUDA)
         CUDA_STANDARD_REQUIRED ON
     )
     target_include_directories(memorycsrc
-        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/cuda/memory
-        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/cuda
+        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native
     )
 endif()
 
@@ -45,14 +44,12 @@ if(NOVA_HAS_HIP)
         HIP_STANDARD_REQUIRED ON
     )
     target_include_directories(memorycsrc
-        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/hip/memory
-        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native/hip
+        PRIVATE ${CMAKE_SOURCE_DIR}/ncore/native
     )
 endif()
 
 target_include_directories(memorycsrc
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(memorycsrc PRIVATE ncore::native)

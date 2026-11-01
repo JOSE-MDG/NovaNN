@@ -207,6 +207,10 @@ if ($ListOnly) {
     exit 0
 }
 
+# Keep the pinned vcpkg for the build and for any reconfigure the build triggers.
+Import-Module (Join-Path $ScriptDir 'lib/vcpkg-env.psm1') -Force
+Set-VcpkgEnvironment -ProjectRoot $ProjectRoot
+
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
 Write-Host ''

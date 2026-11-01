@@ -40,9 +40,9 @@ fn main() {
 
     // C++ FFI source files — recompile when any of these change.
     println!("cargo:rerun-if-changed=csrc/ffi.cpp");
-    println!("cargo:rerun-if-changed=csrc/ffi.hpp");
+    println!("cargo:rerun-if-changed=../include/ncore/memory/ffi.hpp");
     println!("cargo:rerun-if-changed=csrc/admin.cpp");
-    println!("cargo:rerun-if-changed=csrc/admin.hpp");
+    println!("cargo:rerun-if-changed=../include/ncore/memory/admin.hpp");
     println!("cargo:rerun-if-env-changed=CUDA_DEVICE_MEMORY_DIR");
     println!("cargo:rerun-if-env-changed=HIP_DEVICE_MEMORY_DIR");
 }

@@ -3,21 +3,20 @@
  * @brief Runtime dispatch layer for contiguous-layout kernels.
  *
  * @details
- * This file implements the public @ref launchContiguousKernel entry
- * point declared in @ref contiguous.h. It resolves the active
- * compute device at run time and forwards the request to the
- * appropriate backend-specific kernel:
- *
- * @li CUDA — @ref launchCudaContiguousKernel (compiled from
- *   @c ContiguousLayoutKernel.cu ).
- * @li HIP — @ref launchHipContiguousKernel (compiled from
- *   @c ContiguousLayoutKernel.hip ).
- *
- * The dispatch uses a static @c std::unordered_map<DeviceKind , kernel_t> lookup
- * table populated at compile time based on which backends are
- * enabled (@c NOVA_HAS_CUDA, @c NOVA_HAS_HIP ). The detection flow
- * itself lives in @ref ncore::dispatch::launch(), shared with every
+ * Implements the public @ref launchContiguousKernel entry point
+ * declared in @ref contiguous.h. It resolves the active compute
+ * device at run time and forwards the request to the CUDA kernel
+ * (@ref launchCudaContiguousKernel from @c ContiguousLayoutKernel.cu)
+ * or the HIP kernel (@ref launchHipContiguousKernel from
+ * @c ContiguousLayoutKernel.hip).  The dispatch uses a static
+ * @c std::unordered_map<DeviceKind, kernel_t> lookup table populated
+ * at compile time based on which backends are enabled
+ * (@c NOVA_HAS_CUDA, @c NOVA_HAS_HIP). The detection flow itself
+ * lives in @ref ncore::dispatch::launch(), shared with every
  * launcher.
+ *
+ * The backend kernel runs on the device engine stream, resolved here
+ * before dispatch; the opaque stream no longer crosses the public API.
  *
  * @see contiguous.h            Public interface for this module.
  * @see KernelDispatcher.hpp    Shared backend-resolution flow.
@@ -32,55 +31,16 @@
 #include <ncore/native/kernels/contiguous.h>
 #include <ncore/tensor.h>
 
-#include "utils/KernelDispatcher.hpp"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef NOVA_HAS_CUDA
-/**
- * @brief CUDA backend entry point for contiguous-layout dispatch.
- *
- * @details
- * Defined in @c ContiguousLayoutKernel.cu. Materializes a contiguous
- * copy of the source tensor in CUDA device memory.
- *
- * @param[in]  src  Source tensor. Must reside in CUDA device memory.
- * @param[in,out] dst  Destination tensor in CUDA device memory.
- *
- * @return @ref novaSuccess on success, or an error status.
- *
- * @see ContiguousLayoutKernel.cu
- * @see launchContiguousKernel()
- */
-extern novaStatus_t launchCudaContiguousKernel(const Tensor *restrict src,
-                                               Tensor *restrict dst);
+#include "cuda/kernels/ContiguousLayoutKernel.h"
+#include "cuda/memory/CudaEngineStream.hpp"
 #endif
-
 #ifdef NOVA_HAS_HIP
-/**
- * @brief HIP backend entry point for contiguous-layout dispatch.
- *
- * @details
- * Defined in @c ContiguousLayoutKernel.hip. Materializes a contiguous
- * copy of the source tensor in HIP device memory.
- *
- * @param[in]  src  Source tensor. Must reside in HIP device memory.
- * @param[in,out] dst  Destination tensor in HIP device memory.
- *
- * @return @ref novaSuccess on success, or an error status.
- *
- * @see ContiguousLayoutKernel.hip
- * @see launchContiguousKernel()
- */
-extern novaStatus_t launchHipContiguousKernel(const Tensor *restrict src,
-                                              Tensor *restrict dst);
+#include "hip/kernels/ContiguousLayoutKernel.h"
+#include "hip/memory/HipEngineStream.hpp"
 #endif
 
-#ifdef __cplusplus
-}
-#endif
+#include "utils/KernelDispatcher.hpp"
 
 namespace {
 
@@ -88,6 +48,31 @@ namespace {
  * @brief Function pointer type for backend-specific contiguous kernels.
  */
 using kernel_t = novaStatus_t (*)(const Tensor *restrict, Tensor *restrict);
+
+#if defined(NOVA_HAS_CUDA) && !defined(NOVA_HAS_HIP)
+novaStatus_t
+launchCudaContiguousKernelOnEngineStream(const Tensor *restrict src,
+                                         Tensor *restrict dst) {
+  cudaStream_t stream = nullptr;
+  const novaStatus_t status = CudaEngineStream::current(&stream);
+  if (status.err != novaSuccess) {
+    return status;
+  }
+  return launchCudaContiguousKernel(src, dst, stream);
+}
+#endif
+
+#if defined(NOVA_HAS_HIP) && !defined(NOVA_HAS_CUDA)
+novaStatus_t launchHipContiguousKernelOnEngineStream(const Tensor *restrict src,
+                                                     Tensor *restrict dst) {
+  hipStream_t stream = nullptr;
+  const novaStatus_t status = HipEngineStream::current(&stream);
+  if (status.err != novaSuccess) {
+    return status;
+  }
+  return launchHipContiguousKernel(src, dst, stream);
+}
+#endif
 
 /**
  * @brief Static dispatch table mapping device kinds to contiguous kernels.
@@ -98,12 +83,12 @@ using kernel_t = novaStatus_t (*)(const Tensor *restrict, Tensor *restrict);
  */
 const std::unordered_map<DeviceKind, kernel_t> KERNEL_DISPATCHER = {
 #if defined(NOVA_HAS_CUDA) && !defined(NOVA_HAS_HIP)
-    {CUDA_DEVICE, launchCudaContiguousKernel},
+    {CUDA_DEVICE, launchCudaContiguousKernelOnEngineStream},
     {HIP_DEVICE, nullptr},
     {NULL_DEVICE, nullptr}
 #elif defined(NOVA_HAS_HIP) && !defined(NOVA_HAS_CUDA)
     {CUDA_DEVICE, nullptr},
-    {HIP_DEVICE, launchHipContiguousKernel},
+    {HIP_DEVICE, launchHipContiguousKernelOnEngineStream},
     {NULL_DEVICE, nullptr},
 #else
     {CUDA_DEVICE, nullptr}, {HIP_DEVICE, nullptr}, {NULL_DEVICE, nullptr}
@@ -113,24 +98,13 @@ const std::unordered_map<DeviceKind, kernel_t> KERNEL_DISPATCHER = {
 } // namespace
 
 /**
- * @brief Launch a contiguous-layout kernel on the detected device.
+ * @brief Backend-dispatching definition of @ref launchContiguousKernel().
  *
  * @details
- * Entry point declared in @ref contiguous.h. Backend resolution and
- * error handling live in @ref ncore::dispatch::launch(); this body
- * only forwards the table and the tensors.
- *
- * @param[in]  src  Source tensor to materialize.
- * @param[in,out] dst  Destination tensor receiving the copy.
- *
- * @return @ref novaSuccess on success, or an error status.
- *
- * @pre  @p src and @p dst must be valid tensors.
- * @pre  At least one compute device must be available.
- * @post On success, @p dst holds a contiguous copy of @p src.
- *
- * @warning If no compute device is available, returns
- *          @ref novaDeviceNotAvailable.
+ * Backend resolution and error handling live in
+ * @ref ncore::dispatch::launch(); this body only forwards the table
+ * and the tensors. The stream is resolved to the device engine stream
+ * by the backend wrapper.
  */
 extern "C" novaStatus_t launchContiguousKernel(const Tensor *restrict src,
                                                Tensor *restrict dst) {

@@ -188,16 +188,35 @@ if(USE_ASAN)
     # runtime so libnova.so satisfies -Wl,--no-undefined. GCC already links
     # libasan dynamically by default and does not accept -shared-libasan.
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      # HIP-language targets link through ROCm's driver, which resolves the
+      # dynamic ASan runtime under an arch-suffixed name from its own bundled
+      # clang resource dir, a different clang version and ABI than the
+      # /usr/bin/clang used for everything else. Shadow the suffixed name in
+      # a build-tree alias over the system runtime dir and put the alias on
+      # the run path, so every consumer of this process loads one runtime:
+      # the system clang's.
+      if(NOT WIN32 AND _nova_san_runtime_dir AND
+         EXISTS "${_nova_san_runtime_dir}/libclang_rt.asan.so")
+        set(_nova_asan_alias_dir "${CMAKE_BINARY_DIR}/nova_clang_rt")
+        file(MAKE_DIRECTORY "${_nova_asan_alias_dir}")
+        if(NOT EXISTS
+           "${_nova_asan_alias_dir}/libclang_rt.asan-x86_64.so")
+          file(CREATE_LINK
+            "${_nova_san_runtime_dir}/libclang_rt.asan.so"
+            "${_nova_asan_alias_dir}/libclang_rt.asan-x86_64.so"
+            SYMBOLIC)
+        endif()
+        target_link_options(nova_sanitizers INTERFACE
+          -Wl,-rpath,${_nova_asan_alias_dir})
+      endif()
       target_link_options(nova_sanitizers INTERFACE -shared-libasan)
     endif()
   endif()
 endif()
 
-# Deploy the ASan runtime DLL alongside a target on Windows.
-# On clang-cl the ASan runtime is dynamic (clang_rt.asan_dynamic-x86_64.dll)
-# and must be in the same directory as the executable at load time.
-# This replicates the intent of the NOVA_ASAN_RUNTIME_DLL cache variable,
-# which previously had no consumer.
+# Deploy the ASan runtime DLL alongside a target on Windows: clang-cl
+# links it dynamically, so it must sit in the same directory as the
+# executable at load time.
 function(nova_deploy_asan_runtime TARGET)
   if(NOT WIN32 OR NOT NOVA_HAS_ASAN)
     return()
@@ -238,20 +257,28 @@ if(USE_UBSAN)
     # own sigaction interceptor before main. Executables rely on the compiler
     # driver, which links the runtime correctly.
     set(_nova_san_arch "x86_64")
-    if(NOT TARGET nova_ubsan_runtime AND
-       _nova_san_arch AND
-       EXISTS "${_nova_san_runtime_dir}/libclang_rt.ubsan_standalone-${_nova_san_arch}.so")
+    # Clang installs disagree on the shared runtime name: some ship the
+    # per-arch suffixed file, Debian/Ubuntu ships the unsuffixed one.
+    # Probe both.
+    set(_nova_san_ubsan_so
+      "${_nova_san_runtime_dir}/libclang_rt.ubsan_standalone-${_nova_san_arch}.so")
+    if(NOT EXISTS "${_nova_san_ubsan_so}")
+      set(_nova_san_ubsan_so
+        "${_nova_san_runtime_dir}/libclang_rt.ubsan_standalone.so")
+    endif()
+    if(NOT TARGET nova_ubsan_runtime AND EXISTS "${_nova_san_ubsan_so}")
       add_library(nova_ubsan_runtime INTERFACE)
       add_library(nova::ubsan_runtime ALIAS nova_ubsan_runtime)
       # The --push-state,--no-as-needed pair keeps it on the line despite
       # -Wl,--as-needed + LTO.
       target_link_options(nova_ubsan_runtime INTERFACE
         -Wl,--push-state,--no-as-needed
-        "${_nova_san_runtime_dir}/libclang_rt.ubsan_standalone-${_nova_san_arch}.so"
+        "${_nova_san_ubsan_so}"
         -Wl,--pop-state
         ${_nova_san_rpath}
       )
-    elseif(NOT _nova_san_arch)
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND
+           NOT EXISTS "${_nova_san_ubsan_so}")
       message(WARNING
         "UBSan runtime libclang_rt.ubsan_standalone not found in "
         "'${_nova_san_runtime_dir}'. Shared library link may fail with "

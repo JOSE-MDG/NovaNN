@@ -3,29 +3,18 @@
  * @brief Unified memory allocation implementation.
  *
  * @details
- * This module provides @ref safe_allocator(), the single entry point
- * for all buffer allocation in NovaNN.  Allocates through the Rust
- * FFI allocator and returns structured @ref novaStatus_t errors.
+ * Provides @ref safe_allocator(), the single entry point for all
+ * buffer allocation in NovaNN.  Allocates through the Rust FFI
+ * allocator and returns structured @ref novaStatus_t errors.  Thread
+ * safety comes from the Rust allocator, which manages its own
+ * synchronization.
  *
- * @section operating-modes Operating Modes
- *
- * The function operates in one of two modes determined by
- * @p create_storage:
- *
- * @li Raw handle mode (@p create_storage == @c false):
- *    Allocates memory via @ref reserve() and returns the
- *    @ref RustHandle through @p handle.  The caller owns the handle
- *    and must manage its lifetime.
- *
- * @li Full tensor mode (@p create_storage == @c true):
- *    Allocates memory, heap-allocates a @ref TensorStorage, and
- *    attaches it to the tensor pointed to by @p ten.  The tensor's
- *    @c storage, @c data, and @c is_allocated_ fields are populated.
- *
- * @section thread-safety Thread Safety
- *
- * All functions are thread-safe.  The underlying Rust allocator
- * manages its own synchronisation.
+ * One function, two modes (@p create_storage): raw handle mode
+ * allocates via @ref reserve() and returns the @ref RustHandle
+ * through @p handle, with the caller owning its lifetime; full
+ * tensor mode creates the @ref TensorStorage, attaches it to @p ten,
+ * and populates the @c storage, @c data, and @c is_allocated_
+ * fields.
  *
  * @see alloc.h      Public API declarations.
  * @see storage.h    RustHandle and TensorStorage definitions.
@@ -71,8 +60,9 @@ static inline const char *map_device2string(Device_ device) {
  * Resolves the theoretical @p bytes to its size class through
  * @ref resolve_rounded_bytes() and delegates to @ref reserve() through
  * the Rust FFI to obtain a @ref RustHandle carrying both the theoretical
- * and the real reservation sizes.  Alignment is selected automatically:
- * 512 bytes for GPU, 64 bytes otherwise.
+ * and the real reservation sizes. Alignment is 64 bytes on CPU.
+ * The reservation is submitted to the device engine stream, so later
+ * device work on that stream observes it in order.
  *
  * When @p create_storage is @c false, only a raw @ref RustHandle is
  * returned via @p handle.  When @c true, a @ref TensorStorage is

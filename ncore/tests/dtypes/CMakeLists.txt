@@ -12,7 +12,7 @@ are picked up alongside the top-level test files.
 
 Targets created:
 
-``ncore_dtypes_tests`` — alias ``ncore::tests::native::dtypes``
+``ncore_dtypes_tests`` - alias ``ncore::tests::native::dtypes``
   GoogleTest executable built from all ``*.cpp`` files under this
   directory (including subdirectories).
 #]=======================================================================]

@@ -1,30 +1,23 @@
 /**
  * @file cast_dispatch_tables.c
- * @brief Initialisation of the global cast-function dispatch table.
+ * @brief Initialization of the global cast-function dispatch table.
  *
  * @details
- * Populates the NUM_DTYPES×NUM_DTYPES @c cast_dispatch matrix that maps every
- * pair of @ref DType_ values (source → target) to a type-specific cast kernel.
- * The table is populated once at load time via an
- * @c INITIALIZE(init_cast_dispatch) function.
+ * Populates the NUM_DTYPES×NUM_DTYPES @c cast_dispatch matrix that
+ * maps every pair of @ref DType_ values (source → target) to a
+ * type-specific cast kernel, once at load time via
+ * @c INITIALIZE(init_cast_dispatch).  Indexed as
+ * @c cast_dispatch[src][dst]; a @c nullptr entry (including the
+ * diagonal) means the cast is either unnecessary (same type) or not
+ * supported.
  *
- * The row index (@c src) is the source @ref DType_ and the column
- * index (@c dst) is the target @ref DType_.  A @c nullptr entry
- * (including the diagonal) means the cast is either unnecessary
- * (same type) or not supported.
- *
- * @section constructor-ordering Constructor ordering
- *
- * @c INITIALIZE(init_cast_dispatch) runs at program load time.  Because
- * this file only writes to the @c cast_dispatch array (no other
+ * Because this file only writes to @c cast_dispatch (no other
  * globals depend on it), there are no inter-file ordering
- * constraints.
+ * constraints for the load-time initializer.
  *
- * @see cast_dispatch   The NUM_DTYPES×NUM_DTYPES dispatch matrix.
- * @see castFn          Function pointer type for cast kernels.
- * @see cast.h          X-macro definitions that generate the
- *                      individual cast kernel declarations.
- * @see dtype.h         @ref DType_ enum and @ref NUM_DTYPES.
+ * @see cast.h   X-macro definitions that generate the
+ *               individual cast kernel declarations.
+ * @see dtype.h  @ref DType_ enum and @ref NUM_DTYPES.
  */
 
 #include <ncore/core/dtype.h>
@@ -37,12 +30,9 @@
  * pairs to cast function pointers.
  *
  * @details
- * Indexed as @c cast_dispatch[src][dst] where @c src is the source
- * data type and @c dst is the target data type.  The diagonal and
+ * Zero-initialized (@c = {}) and fully populated by
+ * @ref init_cast_dispatch() at program load time.  Diagonal and
  * unsupported combinations are @c nullptr.
- *
- * The table is zero-initialised (@c = {}) and fully populated
- * by @ref init_cast_dispatch() at program load time.
  *
  * @see init_cast_dispatch()  Populates the table.
  * @see castFn                Function pointer type.
@@ -53,29 +43,11 @@ CastFn cast_dispatch[NUM_DTYPES][NUM_DTYPES] = {};
  * @brief Populate every non-trivial entry in @c cast_dispatch.
  *
  * @details
- * Called automatically at library initialisation time via
+ * Called automatically at library initialization time via
  * @c INITIALIZE(init_cast_dispatch).  Assigns a @c castFn pointer to
- * each supported (src, dst) pair.  Entries left as @c nullptr are:
- * @li Diagonal (@c src == dst): identity cast, no function needed.
- * @li Quantised types: no explicit entries.
- *
- * @subsection organisation Organisation
- *
- * The assignments are grouped by conversion category for
- * readability:
- *
- * @li Float ↔ Float
- * @li Float → Integer
- * @li Integer → Float
- * @li Signed ↔ Signed
- * @li Unsigned ↔ Unsigned
- * @li Signed → Unsigned
- * @li Unsigned → Signed
- *
- * @pre  The @c cast.h header must have been included so that all
- *       @c tf32_to_*, @c ts8_to_*, etc. symbols are declared.
- * @post All 210 non-trivial entries of @c cast_dispatch are set to
- *       valid function pointers.
+ * each supported (src, dst) pair; entries left as @c nullptr are the
+ * diagonal (identity cast, no function needed) and the quantised
+ * types.
  *
  * @see cast_dispatch   The table being populated.
  * @see castFn          Function pointer type.

@@ -49,6 +49,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND
   set(_nova_is_clang_cl TRUE)
 endif()
 
+# The Windows SDK defines min and max as macros (minwindef.h) and the
+# reduced-precision dtypes declare min() and max() members, so the
+# declaration itself fails without NOMINMAX.
+if(WIN32)
+  add_compile_definitions(NOMINMAX)
+endif()
+
 # Helper: emit a flag as /clang:<flag> on clang-cl, plain otherwise.
 macro(_nova_wrap_flag _out _flag)
   if(_nova_is_clang_cl)
@@ -110,8 +117,10 @@ endif()
 
 # C++-specific flags
 if(_nova_is_clang_cl)
+  # No -fno-rtti here: the MSVC-like frontend turns off static RTTI with
+  # it, and the MSVC standard library then ships <any> and <variant>
+  # empty (STL4040).  GoogleTest needs std::any.
   set(NOVA_CXX_FLAGS
-    /clang:-fno-rtti
     /clang:-Wpessimizing-move
     /clang:-Wredundant-move
     /clang:-Wnon-virtual-dtor
@@ -191,23 +200,10 @@ include(Detect/sanitizers/DetectSanitizers)
 
     nova_configure_build_flags(<target>)
 
-  The ``<target>`` argument specifies the CMake target to configure.
-
-  This function applies:
-
-  - Warning flags from ``NOVA_WARNING_FLAGS``.
-  - C++-specific flags from ``NOVA_CXX_FLAGS`` (CXX language only).
-  - Debug flags from ``NOVA_DEBUG_FLAGS`` in ``Debug`` configuration.
-  - Release flags from ``NOVA_RELEASE_FLAGS`` in ``Release``
-    configuration.
-  - Sets ``INTERPROCEDURAL_OPTIMIZATION`` to ``ON`` and the
-    ``-ffat-lto-objects`` flag when ``NOVA_HAS_LTO`` is true.
-    ``-ffat-lto-objects`` is a GCC-only flag and is skipped on Clang.
-  - Links against ``nova::sanitizers`` if AddressSanitizer or
-    UndefinedBehaviorSanitizer are enabled.
-  - Adds ``-mno-daz-ftz`` to link options on non-Windows targets so
-    ``crtfastmath.o`` (pulled in by ``-ffast-math``) does not enable FTZ/DAZ
-    process-wide.
+  Applies the ``NOVA_*_FLAGS`` lists per configuration and language.
+  With ``NOVA_HAS_LTO`` it enables ``INTERPROCEDURAL_OPTIMIZATION``
+  (``-ffat-lto-objects`` on GCC only).  Links ``nova::sanitizers`` when
+  enabled.
 
 #]=======================================================================]
 function(nova_configure_build_flags TARGET)
@@ -280,23 +276,14 @@ endfunction()
 
     nova_configure_linker(<target>)
 
-  The ``<target>`` argument specifies the CMake target to configure.
+  On Linux (ELF): RELRO, ``-Wl,--as-needed``, ``-Wl,--no-undefined``
+  and a non-executable stack.
 
-  On Linux (ELF), this function applies:
-
-  - ``-Wl,-z,relro,-z,now`` for RELRO hardening.
-  - ``-Wl,--as-needed`` to avoid unnecessary linking.
-  - ``-Wl,--no-undefined`` to enforce symbol resolution.
-  - ``-Wl,-z,noexecstack`` to mark the stack non-executable.
-
-  On Windows (PE) with clang-cl, an equivalent hardening baseline
-  is applied via:
-
-  - ``/DYNAMICBASE`` for ASLR.
-  - ``/NXCOMPAT`` for DEP (closest analogue to ``noexecstack``).
-  - ``/GUARD:CF`` for Control Flow Guard (linker-side; requires the
-    matching ``/guard:cf`` compiler flag in ``NOVA_WARNING_FLAGS``
-    to actually take effect).
+  On Windows (PE) with clang-cl, the equivalent hardening baseline:
+  ``/DYNAMICBASE`` (ASLR), ``/NXCOMPAT`` (DEP) and ``/GUARD:CF``
+  (Control Flow Guard on the linker side; it requires the matching
+  ``/guard:cf`` compiler flag in ``NOVA_WARNING_FLAGS`` to actually
+  take effect).
 
 #]=======================================================================]
 function(nova_configure_linker TARGET)

@@ -43,7 +43,9 @@
 #include <ncore/tensor.h>
 #include <ncore/threading/parallel/helpers.h>
 
-#include "utils/TensorUtils.hpp"
+#include <tests/common/Gpu.hpp>
+#include <tests/rng/Fill.hpp>
+#include <tests/tensor/TensorUtils.hpp>
 
 namespace {
 
@@ -255,7 +257,7 @@ TEST(StorageRounding, FrontierMinusOnePlusOne) {
   EXPECT_EQ(round_up_pinned_large(kPinnedLinearLimit + 1, &st), size_t{20480});
   ASSERT_EQ(st.err, novaSuccess) << st.message;
 
-  if (tests::tensor::gpuAvailable()) {
+  if (tests::common::gpuAvailable()) {
     EXPECT_EQ(resolve_rounded_bytes(kDeviceLargeThreshold, true, false, &st),
               kDeviceLargeThreshold);
     ASSERT_EQ(st.err, novaSuccess) << st.message;
@@ -307,7 +309,7 @@ TEST(StorageRounding, DispatcherRoutesPlacementFlags) {
   EXPECT_EQ(resolve_rounded_bytes(100, false, false, &st), size_t{100});
   EXPECT_EQ(st.err, novaSuccess) << st.message;
 
-  const bool active = tests::tensor::gpuAvailable();
+  const bool active = tests::common::gpuAvailable();
   const size_t dev = resolve_rounded_bytes(100, true, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
   EXPECT_EQ(dev, active ? size_t{512} : size_t{100});
@@ -439,7 +441,7 @@ TEST(StorageRounding, RoundUpRejectsZeroAndOverflow) {
   EXPECT_EQ(resolve_rounded_bytes(0, false, false, &st), size_t{0});
   EXPECT_EQ(st.err, novaInvalidValue);
 
-  if (tests::tensor::gpuAvailable()) {
+  if (tests::common::gpuAvailable()) {
     EXPECT_EQ(resolve_rounded_bytes(SIZE_MAX, true, false, &st), size_t{0});
     EXPECT_EQ(st.err, novaInvalidValue);
   }
@@ -565,7 +567,7 @@ TEST(StorageRounding, PinnedSmallTierRoundTrip) {
   TensorCXX host({63}, UnSigned8, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
   Tensor hv = host.getCTensor();
-  tests::tensor::fillTensor(hv);
+  EXPECT_EQ(tests::rng::fillTensor(hv).err, novaSuccess);
 
   TensorCXX dev({63}, UnSigned8, DEVICE_GPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
@@ -600,7 +602,7 @@ TEST(StorageRounding, ReprShadowUsesTheoretical) {
   TensorCXX host({4, 8}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
   Tensor hv = host.getCTensor();
-  tests::tensor::fillTensor(hv);
+  EXPECT_EQ(tests::rng::fillTensor(hv).err, novaSuccess);
 
   TensorCXX dev({4, 8}, Float32, DEVICE_GPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
@@ -752,7 +754,7 @@ TEST(StorageRounding, DeepcopyPreservesDualSizes) {
   TensorCXX src({4, 8}, Float32, DEVICE_CPU, false, false, &st);
   ASSERT_EQ(st.err, novaSuccess) << st.message;
   Tensor sv = src.getCTensor();
-  tests::tensor::fillTensor(sv);
+  EXPECT_EQ(tests::rng::fillTensor(sv).err, novaSuccess);
   ASSERT_EQ(sv.storage->handle.requested_bytes, size_t{128});
 
   TensorCXX dst(unallocated, {4, 8}, Float32, DEVICE_CPU, false, false, &st);

@@ -56,6 +56,8 @@ pub struct RustStorage {
     ptr: *mut u8,
     /// Allocation-backend details.
     alloc: Allocation,
+    /// GPU ordinal captured at reservation time, or `None` for CPU memory.
+    device_id: Option<i32>,
     /// Theoretical size asked by the caller, in bytes.
     pub requested_bytes: usize,
     /// Real reservation in bytes. Greater than or equal to `requested_bytes`.
@@ -76,7 +78,7 @@ impl RustStorage {
     ///
     /// * `size`      - Reservation size in bytes. Must be non-zero.
     /// * `requested` - Theoretical size asked by the caller. Must be non-zero
-    ///                 and not greater than `size`.
+    ///   and not greater than `size`.
     /// * `align`     - Required memory alignment. Must be a power of two.
     ///
     /// # Ownership
@@ -117,6 +119,7 @@ impl RustStorage {
         Ok(Self {
             ptr,
             alloc: Allocation::Cpu { layout },
+            device_id: None,
             requested_bytes: requested,
             size_bytes: size,
             ref_count: AtomicRefCounter::new(1),
@@ -133,9 +136,9 @@ impl RustStorage {
     /// # Arguments
     ///
     /// * `size`       - Reservation size in bytes, already rounded to its
-    ///                  size class by the caller. Must be non-zero.
+    ///   size class by the caller. Must be non-zero.
     /// * `requested`  - Theoretical size asked by the caller. Must be
-    ///                  non-zero and not greater than `size`.
+    ///   non-zero and not greater than `size`.
     /// * `pin_memory` - If `true`, allocate page-locked host memory.
     ///
     /// # Ownership
@@ -169,7 +172,17 @@ impl RustStorage {
         let kind = unsafe { getDeviceBackend() };
 
         // SAFETY: device_buf is a valid, writable stack allocation.
-        let status = unsafe { deviceReserve(size, &mut device_buf, pin_memory, kind) };
+        let mut device_id = -1;
+        let status: crate::NovaStatus = unsafe {
+            deviceReserve(
+                size,
+                &mut device_buf,
+                pin_memory,
+                kind,
+                &mut device_id,
+                std::ptr::null_mut(),
+            )
+        };
 
         if status.err != NovaError::Success {
             let msg = if status.message.is_null() {
@@ -193,13 +206,20 @@ impl RustStorage {
             // The backend reported success with an unusable size: release
             // the buffer instead of registering a reservation that violates
             // the requested <= bytes contract.
-            unsafe { deviceRelease(&mut device_buf as *mut DeviceBuffer) };
+            unsafe {
+                deviceRelease(
+                    &mut device_buf as *mut DeviceBuffer,
+                    device_id,
+                    std::ptr::null_mut(),
+                )
+            };
             return Err(StorageError::InvalidSize);
         }
 
         Ok(Self {
             ptr: device_buf.ptr as *mut u8,
             alloc: Allocation::Gpu { device_buf },
+            device_id: Some(device_id),
             requested_bytes: requested,
             size_bytes: bytes,
             ref_count: AtomicRefCounter::new(1),
@@ -213,8 +233,8 @@ impl RustStorage {
     /// size; for GPU storage the size is first rounded to its size class
     /// with the same rules as the initial reservation, then forwarded to
     /// [`deviceResize`] which allocates a new buffer, copies the minimum of
-    /// the old and new sizes, and frees the old buffer atomically on the
-    /// device stream.
+    /// the old and new sizes, and frees the old buffer through the same
+    /// stream.
     ///
     /// # Errors
     ///
@@ -253,8 +273,24 @@ impl RustStorage {
                     .ok_or(StorageError::InvalidSize)?;
                 // SAFETY: device_buf was returned by a previous
                 // deviceReserve call and has not been freed yet.
-                let status: crate::NovaStatus =
-                    unsafe { deviceResize(device_buf as *mut DeviceBuffer, rounded) };
+                let device_id = self.device_id.unwrap_or(-1);
+                let previous_ptr = self.ptr;
+                // A null stream selects the device engine stream, which owns
+                // the buffer: the backend rejects a resize submitted on a
+                // different stream.
+                let status: crate::NovaStatus = unsafe {
+                    deviceResize(
+                        device_buf as *mut DeviceBuffer,
+                        rounded,
+                        device_id,
+                        std::ptr::null_mut(),
+                    )
+                };
+
+                if device_buf.ptr != previous_ptr.cast() {
+                    self.ptr = device_buf.ptr.cast();
+                    self.size_bytes = device_buf.bytes;
+                }
 
                 if status.err != NovaError::Success {
                     let msg = if status.message.is_null() {
@@ -273,8 +309,10 @@ impl RustStorage {
 
                 if device_buf.bytes == 0 || device_buf.bytes < requested {
                     // The backend reported success with an unusable size.
-                    // The previous buffer is already gone; report the
-                    // contract violation without caching it.
+                    // The previous buffer is already gone; keep the new
+                    // pointer so the storage is not left dangling.
+                    self.ptr = device_buf.ptr as *mut u8;
+                    self.size_bytes = device_buf.bytes;
                     return Err(StorageError::InvalidSize);
                 }
 
@@ -317,15 +355,13 @@ impl RustStorage {
 
     /// Releases the underlying allocation and reports backend failures.
     ///
-    /// This operation is idempotent after a successful deallocation: a null
-    /// data pointer returns `Ok(())`. On a device release failure, the pointer
-    /// and backend descriptor remain available for the caller's recovery or
-    /// retry policy.
+    /// This operation is idempotent after deallocation: a null data pointer
+    /// returns `Ok(())`. If the backend accepted an asynchronous free but a
+    /// later synchronization reported an error, the descriptor is consumed
+    /// and a retry resolves the retained registry entry without freeing the
+    /// pointer twice. Errors before the backend accepts the free leave the
+    /// allocation available for retry.
     ///
-    /// # Errors
-    ///
-    /// Returns [`StorageError::DeviceError`] when the C++ backend cannot free
-    /// a device or pinned-host allocation.
     pub fn deallocate(&mut self) -> Result<(), StorageError> {
         if self.ptr.is_null() {
             return Ok(());
@@ -341,7 +377,20 @@ impl RustStorage {
             Allocation::Gpu { device_buf } => {
                 // SAFETY: device_buf was returned by a previous
                 // deviceReserve call and has not been freed yet.
-                let status = unsafe { deviceRelease(device_buf as *mut DeviceBuffer) };
+                let device_id = self.device_id.unwrap_or(-1);
+                // A null stream selects the device engine stream, which owns
+                // the buffer: the backend rejects a release submitted on a
+                // different stream.
+                let status = unsafe {
+                    deviceRelease(
+                        device_buf as *mut DeviceBuffer,
+                        device_id,
+                        std::ptr::null_mut(),
+                    )
+                };
+                if device_buf.ptr.is_null() {
+                    self.ptr = std::ptr::null_mut();
+                }
                 if status.err != NovaError::Success {
                     let msg = if status.message.is_null() {
                         "The device backend did not provide a failure description".to_string()

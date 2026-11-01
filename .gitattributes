@@ -1,3 +1,6 @@
+# Normalize line ending.
+* text=auto eol=lf
+
 # Force language detection
 *.rs linguist-detectable=true
 *.c linguist-detectable=true

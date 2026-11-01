@@ -45,7 +45,7 @@
  * @ref StratifiedThreads value. Written only by @ref record_success()
  * before publishing @ref last_ptr, so readers that observe a
  * non-null pointer always see a fully written budget. Static storage
- * zero-initialises it to @c {0,0,0}.
+ * zero-initializes it to @c {0,0,0}.
  */
 static StratifiedThreads last_storage;
 

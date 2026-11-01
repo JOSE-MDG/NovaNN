@@ -95,26 +95,16 @@ namespace ncore::dtypes {
 struct alignas(1) Float4_e2m1fn {
   uint8_t x; ///< The 4-bit value in the low nibble; high nibble is zero.
 
-  /**
-   * @struct from_bits_t
-   * @brief Tag type used to construct a @ref Float4_e2m1fn directly from its
-   * raw 4-bit representation.
-   */
   struct from_bits_t {};
 
-  /**
-   * @brief Returns a tag instance of @ref from_bits_t.
-   * @return A default-constructed @ref from_bits_t.
-   */
+  /// Returns a default-constructed @ref from_bits_t.
   NCORE_HOST_DEVICE static constexpr from_bits_t from_bits() { return {}; }
 
-  /**
-   * @brief Default constructor. Left uninitialized for performance.
-   */
+  /// Default constructor: left uninitialized for performance.
   Float4_e2m1fn() = default;
 
   /**
-   * @brief Constructs a @ref Float4_e2m1fn directly from a raw 4-bit integer
+   * @brief Constructs a @ref Float4_e2m1fn directly from a raw 4-bit
    * representation.
    * @param[in] bits The raw 4-bit binary representation (low nibble; high
    * nibble bits are masked off).
@@ -126,38 +116,35 @@ struct alignas(1) Float4_e2m1fn {
 
   /**
    * @brief Implicit constructor from a single-precision float.
-   * @details Values outside the representable range (including +/-inf and
-   * NaN) saturate to the maximum finite magnitude (6.0), since E2M1FN has
-   * no infinity or NaN encoding.
+   *
+   * Values outside the representable range (including +/-inf and NaN)
+   * saturate to the maximum finite magnitude 6.0.
+   *
    * @param[in] value The float value to convert.
    */
   inline NCORE_HOST_DEVICE Float4_e2m1fn(float value);
 
-  /**
-   * @brief Implicit conversion operator to single-precision float.
-   * @return The float representation of the fp4 value.
-   */
+  /// Implicit conversion operator to single-precision float.
   inline NCORE_HOST_DEVICE operator float() const;
 
   /**
    * @brief Checks whether this value encodes NaN.
-   * @details E2M1FN has no NaN representation; always returns @c false.
-   * @return Always @c false.
+   * E2M1FN has no NaN representation; always @c false.
    */
   [[nodiscard]] inline NCORE_HOST_DEVICE bool isnan() const;
 
   /**
    * @brief Checks whether this value encodes infinity.
-   * @details E2M1FN has no infinity representation; always returns
-   * @c false.
-   * @return Always @c false.
+   * E2M1FN has no infinity representation; always @c false.
    */
   [[nodiscard]] inline NCORE_HOST_DEVICE bool isinf() const;
 };
 
 /**
  * @brief Stream output operator for @ref Float4_e2m1fn.
- * @details Promotes the fp4 value to float before writing to the stream.
+ *
+ * Promotes to float before writing to the stream.
+ *
  * @param[in,out] out The output stream.
  * @param[in]     value The @ref Float4_e2m1fn value to write.
  * @return Reference to the output stream.
@@ -285,102 +272,49 @@ inline NCORE_HOST_DEVICE bool Float4_e2m1fn::isinf() const { return false; }
 /// @name Arithmetic Operators (Float4_e2m1fn & Float4_e2m1fn)
 /// @{
 
-/**
- * @brief Addition operator for two @ref Float4_e2m1fn values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The sum as a @ref Float4_e2m1fn.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn operator+(const Float4_e2m1fn &a,
                                                  const Float4_e2m1fn &b) {
   return static_cast<float>(a) + static_cast<float>(b);
 }
 
-/**
- * @brief Subtraction operator for two @ref Float4_e2m1fn values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The difference as a @ref Float4_e2m1fn.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn operator-(const Float4_e2m1fn &a,
                                                  const Float4_e2m1fn &b) {
   return static_cast<float>(a) - static_cast<float>(b);
 }
 
-/**
- * @brief Multiplication operator for two @ref Float4_e2m1fn values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The product as a @ref Float4_e2m1fn.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn operator*(const Float4_e2m1fn &a,
                                                  const Float4_e2m1fn &b) {
   return static_cast<float>(a) * static_cast<float>(b);
 }
 
-/**
- * @brief Division operator for two @ref Float4_e2m1fn values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The quotient as a @ref Float4_e2m1fn.
- */
 NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO
 inline NCORE_HOST_DEVICE Float4_e2m1fn operator/(const Float4_e2m1fn &a,
                                                  const Float4_e2m1fn &b) {
   return static_cast<float>(a) / static_cast<float>(b);
 }
 
-/**
- * @brief Unary minus operator for @ref Float4_e2m1fn.
- * @param[in] a The operand.
- * @return The negated value as a @ref Float4_e2m1fn.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn operator-(const Float4_e2m1fn &a) {
   return -static_cast<float>(a);
 }
 
-/**
- * @brief Addition assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to add.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn &operator+=(Float4_e2m1fn &a,
                                                    const Float4_e2m1fn &b) {
   a = a + b;
   return a;
 }
 
-/**
- * @brief Subtraction assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to subtract.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn &operator-=(Float4_e2m1fn &a,
                                                    const Float4_e2m1fn &b) {
   a = a - b;
   return a;
 }
 
-/**
- * @brief Multiplication assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to multiply.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn &operator*=(Float4_e2m1fn &a,
                                                    const Float4_e2m1fn &b) {
   a = a * b;
   return a;
 }
 
-/**
- * @brief Division assignment operator.
- * @param[in,out] a The destination operand.
- * @param[in]     b The divisor.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn &operator/=(Float4_e2m1fn &a,
                                                    const Float4_e2m1fn &b) {
   a = a / b;
@@ -603,7 +537,7 @@ public:
       3; ///< Largest normal: 6.0 (@f$1.5 \times 2^{2}@f$).
   static constexpr int max_exponent10 = 0; ///< Maximum positive power of 10.
   static constexpr auto traps =
-      numeric_limits<float>::traps; ///< Inherits float32 trap behaviour.
+      numeric_limits<float>::traps; ///< Inherits float32 trap behavior.
   static constexpr auto tinyness_before =
       false; ///< Tinyness is not tested before rounding.
 
@@ -710,37 +644,30 @@ struct alignas(1) Float4_e2m1fn_x2 {
    */
   inline NCORE_HOST_DEVICE Float4_e2m1fn_x2(float lo, float hi);
 
-  /**
-   * @brief Extracts and decodes the low nibble (val0).
-   * @return The low-lane value as a @ref Float4_e2m1fn.
-   */
+  /// Extracts and decodes the low nibble (val0).
   [[nodiscard]] inline NCORE_HOST_DEVICE Float4_e2m1fn low() const;
 
-  /**
-   * @brief Extracts and decodes the high nibble (val1).
-   * @return The high-lane value as a @ref Float4_e2m1fn.
-   */
+  /// Extracts and decodes the high nibble (val1).
   [[nodiscard]] inline NCORE_HOST_DEVICE Float4_e2m1fn high() const;
 
   /**
    * @brief Checks whether either lane encodes NaN.
-   * @details E2M1FN has no NaN representation; always returns @c false.
-   * @return Always @c false.
+   * E2M1FN has no NaN representation; always @c false.
    */
   [[nodiscard]] inline NCORE_HOST_DEVICE bool isnan() const { return false; }
 
   /**
    * @brief Checks whether either lane encodes infinity.
-   * @details E2M1FN has no infinity representation; always returns
-   * @c false.
-   * @return Always @c false.
+   * E2M1FN has no infinity representation; always @c false.
    */
   [[nodiscard]] inline NCORE_HOST_DEVICE bool isinf() const { return false; }
 };
 
 /**
  * @brief Stream output operator for @ref Float4_e2m1fn_x2.
- * @details Prints both decoded lanes as an ordered pair @c (val0, val1).
+ *
+ * Prints both decoded lanes as an ordered pair @c (val0, val1).
+ *
  * @param[in,out] out The output stream.
  * @param[in]     value The @ref Float4_e2m1fn_x2 value to write.
  * @return Reference to the output stream.
@@ -780,24 +707,16 @@ inline NCORE_HOST_DEVICE Float4_e2m1fn Float4_e2m1fn_x2::high() const {
 
 /**
  * @brief Equality comparison, based on the raw packed byte.
- * @note This compares bit patterns, not decoded values: +0.0 and -0.0 in a
- * given lane compare unequal here even though they are numerically equal,
- * matching the original packed-storage semantics of this type.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return @c true if both packed bytes are bitwise identical.
+ *
+ * Compared are bit patterns, not decoded values: +0.0 and -0.0 in a
+ * lane compare unequal even though they are numerically equal.
  */
 inline NCORE_HOST_DEVICE bool operator==(const Float4_e2m1fn_x2 &a,
                                          const Float4_e2m1fn_x2 &b) {
   return a.val_ == b.val_;
 }
 
-/**
- * @brief Inequality comparison, based on the raw packed byte.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return @c true if the packed bytes differ.
- */
+/// @brief Inequality comparison, based on the raw packed byte.
 inline NCORE_HOST_DEVICE bool operator!=(const Float4_e2m1fn_x2 &a,
                                          const Float4_e2m1fn_x2 &b) {
   return a.val_ != b.val_;
@@ -812,50 +731,24 @@ inline NCORE_HOST_DEVICE bool operator!=(const Float4_e2m1fn_x2 &a,
 /// @name Arithmetic Operators (Float4_e2m1fn_x2 & Float4_e2m1fn_x2, lane-wise)
 /// @{
 
-/**
- * @brief Lane-wise addition operator for two @ref Float4_e2m1fn_x2 values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The lane-wise sum as a @ref Float4_e2m1fn_x2.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 operator+(const Float4_e2m1fn_x2 &a,
                                                     const Float4_e2m1fn_x2 &b) {
   return {static_cast<float>(a.low()) + static_cast<float>(b.low()),
           static_cast<float>(a.high()) + static_cast<float>(b.high())};
 }
 
-/**
- * @brief Lane-wise subtraction operator for two @ref Float4_e2m1fn_x2
- * values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The lane-wise difference as a @ref Float4_e2m1fn_x2.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 operator-(const Float4_e2m1fn_x2 &a,
                                                     const Float4_e2m1fn_x2 &b) {
   return {static_cast<float>(a.low()) - static_cast<float>(b.low()),
           static_cast<float>(a.high()) - static_cast<float>(b.high())};
 }
 
-/**
- * @brief Lane-wise multiplication operator for two @ref Float4_e2m1fn_x2
- * values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The lane-wise product as a @ref Float4_e2m1fn_x2.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 operator*(const Float4_e2m1fn_x2 &a,
                                                     const Float4_e2m1fn_x2 &b) {
   return {static_cast<float>(a.low()) * static_cast<float>(b.low()),
           static_cast<float>(a.high()) * static_cast<float>(b.high())};
 }
 
-/**
- * @brief Lane-wise division operator for two @ref Float4_e2m1fn_x2 values.
- * @param[in] a The first operand.
- * @param[in] b The second operand.
- * @return The lane-wise quotient as a @ref Float4_e2m1fn_x2.
- */
 NCORE_UBSAN_IGNORE_DIVIDE_BY_ZERO
 inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 operator/(const Float4_e2m1fn_x2 &a,
                                                     const Float4_e2m1fn_x2 &b) {
@@ -863,57 +756,28 @@ inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 operator/(const Float4_e2m1fn_x2 &a,
           static_cast<float>(a.high()) / static_cast<float>(b.high())};
 }
 
-/**
- * @brief Lane-wise unary minus operator for @ref Float4_e2m1fn_x2.
- * @param[in] a The operand.
- * @return The lane-wise negated value as a @ref Float4_e2m1fn_x2.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 operator-(const Float4_e2m1fn_x2 &a) {
   return {-static_cast<float>(a.low()), -static_cast<float>(a.high())};
 }
 
-/**
- * @brief Addition assignment operator (lane-wise).
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to add.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 &
 operator+=(Float4_e2m1fn_x2 &a, const Float4_e2m1fn_x2 &b) {
   a = a + b;
   return a;
 }
 
-/**
- * @brief Subtraction assignment operator (lane-wise).
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to subtract.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 &
 operator-=(Float4_e2m1fn_x2 &a, const Float4_e2m1fn_x2 &b) {
   a = a - b;
   return a;
 }
 
-/**
- * @brief Multiplication assignment operator (lane-wise).
- * @param[in,out] a The destination operand.
- * @param[in]     b The operand to multiply.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 &
 operator*=(Float4_e2m1fn_x2 &a, const Float4_e2m1fn_x2 &b) {
   a = a * b;
   return a;
 }
 
-/**
- * @brief Division assignment operator (lane-wise).
- * @param[in,out] a The destination operand.
- * @param[in]     b The divisor.
- * @return Reference to the updated destination operand.
- */
 inline NCORE_HOST_DEVICE Float4_e2m1fn_x2 &
 operator/=(Float4_e2m1fn_x2 &a, const Float4_e2m1fn_x2 &b) {
   a = a / b;
@@ -1161,7 +1025,7 @@ public:
   static constexpr int max_exponent10 =
       lane_limits::max_exponent10; ///< Maximum positive power of 10.
   static constexpr auto traps =
-      lane_limits::traps; ///< Both lanes inherit float32 trap behaviour.
+      lane_limits::traps; ///< Both lanes inherit float32 trap behavior.
   static constexpr auto tinyness_before =
       lane_limits::tinyness_before; ///< Both lanes: tinyness is not tested
                                     ///< before rounding.

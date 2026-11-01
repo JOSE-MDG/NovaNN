@@ -39,7 +39,7 @@ TEST(DeviceDetection, CudaDetectionWorks) {
 TEST(DeviceDetection, HipUnavailableInCudaOnlyBuild) {
   EXPECT_EQ(is_hip_available(), false);
 }
-#elif defined(NOVA_HAS_HIP)
+#elifdef NOVA_HAS_HIP
 /**
  * @brief Verifies CUDA stays unavailable in a HIP-only build.
  * @test CUDA is not compiled in, so is_cuda_available() returns @c

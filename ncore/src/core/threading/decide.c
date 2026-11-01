@@ -183,6 +183,18 @@ ParallelDecision decide_sort(const SortWork *work, uint32 threads) {
   return cap_count(work->total / PARALLEL_GRAIN_SORT, threads);
 }
 
+ParallelDecision decide_rng(const RngWork *work, uint32 threads) {
+  ParallelDecision refusal = {
+      .go = false,
+      .num_threads = 1,
+  };
+  if (threads < 2 || work == nullptr || !work->valid) {
+    return refusal;
+  }
+  return cap_count(work->lanes * work->cost_per_elem / PARALLEL_GRAIN_RNG,
+                   threads);
+}
+
 ParallelDecision decide_serial(uint32 threads) {
   (void)threads;
   ParallelDecision refusal = {

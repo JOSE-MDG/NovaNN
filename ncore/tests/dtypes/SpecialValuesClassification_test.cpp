@@ -29,7 +29,7 @@
 #include <ncore/headeronly/dtypes/fp8_e5m2.hh>
 #include <ncore/headeronly/dtypes/half.hh>
 
-#include "utils/FloatingPointClassification.hpp"
+#include <tests/oracle/FpClassification.hpp>
 
 namespace {
 

@@ -17,14 +17,17 @@
 //! | [`reserve()`] | `reserve(size, device, pin_memory, align, status)`       |
 //! | [`lifecycle`] | `retain`, `release`                                      |
 //! | [`resize()`]  | `resize`                                                 |
+//! | [`cache()`]   | `empty_cache`                                            |
 //! | [`query`]     | `get_data_from`, `is_valid_handle`, metadata queries     |
 
+pub mod cache;
 pub mod cpp;
 pub mod lifecycle;
 pub mod query;
 pub mod reserve;
 pub mod resize;
 
+pub use cache::empty_cache;
 pub use cpp::{
     DeviceBuffer, DeviceKind, DeviceMemcpyKind, NovaError, NovaStatus, deviceRelease,
     deviceReserve, deviceResize, getDeviceBackend,

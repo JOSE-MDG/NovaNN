@@ -35,10 +35,10 @@ extern "C" {
  * @details
  * Groups the CPU operation surface by execution shape rather than
  * by semantic directory: streaming maps share one rule, reductions
- * another, and so on. @c ParallelSerial covers work that never
- * parallelizes at operation level (random generation, FFT
- * internals, direct factorizations). @c ParallelFused carries no
- * rule of its own and routes through stage verdicts.
+ * another, and so on. @c ParallelSerial covers work whose threads
+ * cannot partition without replicas or communication (stateful
+ * generation, FFT internals, direct factorizations). @c ParallelFused
+ * carries no rule of its own and routes through stage verdicts.
  */
 typedef enum ParallelPattern : uint8_t {
   ParallelElementwise = 0, ///< Flat streaming maps.
@@ -161,6 +161,23 @@ typedef struct {
   size_t total; ///< Elements to order or count.
   bool valid;   ///< Shape checks passed (see helpers.h).
 } SortWork;
+
+/**
+ * @struct RngWork
+ * @brief Facts for one counter-based random-fill decision.
+ *
+ * @details
+ * Fills parallelize over whole Philox blocks, so the verdict weighs
+ * lanes by their draw cost in @ref RngWork::cost_per_elem instead of
+ * counting them raw. One rule then covers every width: a 32-bit
+ * fill reports 2 (one block per four lanes), a 64-bit fill reports
+ * 4 (the same block doubles the lane payload).
+ */
+typedef struct {
+  size_t lanes;         ///< Output lanes to emit.
+  size_t cost_per_elem; ///< Relative draw cost per lane.
+  bool valid;           ///< Structural checks passed (see helpers.h).
+} RngWork;
 
 #ifdef __cplusplus
 }

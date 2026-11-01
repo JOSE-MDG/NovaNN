@@ -31,8 +31,6 @@
 #pragma once
 
 #include <ncore/core/dtype.h>
-// fp4e2m1x2Result_t is defined in the public header; keep a single copy so
-// Clang's -Wreturn-type-c-linkage sees a complete return type everywhere.
 #include <ncore/core/fp_utils.h>
 
 extern "C" {

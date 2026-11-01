@@ -102,7 +102,7 @@ uint32 get_num_logical_threads_impl(novaStatus_t *status) {
   return num_threads;
 }
 
-#elif defined(_WIN64)
+#elifdef _WIN64
 #include <stdlib.h>
 
 #include <ncore/core/dtype.h>

@@ -89,6 +89,12 @@ pub enum NovaError {
     RuntimeError,
     /// The thread configuration has not been initialized.
     ThreadNotInitialized,
+    /// The GPU device ID is outside the runtime or configured slot range.
+    InvalidDeviceId,
+    /// A valid resource cannot be changed while allocations remain in use.
+    ResourceBusy,
+    /// The device does not natively support memory pools.
+    MemoryPoolsNotNativelySupported,
 }
 
 /// C-compatible status containing an error code and diagnostic message.

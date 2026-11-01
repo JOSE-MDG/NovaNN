@@ -27,7 +27,7 @@
 #include <ncore/core/fp_utils.h>
 #include <ncore/headeronly/dtypes/half.hh>
 
-#include "utils/FloatingPointClassification.hpp"
+#include <tests/oracle/FpClassification.hpp>
 
 namespace {
 

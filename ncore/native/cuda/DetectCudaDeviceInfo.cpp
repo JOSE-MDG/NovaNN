@@ -7,31 +7,14 @@
  * @ref DetectCudaDeviceInfo.hpp.  Queries the CUDA runtime for
  * device 0 properties (name, compute capability, memory, SMs,
  * warp size, thread limits, driver/runtime versions) and formats
- * them for human-readable output.
+ * them for human-readable output.  Properties are queried once and
+ * cached; @ref formatMemory, @ref formatBandwidth and
+ * @ref formatCudaVersion are internal formatting helpers.
  *
- * The file is conditionally compiled behind @c NOVA_HAS_CUDA and
+ * Compiled only behind @c NOVA_HAS_CUDA and
  * @c __has_include(<cuda_runtime_api.h>).  When CUDA headers are
  * unavailable, stub functions returning error statuses are
  * provided.
- *
- * @section caching Caching
- *
- * Device properties are queried once and cached in a @c static
- * local variable within @ref initCudaDeviceProperties.  Subsequent
- * calls to @ref getCudaDeviceProperties and @ref
- * printCudaDeviceInfo return the cached values without additional
- * CUDA runtime API calls.
- *
- * @section internal-helpers Internal Helpers
- *
- * @li @ref formatMemory — Converts byte counts to human-readable
- *   strings (GiB / MiB / bytes).
- * @li @ref formatBandwidth — Converts bytes/s to human-readable
- *   bandwidth (GB/s).
- * @li @ref formatCudaVersion — Converts the CUDA integer version
- *   encoding to a "major.minor" string.
- * @li @ref initCudaDeviceProperties — Performs the actual CUDA
- *   runtime queries and populates the cached struct.
  *
  * @see DetectCudaDeviceInfo.hpp  Type and function declarations.
  * @see DetectCudaDevice.cpp      Device availability detection.
@@ -59,12 +42,6 @@ namespace {
 
 /**
  * @brief Format a byte count as a human-readable memory string.
- *
- * @details
- * Converts @p bytes to the most appropriate unit:
- * @li 8 GiB or more → "X.X GiB"
- * @li 1 MiB or more → "X.X MiB"
- * @li Otherwise → "N bytes"
  *
  * @param[in] bytes  The byte count to format.
  *
@@ -135,7 +112,7 @@ std::string formatCudaVersion(int version) {
  * subsequent calls.
  *
  * If device detection has already been performed (via
- * @ref was_device_detection_done), uses the detected device index;
+ * @ref is_device_detection_done), uses the detected device index;
  * otherwise defaults to device 0.
  *
  * @param[out] status  Receives @c novaSuccess on success, or an
@@ -148,7 +125,7 @@ std::string formatCudaVersion(int version) {
 cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
   static const cudaDetectedDeviceProps_t result =
       [&status]() -> cudaDetectedDeviceProps_t {
-    const int deviceId = was_device_detection_done() ? getCudaDeviceId() : 0;
+    const int deviceId = is_device_detection_done() ? getCudaDeviceId() : 0;
     cudaDeviceProp prop{};
     cudaError_t err = cudaGetDeviceProperties(&prop, deviceId);
 
@@ -251,7 +228,7 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
 cudaDetectedDeviceAttrs_t
 getCudaDeviceAttributes(novaStatus_t *status) noexcept {
   static const cudaDetectedDeviceAttrs_t attrs = [] {
-    const int deviceId = was_device_detection_done() ? getCudaDeviceId() : 0;
+    const int deviceId = is_device_detection_done() ? getCudaDeviceId() : 0;
     int clockKHz = 0;
     int memClockKHz = 0;
     if (cudaDeviceGetAttribute(&clockKHz, cudaDevAttrClockRate, deviceId) !=
@@ -275,7 +252,7 @@ getCudaDeviceAttributes(novaStatus_t *status) noexcept {
  *
  * @details
  * Queries device 0 properties via @ref initCudaDeviceProperties
- * and prints them using ANSI colour codes.  When @p verbose is
+ * and prints them using ANSI color codes.  When @p verbose is
  * @c false, a concise two-line summary is printed.  When @p verbose
  * is @c true, a detailed multi-line block is printed.
  *
@@ -370,7 +347,7 @@ novaStatus_t printCudaDeviceInfo(bool verbose) {
  *         determine whether the data is valid.
  *
  * @note Thread-safe.  The result is cached in a @c static local
- *       variable initialised exactly once (C++11 guarantee).
+ *       variable initialized exactly once (C++11 guarantee).
  */
 cudaDetectedDeviceProps_t
 getCudaDeviceProperties(novaStatus_t *status) noexcept {

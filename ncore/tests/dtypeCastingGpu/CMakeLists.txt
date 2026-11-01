@@ -7,12 +7,6 @@ dtype pairs as the CPU ``dtypeCasting`` suite, converted on the active
 GPU backend (CUDA or HIP) and compared bitwise against the CPU
 reference after a device-to-host transfer.
 
-Current suites: ``GpuDispatch_test.cpp`` (pair resolution, device
-smoke values, shape and status edges), ``GpuOracleEquivalence_test.cpp``
-(full 210-pair bitwise equivalence), ``GpuSaturation_test.cpp``
-(saturation and integer conversion policies) and
-``GpuSpecialValues_test.cpp`` (NaN/Inf/zero/subnormal propagation).
-
 CPU-only runners skip device cases with a reason string instead of
 failing. Edge cases that need no device (shape mismatch, empty
 tensors, unsupported pairs through ``cast()``) run unconditionally.
@@ -40,10 +34,6 @@ if(TEST_SOURCES)
         PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ncore/include>
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
         PRIVATE ${CMAKE_BINARY_DIR}
-        # Reuse the CPU oracle fixtures and the GPU skip macro instead of
-        # duplicating them here.
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../dtypeCasting
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../core
     )
 
     target_link_libraries(ncore_dtype_casting_gpu_tests

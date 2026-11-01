@@ -32,6 +32,7 @@
 #include <ncore/tensor.h>
 
 #include "DtypeCastingKernel.h"
+#include "memory/HipEngineStream.hpp"
 
 #ifndef __HIP_DEVICE_COMPILE__
 #include <unordered_map>
@@ -1213,12 +1214,14 @@ inline uint32_t castKey(DType_ src, DType_ dst) {
   return (static_cast<uint32_t>(src) << 8U) | static_cast<uint32_t>(dst);
 }
 
-using Launcher = novaStatus_t (*)(const Tensor *restrict, Tensor *restrict);
+using Launcher = novaStatus_t (*)(const Tensor *restrict, Tensor *restrict,
+                                  hipStream_t);
 
 /* Per pair launcher: shape check, launch sizing, kernel launch. */
 
 template <DType_ S, DType_ D, typename ST, typename DT, CastKind K>
-novaStatus_t launchCast(const Tensor *restrict src, Tensor *restrict dst) {
+novaStatus_t launchCast(const Tensor *restrict src, Tensor *restrict dst,
+                        hipStream_t stream) {
   size_t n = 0U;
   if constexpr (K == CastKind::kPlain) {
     if (src->size != dst->size) {
@@ -1277,11 +1280,11 @@ novaStatus_t launchCast(const Tensor *restrict src, Tensor *restrict dst) {
   const auto *s = reinterpret_cast<const ST *>(src->data.v);
   auto *d = reinterpret_cast<DT *>(dst->data.v);
   if constexpr (K == CastKind::kPlain) {
-    castPlainKernel<S, D, ST, DT><<<grid, threads>>>(s, d, n);
+    castPlainKernel<S, D, ST, DT><<<grid, threads, 0, stream>>>(s, d, n);
   } else if constexpr (K == CastKind::kUnpack) {
-    castUnpackKernel<D, DT><<<grid, threads>>>(s, d, n);
+    castUnpackKernel<D, DT><<<grid, threads, 0, stream>>>(s, d, n);
   } else {
-    castPackKernel<S, ST><<<grid, threads>>>(s, d, n);
+    castPackKernel<S, ST><<<grid, threads, 0, stream>>>(s, d, n);
   }
   const hipError_t launchErr = hipGetLastError();
   if (launchErr != hipSuccess) {
@@ -1968,7 +1971,12 @@ novaStatus_t launchHipDtypeCastingKernel(const Tensor *restrict src,
     return {.err = novaCastNotSupported,
             .message = nova_get_error_msg(novaCastNotSupported, nullptr)};
   }
-  return found->second(src, dst);
+  hipStream_t stream = nullptr;
+  const novaStatus_t status = HipEngineStream::current(&stream);
+  if (status.err != novaSuccess) {
+    return status;
+  }
+  return found->second(src, dst, stream);
 }
 
 #endif
