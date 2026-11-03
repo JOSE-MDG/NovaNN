@@ -24,6 +24,7 @@
 
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
+#include <ncore/headeronly/wrappers/tensor.hh>
 #include <ncore/rand/generator.h>
 #include <ncore/tensor.h>
 
@@ -142,6 +143,17 @@ public:
    *         @c novaInvalidDevice when the placements differ.
    */
   [[nodiscard]] novaStatus_t fill(Tensor &ten);
+
+  /**
+   * @brief Fills the whole payload of an allocated tensor.
+   *
+   * @details
+   * Delegates to the C tensor overload, so both entry points address
+   * the payload through the same offset and extent.
+   *
+   * @param[in,out] ten Tensor to fill.
+   */
+  [[nodiscard]] novaStatus_t fill(TensorCXX &ten);
 
   /**
    * @brief Entries a state snapshot needs (5 for Xoshiro, 7 for Philox).
@@ -311,8 +323,11 @@ inline novaStatus_t GeneratorCXX::fill(Tensor &ten) {
                         .message = "The tensor placement must match the "
                                    "handle placement.\n"};
   }
-  return fillBytes(ten.data.data + ten.offset,
-                   ten.size * ten.item_size);
+  return fillBytes(ten.data.data + ten.offset, ten.size * ten.item_size);
+}
+
+inline novaStatus_t GeneratorCXX::fill(TensorCXX &ten) {
+  return fill(ten.mutableCTensor());
 }
 
 inline size_t GeneratorCXX::snapshotWords() const {
