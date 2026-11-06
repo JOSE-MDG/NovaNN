@@ -235,6 +235,9 @@ endfunction()
 
   Additional ``EXTRA_LIBS`` are linked as private libraries.
 
+  Host hardening uses ``-Xarch_host``; device FP contraction is ``fast``
+  on optimized builds and ``off`` on Debug.
+
 #]=======================================================================]
 function(nova_configure_hip_kernels_target TARGET)
     if(NOT NOVA_HAS_HIP)
@@ -245,6 +248,19 @@ function(nova_configure_hip_kernels_target TARGET)
 
     _nova_configure_hip_common(${TARGET})
 
+    # Repeating -Xarch_host loses the prefix: CMake deduplicates it.  One
+    # comma-separated list avoids that.
+    set(_nova_hip_host_flags
+        -Xarch_host -fstack-protector-strong,-fcf-protection=full,-fstack-clash-protection,-fno-plt,-fno-semantic-interposition
+    )
+
+    target_compile_options(${TARGET} PRIVATE
+        $<$<COMPILE_LANGUAGE:HIP>:${_nova_hip_host_flags}>
+        $<$<AND:$<COMPILE_LANGUAGE:HIP>,$<CONFIG:Debug>>:-Xarch_device>
+        $<$<AND:$<COMPILE_LANGUAGE:HIP>,$<CONFIG:Debug>>:-ffp-contract=off>
+        $<$<AND:$<COMPILE_LANGUAGE:HIP>,$<NOT:$<CONFIG:Debug>>>:-Xarch_device>
+        $<$<AND:$<COMPILE_LANGUAGE:HIP>,$<NOT:$<CONFIG:Debug>>>:-ffp-contract=fast>
+    )
 
     if(_HIP_K_EXTRA_LIBS)
         target_link_libraries(${TARGET} PRIVATE ${_HIP_K_EXTRA_LIBS})
