@@ -93,9 +93,7 @@ CONTIGUOUS_COPY_SPAN(8)
  *
  * @details
  * Resolves the width once per run instead of once per unit. Widths
- * outside 1/2/4/8 fall back to a @c memcpy per unit; every dtype in
- * @ref lookup_dtype_sizes is 1, 2, 4 or 8 bytes wide, so that arm does
- * not run today.
+ * outside 1/2/4/8 fall back to a @c memcpy per unit.
  *
  * @param[out] dst         Destination run, packed with no gaps.
  * @param[in]  src         First source unit.
@@ -156,17 +154,9 @@ static inline void copy_storage_span(unsigned char *restrict dst,
  * @return @ref novaSuccess on success, or @ref novaInvalidTensor if
  *         @p src is not one-dimensional.
  */
-static inline novaStatus_t
-contiguous_one_dimensional_tensor(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
+static inline novaStatus_t contiguous_1d_tensor(const Tensor *restrict src,
+                                                Tensor *restrict dst) {
   novaStatus_t st;
-
-  if (src->ndims != 1) {
-    st.err = novaInvalidTensor;
-    st.message = "Cannot perform contiguous operation with a non "
-                 "one-dimensional tensor";
-    return st;
-  }
   const size_t stride = src->strides[0];
   const size_t item_size = src->item_size;
   const unsigned char *sbase = src->data.data + src->offset;
@@ -230,27 +220,17 @@ contiguous_one_dimensional_tensor(const Tensor *restrict src,
  * @return @ref novaSuccess on success, or @ref novaInvalidNdims if
  *         @p cv is not one-dimensional.
  */
-static inline novaStatus_t contiguous_one_dimensional_cv(
-    const CollapsedView *cv, const Tensor *restrict src, Tensor *restrict dst) {
-
+static inline novaStatus_t contiguous_1d_cv(size_t stride,
+                                            const Tensor *restrict src,
+                                            Tensor *restrict dst) {
   novaStatus_t st;
-  if (cv->ndims != 1) {
-    st.err = novaInvalidNdims;
-    st.message = "Cannot perform contiguous operation with a non "
-                 "one-dimensional collapsed view";
-    return st;
-  }
-
-  size_t stride = cv->strides[0];
-
+  // Hoisted so the width and the base addresses stay loop-invariant.
+  // Read through the tensor on every iteration, the byte stores keep
+  // GCC from proving that, and the width switch never leaves the loop.
+  const size_t item_size = src->item_size;
+  const unsigned char *sbase = src->data.data + src->offset;
+  unsigned char *dbase = dst->data.data;
   if (stride != src->item_size) {
-
-    // Hoisted so the width and the base addresses stay loop-invariant.
-    // Read through the tensor on every iteration, the byte stores keep
-    // GCC from proving that, and the width switch never leaves the loop.
-    const size_t item_size = src->item_size;
-    const unsigned char *sbase = src->data.data + src->offset;
-    unsigned char *dbase = dst->data.data;
 
 #ifdef NOVA_OPENMP
 
@@ -280,7 +260,7 @@ static inline novaStatus_t contiguous_one_dimensional_cv(
     st.message = nova_get_error_msg(st.err, nullptr);
     return st;
   }
-  memcpy(dst->data.v, src->data.data + src->offset, src->size * src->item_size);
+  memcpy(dbase, sbase, src->size * item_size);
   st.err = novaSuccess;
   st.message = nova_get_error_msg(st.err, nullptr);
   return st;
@@ -292,7 +272,7 @@ static inline novaStatus_t contiguous_one_dimensional_cv(
  * @details
  * Entry point of the CPU contiguous backend.  Scalars pass through
  * unchanged.  One-dimensional tensors are handled by
- * @ref contiguous_one_dimensional_tensor.  Other tensors are
+ * @ref contiguous_1d_tensor.  Other tensors are
  * collapsed with @ref collapse() and copied unit by unit,
  * following the collapsed strides (per-thread coordinates under
  * @c NOVA_OPENMP, an odometer walk otherwise).
@@ -309,15 +289,19 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
   novaStatus_t st;
 
   if (src->ndims == 1) {
-    return contiguous_one_dimensional_tensor(src, dst);
+    return contiguous_1d_tensor(src, dst);
   }
 
   // Collapse contiguous dimensions if possible
   const CollapsedView cv = collapse(src);
 
   if (cv.ndims == 1) {
-    return contiguous_one_dimensional_cv(&cv, src, dst);
+    return contiguous_1d_cv(cv.strides[0], src, dst);
   }
+
+  const unsigned char *sbase = src->data.data + src->offset;
+  unsigned char *dbase = dst->data.data;
+  const size_t item_size = src->item_size;
 
 #ifdef NOVA_OPENMP
 
@@ -329,9 +313,6 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
 
   const LayoutWork work = make_layout_work(src, false);
   const ParallelDecision decision = decide_layout(&work, threads);
-  const unsigned char *sbase = src->data.data + src->offset;
-  unsigned char *dbase = dst->data.data;
-  const size_t item_size = src->item_size;
 
   if (cv.ndims == 2) {
     const size_t d0 = cv.shape[0];
@@ -433,8 +414,7 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
       offset += coords[dim] * cv.strides[dim];
     }
 
-    copy_storage_unit(dst->data.data + (item * src->item_size),
-                      src->data.data + offset, src->item_size);
+    copy_storage_unit(dbase + (item * item_size), sbase, item_size);
     odometer(coords, cv.ndims, cv.shape);
   }
 #endif
