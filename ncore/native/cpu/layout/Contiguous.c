@@ -58,6 +58,79 @@ static inline void copy_storage_unit(unsigned char *restrict dst,
 }
 
 /**
+ * @def CONTIGUOUS_COPY_SPAN
+ * @brief Defines a strided run copier for one storage-unit width.
+ *
+ * @details
+ * Baking the width into the loop keeps the width dispatch out of the
+ * inner loop. Left inside, GCC lowers it to a compare chain and Clang
+ * to a jump table, both paid once per element. Streaming misses
+ * dominate transposed layouts, where each unit sits on its own cache
+ * line, so both streams prefetch ahead while the current units copy.
+ */
+#define CONTIGUOUS_COPY_SPAN(width)                                            \
+  static inline void copy_span_##width(unsigned char *restrict dst,            \
+                                       const unsigned char *restrict src,      \
+                                       size_t count, size_t src_stride) {      \
+    for (size_t i = 0; i < count; ++i) {                                       \
+      if (i + 16 < count) {                                                    \
+        __builtin_prefetch(src + (16 * src_stride), 0, 3);                     \
+        __builtin_prefetch(dst + (16 * (width)), 1, 3);                        \
+      }                                                                        \
+      memcpy(dst, src, (width));                                               \
+      dst += (width);                                                          \
+      src += src_stride;                                                       \
+    }                                                                          \
+  }
+
+CONTIGUOUS_COPY_SPAN(1)
+CONTIGUOUS_COPY_SPAN(2)
+CONTIGUOUS_COPY_SPAN(4)
+CONTIGUOUS_COPY_SPAN(8)
+
+/**
+ * @brief Copy a strided run of storage units.
+ *
+ * @details
+ * Resolves the width once per run instead of once per unit. Widths
+ * outside 1/2/4/8 fall back to a @c memcpy per unit; every dtype in
+ * @ref lookup_dtype_sizes is 1, 2, 4 or 8 bytes wide, so that arm does
+ * not run today.
+ *
+ * @param[out] dst         Destination run, packed with no gaps.
+ * @param[in]  src         First source unit.
+ * @param[in]  count       Number of units to copy.
+ * @param[in]  src_stride  Byte distance between consecutive source units.
+ * @param[in]  item_size   Bytes per storage unit.
+ */
+static inline void copy_storage_span(unsigned char *restrict dst,
+                                     const unsigned char *restrict src,
+                                     size_t count, size_t src_stride,
+                                     size_t item_size) {
+  switch (item_size) {
+  case 1:
+    copy_span_1(dst, src, count, src_stride);
+    break;
+  case 2:
+    copy_span_2(dst, src, count, src_stride);
+    break;
+  case 4:
+    copy_span_4(dst, src, count, src_stride);
+    break;
+  case 8:
+    copy_span_8(dst, src, count, src_stride);
+    break;
+  default:
+    for (size_t i = 0; i < count; ++i) {
+      memcpy(dst, src, item_size);
+      dst += item_size;
+      src += src_stride;
+    }
+    break;
+  }
+}
+
+/**
  * @brief Tile edge for the blocked two-dimensional copy.
  *
  * @details
@@ -172,6 +245,13 @@ static inline novaStatus_t contiguous_one_dimensional_cv(
 
   if (stride != src->item_size) {
 
+    // Hoisted so the width and the base addresses stay loop-invariant.
+    // Read through the tensor on every iteration, the byte stores keep
+    // GCC from proving that, and the width switch never leaves the loop.
+    const size_t item_size = src->item_size;
+    const unsigned char *sbase = src->data.data + src->offset;
+    unsigned char *dbase = dst->data.data;
+
 #ifdef NOVA_OPENMP
 
     auto threads = get_num_threads_from(ParallelComputeGroup, &st);
@@ -186,16 +266,14 @@ static inline novaStatus_t contiguous_one_dimensional_cv(
 #pragma omp parallel for num_threads(decision.num_threads)                     \
     schedule(static) if (decision.go)
     for (size_t item = 0; item < src->size; ++item) {
-      copy_storage_unit(dst->data.data + (item * src->item_size),
-                        src->data.data + src->offset + (item * stride),
-                        src->item_size);
+      copy_storage_unit(dbase + (item * item_size), sbase + (item * stride),
+                        item_size);
     }
 
 #else
     for (size_t item = 0; item < src->size; ++item) {
-      copy_storage_unit(dst->data.data + (item * src->item_size),
-                        src->data.data + src->offset + (item * stride),
-                        src->item_size);
+      copy_storage_unit(dbase + (item * item_size), sbase + (item * stride),
+                        item_size);
     }
 #endif
     st.err = novaSuccess;
@@ -290,19 +368,7 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
           for (size_t row = r0; row < r_end; ++row) {
             const unsigned char *sp = sbase + (row * s0) + (c0 * s1);
             unsigned char *dp = dbase + (((row * d1) + c0) * item_size);
-            const size_t span = c_end - c0;
-            for (size_t k = 0; k < span; ++k) {
-              // Streaming misses dominate transposed layouts: each
-              // element sits on its own cache line, so both streams
-              // move ahead while the current units copy.
-              if (k + 16 < span) {
-                __builtin_prefetch(sp + (16 * s1), 0, 3);
-                __builtin_prefetch(dp + (16 * item_size), 1, 3);
-              }
-              copy_storage_unit(dp, sp, item_size);
-              sp += s1;
-              dp += item_size;
-            }
+            copy_storage_span(dp, sp, c_end - c0, s1, item_size);
           }
         }
       }
@@ -336,17 +402,8 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
         if (inner_dense) {
           memcpy(drow + d_mid, srow + s_mid, d_last * item_size);
         } else {
-          const unsigned char *sp = srow + s_mid;
-          unsigned char *dp = drow + d_mid;
-          for (size_t col = 0; col < d_last; ++col) {
-            if (col + 16 < d_last) {
-              __builtin_prefetch(sp + (16 * s_last), 0, 3);
-              __builtin_prefetch(dp + (16 * item_size), 1, 3);
-            }
-            copy_storage_unit(dp, sp, item_size);
-            sp += s_last;
-            dp += item_size;
-          }
+          copy_storage_span(drow + d_mid, srow + s_mid, d_last, s_last,
+                            item_size);
         }
         for (size_t dim = nd - 2; dim >= 1; --dim) {
           mid[dim]++;
