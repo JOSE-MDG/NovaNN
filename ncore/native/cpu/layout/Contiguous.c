@@ -230,12 +230,6 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
                                  Tensor *restrict dst) {
   novaStatus_t st;
 
-  if (is_scalar(src)) {
-    st.err = novaSuccess;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
-  }
-
   if (src->ndims == 1) {
     return contiguous_one_dimensional_tensor(src, dst);
   }
