@@ -105,7 +105,8 @@ TEST(RngGpuParity, FillU32MatchesHostBitwise) {
   DeviceMirror mirror(kN, DType_::UnSigned32);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  expectOk(launchRngFillU32(key, base, mirror.devTen().data.u32, kN), "device");
+  expectOk(launchRngFillU32Kernel(key, base, mirror.devTen().data.u32, kN),
+           "device");
   mirror.fetch();
 
   const uint32_t *home = mirror.homeTen().data.u32;
@@ -127,7 +128,8 @@ TEST(RngGpuParity, FillU64MatchesHostBitwise) {
   DeviceMirror mirror(kN, DType_::UnSigned64);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  expectOk(launchRngFillU64(key, base, mirror.devTen().data.u64, kN), "device");
+  expectOk(launchRngFillU64Kernel(key, base, mirror.devTen().data.u64, kN),
+           "device");
   mirror.fetch();
 
   const uint64_t *home = mirror.homeTen().data.u64;
@@ -149,7 +151,8 @@ TEST(RngGpuParity, PartialTailMatchesHostBitwise) {
   DeviceMirror mirror(kN, DType_::UnSigned32);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  expectOk(launchRngFillU32(key, base, mirror.devTen().data.u32, kN), "device");
+  expectOk(launchRngFillU32Kernel(key, base, mirror.devTen().data.u32, kN),
+           "device");
   mirror.fetch();
 
   const uint32_t *home = mirror.homeTen().data.u32;
@@ -171,8 +174,8 @@ TEST(RngGpuParity, CounterCrossesCountsAcross32Bit) {
   DeviceMirror mirror(kN, DType_::UnSigned32);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  expectOk(launchRngFillU32(gen.state.philox.key, boundary,
-                            mirror.devTen().data.u32, kN),
+  expectOk(launchRngFillU32Kernel(gen.state.philox.key, boundary,
+                                  mirror.devTen().data.u32, kN),
            "device");
   mirror.fetch();
 
@@ -195,8 +198,8 @@ TEST(RngGpuParity, CounterCrossesCountsAcross64Bit) {
   DeviceMirror mirror(kN, DType_::UnSigned32);
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
-  expectOk(launchRngFillU32(gen.state.philox.key, boundary,
-                            mirror.devTen().data.u32, kN),
+  expectOk(launchRngFillU32Kernel(gen.state.philox.key, boundary,
+                                  mirror.devTen().data.u32, kN),
            "device");
   mirror.fetch();
 
@@ -214,14 +217,14 @@ TEST(RngGpuParity, ZeroDemandSucceedsAndLeavesTheBufferAlone) {
   ASSERT_EQ(mirror.st.err, novaSuccess)
       << (mirror.st.message != nullptr ? mirror.st.message : "");
 
-  expectOk(launchRngFillU32(gen.state.philox.key, gen.state.philox.ctr,
-                            mirror.devTen().data.u32, kN),
+  expectOk(launchRngFillU32Kernel(gen.state.philox.key, gen.state.philox.ctr,
+                                  mirror.devTen().data.u32, kN),
            "pattern launch");
   mirror.fetch();
   const std::vector<uint32_t> pattern(mirror.homeTen().data.u32,
                                       mirror.homeTen().data.u32 + kN);
 
-  const novaStatus_t zero = launchRngFillU32(
+  const novaStatus_t zero = launchRngFillU32Kernel(
       gen.state.philox.key, gen.state.philox.ctr, mirror.devTen().data.u32, 0);
   EXPECT_EQ(zero.err, novaSuccess)
       << "an empty demand must not look like an overflow"
