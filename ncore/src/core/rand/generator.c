@@ -257,8 +257,8 @@ novaStatus_t generator_fill_u64(Generator_ *gen, uint64_t *out, size_t n) {
         }
       }
       auto launched =
-          launchRngFillU64(gen->state.philox.key, gen->state.philox.ctr,
-                           out + (n - fresh), fresh);
+          launchRngFillU64Kernel(gen->state.philox.key, gen->state.philox.ctr,
+                                 out + (n - fresh), fresh);
       if (launched.err != novaSuccess) {
         return launched;
       }
@@ -376,7 +376,7 @@ novaStatus_t generator_fill_u32(Generator_ *gen, uint32_t *out, size_t n) {
           return staged;
         }
       }
-      auto launched = launchRngFillU32(
+      auto launched = launchRngFillU32Kernel(
           gen->state.philox.key, gen->state.philox.ctr, out + take, fresh);
       if (launched.err != novaSuccess) {
         return launched;
