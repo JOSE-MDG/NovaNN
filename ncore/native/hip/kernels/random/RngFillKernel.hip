@@ -179,11 +179,11 @@ __global__ void rngFillU64Blocks(uint32_t key0, uint32_t key1, uint32_t c0,
     if (aligned && first + kU64PerBlock <= n) {
       // HIP's ulonglong2 is a class with a constructor, not an aggregate like
       // the CUDA type, so designated initializers do not compile here.
-      const ulonglong2 packed = make_ulonglong2(
-          static_cast<uint64_t>(lanes[0]) |
-              (static_cast<uint64_t>(lanes[1]) << kLaneBits),
-          static_cast<uint64_t>(lanes[2]) |
-              (static_cast<uint64_t>(lanes[3]) << kLaneBits));
+      const ulonglong2 packed =
+          make_ulonglong2(static_cast<uint64_t>(lanes[0]) |
+                              (static_cast<uint64_t>(lanes[1]) << kLaneBits),
+                          static_cast<uint64_t>(lanes[2]) |
+                              (static_cast<uint64_t>(lanes[3]) << kLaneBits));
       *reinterpret_cast<ulonglong2 *>(out + first) = packed;
     } else {
       out[first] = static_cast<uint64_t>(lanes[0]) |
