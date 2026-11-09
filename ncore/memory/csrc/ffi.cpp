@@ -222,28 +222,29 @@ struct BackendOps {
                           void *stream); ///< Frees a buffer descriptor.
   novaStatus_t (*resize)(deviceBuffer_t *buf, std::size_t new_bytes,
                          std::int32_t device_id, void *stream); ///< Relocates a
-                                                                 ///< buffer to a
-                                                                 ///< new size.
+                                                                ///< buffer to a
+                                                                ///< new size.
   novaStatus_t (*transfer)(std::size_t bytes, DeviceMemcpyKind kind,
-                           const void *src, void *dst, void *stream); ///< Copies
-                                                                        ///< memory
-                                                                        ///< between
-                                                                        ///< host and
-                                                                        ///< device.
+                           const void *src, void *dst,
+                           void *stream); ///< Copies
+                                          ///< memory
+                                          ///< between
+                                          ///< host and
+                                          ///< device.
   novaStatus_t (*empty_cache)(std::int32_t device_id,
                               std::size_t min_bytes_to_keep); ///< Trims the
                                                               ///< reclaimable
                                                               ///< backing.
   novaStatus_t (*pool_stats)(std::int32_t device_id,
                              DeviceMemoryPoolStats *out); ///< Reads the pool
-                                                         ///< counters.
+                                                          ///< counters.
   novaStatus_t (*pool_set_release_threshold)(std::int32_t device_id,
                                              std::uint64_t bytes); ///< Sets the
-                                                                         ///< cache
-                                                                         ///< release
-                                                                         ///< threshold.
+                                                                   ///< cache
+                                                                   ///< release
+  ///< threshold.
   novaStatus_t (*pool_destroy)(std::int32_t device_id); ///< Destroys an idle
-                                                         ///< pool.
+                                                        ///< pool.
 };
 
 #ifdef NOVA_HAS_CUDA
