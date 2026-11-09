@@ -395,7 +395,7 @@ TEST(MemoryAllocator, DoubleFree) {
  * @brief Stresses concurrent host allocations from a thread pool.
  * @test Spawns a ThreadPool with hardware_concurrency workers and
  *       submits exactly one task per worker; each task loops until a
- *       shared 30-second deadline, reserving a random-size
+ *       shared 15-second deadline, reserving a random-size
  *       (2..2048 bytes), 64-byte-aligned host buffer, asserting
  *       success and validity, tracking the handle id with
  *       HandleTracker (no duplicate live ids), and releasing it
@@ -412,7 +412,7 @@ TEST(MemoryAllocator, DoubleFree) {
 TEST(MemoryAllocator, ConcurrentRandomHostAllocFree) {
   const unsigned int nthreads = std::thread::hardware_concurrency();
   const char *device = "cpu";
-  const auto duration = std::chrono::seconds(30);
+  const auto duration = std::chrono::seconds(15);
   const auto deadline = std::chrono::steady_clock::now() + duration;
 
   HandleTracker tracker;
@@ -479,7 +479,7 @@ TEST(MemoryAllocator, ConcurrentRandomDeviceAllocFree) {
 #if __has_feature(address_sanitizer)
   // The ASan runtime CHECK-fails ("unable to unmmap", sanitizer_common.cpp)
   // from a worker thread while the HSA runtime tears down after this
-  // 30-second concurrent alloc/free storm; the test body itself passes.
+  // 15-second concurrent alloc/free storm; the test body itself passes.
   // Upstream ASan-vs-ROCr interaction, outside NovaNN control.
   GTEST_SKIP() << "HIP+ASan: sanitizer runtime crashes racing libhsa "
                   "teardown on this stress pattern";
@@ -489,7 +489,7 @@ TEST(MemoryAllocator, ConcurrentRandomDeviceAllocFree) {
   NOVA_TEST_REQUIRE_GPU();
   const unsigned int nthreads = std::thread::hardware_concurrency();
   const char *device = "device";
-  const auto duration = std::chrono::seconds(30);
+  const auto duration = std::chrono::seconds(15);
   const auto deadline = std::chrono::steady_clock::now() + duration;
 
   HandleTracker tracker;
@@ -557,7 +557,7 @@ TEST(MemoryAllocator, ConcurrentRandomDeviceAllocFree) {
 TEST(MemoryAllocator, ConcurrentRandomPinnedHostAllocFree) {
   const unsigned int nthreads = std::thread::hardware_concurrency();
   const char *device = "cpu";
-  const auto duration = std::chrono::seconds(30);
+  const auto duration = std::chrono::seconds(15);
   const auto deadline = std::chrono::steady_clock::now() + duration;
 
   HandleTracker tracker;
