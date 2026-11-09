@@ -124,6 +124,7 @@ static const CopyFn lookup_host_copy[NUM_DTYPES][1] = {
     [Float4E2M1fn] = {copy_host_buffer},
     [Float8E4M3fn] = {copy_host_buffer},
     [Float8E5M2] = {copy_host_buffer},
+    [Float8E8M0fnu] = {copy_host_buffer},
 
     /* Standard floats */
     [Float16] = {copy_host_buffer},
@@ -169,6 +170,7 @@ static const CopyFn lookup_device_copy[NUM_DTYPES][1] = {
     [Float4E2M1fn] = {copy_device_buffer},
     [Float8E4M3fn] = {copy_device_buffer},
     [Float8E5M2] = {copy_device_buffer},
+    [Float8E8M0fnu] = {copy_device_buffer},
 
     /* Standard floats */
     [Float16] = {copy_device_buffer},
@@ -260,7 +262,7 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
   if (is_allocated(dst)) {
     status->err = novaInvalidTensor;
     status->message = "dst must be an unallocated, use "
-                      "`create_unallocated_tensor()`\n";
+                      "`create_unallocated_tensor()`.\n";
     return;
   }
 

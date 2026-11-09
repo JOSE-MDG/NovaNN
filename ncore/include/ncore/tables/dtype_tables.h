@@ -27,8 +27,9 @@ extern "C" {
 #endif
 
 /**
- * @brief True for Float32, Float64, Float16, BFloat16, Float8E4M3fn,
- * Float8E5M2, Float4E2M1fn.
+ * @brief True for every floating-point format: Float32, Float64, Float16,
+ * BFloat16, Float8E4M3fn, Float8E5M2, Float4E2M1fn, and the E8M0 scale
+ * factor (Float8E8M0fnu).  False for integers and quantized types.
  */
 extern const bool floating[NUM_DTYPES][1];
 

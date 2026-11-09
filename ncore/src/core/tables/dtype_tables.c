@@ -5,10 +5,9 @@
  * @details
  * Global @c const lookup tables declared in @ref dtype_tables.h.
  * Each classification table is a @c NUM_DTYPES × 1 array of @c bool,
- * populated with C99 designated initializers so only the @c true
- * entries are listed explicitly (all others default to @c false).
- * All tables are read-only after process startup and safe to access
- * from any thread.
+ * populated with C99 designated initializers listing every row
+ * explicitly; unlisted indices default to @c false. All tables are
+ * read-only after process startup and safe to access from any thread.
  *
  * @see dtype_tables.h  Public declarations.
  * @see dtype.c         Classification functions using these tables.
@@ -24,19 +23,24 @@
  * @brief Boolean mask for floating-point dtypes.
  *
  * @details
- * @c floating[dtype][0] is @c true when @c dtype is @c Float32,
- * @c Float64, @c Float16, @c BFloat16, @c Float8E4M3fn, @c Float8E5M2,
- * or @c Float4E2M1fn.  All other entries are @c false.  Used by
+ * @c floating[dtype][0] answers a format question: "is the stored pattern a
+ * floating-point encoding?"  It is @c true for @c Float32, @c Float64,
+ * @c Float16, @c BFloat16, @c Float8E4M3fn, @c Float8E5M2,
+ * @c Float4E2M1fn, and the E8M0 scale factor @c Float8E8M0fnu, whose
+ * exponent-only layout is itself a floating-point format. Any other
+ * entries are @c false. Scale-only status (no element arithmetic)
+ * is a role property tracked by @c NUM_SCALES, not by this table. Used by
  * @ref is_floating() in @ref dtype.c.
  */
 const bool floating[NUM_DTYPES][1] = {
-    [Float32] = {true},      [Float64] = {true},      [Float16] = {true},
-    [BFloat16] = {true},     [Float8E4M3fn] = {true}, [Float8E5M2] = {true},
-    [Float4E2M1fn] = {true}, [Signed8] = {false},     [UnSigned8] = {false},
-    [QSigned8] = {false},    [QUnSigned8] = {false},  [Signed16] = {false},
-    [UnSigned16] = {false},  [QSigned16] = {false},   [QUnSigned16] = {false},
-    [Signed32] = {false},    [UnSigned32] = {false},  [QSigned32] = {false},
-    [QUnSigned32] = {false}, [Signed64] = {false},    [UnSigned64] = {false},
+    [Float32] = {true},       [Float64] = {true},      [Float16] = {true},
+    [BFloat16] = {true},      [Float8E4M3fn] = {true}, [Float8E5M2] = {true},
+    [Float4E2M1fn] = {true},  [Signed8] = {false},     [UnSigned8] = {false},
+    [Float8E8M0fnu] = {true}, [QSigned8] = {false},    [QUnSigned8] = {false},
+    [Signed16] = {false},     [UnSigned16] = {false},  [QSigned16] = {false},
+    [QUnSigned16] = {false},  [Signed32] = {false},    [UnSigned32] = {false},
+    [QSigned32] = {false},    [QUnSigned32] = {false}, [Signed64] = {false},
+    [UnSigned64] = {false},
 };
 
 /**
@@ -55,13 +59,14 @@ const bool floating[NUM_DTYPES][1] = {
  * @c false.  Used by @ref is_integer() in @ref dtype.c.
  */
 const bool integer[NUM_DTYPES][1] = {
-    [Float32] = {false},      [Float64] = {false},      [Float16] = {false},
-    [BFloat16] = {false},     [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
-    [Float4E2M1fn] = {false}, [Signed8] = {true},       [UnSigned8] = {true},
-    [QSigned8] = {false},     [QUnSigned8] = {false},   [Signed16] = {true},
-    [UnSigned16] = {true},    [QSigned16] = {false},    [QUnSigned16] = {false},
-    [Signed32] = {true},      [UnSigned32] = {true},    [QSigned32] = {false},
-    [QUnSigned32] = {false},  [Signed64] = {true},      [UnSigned64] = {true},
+    [Float32] = {false},      [Float64] = {false},       [Float16] = {false},
+    [BFloat16] = {false},     [Float8E4M3fn] = {false},  [Float8E5M2] = {false},
+    [Float4E2M1fn] = {false}, [Float8E8M0fnu] = {false}, [Signed8] = {true},
+    [UnSigned8] = {true},     [QSigned8] = {false},      [QUnSigned8] = {false},
+    [Signed16] = {true},      [UnSigned16] = {true},     [QSigned16] = {false},
+    [QUnSigned16] = {false},  [Signed32] = {true},       [UnSigned32] = {true},
+    [QSigned32] = {false},    [QUnSigned32] = {false},   [Signed64] = {true},
+    [UnSigned64] = {true},
 };
 
 /**
@@ -77,13 +82,17 @@ const bool integer[NUM_DTYPES][1] = {
  * Used by @ref is_signed_integer() in @ref dtype.c.
  */
 const bool signed_integer[NUM_DTYPES][1] = {
-    [Float32] = {false},      [Float64] = {false},      [Float16] = {false},
-    [BFloat16] = {false},     [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
-    [Float4E2M1fn] = {false}, [Signed8] = {true},       [UnSigned8] = {false},
-    [QSigned8] = {false},     [QUnSigned8] = {false},   [Signed16] = {true},
-    [UnSigned16] = {false},   [QSigned16] = {false},    [QUnSigned16] = {false},
-    [Signed32] = {true},      [UnSigned32] = {false},   [QSigned32] = {false},
-    [QUnSigned32] = {false},  [Signed64] = {true},      [UnSigned64] = {false},
+    [Float32] = {false},      [Float64] = {false},
+    [Float16] = {false},      [BFloat16] = {false},
+    [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
+    [Float4E2M1fn] = {false}, [Float8E8M0fnu] = {false},
+    [Signed8] = {true},       [UnSigned64] = {false},
+    [UnSigned8] = {false},    [QSigned8] = {false},
+    [QUnSigned8] = {false},   [Signed16] = {true},
+    [UnSigned16] = {false},   [QSigned16] = {false},
+    [QUnSigned16] = {false},  [Signed32] = {true},
+    [UnSigned32] = {false},   [QSigned32] = {false},
+    [QUnSigned32] = {false},  [Signed64] = {true},
 };
 
 /**
@@ -100,13 +109,17 @@ const bool signed_integer[NUM_DTYPES][1] = {
  * @ref is_unsigned_integer() in @ref dtype.c.
  */
 const bool unsigned_integer[NUM_DTYPES][1] = {
-    [Float32] = {false},      [Float64] = {false},      [Float16] = {false},
-    [BFloat16] = {false},     [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
-    [Float4E2M1fn] = {false}, [Signed8] = {false},      [UnSigned8] = {true},
-    [QSigned8] = {false},     [QUnSigned8] = {false},   [Signed16] = {false},
-    [UnSigned16] = {true},    [QSigned16] = {false},    [QUnSigned16] = {false},
-    [Signed32] = {false},     [UnSigned32] = {true},    [QSigned32] = {false},
-    [QUnSigned32] = {false},  [Signed64] = {false},     [UnSigned64] = {true},
+    [Float32] = {false},      [Float64] = {false},
+    [Float16] = {false},      [BFloat16] = {false},
+    [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
+    [Float4E2M1fn] = {false}, [Signed8] = {false},
+    [UnSigned8] = {true},     [QSigned8] = {false},
+    [QUnSigned8] = {false},   [Signed16] = {false},
+    [UnSigned16] = {true},    [QSigned16] = {false},
+    [QUnSigned16] = {false},  [Signed32] = {false},
+    [UnSigned32] = {true},    [QSigned32] = {false},
+    [QUnSigned32] = {false},  [Signed64] = {false},
+    [UnSigned64] = {true},    [Float8E8M0fnu] = {false},
 };
 
 /**
@@ -119,13 +132,17 @@ const bool unsigned_integer[NUM_DTYPES][1] = {
  * @ref is_quantized_signed_integer() in @ref dtype.c.
  */
 const bool quantized_signed_integer[NUM_DTYPES][1] = {
-    [Float32] = {false},      [Float64] = {false},      [Float16] = {false},
-    [BFloat16] = {false},     [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
-    [Float4E2M1fn] = {false}, [Signed8] = {false},      [UnSigned8] = {false},
-    [QSigned8] = {true},      [QUnSigned8] = {false},   [Signed16] = {false},
-    [UnSigned16] = {false},   [QSigned16] = {true},     [QUnSigned16] = {false},
-    [Signed32] = {false},     [UnSigned32] = {false},   [QSigned32] = {true},
-    [QUnSigned32] = {false},  [Signed64] = {false},     [UnSigned64] = {false},
+    [Float32] = {false},      [Float64] = {false},
+    [Float16] = {false},      [BFloat16] = {false},
+    [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
+    [Float4E2M1fn] = {false}, [Signed8] = {false},
+    [UnSigned8] = {false},    [QSigned8] = {true},
+    [QUnSigned8] = {false},   [Signed16] = {false},
+    [UnSigned16] = {false},   [QSigned16] = {true},
+    [QUnSigned16] = {false},  [Signed32] = {false},
+    [UnSigned32] = {false},   [QSigned32] = {true},
+    [QUnSigned32] = {false},  [Signed64] = {false},
+    [UnSigned64] = {false},   [Float8E8M0fnu] = {false},
 };
 
 /**
@@ -138,13 +155,14 @@ const bool quantized_signed_integer[NUM_DTYPES][1] = {
  * @ref is_quantized_unsigned_integer() in @ref dtype.c.
  */
 const bool quantized_unsigned_integer[NUM_DTYPES][1] = {
-    [Float32] = {false},      [Float64] = {false},      [Float16] = {false},
-    [BFloat16] = {false},     [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
-    [Float4E2M1fn] = {false}, [Signed8] = {false},      [UnSigned8] = {false},
-    [QSigned8] = {false},     [QUnSigned8] = {true},    [Signed16] = {false},
-    [UnSigned16] = {false},   [QSigned16] = {false},    [QUnSigned16] = {true},
-    [Signed32] = {false},     [UnSigned32] = {false},   [QSigned32] = {false},
-    [QUnSigned32] = {true},   [Signed64] = {false},     [UnSigned64] = {false},
+    [Float32] = {false},       [Float64] = {false},      [Float16] = {false},
+    [BFloat16] = {false},      [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
+    [Float4E2M1fn] = {false},  [Signed8] = {false},      [UnSigned8] = {false},
+    [QSigned8] = {false},      [QUnSigned8] = {true},    [Signed16] = {false},
+    [UnSigned16] = {false},    [QSigned16] = {false},    [QUnSigned16] = {true},
+    [Signed32] = {false},      [UnSigned32] = {false},   [QSigned32] = {false},
+    [QUnSigned32] = {true},    [Signed64] = {false},     [UnSigned64] = {false},
+    [Float8E8M0fnu] = {false},
 };
 
 /**
@@ -158,13 +176,14 @@ const bool quantized_unsigned_integer[NUM_DTYPES][1] = {
  * @ref is_quantizable_dtype() in @ref dtype.c.
  */
 const bool quantizable_dtype[NUM_DTYPES][1] = {
-    [Float32] = {false},     [Float64] = {false},      [Float16] = {false},
-    [BFloat16] = {false},    [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
-    [Float4E2M1fn] = {true}, [Signed8] = {false},      [UnSigned8] = {false},
-    [QSigned8] = {true},     [QUnSigned8] = {true},    [Signed16] = {false},
-    [UnSigned16] = {false},  [QSigned16] = {true},     [QUnSigned16] = {true},
-    [Signed32] = {false},    [UnSigned32] = {false},   [QSigned32] = {true},
-    [QUnSigned32] = {true},  [Signed64] = {false},     [UnSigned64] = {false},
+    [Float32] = {false},       [Float64] = {false},      [Float16] = {false},
+    [BFloat16] = {false},      [Float8E4M3fn] = {false}, [Float8E5M2] = {false},
+    [Float4E2M1fn] = {true},   [Signed8] = {false},      [UnSigned8] = {false},
+    [QSigned8] = {true},       [QUnSigned8] = {true},    [Signed16] = {false},
+    [UnSigned16] = {false},    [QSigned16] = {true},     [QUnSigned16] = {true},
+    [Signed32] = {false},      [UnSigned32] = {false},   [QSigned32] = {true},
+    [QUnSigned32] = {true},    [Signed64] = {false},     [UnSigned64] = {false},
+    [Float8E8M0fnu] = {false},
 };
 
 /**
@@ -182,6 +201,7 @@ const size_t lookup_dtype_sizes[NUM_DTYPES] = {
     [BFloat16] = sizeof(bfloat16),
     [Float8E4M3fn] = sizeof(float8_e4m3fn),
     [Float8E5M2] = sizeof(float8_e5m2),
+    [Float8E8M0fnu] = sizeof(float8_e8m0fnu),
     [Float4E2M1fn] = sizeof(float4_e2m1fn_x2),
     [Signed8] = sizeof(int8),
     [UnSigned8] = sizeof(uint8),

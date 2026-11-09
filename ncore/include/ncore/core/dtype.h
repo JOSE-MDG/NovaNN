@@ -3,7 +3,9 @@
  * @brief Data-type aliases and classification for the NovaNN library.
  *
  * Public aliases use lowercase names (@c float32, @c int8, ...) and
- * map straight to standard C types.
+ * map straight to standard C types. The OCP MX scale-factor type
+ * @c float8_e8m0fnu is storage-only: it carries block-scale exponents and
+ * defines no arithmetic semantics.
  */
 
 #pragma once
@@ -27,7 +29,7 @@ typedef float float32;
 /** @brief 64-bit IEEE 754 double-precision float. */
 typedef double float64;
 
-#if defined(_GNUC_CLANG_)
+#ifdef _GNUC_CLANG_
 /** @brief 16-bit IEEE 754 half-precision float (compiler extension). */
 typedef _Float16 float16;
 
@@ -50,6 +52,10 @@ typedef uint8_t float8_e5m2;
 /** @brief Floating Point 4-bit (FP4 E2M1FN packed-pair native
  * implementation). */
 typedef uint8_t float4_e2m1fn_x2;
+
+/** @brief Scale factor 8-bit (FP8 E8M0, OCP MX, unsigned exponent-only
+ * representation). */
+typedef uint8_t float8_e8m0fnu;
 
 /** @brief Signed 8-bit two's-complement integer. */
 typedef int8_t int8;
@@ -108,28 +114,48 @@ typedef void (*CastFn)(const Tensor *restrict, Tensor *restrict,
  *        @c lookup_dtype_sizes). Backed by @c uint8_t (C23).
  */
 typedef enum DType_ : uint8_t {
-  Float32,      ///< 32-bit floating point.
-  Float64,      ///< 64-bit floating point (double precision).
-  Float16,      ///< 16-bit floating point (half precision).
-  BFloat16,     ///< Brain floating point (16-bit).
-  Float8E4M3fn, ///< 8-bit floating point E4M3fn
-  Float8E5M2,   ///< 8-bit floating point E5M2
-  Float4E2M1fn, ///< 4-bit packed-pair floating point E2M1
-  Signed8,      ///< Signed 8-bit integer.
-  UnSigned8,    ///< Unsigned 8-bit integer.
-  QSigned8,     ///< Quantized signed 8-bit integer.
-  QUnSigned8,   ///< Quantized unsigned 8-bit integer.
-  Signed16,     ///< Signed 16-bit integer.
-  UnSigned16,   ///< Unsigned 16-bit integer.
-  QSigned16,    ///< Quantized signed 16-bit integer.
-  QUnSigned16,  ///< Quantized unsigned 16-bit integer.
-  Signed32,     ///< Signed 32-bit integer.
-  UnSigned32,   ///< Unsigned 32-bit integer.
-  QSigned32,    ///< Quantized signed 32-bit integer.
-  QUnSigned32,  ///< Quantized unsigned 32-bit integer.
-  Signed64,     ///< Signed 64-bit integer.
-  UnSigned64,   ///< Unsigned 64-bit integer.
+  Float32,       ///< 32-bit floating point.
+  Float64,       ///< 64-bit floating point (double precision).
+  Float16,       ///< 16-bit floating point (half precision).
+  BFloat16,      ///< Brain floating point (16-bit).
+  Float8E4M3fn,  ///< 8-bit floating point E4M3fn
+  Float8E5M2,    ///< 8-bit floating point E5M2
+  Float8E8M0fnu, ///< 8-bit scale factor E8M0 (OCP MX).
+  Float4E2M1fn,  ///< 4-bit packed-pair floating point E2M1
+  Signed8,       ///< Signed 8-bit integer.
+  UnSigned8,     ///< Unsigned 8-bit integer.
+  QSigned8,      ///< Quantized signed 8-bit integer.
+  QUnSigned8,    ///< Quantized unsigned 8-bit integer.
+  Signed16,      ///< Signed 16-bit integer.
+  UnSigned16,    ///< Unsigned 16-bit integer.
+  QSigned16,     ///< Quantized signed 16-bit integer.
+  QUnSigned16,   ///< Quantized unsigned 16-bit integer.
+  Signed32,      ///< Signed 32-bit integer.
+  UnSigned32,    ///< Unsigned 32-bit integer.
+  QSigned32,     ///< Quantized signed 32-bit integer.
+  QUnSigned32,   ///< Quantized unsigned 32-bit integer.
+  Signed64,      ///< Signed 64-bit integer.
+  UnSigned64,    ///< Unsigned 64-bit integer.
 } DType_;
+
+/**
+ * @enum ScaledDType_
+ * @brief Taxonomy of the scale storage formats the block-quantized recipes
+ *        may adopt.
+ *
+ * @details
+ * A block-quantized tensor carries a scale per data block, and each recipe
+ * chooses the type that stores that scale: OCP MX mandates the E8M0 factor
+ * ( @c ScaledFloat8E8M0fnu, the only one materialized today, counted by
+ * @c NUM_SCALES in @ref macros.h); the NVFP4 recipes keep FP8 E4M3f and FP32
+ * scales. Do not confuse the three roles listed here with concrete
+ * @ref DType_ members.
+ */
+typedef enum : uint8_t {
+  ScaledFloat32,       ///< Scale stored as a 32-bit float.
+  ScaledFloat8E4M3fn,  ///< Scale stored as FP8 E4M3f (NVFP4 role).
+  ScaledFloat8E8M0fnu, ///< Scale stored as E8M0 factor (OCP MX role).
+} ScaledDType_;
 
 /**
  * @brief Check whether a tensor's dtype is a floating-point type.
