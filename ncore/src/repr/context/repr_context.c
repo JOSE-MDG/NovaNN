@@ -84,6 +84,9 @@ static inline double lane_abs_double(const Tensor *ten, const void *ptr,
   case Float8E5M2:
     v = (double)fp8e5m2_to_float(*(const float8_e5m2 *)ptr);
     break;
+  case Float8E8M0fnu:
+    v = (double)fp8e8m0fnu_to_float(*(const float8_e8m0fnu *)ptr);
+    break;
   case Float4E2M1fn: {
     float lo;
     float hi;
@@ -193,8 +196,9 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
       coords_t coords = {};
       compute_coords_from_linear_index_(logical, ten->ndims, ten->shape,
                                         coords);
-      const void *ptr = ten->data.data + ten->offset + compute_linear_byte_offset(
-                                             coords, ten->ndims, ten->strides);
+      const void *ptr =
+          ten->data.data + ten->offset +
+          compute_linear_byte_offset(coords, ten->ndims, ten->strides);
       const double av = lane_abs_double(ten, ptr, 0);
       if (!(av > max_abs)) {
         continue;
@@ -216,8 +220,9 @@ ReprContext build_repr_context(const Tensor *ten, const ReprOptions *opts) {
     const size_t logical = i < head ? i : total - limit + i;
     coords_t coords = {};
     compute_coords_from_linear_index_(logical, ten->ndims, ten->shape, coords);
-    const void *ptr = ten->data.data + ten->offset + compute_linear_byte_offset(
-                                           coords, ten->ndims, ten->strides);
+    const void *ptr =
+        ten->data.data + ten->offset +
+        compute_linear_byte_offset(coords, ten->ndims, ten->strides);
 
     char fmt_buf[128];
     ReprContext lane = ctx;

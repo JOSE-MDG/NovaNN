@@ -58,6 +58,77 @@ static inline void copy_storage_unit(unsigned char *restrict dst,
 }
 
 /**
+ * @def CONTIGUOUS_COPY_SPAN
+ * @brief Defines a strided run copier for one storage-unit width.
+ *
+ * @details
+ * Baking the width into the loop keeps the width dispatch out of the
+ * inner loop. Left inside, GCC lowers it to a compare chain and Clang
+ * to a jump table, both paid once per element. Streaming misses
+ * dominate transposed layouts, where each unit sits on its own cache
+ * line, so both streams prefetch ahead while the current units copy.
+ */
+#define CONTIGUOUS_COPY_SPAN(width)                                            \
+  static inline void copy_span_##width(unsigned char *restrict dst,            \
+                                       const unsigned char *restrict src,      \
+                                       size_t count, size_t src_stride) {      \
+    for (size_t i = 0; i < count; ++i) {                                       \
+      if (i + 16 < count) {                                                    \
+        __builtin_prefetch(src + (16 * src_stride), 0, 3);                     \
+        __builtin_prefetch(dst + (16 * (width)), 1, 3);                        \
+      }                                                                        \
+      memcpy(dst, src, (width));                                               \
+      dst += (width);                                                          \
+      src += src_stride;                                                       \
+    }                                                                          \
+  }
+
+CONTIGUOUS_COPY_SPAN(1)
+CONTIGUOUS_COPY_SPAN(2)
+CONTIGUOUS_COPY_SPAN(4)
+CONTIGUOUS_COPY_SPAN(8)
+
+/**
+ * @brief Copy a strided run of storage units.
+ *
+ * @details
+ * Resolves the width once per run instead of once per unit. Widths
+ * outside 1/2/4/8 fall back to a @c memcpy per unit.
+ *
+ * @param[out] dst         Destination run, packed with no gaps.
+ * @param[in]  src         First source unit.
+ * @param[in]  count       Number of units to copy.
+ * @param[in]  src_stride  Byte distance between consecutive source units.
+ * @param[in]  item_size   Bytes per storage unit.
+ */
+static inline void copy_storage_span(unsigned char *restrict dst,
+                                     const unsigned char *restrict src,
+                                     size_t count, size_t src_stride,
+                                     size_t item_size) {
+  switch (item_size) {
+  case 1:
+    copy_span_1(dst, src, count, src_stride);
+    break;
+  case 2:
+    copy_span_2(dst, src, count, src_stride);
+    break;
+  case 4:
+    copy_span_4(dst, src, count, src_stride);
+    break;
+  case 8:
+    copy_span_8(dst, src, count, src_stride);
+    break;
+  default:
+    for (size_t i = 0; i < count; ++i) {
+      memcpy(dst, src, item_size);
+      dst += item_size;
+      src += src_stride;
+    }
+    break;
+  }
+}
+
+/**
  * @brief Tile edge for the blocked two-dimensional copy.
  *
  * @details
@@ -83,17 +154,9 @@ static inline void copy_storage_unit(unsigned char *restrict dst,
  * @return @ref novaSuccess on success, or @ref novaInvalidTensor if
  *         @p src is not one-dimensional.
  */
-static inline novaStatus_t
-contiguous_one_dimensional_tensor(const Tensor *restrict src,
-                                  Tensor *restrict dst) {
+static inline novaStatus_t contiguous_1d_tensor(const Tensor *restrict src,
+                                                Tensor *restrict dst) {
   novaStatus_t st;
-
-  if (src->ndims != 1) {
-    st.err = novaInvalidTensor;
-    st.message = "Cannot perform contiguous operation with a non "
-                 "one-dimensional tensor";
-    return st;
-  }
   const size_t stride = src->strides[0];
   const size_t item_size = src->item_size;
   const unsigned char *sbase = src->data.data + src->offset;
@@ -157,19 +220,16 @@ contiguous_one_dimensional_tensor(const Tensor *restrict src,
  * @return @ref novaSuccess on success, or @ref novaInvalidNdims if
  *         @p cv is not one-dimensional.
  */
-static inline novaStatus_t contiguous_one_dimensional_cv(
-    const CollapsedView *cv, const Tensor *restrict src, Tensor *restrict dst) {
-
+static inline novaStatus_t contiguous_1d_cv(size_t stride,
+                                            const Tensor *restrict src,
+                                            Tensor *restrict dst) {
   novaStatus_t st;
-  if (cv->ndims != 1) {
-    st.err = novaInvalidNdims;
-    st.message = "Cannot perform contiguous operation with a non "
-                 "one-dimensional collapsed view";
-    return st;
-  }
-
-  size_t stride = cv->strides[0];
-
+  // Hoisted so the width and the base addresses stay loop-invariant.
+  // Read through the tensor on every iteration, the byte stores keep
+  // GCC from proving that, and the width switch never leaves the loop.
+  const size_t item_size = src->item_size;
+  const unsigned char *sbase = src->data.data + src->offset;
+  unsigned char *dbase = dst->data.data;
   if (stride != src->item_size) {
 
 #ifdef NOVA_OPENMP
@@ -186,23 +246,21 @@ static inline novaStatus_t contiguous_one_dimensional_cv(
 #pragma omp parallel for num_threads(decision.num_threads)                     \
     schedule(static) if (decision.go)
     for (size_t item = 0; item < src->size; ++item) {
-      copy_storage_unit(dst->data.data + (item * src->item_size),
-                        src->data.data + src->offset + (item * stride),
-                        src->item_size);
+      copy_storage_unit(dbase + (item * item_size), sbase + (item * stride),
+                        item_size);
     }
 
 #else
     for (size_t item = 0; item < src->size; ++item) {
-      copy_storage_unit(dst->data.data + (item * src->item_size),
-                        src->data.data + src->offset + (item * stride),
-                        src->item_size);
+      copy_storage_unit(dbase + (item * item_size), sbase + (item * stride),
+                        item_size);
     }
 #endif
     st.err = novaSuccess;
     st.message = nova_get_error_msg(st.err, nullptr);
     return st;
   }
-  memcpy(dst->data.v, src->data.data + src->offset, src->size * src->item_size);
+  memcpy(dbase, sbase, src->size * item_size);
   st.err = novaSuccess;
   st.message = nova_get_error_msg(st.err, nullptr);
   return st;
@@ -214,7 +272,7 @@ static inline novaStatus_t contiguous_one_dimensional_cv(
  * @details
  * Entry point of the CPU contiguous backend.  Scalars pass through
  * unchanged.  One-dimensional tensors are handled by
- * @ref contiguous_one_dimensional_tensor.  Other tensors are
+ * @ref contiguous_1d_tensor.  Other tensors are
  * collapsed with @ref collapse() and copied unit by unit,
  * following the collapsed strides (per-thread coordinates under
  * @c NOVA_OPENMP, an odometer walk otherwise).
@@ -230,22 +288,20 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
                                  Tensor *restrict dst) {
   novaStatus_t st;
 
-  if (is_scalar(src)) {
-    st.err = novaSuccess;
-    st.message = nova_get_error_msg(st.err, nullptr);
-    return st;
-  }
-
   if (src->ndims == 1) {
-    return contiguous_one_dimensional_tensor(src, dst);
+    return contiguous_1d_tensor(src, dst);
   }
 
   // Collapse contiguous dimensions if possible
   const CollapsedView cv = collapse(src);
 
   if (cv.ndims == 1) {
-    return contiguous_one_dimensional_cv(&cv, src, dst);
+    return contiguous_1d_cv(cv.strides[0], src, dst);
   }
+
+  const unsigned char *sbase = src->data.data + src->offset;
+  unsigned char *dbase = dst->data.data;
+  const size_t item_size = src->item_size;
 
 #ifdef NOVA_OPENMP
 
@@ -257,9 +313,6 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
 
   const LayoutWork work = make_layout_work(src, false);
   const ParallelDecision decision = decide_layout(&work, threads);
-  const unsigned char *sbase = src->data.data + src->offset;
-  unsigned char *dbase = dst->data.data;
-  const size_t item_size = src->item_size;
 
   if (cv.ndims == 2) {
     const size_t d0 = cv.shape[0];
@@ -296,19 +349,7 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
           for (size_t row = r0; row < r_end; ++row) {
             const unsigned char *sp = sbase + (row * s0) + (c0 * s1);
             unsigned char *dp = dbase + (((row * d1) + c0) * item_size);
-            const size_t span = c_end - c0;
-            for (size_t k = 0; k < span; ++k) {
-              // Streaming misses dominate transposed layouts: each
-              // element sits on its own cache line, so both streams
-              // move ahead while the current units copy.
-              if (k + 16 < span) {
-                __builtin_prefetch(sp + (16 * s1), 0, 3);
-                __builtin_prefetch(dp + (16 * item_size), 1, 3);
-              }
-              copy_storage_unit(dp, sp, item_size);
-              sp += s1;
-              dp += item_size;
-            }
+            copy_storage_span(dp, sp, c_end - c0, s1, item_size);
           }
         }
       }
@@ -342,17 +383,8 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
         if (inner_dense) {
           memcpy(drow + d_mid, srow + s_mid, d_last * item_size);
         } else {
-          const unsigned char *sp = srow + s_mid;
-          unsigned char *dp = drow + d_mid;
-          for (size_t col = 0; col < d_last; ++col) {
-            if (col + 16 < d_last) {
-              __builtin_prefetch(sp + (16 * s_last), 0, 3);
-              __builtin_prefetch(dp + (16 * item_size), 1, 3);
-            }
-            copy_storage_unit(dp, sp, item_size);
-            sp += s_last;
-            dp += item_size;
-          }
+          copy_storage_span(drow + d_mid, srow + s_mid, d_last, s_last,
+                            item_size);
         }
         for (size_t dim = nd - 2; dim >= 1; --dim) {
           mid[dim]++;
@@ -382,8 +414,7 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
       offset += coords[dim] * cv.strides[dim];
     }
 
-    copy_storage_unit(dst->data.data + (item * src->item_size),
-                      src->data.data + offset, src->item_size);
+    copy_storage_unit(dbase + (item * item_size), sbase, item_size);
     odometer(coords, cv.ndims, cv.shape);
   }
 #endif

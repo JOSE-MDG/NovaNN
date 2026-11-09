@@ -3,7 +3,7 @@
  * @brief Runtime dispatch for RNG fill kernels.
  *
  * @details
- * Implements @ref launchRngFillU64() and @ref launchRngFillU32() from
+ * Implements @ref launchRngFillU64Kernel() and @ref launchRngFillU32Kernel() from
  * @ref rng.h over @ref ncore::dispatch::launch(), with one static
  * table per width. Same shape as @c ContiguousDispatchImpl.cpp.
  *
@@ -67,12 +67,12 @@ using kernel_u32_t = novaStatus_t (*)(const uint32_t *, const uint32_t *,
  */
 const std::unordered_map<DeviceKind, kernel_u64_t> KERNEL_DISPATCHER_U64 = {
 #if defined(NOVA_HAS_CUDA) && !defined(NOVA_HAS_HIP)
-    {CUDA_DEVICE, launchCudaRngFillU64},
+    {CUDA_DEVICE, launchCudaRngFillU64Kernel},
     {HIP_DEVICE, nullptr},
     {NULL_DEVICE, nullptr}
 #elif defined(NOVA_HAS_HIP) && !defined(NOVA_HAS_CUDA)
     {CUDA_DEVICE, nullptr},
-    {HIP_DEVICE, launchHipRngFillU64},
+    {HIP_DEVICE, launchHipRngFillU64Kernel},
     {NULL_DEVICE, nullptr},
 #else
     {CUDA_DEVICE, nullptr}, {HIP_DEVICE, nullptr}, {NULL_DEVICE, nullptr}
@@ -81,12 +81,12 @@ const std::unordered_map<DeviceKind, kernel_u64_t> KERNEL_DISPATCHER_U64 = {
 
 const std::unordered_map<DeviceKind, kernel_u32_t> KERNEL_DISPATCHER_U32 = {
 #if defined(NOVA_HAS_CUDA) && !defined(NOVA_HAS_HIP)
-    {CUDA_DEVICE, launchCudaRngFillU32},
+    {CUDA_DEVICE, launchCudaRngFillU32Kernel},
     {HIP_DEVICE, nullptr},
     {NULL_DEVICE, nullptr}
 #elif defined(NOVA_HAS_HIP) && !defined(NOVA_HAS_CUDA)
     {CUDA_DEVICE, nullptr},
-    {HIP_DEVICE, launchHipRngFillU32},
+    {HIP_DEVICE, launchHipRngFillU32Kernel},
     {NULL_DEVICE, nullptr},
 #else
     {CUDA_DEVICE, nullptr}, {HIP_DEVICE, nullptr}, {NULL_DEVICE, nullptr}
@@ -97,9 +97,9 @@ const std::unordered_map<DeviceKind, kernel_u32_t> KERNEL_DISPATCHER_U32 = {
 
 /** Launch an RNG fill on the detected device. Resolution and errors
  * live in @ref ncore::dispatch::launch(). */
-extern "C" novaStatus_t launchRngFillU64(const uint32_t key[2],
-                                         const uint32_t base_ctr[4],
-                                         uint64_t *dst, size_t n) {
+extern "C" novaStatus_t launchRngFillU64Kernel(const uint32_t key[2],
+                                               const uint32_t base_ctr[4],
+                                               uint64_t *dst, size_t n) {
   rng_stream_t stream = nullptr;
 #if defined(NOVA_HAS_CUDA) && !defined(NOVA_HAS_HIP)
   const novaStatus_t status = CudaEngineStream::current(&stream);
@@ -116,9 +116,9 @@ extern "C" novaStatus_t launchRngFillU64(const uint32_t key[2],
                                  stream);
 }
 
-extern "C" novaStatus_t launchRngFillU32(const uint32_t key[2],
-                                         const uint32_t base_ctr[4],
-                                         uint32_t *dst, size_t n) {
+extern "C" novaStatus_t launchRngFillU32Kernel(const uint32_t key[2],
+                                               const uint32_t base_ctr[4],
+                                               uint32_t *dst, size_t n) {
   rng_stream_t stream = nullptr;
 #if defined(NOVA_HAS_CUDA) && !defined(NOVA_HAS_HIP)
   const novaStatus_t status = CudaEngineStream::current(&stream);

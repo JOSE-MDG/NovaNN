@@ -801,6 +801,36 @@
                 }
               ]
             }
+          },
+          {
+            "name": "tf32_to_fp8e8m0",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tf32_to_fp8e8m0",
+              "funcs": [
+                {
+                  "name": "tf32_to_fp8e8m0_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "tfp8e8m0_to_f32",
+            "scalar_only": true,
+            "lookup_table": {
+              "guard_required": false,
+              "name": "lookup_tfp8e8m0_to_f32",
+              "funcs": [
+                {
+                  "name": "tfp8e8m0_to_f32_scalar",
+                  "idx": 0,
+                  "is_scalar": true
+                }
+              ]
+            }
           }
         ],
         "floating_to_sinteger": [

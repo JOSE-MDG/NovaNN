@@ -32,7 +32,6 @@
 #include <bit>
 #include <cmath>
 #include <cstdint>
-#include <limits>
 
 #include <ncore/core/dtype.h>
 #include <ncore/headeronly/dtypes/half.hh>
@@ -43,6 +42,7 @@
 #include "Float4_e2m1fn_x2.hpp"
 #include "Float8_e4m3fn.hpp"
 #include "Float8_e5m2.hpp"
+#include "Float8_e8m0fnu.hpp"
 #include "Half.hpp"
 
 /**
@@ -146,6 +146,37 @@ float8_e4m3fn fp8e4m3fn_from_float(float val) {
  */
 float fp8e4m3fn_to_float(float8_e4m3fn val) {
   return ncore::dtypes::detail::fp8e4m3fn_to_fp32_value(val);
+}
+
+/**
+ * @brief Convert a single-precision float to an FP8 E8M0 scale factor.
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The FP8 E8M0 scale factor, or 0xFF (NaN) for NaN/+/-inf inputs.
+ */
+float8_e8m0fnu fp8e8m0fnu_from_float(float val) {
+  return ncore::dtypes::detail::fp8e8m0fnu_from_fp32_value(val);
+}
+
+/**
+ * @brief Convert a single-precision float to an FP8 E8M0 scale factor with
+ *        the exponent rounded up.
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The FP8 E8M0 scale factor, clamped to at most 0xFE.
+ */
+float8_e8m0fnu fp8e8m0fnu_roundup_from_float(float val) {
+  return ncore::dtypes::detail::fp8e8m0fnu_roundup_from_fp32_value(val);
+}
+
+/**
+ * @brief Convert an FP8 E8M0 scale factor to single-precision float.
+ *
+ * @param[in] val  The FP8 E8M0 scale factor to convert.
+ * @return The single-precision float equivalent of @p val.
+ */
+float fp8e8m0fnu_to_float(float8_e8m0fnu val) {
+  return ncore::dtypes::detail::fp8e8m0fnu_to_fp32_value(val);
 }
 
 /**
@@ -286,6 +317,30 @@ uint32_t fp8e4m3fn_to_f32_bits(float8_e4m3fn val) {
  */
 float8_e4m3fn fp8e4m3fn_from_f32_bits(uint32_t val) {
   return ncore::dtypes::detail::fp8e4m3fn_from_fp32_value(
+      std::bit_cast<float>(val));
+}
+
+/**
+ * @brief Convert an FP8 E8M0 scale factor to the bit pattern of its
+ *        single-precision float32 equivalent.
+ *
+ * @param[in] val  The FP8 E8M0 scale factor to convert.
+ * @return The float32 bit pattern of @p val.
+ */
+uint32_t fp8e8m0fnu_to_f32_bits(float8_e8m0fnu val) {
+  return ncore::dtypes::detail::fp32_to_bits(
+      ncore::dtypes::detail::fp8e8m0fnu_to_fp32_value(val));
+}
+
+/**
+ * @brief Convert the bit pattern of a single-precision float to an FP8 E8M0
+ *        scale factor.
+ *
+ * @param[in] val  The IEEE 754 float32 bit pattern to convert.
+ * @return The FP8 E8M0 scale factor for the value described by @p val.
+ */
+float8_e8m0fnu fp8e8m0fnu_from_f32_bits(uint32_t val) {
+  return ncore::dtypes::detail::fp8e8m0fnu_from_fp32_value(
       std::bit_cast<float>(val));
 }
 

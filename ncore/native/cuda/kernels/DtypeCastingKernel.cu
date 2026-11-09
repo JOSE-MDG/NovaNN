@@ -3,7 +3,7 @@
  * @brief CUDA kernels for tensor dtype casting.
  *
  * @details
- * Covers all 210 supported dtype conversions with three kernel shapes
+ * Covers all 212 supported dtype conversions with three kernel shapes
  * (plain one to one, FP4 unpack, FP4 pack) instantiated per pair and
  * selected at run time through a dtype keyed map in
  * @ref launchCudaDtypeCastingKernel. Every kernel is a grid stride loop
@@ -12,7 +12,10 @@
  * and BF16; FP8 and FP4 reuse the shared soft float helpers from
  * @ref ncore::dtypes::detail, so device conversions follow the same
  * rules as the host scalar kernels (saturating narrowing, NaN to zero
- * for float to integer, round to nearest even packing).
+ * for float to integer, round to nearest even packing). The FP8 E8M0
+ * scale-factor pair keeps the host semantics exactly: exponent
+ * round-to-nearest-even on narrowing and the subnormal 2^-127 widening
+ * on expansion.
  */
 
 #include <cstddef>
@@ -26,6 +29,7 @@
 #include <ncore/headeronly/dtypes/fp4_e2m1fn_x2.hh>
 #include <ncore/headeronly/dtypes/fp8_e4m3fn.hh>
 #include <ncore/headeronly/dtypes/fp8_e5m2.hh>
+#include <ncore/headeronly/dtypes/fp8_e8m0fnu.hh>
 #include <ncore/headeronly/heuristics/kernels/launch_config.hh>
 #include <ncore/headeronly/macros.h>
 #include <ncore/tensor.h>
@@ -127,6 +131,11 @@ template <> struct ToF32<DType_::Float8E5M2, uint8_t> {
     // E5M2 shares the FP16 exponent layout exactly.
     const uint16_t wide = static_cast<uint16_t>(static_cast<uint16_t>(v) << 8U);
     return f16BitsToF32(wide);
+  }
+};
+template <> struct ToF32<DType_::Float8E8M0fnu, uint8_t> {
+  static __device__ float convert(uint8_t v) {
+    return dd::fp8e8m0fnu_to_fp32_value(v);
   }
 };
 template <> struct ToF32<DType_::Signed8, int8_t> {
@@ -257,6 +266,11 @@ template <> struct FromF32<DType_::Float8E4M3fn, uint8_t> {
 template <> struct FromF32<DType_::Float8E5M2, uint8_t> {
   static __device__ uint8_t convert(float v) {
     return dd::fp8e5m2_from_fp32_value(v);
+  }
+};
+template <> struct FromF32<DType_::Float8E8M0fnu, uint8_t> {
+  static __device__ uint8_t convert(float v) {
+    return dd::fp8e8m0fnu_from_fp32_value(v);
   }
 };
 template <> struct FromF32<DType_::Signed8, int8_t> {
@@ -802,6 +816,12 @@ castPlainKernel<DType_::Float8E5M2, DType_::Signed64, uint8_t, int64_t>(
 template __global__ void
 castPlainKernel<DType_::Float8E5M2, DType_::UnSigned64, uint8_t, uint64_t>(
     const uint8_t *restrict, uint64_t *restrict, size_t);
+template __global__ void
+castPlainKernel<DType_::Float32, DType_::Float8E8M0fnu, float, uint8_t>(
+    const float *restrict, uint8_t *restrict, size_t);
+template __global__ void
+castPlainKernel<DType_::Float8E8M0fnu, DType_::Float32, uint8_t, float>(
+    const uint8_t *restrict, float *restrict, size_t);
 template __global__ void
 castPlainKernel<DType_::Signed8, DType_::Float32, int8_t, float>(
     const int8_t *restrict, float *restrict, size_t);
@@ -1521,6 +1541,12 @@ const std::unordered_map<uint32_t, Launcher> &castMap() {
       {castKey(DType_::Float8E5M2, DType_::UnSigned64),
        &launchCast<DType_::Float8E5M2, DType_::UnSigned64, uint8_t, uint64_t,
                    CastKind::kPlain>},
+      {castKey(DType_::Float32, DType_::Float8E8M0fnu),
+       &launchCast<DType_::Float32, DType_::Float8E8M0fnu, float, uint8_t,
+                   CastKind::kPlain>},
+      {castKey(DType_::Float8E8M0fnu, DType_::Float32),
+       &launchCast<DType_::Float8E8M0fnu, DType_::Float32, uint8_t, float,
+                   CastKind::kPlain>},
       {castKey(DType_::Signed8, DType_::Float32),
        &launchCast<DType_::Signed8, DType_::Float32, int8_t, float,
                    CastKind::kPlain>},
@@ -1932,7 +1958,7 @@ const std::unordered_map<uint32_t, Launcher> &castMap() {
  * @details
  * Backend-specific entry point called by @ref launchDtypeCastingKernel.
  * Selects the conversion from the runtime dtype pair through a lookup
- * table covering all 210 supported pairs, sizes the grid with
+ * table covering all 212 supported pairs, sizes the grid with
  * @ref ncore::heuristics::kernels::resolveLaunchConfig() from the
  * detected device properties, then launches the respective kernel.
  * Grid-stride loops keep every grid size correct; the helper only

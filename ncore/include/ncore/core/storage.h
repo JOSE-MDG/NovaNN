@@ -51,6 +51,7 @@ typedef union {
   float8_e4m3fn *fp8e4m3fn;       ///< Pointer to 8-bit E4M3FN float elements.
   float8_e5m2 *fp8e5m2;           ///< Pointer to 8-bit E5M2 float elements.
   float4_e2m1fn_x2 *fp4e2m1fn_x2; ///< Pointer to 4-bit E2M1FN float elements.
+  float8_e8m0fnu *fp8e8m0fnu;     ///< Pointer to 8-bit E8M0 scale elements.
   int8 *s8;                       ///< Pointer to signed 8-bit integer elements.
   uint8 *u8;                      ///< Pointer to unsigned 8-bit integer elements.
   int16 *s16;                     ///< Pointer to signed 16-bit integer elements.

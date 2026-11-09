@@ -319,6 +319,17 @@
                         "name": "tf64_to_bf16_scalar",
                         "is_packed": false,
                         "from_float_signature": "bf16_from_float"
+                    },
+                    {
+                        "name": "tf32_to_fp8e8m0_scalar",
+                        "is_packed": false,
+                        "from_float_source": true,
+                        "from_float_signature": "fp8e8m0fnu_from_float"
+                    },
+                    {
+                        "name": "tfp8e8m0_to_f32_scalar",
+                        "is_packed": false,
+                        "to_float_signature": "fp8e8m0fnu_to_float"
                     }
                 ]
             },

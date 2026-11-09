@@ -21,7 +21,7 @@ extern "C" {
 
 /**
  * @brief Fill HIP device memory with 64-bit Philox draws. Same
- * contract as @ref launchCudaRngFillU64.
+ * contract as @ref launchCudaRngFillU64Kernel.
  *
  * @param[in]  key       Two key entries selecting the stream.
  * @param[in]  base_ctr  Four counter entries locating the first block.
@@ -33,13 +33,14 @@ extern "C" {
  *
  * @return @ref novaStatus_t with the launch outcome.
  */
-novaStatus_t launchHipRngFillU64(const uint32_t key[2],
-                                 const uint32_t base_ctr[4], uint64_t *dst,
-                                 size_t n, hipStream_t caller_stream);
+novaStatus_t launchHipRngFillU64Kernel(const uint32_t key[2],
+                                       const uint32_t base_ctr[4],
+                                       uint64_t *dst, size_t n,
+                                       hipStream_t caller_stream);
 
 /**
  * @brief Fill HIP device memory with 32-bit Philox draws. Same
- * contract as @ref launchCudaRngFillU32.
+ * contract as @ref launchCudaRngFillU32Kernel.
  *
  * @param[in]  key       Two key entries selecting the stream.
  * @param[in]  base_ctr  Four counter entries locating the first block.
@@ -51,9 +52,10 @@ novaStatus_t launchHipRngFillU64(const uint32_t key[2],
  *
  * @return @ref novaStatus_t with the launch outcome.
  */
-novaStatus_t launchHipRngFillU32(const uint32_t key[2],
-                                 const uint32_t base_ctr[4], uint32_t *dst,
-                                 size_t n, hipStream_t caller_stream);
+novaStatus_t launchHipRngFillU32Kernel(const uint32_t key[2],
+                                       const uint32_t base_ctr[4],
+                                       uint32_t *dst, size_t n,
+                                       hipStream_t caller_stream);
 
 #ifdef __cplusplus
 }

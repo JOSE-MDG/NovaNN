@@ -101,6 +101,32 @@ float8_e4m3fn fp8e4m3fn_from_float(float val);
 float fp8e4m3fn_to_float(float8_e4m3fn val);
 
 /**
+ * @brief Convert a single-precision float to an FP8 E8M0 scale factor with
+ *        round-to-nearest-even exponent semantics.
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The FP8 E8M0 scale factor, or 0xFF (NaN) for NaN/+/-inf inputs.
+ */
+float8_e8m0fnu fp8e8m0fnu_from_float(float val);
+
+/**
+ * @brief Convert a single-precision float to an FP8 E8M0 scale factor with
+ *        the exponent rounded up (cuBLASLt block-scale derivation).
+ *
+ * @param[in] val  The single-precision float value to convert.
+ * @return The FP8 E8M0 scale factor, clamped to at most 0xFE.
+ */
+float8_e8m0fnu fp8e8m0fnu_roundup_from_float(float val);
+
+/**
+ * @brief Convert an FP8 E8M0 scale factor to single-precision float.
+ *
+ * @param[in] val  The FP8 E8M0 scale factor to convert.
+ * @return The single-precision float equivalent of @p val.
+ */
+float fp8e8m0fnu_to_float(float8_e8m0fnu val);
+
+/**
  * @brief Pack two single-precision floats into a single FP4 E2M1FN pair-packed
  * byte.
  *
@@ -248,6 +274,27 @@ uint32_t fp8e4m3fn_to_f32_bits(float8_e4m3fn val);
  * @return The FP8 E4M3FN representation of the value described by @p val.
  */
 float8_e4m3fn fp8e4m3fn_from_f32_bits(uint32_t val);
+
+/**
+ * @brief Convert an FP8 E8M0 scale factor to the bit pattern of its
+ *        single-precision float32 equivalent.
+ *
+ * @param[in] val  The FP8 E8M0 scale factor to convert.
+ * @return The float32 bit pattern of @p val.
+ */
+uint32_t fp8e8m0fnu_to_f32_bits(float8_e8m0fnu val);
+
+/**
+ * @brief Convert the bit pattern of a single-precision float to an FP8 E8M0
+ *        scale factor.
+ *
+ * Bit-level counterpart of @ref fp8e8m0fnu_from_float.  NaN and both
+ * infinities map to the single E8M0 NaN pattern (0xFF).
+ *
+ * @param[in] val  The IEEE 754 float32 bit pattern to convert.
+ * @return The FP8 E8M0 scale factor for the value described by @p val.
+ */
+float8_e8m0fnu fp8e8m0fnu_from_f32_bits(uint32_t val);
 
 /**
  * @brief Decompose a pair-packed FP4 E2M1FN byte into its constituent

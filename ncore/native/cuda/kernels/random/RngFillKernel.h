@@ -3,7 +3,7 @@
  * @brief Declarations for the CUDA RNG fill kernels.
  *
  * @details
- * Declares @ref launchCudaRngFillU64() and @ref launchCudaRngFillU32(),
+ * Declares @ref launchCudaRngFillU64Kernel() and @ref launchCudaRngFillU32Kernel(),
  * the CUDA entry points for counter-based Philox fills. The
  * device-agnostic dispatcher in @c RngDispatchImpl.cpp calls them
  * after resolving the active backend.
@@ -45,9 +45,10 @@ extern "C" {
  *         (@ref novaKernelLaunchError on launch failure), or the
  *         property query error when the device caps cannot be read.
  */
-novaStatus_t launchCudaRngFillU64(const uint32_t key[2],
-                                  const uint32_t base_ctr[4], uint64_t *dst,
-                                  size_t n, cudaStream_t caller_stream);
+novaStatus_t launchCudaRngFillU64Kernel(const uint32_t key[2],
+                                        const uint32_t base_ctr[4],
+                                        uint64_t *dst, size_t n,
+                                        cudaStream_t caller_stream);
 
 /**
  * @brief Fill CUDA device memory with 32-bit Philox draws.
@@ -68,9 +69,10 @@ novaStatus_t launchCudaRngFillU64(const uint32_t key[2],
  *         (@ref novaKernelLaunchError on launch failure), or the
  *         property query error when the device caps cannot be read.
  */
-novaStatus_t launchCudaRngFillU32(const uint32_t key[2],
-                                  const uint32_t base_ctr[4], uint32_t *dst,
-                                  size_t n, cudaStream_t caller_stream);
+novaStatus_t launchCudaRngFillU32Kernel(const uint32_t key[2],
+                                        const uint32_t base_ctr[4],
+                                        uint32_t *dst, size_t n,
+                                        cudaStream_t caller_stream);
 
 #ifdef __cplusplus
 }

@@ -16,8 +16,8 @@
 
 #if defined(NOVA_HAS_CUDA) || defined(NOVA_HAS_HIP)
 
-using tests::memory::ScopedDeviceBuffer;
 using tests::memory::kTestDeviceBackend;
+using tests::memory::ScopedDeviceBuffer;
 
 TEST(MemoryPoolTerminal, DestroyedPoolRejectsSubsequentOperations) {
   NOVA_TEST_REQUIRE_GPU();

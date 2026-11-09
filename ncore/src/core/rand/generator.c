@@ -79,10 +79,6 @@ static void ensure_defaults() {
 #endif
 }
 
-/// Lanes a single fill may park in the handle cache. Philox leaves at
-/// most three mask lanes of its last block; Xoshiro leaves at most one
-/// sample half.
-
 /**
  * @brief Parks @p count lanes starting at @p first of a fresh block.
  *
@@ -257,8 +253,8 @@ novaStatus_t generator_fill_u64(Generator_ *gen, uint64_t *out, size_t n) {
         }
       }
       auto launched =
-          launchRngFillU64(gen->state.philox.key, gen->state.philox.ctr,
-                           out + (n - fresh), fresh);
+          launchRngFillU64Kernel(gen->state.philox.key, gen->state.philox.ctr,
+                                 out + (n - fresh), fresh);
       if (launched.err != novaSuccess) {
         return launched;
       }
@@ -376,7 +372,7 @@ novaStatus_t generator_fill_u32(Generator_ *gen, uint32_t *out, size_t n) {
           return staged;
         }
       }
-      auto launched = launchRngFillU32(
+      auto launched = launchRngFillU32Kernel(
           gen->state.philox.key, gen->state.philox.ctr, out + take, fresh);
       if (launched.err != novaSuccess) {
         return launched;
@@ -410,14 +406,16 @@ novaStatus_t generator_fill_u32(Generator_ *gen, uint32_t *out, size_t n) {
       out[i++] = gen->lane_cache[0];
       lane_cache_drop(gen, 1U);
     }
-    while (i < n) {
+    const size_t pairs = (n - i) / 2U;
+    for (size_t p = 0; p < pairs; ++p) {
       const uint64_t sample = xoshiro256_next(&gen->state.xoshiro);
       out[i++] = (uint32_t)(sample >> RAND_LANE_BITS);
-      if (i < n) {
-        out[i++] = (uint32_t)sample;
-      } else {
-        gen->lane_cache[gen->lane_count++] = (uint32_t)sample;
-      }
+      out[i++] = (uint32_t)sample;
+    }
+    if (i < n) {
+      const uint64_t sample = xoshiro256_next(&gen->state.xoshiro);
+      out[i++] = (uint32_t)(sample >> RAND_LANE_BITS);
+      gen->lane_cache[gen->lane_count++] = (uint32_t)sample;
     }
     gen->offset += n;
     return ok();
@@ -475,6 +473,151 @@ novaStatus_t generator_fill_u32(Generator_ *gen, uint32_t *out, size_t n) {
     philox_ctr_add(ctr0, full + (tail > 0U ? 1U : 0U), gen->state.philox.ctr);
   }
   gen->offset += n;
+  return ok();
+}
+
+/**
+ * @brief Validates the shared preconditions of the stream cursor calls.
+ *
+ * @param[in]  gen     Source handle.
+ * @param[in]  cursor  Destination cursor.
+ * @param[in]  offset  Values to skip.
+ * @param[out] end     Source offset plus @p offset.
+ *
+ * @return @c novaSuccess when the call may proceed; otherwise the
+ *         rejection status.
+ */
+static inline novaStatus_t stream_at_prepare(const Generator_ *gen,
+                                             const Generator_ *cursor,
+                                             size_t offset, uint64_t *end) {
+  if (gen == nullptr || cursor == nullptr) {
+    return (novaStatus_t){
+        .err = novaInvalidPointer,
+        .message = "Stream positioning needs a live source and a cursor. Got "
+                   "null.\n",
+    };
+  }
+  if (gen->device != DEVICE_CPU) {
+    return (novaStatus_t){
+        .err = novaInvalidDevice,
+        .message = "Stream positioning only splits CPU fills.\n",
+    };
+  }
+  const uint64_t skip = offset;
+  if (skip > UINT64_MAX - gen->offset) {
+    return (novaStatus_t){
+        .err = novaInvalidValue,
+        .message = "The offset overflows the emitted-value counter.\n",
+    };
+  }
+  *end = gen->offset + skip;
+  return ok();
+}
+
+novaStatus_t generator_u32_stream_at(const Generator_ *gen, size_t offset,
+                                     Generator_ *cursor) {
+  uint64_t end = 0;
+  auto ready = stream_at_prepare(gen, cursor, offset, &end);
+  if (ready.err != novaSuccess) {
+    return ready;
+  }
+  const size_t take = gen->engine == Xoshiro256
+                          ? (gen->lane_count > 0U ? 1U : 0U)
+                          : (size_t)gen->lane_count;
+  *cursor = *gen;
+  cursor->offset = end;
+  if (offset < take) {
+    lane_cache_drop(cursor, (uint32_t)offset);
+    return ok();
+  }
+
+  const size_t fresh = offset - take;
+  cursor->lane_count = 0U;
+  if (gen->engine == Xoshiro256) {
+    const uint64_t calls = fresh / 2U;
+    auto jumped = xoshiro256_jump_to(&cursor->state.xoshiro, calls);
+    if (jumped.err != novaSuccess) {
+      return jumped;
+    }
+    if ((fresh % 2U) != 0U) {
+      const uint64_t sample = xoshiro256_next(&cursor->state.xoshiro);
+      cursor->lane_cache[0] = (uint32_t)sample;
+      cursor->lane_count = 1U;
+    }
+    return ok();
+  }
+
+  const uint64_t block = fresh / RAND_U32_PER_BLOCK;
+  const uint32_t lane = (uint32_t)(fresh % RAND_U32_PER_BLOCK);
+  if (block > 0U) {
+    uint32_t next[4] = {};
+    philox_ctr_add(gen->state.philox.ctr, block, next);
+    for (size_t i = 0; i < 4U; ++i) {
+      cursor->state.philox.ctr[i] = next[i];
+    }
+  }
+  if (lane > 0U) {
+    uint32_t block_out[4] = {};
+    philox4x32_10(cursor->state.philox.ctr, cursor->state.philox.key,
+                  block_out);
+    for (uint32_t i = lane; i < RAND_U32_PER_BLOCK; ++i) {
+      cursor->lane_cache[i - lane] = block_out[i];
+    }
+    cursor->lane_count = RAND_U32_PER_BLOCK - lane;
+    uint32_t next[4] = {};
+    philox_ctr_add(cursor->state.philox.ctr, 1U, next);
+    for (size_t i = 0; i < 4U; ++i) {
+      cursor->state.philox.ctr[i] = next[i];
+    }
+  }
+  return ok();
+}
+
+novaStatus_t generator_u64_stream_at(const Generator_ *gen, size_t offset,
+                                     Generator_ *cursor) {
+  uint64_t end = 0;
+  auto ready = stream_at_prepare(gen, cursor, offset, &end);
+  if (ready.err != novaSuccess) {
+    return ready;
+  }
+  *cursor = *gen;
+  cursor->offset = end;
+  if (gen->engine == Xoshiro256) {
+    /* A 64-bit fill ignores and keeps a single parked 32-bit lane. */
+    const uint64_t calls = offset;
+    return xoshiro256_jump_to(&cursor->state.xoshiro, calls);
+  }
+  if (offset == 0U) {
+    return ok();
+  }
+
+  /* Only a whole parked pair can be consumed by a 64-bit fill; an odd
+     trailing lane survives, and a fresh tail parks behind it. */
+  const size_t pairs = gen->lane_count >= 2U ? 1U : 0U;
+  if (pairs > 0U) {
+    lane_cache_drop(cursor, 2U);
+  }
+  const size_t fresh = offset - pairs;
+  const uint64_t block = fresh / RAND_U64_PER_BLOCK;
+  const size_t lane = fresh % RAND_U64_PER_BLOCK;
+  if (block > 0U) {
+    uint32_t next[4] = {};
+    philox_ctr_add(gen->state.philox.ctr, block, next);
+    for (size_t i = 0; i < 4U; ++i) {
+      cursor->state.philox.ctr[i] = next[i];
+    }
+  }
+  if (lane != 0U) {
+    uint32_t block_out[4] = {};
+    philox4x32_10(cursor->state.philox.ctr, cursor->state.philox.key,
+                  block_out);
+    lane_cache_put(cursor, block_out, 2U, 2U);
+    uint32_t next[4] = {};
+    philox_ctr_add(cursor->state.philox.ctr, 1U, next);
+    for (size_t i = 0; i < 4U; ++i) {
+      cursor->state.philox.ctr[i] = next[i];
+    }
+  }
   return ok();
 }
 
@@ -629,6 +772,58 @@ novaStatus_t default_generator(Device_ device, Generator_ *gen) {
     *gen = cpu_default;
     MTX_UNLOCK(&cpu_default_mtx);
   }
+  return ok();
+}
+
+novaStatus_t default_generator_lease(Device_ device,
+                                     DefaultGeneratorLease *lease) {
+  if (lease == nullptr) {
+    return (novaStatus_t){
+        .err = novaInvalidPointer,
+        .message = "Leasing a default needs a live lease slot. Got null.\n",
+    };
+  }
+  if (device != DEVICE_CPU && device != DEVICE_GPU) {
+    return (novaStatus_t){
+        .err = novaInvalidDevice,
+        .message = "No default generator exists for this placement. Use "
+                   "DEVICE_CPU or DEVICE_GPU.\n",
+    };
+  }
+  ensure_defaults();
+  lease->device = device;
+  if (device == DEVICE_CPU) {
+    MTX_LOCK(&cpu_default_mtx);
+    lease->gen = &cpu_default;
+  } else {
+    MTX_LOCK(&gpu_default_mtx);
+    lease->gen = &gpu_default;
+  }
+  return ok();
+}
+
+novaStatus_t default_generator_return(DefaultGeneratorLease *lease) {
+  if (lease == nullptr) {
+    return (novaStatus_t){
+        .err = novaInvalidPointer,
+        .message = "Returning a default needs a live lease. Got null.\n",
+    };
+  }
+  if (lease->gen == nullptr) {
+    return ok();
+  }
+  if (lease->device == DEVICE_CPU) {
+    MTX_UNLOCK(&cpu_default_mtx);
+  } else if (lease->device == DEVICE_GPU) {
+    MTX_UNLOCK(&gpu_default_mtx);
+  } else {
+    lease->gen = nullptr;
+    return (novaStatus_t){
+        .err = novaInvalidDevice,
+        .message = "A lease can only cover DEVICE_CPU or DEVICE_GPU.\n",
+    };
+  }
+  lease->gen = nullptr;
   return ok();
 }
 

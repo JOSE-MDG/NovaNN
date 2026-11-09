@@ -229,9 +229,10 @@ __global__ void rngFillU64Blocks(uint32_t key0, uint32_t key1, uint32_t c0,
 
 } // namespace
 
-novaStatus_t launchCudaRngFillU32(const uint32_t key[2],
-                                  const uint32_t base_ctr[4], uint32_t *dst,
-                                  size_t n, cudaStream_t caller_stream) {
+novaStatus_t launchCudaRngFillU32Kernel(const uint32_t key[2],
+                                        const uint32_t base_ctr[4],
+                                        uint32_t *dst, size_t n,
+                                        cudaStream_t caller_stream) {
   if (key == nullptr || base_ctr == nullptr || (dst == nullptr && n > 0)) {
     novaStatus_t s{};
     s.err = novaInvalidPointer;
@@ -267,9 +268,10 @@ novaStatus_t launchCudaRngFillU32(const uint32_t key[2],
   return checkLaunch();
 }
 
-novaStatus_t launchCudaRngFillU64(const uint32_t key[2],
-                                  const uint32_t base_ctr[4], uint64_t *dst,
-                                  size_t n, cudaStream_t caller_stream) {
+novaStatus_t launchCudaRngFillU64Kernel(const uint32_t key[2],
+                                        const uint32_t base_ctr[4],
+                                        uint64_t *dst, size_t n,
+                                        cudaStream_t caller_stream) {
   if (key == nullptr || base_ctr == nullptr || (dst == nullptr && n > 0)) {
     novaStatus_t s{};
     s.err = novaInvalidPointer;

@@ -103,6 +103,11 @@ INITIALIZE(init_cast_dispatch) {
   cast_dispatch[Float64][BFloat16] = tf64_to_bf16;
   cast_dispatch[Float64][Float32] = tf64_to_f32;
 
+  /* Scale factor (E8M0): the only defined conversions are float32 to and
+   * from the scale. */
+  cast_dispatch[Float32][Float8E8M0fnu] = tf32_to_fp8e8m0;
+  cast_dispatch[Float8E8M0fnu][Float32] = tfp8e8m0_to_f32;
+
   /* Floating-point to integer */
   cast_dispatch[Float4E2M1fn][Signed8] = tfp4e2m1_to_s8;
   cast_dispatch[Float4E2M1fn][Signed16] = tfp4e2m1_to_s16;

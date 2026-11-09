@@ -249,7 +249,7 @@ TEST(Dispatch, DtypeSizeMatchesStorageTypeSizeof) {
   constexpr std::array<size_t, NUM_DTYPES> kSizes{{
       4, 8,       // Float32, Float64
       2, 2,       // Float16, BFloat16
-      1, 1, 1,    // FP8 E4M3FN, FP8 E5M2, FP4 E2M1FNx2
+      1, 1, 1, 1, // Float8E4M3fn, Float8E5M2, Float8E8M0fnu, Float4E2M1fn
       1, 1, 1, 1, // Signed8, UnSigned8, QSigned8, QUnSigned8
       2, 2, 2, 2, // Signed16, UnSigned16, QSigned16, QUnSigned16
       4, 4, 4, 4, // Signed32, UnSigned32, QSigned32, QUnSigned32

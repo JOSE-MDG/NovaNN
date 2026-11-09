@@ -7,11 +7,17 @@
  * the half-open interval [low, high). The destination storage is
  * neither replaced nor resized.
  *
- * Every variant runs in two phases: the draw phase asks the generator
- * for raw words, the map phase turns those words into samples. The raw
- * words live in their own buffer, because the destination keeps the
- * sample type and sharing storage would let the compiler assume the
- * two do not alias.
+ * The fill is fused and chunked: one chunk of raw words is drawn into a
+ * small thread-local buffer, mapped into the destination, and the same
+ * buffer serves the next chunk. The raw words never occupy a buffer the
+ * size of the destination, and the chunk stays in cache between the draw
+ * and the map. The buffer is per-thread and capped at 256 KB.
+ *
+ * A serial fill walks the stream chunk after chunk. A parallel fill
+ * gives every worker its own cursor into the same stream, positioned at
+ * the worker's offset, so contiguous chunks reproduce the serial
+ * sequence bit for bit. The handle advances once per fill, never once
+ * per chunk.
  *
  * A draw keeps 24 mantissa bits and forces the low bit, so the unit
  * sample can never reach zero or one. The 64-bit mapper keeps 53 bits
@@ -23,7 +29,8 @@
  *
  * The reduced-precision formats snap the interval to the values they
  * can hold before the sampling starts, so rounding a sample into the
- * format cannot escape the requested range.
+ * format cannot escape the requested range. Packed formats draw two raw
+ * words per storage byte and write one byte per pair.
  */
 
 #include <math.h>
@@ -32,12 +39,10 @@
 
 #include <immintrin.h>
 
-#include <ncore/core/alloc.h>
 #include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
 #include <ncore/core/fp_utils.h>
 #include <ncore/core/status.h>
-#include <ncore/core/storage.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/native/cpu/random/common.h>
 #include <ncore/native/cpu/random/uniform.h>
@@ -63,6 +68,12 @@
 #define UNIFORM_GRID_MASK_8 0x7FU
 
 /**
+ * @def UNIFORM_GRID_MASK_4
+ * @brief Magnitude mask of the 4-bit floating point format.
+ */
+#define UNIFORM_GRID_MASK_4 0x07U
+
+/**
  * @def UNIFORM_FP16_MAX_FINITE
  * @brief Largest finite float16 magnitude pattern.
  */
@@ -85,6 +96,69 @@
  * @brief Largest finite float8_e5m2 magnitude pattern.
  */
 #define UNIFORM_FP8E5M2_MAX_FINITE 0x7BU
+
+/**
+ * @def UNIFORM_FP4E2M1_MAX_FINITE
+ * @brief Largest finite float4_e2m1fn_x2 magnitude pattern.
+ */
+#define UNIFORM_FP4E2M1_MAX_FINITE 0x07U
+
+/**
+ * @def UNIFORM_CHUNK_U32
+ * @brief Raw 32-bit words held by the thread-local draw buffer.
+ */
+#define UNIFORM_CHUNK_U32 65536U
+
+/**
+ * @def UNIFORM_CHUNK_U64
+ * @brief Raw 64-bit words held by the thread-local draw buffer.
+ */
+#define UNIFORM_CHUNK_U64 32768U
+
+/**
+ * @def UNIFORM_PARALLEL_FLOOR_CHEAP_MAP
+ * @brief Storage units below which a fill whose map is cheaper than its
+ *        draw stays serial. Covers f32, f16 and bf16.
+ *
+ * @details
+ * Every extra worker costs one arbitrary jump, so a fill has to be long
+ * enough for the fork to repay the jump before the split pays off. Maps
+ * this cheap only win from the parallel draw itself, which needs millions
+ * of units to amortize the fork. Measured on Zen 4, the split wins 6x
+ * at the floor.
+ */
+#define UNIFORM_PARALLEL_FLOOR_CHEAP_MAP (1U << 20)
+
+/**
+ * @def UNIFORM_PARALLEL_FLOOR_F64
+ * @brief Same floor for the 64-bit path, whose draw covers twice the
+ *        samples per call.
+ *
+ * @details
+ * Measured on Zen 4, the split wins 13x at twice the floor.
+ */
+#define UNIFORM_PARALLEL_FLOOR_F64 (1U << 19)
+
+/**
+ * @def UNIFORM_PARALLEL_FLOOR_FP8
+ * @brief Storage units below which a byte-wide fill stays serial.
+ *
+ * @details
+ * The fp8 maps cost a few scalar nanoseconds per unit. Measured on
+ * Zen 4, the split wins 3.5x at the floor and 7x at six times it.
+ */
+#define UNIFORM_PARALLEL_FLOOR_FP8 (1U << 17)
+
+/**
+ * @def UNIFORM_PARALLEL_FLOOR_FP4
+ * @brief Storage units below which a packed-nibble fill stays serial.
+ *
+ * @details
+ * The fp4 map is the costliest scalar map in the file. Measured on
+ * Zen 4, the split breaks even at the floor and wins 1.9x at twice
+ * the floor.
+ */
+#define UNIFORM_PARALLEL_FLOOR_FP4 (1U << 15)
 
 /**
  * @brief Unit-interval sample built from a raw 32-bit draw.
@@ -273,6 +347,33 @@ static uint16_t uniform_fp8e5m2_pattern(float value) {
 }
 
 /**
+ * @brief Value carried by a float4_e2m1fn_x2 raw pattern.
+ *
+ * @details
+ * The format has a single nibble per value, so the pattern is duplicated
+ * into both lanes of a pair byte and the low lane is decoded.
+ *
+ * @return The value the pattern encodes.
+ */
+static float uniform_fp4e2m1_value(uint16_t bits) {
+  const uint8_t nibble = (uint8_t)(bits & 0x0FU);
+  const float4_e2m1fn_x2 pair = (float4_e2m1fn_x2)((nibble << 4) | nibble);
+  float lo = 0.0f;
+  float hi = 0.0f;
+  fp4e2m1x2_to_floats(pair, &lo, &hi);
+  return lo;
+}
+
+/**
+ * @brief Raw pattern a value takes in float4_e2m1fn_x2.
+ *
+ * @return The raw pattern, rounded to nearest even.
+ */
+static uint16_t uniform_fp4e2m1_pattern(float value) {
+  return (uint16_t)(fp4e2m1x2_from_floats(value, value) & 0x0FU);
+}
+
+/**
  * @brief Sampling interval of a float32 fill.
  *
  * @details
@@ -393,174 +494,519 @@ static bool uniform_range_narrow(float low, float high, UniformToFloat to_float,
 }
 
 /**
- * @struct UniformScratch
- * @brief Draw buffer backing a uniform fill.
+ * @union UniformScratch
+ * @brief Thread-local draw buffer backing every chunked fill.
  *
  * @details
- * The draws live in their own buffer: the destination tensor keeps the
- * sample type, so the two never share storage and the compiler cannot
- * assume they do not alias.
+ * The 32-bit and 64-bit views cover the same 256 KB, so a fill uses
+ * whichever width its engine emits without reserving two buffers. The
+ * union is aligned to a cache line so the vector maps read whole lines.
+ * Native TLS backs the buffer; its 256 KB per-thread footprint is the
+ * accepted cost on toolchains with small static TLS reserves.
  */
-typedef struct {
-  RustHandle handle; ///< Rust-owned reservation behind the buffer.
-  data_ptr data;     ///< Draw words, valid while the handle lives.
+typedef union {
+  ALIGN(64) uint32_t u32[UNIFORM_CHUNK_U32]; ///< 32-bit engine words.
+  ALIGN(64) uint64_t u64[UNIFORM_CHUNK_U64]; ///< 64-bit engine words.
 } UniformScratch;
 
-/**
- * @brief Reserve the draw buffer of @p bytes.
- *
- * @param[in]  bytes    Bytes to reserve.
- * @param[out] scratch  Destination buffer description.
- * @param[out] st       Caller-owned status; set to success on completion.
- *
- * @return @c true when the buffer is ready to use.
- */
-static bool uniform_scratch_acquire(size_t bytes, UniformScratch *scratch,
-                                    novaStatus_t *st) {
-  const novaStatus_t status = safe_allocator(bytes, DEVICE_CPU, false,
-                                             &scratch->handle, nullptr, false);
-  if (status.err != novaSuccess) {
-    *st = status;
-    return false;
-  }
-  scratch->data.v = get_data_from(&scratch->handle);
-  return true;
-}
+static thread_local UniformScratch uniform_scratch;
 
 /**
- * @brief Release the draw buffer.
+ * @typedef UniformMapU32
+ * @brief Maps a chunk of raw 32-bit words into destination units.
  *
- * @param[in,out] scratch  Buffer to release.
+ * @return The destination pointer advanced past the written units.
  */
-static novaStatus_t uniform_scratch_release(UniformScratch *scratch) {
-  novaStatus_t status = {0};
-  release(&scratch->handle, &status);
-  if (status.err != novaSuccess) {
-    return (novaStatus_t){.err = novaReleaseError,
-                          .message = "Draws need somewhere to land. The "
-                                     "scratch reservation could not be "
-                                     "released.\n"};
+typedef void *(*UniformMapU32)(const uint32_t *raw, void *out, size_t units,
+                               float base, float span);
+
+/**
+ * @typedef UniformMapU64
+ * @brief Maps a chunk of raw 64-bit words into destination samples.
+ *
+ * @return The destination pointer advanced past the written samples.
+ */
+typedef void *(*UniformMapU64)(const uint64_t *raw, void *out, size_t units,
+                               double base, double span);
+
+/**
+ * @struct UniformPlanU32
+ * @brief Chunk schedule of a 32-bit-sourced fill.
+ */
+typedef struct {
+  UniformMapU32 map;   ///< Turns raw words into destination units.
+  size_t raw_per_unit; ///< Raw words consumed by one destination unit.
+  size_t out_bytes;    ///< Destination bytes written by one unit.
+  size_t parallel_floor; ///< Xoshiro units below which the fill stays serial.
+} UniformPlanU32;
+
+/**
+ * @struct UniformPlanU64
+ * @brief Chunk schedule of a 64-bit-sourced fill.
+ */
+typedef struct {
+  UniformMapU64 map;   ///< Turns raw words into destination samples.
+  size_t out_bytes;    ///< Destination bytes written by one sample.
+  size_t parallel_floor; ///< Xoshiro units below which the fill stays serial.
+} UniformPlanU64;
+
+/**
+ * @struct UniformGenerator
+ * @brief Live handle backing one fill.
+ *
+ * @details
+ * A private handle is used as is. A null handle leases the process
+ * default for the whole fill, so another thread cannot interleave
+ * between two chunks.
+ */
+typedef struct {
+  Generator_ *gen;             ///< Handle the draw advances.
+  DefaultGeneratorLease lease; ///< Held default, null for a private handle.
+} UniformGenerator;
+
+/**
+ * @brief Resolve the handle a fill draws from.
+ *
+ * @param[in]  generator  Private generator, or null for the default.
+ * @param[out] held       Resolved handle and lease storage.
+ *
+ * @return Status with @c err set to @c novaSuccess on success.
+ */
+static novaStatus_t uniform_generator_acquire(Generator_ *generator,
+                                              UniformGenerator *held) {
+  if (generator != nullptr) {
+    held->gen = generator;
+    held->lease.gen = nullptr;
+    return uniform_ok();
   }
+  const novaStatus_t leased =
+      default_generator_lease(DEVICE_CPU, &held->lease);
+  if (leased.err != novaSuccess) {
+    return leased;
+  }
+  held->gen = held->lease.gen;
   return uniform_ok();
 }
 
 /**
- * @brief Draw the raw words of a float32 fill and resolve its interval.
+ * @brief Release the handle a fill drew from.
  *
- * @param[in]  generator  Private generator, or null for the default.
- * @param[out] scratch    Draw buffer, ready to use on success.
- * @param[in]  n          Number of samples.
- * @param[in]  low        Lower bound of the sampling interval.
- * @param[in]  high       Exclusive upper bound of the sampling interval.
- * @param[out] base       Lower end of the sampling interval.
- * @param[out] span       Width of the sampling interval.
- * @param[out] st         Caller-owned status; set to success on completion.
+ * @param[in,out] held  Handle and lease resolved by
+ *                      @ref uniform_generator_acquire().
  *
- * @return @c true when the fill is ready to be mapped.
+ * @return Status with @c err set to @c novaSuccess on success.
  */
-static bool uniform_prepare_f32(Generator_ *generator, UniformScratch *scratch,
-                                size_t n, float low, float high, float *base,
-                                float *span, novaStatus_t *st) {
-  if (!uniform_range_f32(low, high, base, span)) {
-    *st = (novaStatus_t){.err = novaInvalidValue,
-                         .message = "The interval does not fit float32. Use "
-                                    "bounds float32 can hold.\n"};
-    return false;
+static novaStatus_t uniform_generator_release(UniformGenerator *held) {
+  return default_generator_return(&held->lease);
+}
+
+#ifdef NOVA_OPENMP
+/**
+ * @brief Number of workers a fused fill should fork.
+ *
+ * @param[in] gen           Handle the fill draws from.
+ * @param[in] units         Destination units in the fill.
+ * @param[in] threads       Compute threads available to the caller.
+ * @param[in] xoshiro_floor Demand below which a Xoshiro fill stays serial.
+ * @param[in] cost_per_unit Draw cost of one unit.
+ *
+ * @return Worker count, at least one.
+ */
+static size_t uniform_worker_count(const Generator_ *gen, size_t units,
+                                   uint32 threads, size_t xoshiro_floor,
+                                   uint32 cost_per_unit) {
+  if (threads < 2U) {
+    return 1U;
   }
-  if (!uniform_scratch_acquire(n * sizeof(uint32_t), scratch, st)) {
-    return false;
+  const RngWork work = {
+      .lanes = units,
+      .cost_per_elem = cost_per_unit,
+      .valid = true,
+  };
+  const ParallelDecision decision = decide_rng(&work, threads);
+  if (!decision.go) {
+    return 1U;
   }
-  uint32_t *raw = scratch->data.u32;
-  const novaStatus_t fill = uniform_fill_u32(DEVICE_CPU, generator, raw, n);
-  if (fill.err != novaSuccess) {
-    *st = fill;
-    return false;
+  if (gen->engine == Xoshiro256 && units < xoshiro_floor) {
+    return 1U;
   }
-  return true;
+  return (size_t)decision.num_threads;
+}
+#endif
+
+/**
+ * @brief Draw and map a 32-bit-sourced fill.
+ *
+ * @details
+ * A serial fill draws one chunk into the thread-local buffer, maps it,
+ * and repeats. A parallel fill seats one cursor per worker at the
+ * worker's stream offset; the last worker's cursor carries the final
+ * state back to the handle.
+ *
+ * @param[in,out] gen      Live handle. Advanced by the fill.
+ * @param[in]     plan     Chunk schedule.
+ * @param[out]    out      Destination storage.
+ * @param[in]     units    Destination units to produce.
+ * @param[in]     base     Lower end of the sampling interval.
+ * @param[in]     span     Width of the sampling interval.
+ * @param[in]     threads  Compute threads available to the caller.
+ *
+ * @return Status with @c err set to @c novaSuccess on success.
+ */
+static novaStatus_t uniform_draw_map_u32(Generator_ *gen,
+                                         const UniformPlanU32 *plan, void *out,
+                                         size_t units, float base, float span,
+                                         uint32 threads) {
+  const size_t chunk = UNIFORM_CHUNK_U32 / plan->raw_per_unit;
+  size_t workers = 1U;
+#ifdef NOVA_OPENMP
+  workers = uniform_worker_count(gen, units, threads, plan->parallel_floor,
+                                 2U);
+#endif
+  if (workers <= 1U) {
+    size_t done = 0U;
+    void *dst = out;
+    while (done < units) {
+      const size_t take = units - done < chunk ? units - done : chunk;
+      const size_t raws = take * plan->raw_per_unit;
+      const novaStatus_t drawn =
+          generator_fill_u32(gen, uniform_scratch.u32, raws);
+      if (drawn.err != novaSuccess) {
+        return drawn;
+      }
+      dst = plan->map(uniform_scratch.u32, dst, take, base, span);
+      done += take;
+    }
+    return uniform_ok();
+  }
+#ifdef NOVA_OPENMP
+  const Generator_ source = *gen;
+  Generator_ tail = {};
+  int failed = 0;
+  novaStatus_t failure = {};
+#pragma omp parallel for num_threads(workers) schedule(static)
+  for (size_t w = 0; w < workers; ++w) {
+    const size_t begin = (units * w) / workers;
+    const size_t end = (units * (w + 1U)) / workers;
+    Generator_ cursor = {};
+    const novaStatus_t seated =
+        generator_u32_stream_at(&source, begin * plan->raw_per_unit, &cursor);
+    if (seated.err != novaSuccess) {
+#pragma omp critical(uniform_stream_error)
+      {
+        if (failed == 0) {
+          failed = 1;
+          failure = seated;
+        }
+      }
+      continue;
+    }
+    void *dst = (char *)out + (begin * plan->out_bytes);
+    size_t done = begin;
+    while (done < end) {
+      const size_t take = end - done < chunk ? end - done : chunk;
+      const size_t raws = take * plan->raw_per_unit;
+      const novaStatus_t drawn =
+          generator_fill_u32(&cursor, uniform_scratch.u32, raws);
+      if (drawn.err != novaSuccess) {
+#pragma omp critical(uniform_stream_error)
+        {
+          if (failed == 0) {
+            failed = 1;
+            failure = drawn;
+          }
+        }
+        break;
+      }
+      dst = plan->map(uniform_scratch.u32, dst, take, base, span);
+      done += take;
+    }
+    if (w + 1U == workers) {
+      tail = cursor;
+    }
+  }
+  if (failed != 0) {
+    return failure;
+  }
+  *gen = tail;
+  return uniform_ok();
+#else
+  return uniform_ok();
+#endif
 }
 
 /**
- * @brief Draw the raw words of a float64 fill and resolve its interval.
+ * @brief Draw and map a 64-bit-sourced fill.
  *
- * @copydetails uniform_prepare_f32()
+ * @copydetails uniform_draw_map_u32()
  *
- * @param[in]  generator  Private generator, or null for the default.
- * @param[out] scratch    Draw buffer, ready to use on success.
- * @param[in]  n          Number of samples.
- * @param[in]  low        Lower bound of the sampling interval.
- * @param[in]  high       Exclusive upper bound of the sampling interval.
- * @param[out] base       Lower end of the sampling interval.
- * @param[out] span       Width of the sampling interval.
- * @param[out] st         Caller-owned status; set to success on completion.
+ * @param[in,out] gen      Live handle. Advanced by the fill.
+ * @param[in]     plan     Chunk schedule.
+ * @param[out]    out      Destination storage.
+ * @param[in]     units    Destination samples to produce.
+ * @param[in]     base     Lower end of the sampling interval.
+ * @param[in]     span     Width of the sampling interval.
+ * @param[in]     threads  Compute threads available to the caller.
  *
- * @return @c true when the fill is ready to be mapped.
+ * @return Status with @c err set to @c novaSuccess on success.
  */
-static bool uniform_prepare_f64(Generator_ *generator, UniformScratch *scratch,
-                                size_t n, float low, float high, double *base,
-                                double *span, novaStatus_t *st) {
-  if (!uniform_range_f64(low, high, base, span)) {
-    *st = (novaStatus_t){.err = novaInvalidValue,
-                         .message = "The interval does not fit float64. Use "
-                                    "bounds float64 can hold.\n"};
-    return false;
+static novaStatus_t uniform_draw_map_u64(Generator_ *gen,
+                                         const UniformPlanU64 *plan, void *out,
+                                         size_t units, double base, double span,
+                                         uint32 threads) {
+  const size_t chunk = UNIFORM_CHUNK_U64;
+  size_t workers = 1U;
+#ifdef NOVA_OPENMP
+  workers = uniform_worker_count(gen, units, threads, plan->parallel_floor,
+                                 4U);
+#endif
+  if (workers <= 1U) {
+    size_t done = 0U;
+    void *dst = out;
+    while (done < units) {
+      const size_t take = units - done < chunk ? units - done : chunk;
+      const novaStatus_t drawn =
+          generator_fill_u64(gen, uniform_scratch.u64, take);
+      if (drawn.err != novaSuccess) {
+        return drawn;
+      }
+      dst = plan->map(uniform_scratch.u64, dst, take, base, span);
+      done += take;
+    }
+    return uniform_ok();
   }
-  if (!uniform_scratch_acquire(n * sizeof(uint64_t), scratch, st)) {
-    return false;
+#ifdef NOVA_OPENMP
+  const Generator_ source = *gen;
+  Generator_ tail = {};
+  int failed = 0;
+  novaStatus_t failure = {};
+#pragma omp parallel for num_threads(workers) schedule(static)
+  for (size_t w = 0; w < workers; ++w) {
+    const size_t begin = (units * w) / workers;
+    const size_t end = (units * (w + 1U)) / workers;
+    Generator_ cursor = {};
+    const novaStatus_t seated =
+        generator_u64_stream_at(&source, begin, &cursor);
+    if (seated.err != novaSuccess) {
+#pragma omp critical(uniform_stream_error)
+      {
+        if (failed == 0) {
+          failed = 1;
+          failure = seated;
+        }
+      }
+      continue;
+    }
+    void *dst = (char *)out + (begin * plan->out_bytes);
+    size_t done = begin;
+    while (done < end) {
+      const size_t take = end - done < chunk ? end - done : chunk;
+      const novaStatus_t drawn =
+          generator_fill_u64(&cursor, uniform_scratch.u64, take);
+      if (drawn.err != novaSuccess) {
+#pragma omp critical(uniform_stream_error)
+        {
+          if (failed == 0) {
+            failed = 1;
+            failure = drawn;
+          }
+        }
+        break;
+      }
+      dst = plan->map(uniform_scratch.u64, dst, take, base, span);
+      done += take;
+    }
+    if (w + 1U == workers) {
+      tail = cursor;
+    }
   }
-  uint64_t *raw = scratch->data.u64;
-  const novaStatus_t fill = uniform_fill_u64(DEVICE_CPU, generator, raw, n);
-  if (fill.err != novaSuccess) {
-    *st = fill;
-    return false;
+  if (failed != 0) {
+    return failure;
   }
-  return true;
+  *gen = tail;
+  return uniform_ok();
+#else
+  return uniform_ok();
+#endif
 }
 
 /**
- * @brief Draw the raw words of a reduced-precision fill and resolve its
- *        interval.
+ * @brief Resolve the handle, run a 32-bit fill, and release the handle.
  *
- * @copydetails uniform_prepare_f32()
- *
- * @param[in]  generator   Private generator, or null for the default.
- * @param[out] scratch     Draw buffer, ready to use on success.
- * @param[in]  n           Number of samples.
- * @param[in]  low         Lower bound of the sampling interval.
- * @param[in]  high        Exclusive upper bound of the sampling interval.
- * @param[in]  to_float    Decoder of the format.
- * @param[in]  from_float  Encoder of the format.
- * @param[in]  mask        Magnitude mask of the format.
- * @param[in]  max_finite  Largest finite magnitude pattern.
- * @param[out] base        Lower end of the sampling interval.
- * @param[out] span        Width of the sampling interval.
- * @param[in]  range_error Message reported when the format cannot hold the
- *                         interval.
- * @param[out] st          Caller-owned status; set to success on completion.
- *
- * @return @c true when the fill is ready to be mapped.
+ * @param[out] out        Destination storage.
+ * @param[in]  units      Destination units to produce.
+ * @param[in]  plan       Chunk schedule.
+ * @param[in]  base       Lower end of the sampling interval.
+ * @param[in]  span       Width of the sampling interval.
+ * @param[in]  generator  Private generator, or null for the default.
+ * @param[out] st         Caller-owned status.
  */
-static bool uniform_prepare_narrow(Generator_ *generator,
-                                   UniformScratch *scratch, size_t n, float low,
-                                   float high, UniformToFloat to_float,
-                                   UniformFromFloat from_float, uint16_t mask,
-                                   uint16_t max_finite, float *base,
-                                   float *span, const char *range_error,
-                                   novaStatus_t *st) {
-  if (!uniform_range_narrow(low, high, to_float, from_float, mask, max_finite,
-                            base, span)) {
-    *st = (novaStatus_t){.err = novaInvalidValue, .message = range_error};
-    return false;
+static void uniform_run_u32(void *out, size_t units,
+                            const UniformPlanU32 *plan, float base, float span,
+                            Generator_ *generator, novaStatus_t *st) {
+  UniformGenerator held = {};
+  const novaStatus_t acquired = uniform_generator_acquire(generator, &held);
+  if (acquired.err != novaSuccess) {
+    *st = acquired;
+    return;
   }
-  if (!uniform_scratch_acquire(n * sizeof(uint32_t), scratch, st)) {
-    return false;
+  uint32 threads = 1U;
+#ifdef NOVA_OPENMP
+  threads = get_num_threads_from(ParallelComputeGroup, st);
+  if (st->err != novaSuccess) {
+    (void)uniform_generator_release(&held);
+    return;
   }
-  uint32_t *raw = scratch->data.u32;
-  const novaStatus_t fill = uniform_fill_u32(DEVICE_CPU, generator, raw, n);
-  if (fill.err != novaSuccess) {
-    *st = fill;
-    return false;
+#endif
+  const novaStatus_t drawn =
+      uniform_draw_map_u32(held.gen, plan, out, units, base, span, threads);
+  const novaStatus_t released = uniform_generator_release(&held);
+  *st = drawn.err != novaSuccess ? drawn : released;
+}
+
+/**
+ * @brief Resolve the handle, run a 64-bit fill, and release the handle.
+ *
+ * @copydetails uniform_run_u32()
+ *
+ * @param[out] out        Destination storage.
+ * @param[in]  units      Destination samples to produce.
+ * @param[in]  plan       Chunk schedule.
+ * @param[in]  base       Lower end of the sampling interval.
+ * @param[in]  span       Width of the sampling interval.
+ * @param[in]  generator  Private generator, or null for the default.
+ * @param[out] st         Caller-owned status.
+ */
+static void uniform_run_u64(void *out, size_t units,
+                            const UniformPlanU64 *plan, double base,
+                            double span, Generator_ *generator,
+                            novaStatus_t *st) {
+  UniformGenerator held = {};
+  const novaStatus_t acquired = uniform_generator_acquire(generator, &held);
+  if (acquired.err != novaSuccess) {
+    *st = acquired;
+    return;
   }
-  return true;
+  uint32 threads = 1U;
+#ifdef NOVA_OPENMP
+  threads = get_num_threads_from(ParallelComputeGroup, st);
+  if (st->err != novaSuccess) {
+    (void)uniform_generator_release(&held);
+    return;
+  }
+#endif
+  const novaStatus_t drawn =
+      uniform_draw_map_u64(held.gen, plan, out, units, base, span, threads);
+  const novaStatus_t released = uniform_generator_release(&held);
+  *st = drawn.err != novaSuccess ? drawn : released;
+}
+
+/* =========================================================================
+ * Scalar maps
+ * ========================================================================= */
+
+/**
+ * @brief Map raw words into float32 samples using portable code.
+ *
+ * @return The destination pointer advanced past @p units samples.
+ */
+static void *uniform_map_f32_scalar(const uint32_t *raw, void *out, size_t units,
+                                    float base, float span) {
+  float *dst = out;
+  for (size_t i = 0; i < units; ++i) {
+    dst[i] = fmaf(uniform_unit_f32(raw[i]), span, base);
+  }
+  return dst + units;
+}
+
+/**
+ * @brief Map raw words into float64 samples using portable code.
+ *
+ * @return The destination pointer advanced past @p units samples.
+ */
+static void *uniform_map_f64_scalar(const uint64_t *raw, void *out, size_t units,
+                                    double base, double span) {
+  double *dst = out;
+  for (size_t i = 0; i < units; ++i) {
+    dst[i] = fma(uniform_unit_f64(raw[i]), span, base);
+  }
+  return dst + units;
+}
+
+/**
+ * @brief Map raw words into float16 samples using portable code.
+ *
+ * @return The destination pointer advanced past @p units samples.
+ */
+static void *uniform_map_fp16_scalar(const uint32_t *raw, void *out,
+                                     size_t units, float base, float span) {
+  float16 *dst = out;
+  for (size_t i = 0; i < units; ++i) {
+    dst[i] = fp16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
+  }
+  return dst + units;
+}
+
+/**
+ * @brief Map raw words into bfloat16 samples using portable code.
+ *
+ * @return The destination pointer advanced past @p units samples.
+ */
+static void *uniform_map_bf16_scalar(const uint32_t *raw, void *out,
+                                     size_t units, float base, float span) {
+  bfloat16 *dst = out;
+  for (size_t i = 0; i < units; ++i) {
+    dst[i] = bf16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
+  }
+  return dst + units;
+}
+
+/**
+ * @brief Map raw words into float8_e4m3fn samples using portable code.
+ *
+ * @return The destination pointer advanced past @p units samples.
+ */
+static void *uniform_map_fp8e4m3_scalar(const uint32_t *raw, void *out,
+                                        size_t units, float base, float span) {
+  float8_e4m3fn *dst = out;
+  for (size_t i = 0; i < units; ++i) {
+    dst[i] = fp8e4m3fn_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
+  }
+  return dst + units;
+}
+
+/**
+ * @brief Map raw words into float8_e5m2 samples using portable code.
+ *
+ * @return The destination pointer advanced past @p units samples.
+ */
+static void *uniform_map_fp8e5m2_scalar(const uint32_t *raw, void *out,
+                                        size_t units, float base, float span) {
+  float8_e5m2 *dst = out;
+  for (size_t i = 0; i < units; ++i) {
+    dst[i] = fp8e5m2_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
+  }
+  return dst + units;
+}
+
+/**
+ * @brief Map raw word pairs into float4_e2m1fn_x2 storage bytes.
+ *
+ * @details
+ * One destination unit is one storage byte holding two samples, so the
+ * map consumes two raw words per unit.
+ *
+ * @return The destination pointer advanced past @p units bytes.
+ */
+static void *uniform_map_fp4e2m1_scalar(const uint32_t *raw, void *out,
+                                        size_t units, float base, float span) {
+  float4_e2m1fn_x2 *dst = out;
+  for (size_t i = 0; i < units; ++i) {
+    const float lo = fmaf(uniform_unit_f32(raw[2U * i]), span, base);
+    const float hi = fmaf(uniform_unit_f32(raw[(2U * i) + 1U]), span, base);
+    dst[i] = fp4e2m1x2_from_floats(lo, hi);
+  }
+  return dst + units;
 }
 
 /* =========================================================================
@@ -579,38 +1025,26 @@ static bool uniform_prepare_narrow(Generator_ *generator,
 void uniform_cpu_impl_f32_scalar(Tensor *ten, float low, float high,
                                  Generator_ *generator, novaStatus_t *st) {
   const size_t n = ten->size;
-  if (n == 0) {
+  if (n == 0U) {
     *st = uniform_ok();
     return;
   }
 
-  UniformScratch scratch = {0};
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_prepare_f32(generator, &scratch, n, low, high, &base, &span,
-                           st)) {
-    uniform_scratch_release(&scratch);
+  if (!uniform_range_f32(low, high, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit float32. Use "
+                                    "bounds float32 can hold.\n"};
     return;
   }
-
-  const uint32_t *raw = scratch.data.u32;
-  float *out = ten->data.f32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (size_t i = 0; i < n; ++i) {
-    out[i] = fmaf(uniform_unit_f32(raw[i]), span, base);
-  }
-
-  *st = uniform_scratch_release(&scratch);
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_f32_scalar,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(float),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_CHEAP_MAP,
+  };
+  uniform_run_u32(ten->data.f32, n, &plan, base, span, generator, st);
 }
 
 /**
@@ -619,38 +1053,25 @@ void uniform_cpu_impl_f32_scalar(Tensor *ten, float low, float high,
 void uniform_cpu_impl_f64_scalar(Tensor *ten, float low, float high,
                                  Generator_ *generator, novaStatus_t *st) {
   const size_t n = ten->size;
-  if (n == 0) {
+  if (n == 0U) {
     *st = uniform_ok();
     return;
   }
 
-  UniformScratch scratch = {0};
   double base = 0.0;
   double span = 0.0;
-  if (!uniform_prepare_f64(generator, &scratch, n, low, high, &base, &span,
-                           st)) {
-    uniform_scratch_release(&scratch);
+  if (!uniform_range_f64(low, high, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit float64. Use "
+                                    "bounds float64 can hold.\n"};
     return;
   }
-
-  const uint64_t *raw = scratch.data.u64;
-  double *out = ten->data.f64;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (size_t i = 0; i < n; ++i) {
-    out[i] = fma(uniform_unit_f64(raw[i]), span, base);
-  }
-
-  *st = uniform_scratch_release(&scratch);
+  static const UniformPlanU64 plan = {
+      .map = uniform_map_f64_scalar,
+      .out_bytes = sizeof(double),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_F64,
+  };
+  uniform_run_u64(ten->data.f64, n, &plan, base, span, generator, st);
 }
 
 /**
@@ -659,43 +1080,28 @@ void uniform_cpu_impl_f64_scalar(Tensor *ten, float low, float high,
 void uniform_cpu_impl_fp16_scalar(Tensor *ten, float low, float high,
                                   Generator_ *generator, novaStatus_t *st) {
   const size_t n = ten->size;
-  if (n == 0) {
+  if (n == 0U) {
     *st = uniform_ok();
     return;
   }
 
-  UniformScratch scratch = {0};
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_prepare_narrow(generator, &scratch, n, low, high,
-                              uniform_fp16_value, uniform_fp16_pattern,
-                              UNIFORM_GRID_MASK_16, UNIFORM_FP16_MAX_FINITE,
-                              &base, &span,
-                              "The interval does not fit the float16 format. "
-                              "Use bounds the format can hold.\n",
-                              st)) {
-    uniform_scratch_release(&scratch);
+  if (!uniform_range_narrow(low, high, uniform_fp16_value,
+                            uniform_fp16_pattern, UNIFORM_GRID_MASK_16,
+                            UNIFORM_FP16_MAX_FINITE, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit the float16 "
+                                    "format. Use bounds the format can hold.\n"};
     return;
   }
-
-  const uint32_t *raw = scratch.data.u32;
-  float16 *out = ten->data.half;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (size_t i = 0; i < n; ++i) {
-    out[i] = fp16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
-  }
-
-  *st = uniform_scratch_release(&scratch);
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_fp16_scalar,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(float16),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_CHEAP_MAP,
+  };
+  uniform_run_u32(ten->data.half, n, &plan, base, span, generator, st);
 }
 
 /**
@@ -704,43 +1110,28 @@ void uniform_cpu_impl_fp16_scalar(Tensor *ten, float low, float high,
 void uniform_cpu_impl_bf16_scalar(Tensor *ten, float low, float high,
                                   Generator_ *generator, novaStatus_t *st) {
   const size_t n = ten->size;
-  if (n == 0) {
+  if (n == 0U) {
     *st = uniform_ok();
     return;
   }
 
-  UniformScratch scratch = {0};
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_prepare_narrow(generator, &scratch, n, low, high,
-                              uniform_bf16_value, uniform_bf16_pattern,
-                              UNIFORM_GRID_MASK_16, UNIFORM_BF16_MAX_FINITE,
-                              &base, &span,
-                              "The interval does not fit the bfloat16 format. "
-                              "Use bounds the format can hold.\n",
-                              st)) {
-    uniform_scratch_release(&scratch);
+  if (!uniform_range_narrow(low, high, uniform_bf16_value,
+                            uniform_bf16_pattern, UNIFORM_GRID_MASK_16,
+                            UNIFORM_BF16_MAX_FINITE, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit the bfloat16 "
+                                    "format. Use bounds the format can hold.\n"};
     return;
   }
-
-  const uint32_t *raw = scratch.data.u32;
-  bfloat16 *out = ten->data.bf16;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (size_t i = 0; i < n; ++i) {
-    out[i] = bf16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
-  }
-
-  *st = uniform_scratch_release(&scratch);
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_bf16_scalar,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(bfloat16),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_CHEAP_MAP,
+  };
+  uniform_run_u32(ten->data.bf16, n, &plan, base, span, generator, st);
 }
 
 /**
@@ -749,43 +1140,29 @@ void uniform_cpu_impl_bf16_scalar(Tensor *ten, float low, float high,
 void uniform_cpu_impl_fp8e4m3_scalar(Tensor *ten, float low, float high,
                                      Generator_ *generator, novaStatus_t *st) {
   const size_t n = ten->size;
-  if (n == 0) {
+  if (n == 0U) {
     *st = uniform_ok();
     return;
   }
 
-  UniformScratch scratch = {0};
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_prepare_narrow(generator, &scratch, n, low, high,
-                              uniform_fp8e4m3_value, uniform_fp8e4m3_pattern,
-                              UNIFORM_GRID_MASK_8, UNIFORM_FP8E4M3_MAX_FINITE,
-                              &base, &span,
-                              "The interval does not fit the float8_e4m3fn "
-                              "format. Use bounds the format can hold.\n",
-                              st)) {
-    uniform_scratch_release(&scratch);
+  if (!uniform_range_narrow(low, high, uniform_fp8e4m3_value,
+                            uniform_fp8e4m3_pattern, UNIFORM_GRID_MASK_8,
+                            UNIFORM_FP8E4M3_MAX_FINITE, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit the "
+                                    "float8_e4m3fn format. Use bounds the "
+                                    "format can hold.\n"};
     return;
   }
-
-  const uint32_t *raw = scratch.data.u32;
-  float8_e4m3fn *out = ten->data.fp8e4m3fn;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (size_t i = 0; i < n; ++i) {
-    out[i] = fp8e4m3fn_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
-  }
-
-  *st = uniform_scratch_release(&scratch);
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_fp8e4m3_scalar,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(float8_e4m3fn),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_FP8,
+  };
+  uniform_run_u32(ten->data.fp8e4m3fn, n, &plan, base, span, generator, st);
 }
 
 /**
@@ -794,230 +1171,166 @@ void uniform_cpu_impl_fp8e4m3_scalar(Tensor *ten, float low, float high,
 void uniform_cpu_impl_fp8e5m2_scalar(Tensor *ten, float low, float high,
                                      Generator_ *generator, novaStatus_t *st) {
   const size_t n = ten->size;
-  if (n == 0) {
+  if (n == 0U) {
     *st = uniform_ok();
     return;
   }
 
-  UniformScratch scratch = {0};
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_prepare_narrow(generator, &scratch, n, low, high,
-                              uniform_fp8e5m2_value, uniform_fp8e5m2_pattern,
-                              UNIFORM_GRID_MASK_8, UNIFORM_FP8E5M2_MAX_FINITE,
-                              &base, &span,
-                              "The interval does not fit the float8_e5m2 "
-                              "format. Use bounds the format can hold.\n",
-                              st)) {
-    uniform_scratch_release(&scratch);
+  if (!uniform_range_narrow(low, high, uniform_fp8e5m2_value,
+                            uniform_fp8e5m2_pattern, UNIFORM_GRID_MASK_8,
+                            UNIFORM_FP8E5M2_MAX_FINITE, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit the "
+                                    "float8_e5m2 format. Use bounds the "
+                                    "format can hold.\n"};
+    return;
+  }
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_fp8e5m2_scalar,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(float8_e5m2),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_FP8,
+  };
+  uniform_run_u32(ten->data.fp8e5m2, n, &plan, base, span, generator, st);
+}
+
+/**
+ * @brief Fill @p ten with uniform float4_e2m1fn_x2 samples using portable
+ *        code.
+ *
+ * @details
+ * Two logical samples share each storage byte, so one destination unit is
+ * one byte and consumes two raw words.
+ */
+void uniform_cpu_impl_fp4e2m1_scalar(Tensor *ten, float low, float high,
+                                     Generator_ *generator, novaStatus_t *st) {
+  const size_t units = ten->size;
+  if (units == 0U) {
+    *st = uniform_ok();
     return;
   }
 
-  const uint32_t *raw = scratch.data.u32;
-  float8_e5m2 *out = ten->data.fp8e5m2;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
+  float base = 0.0f;
+  float span = 0.0f;
+  if (!uniform_range_narrow(low, high, uniform_fp4e2m1_value,
+                            uniform_fp4e2m1_pattern, UNIFORM_GRID_MASK_4,
+                            UNIFORM_FP4E2M1_MAX_FINITE, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit the "
+                                    "float4_e2m1fn_x2 format. Use bounds the "
+                                    "format can hold.\n"};
     return;
   }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (size_t i = 0; i < n; ++i) {
-    out[i] = fp8e5m2_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
-  }
-
-  *st = uniform_scratch_release(&scratch);
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_fp4e2m1_scalar,
+      .raw_per_unit = 2U,
+      .out_bytes = sizeof(float4_e2m1fn_x2),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_FP4,
+  };
+  uniform_run_u32(ten->data.fp4e2m1fn_x2, units, &plan, base, span, generator,
+                  st);
 }
 
 /* =========================================================================
- * SIMD variants
+ * SIMD maps and variants
  * ========================================================================= */
 
 #ifdef _GNUC_CLANG_
 
 /**
- * @brief Fill @p ten with uniform float32 samples using AVX-512.
+ * @brief Map raw words into float32 samples using AVX-512.
  *
  * Requires: AVX512F
+ *
+ * @return The destination pointer advanced past @p units samples.
  */
-[[gnu::target("avx512f")]] void
-uniform_cpu_impl_f32_avx512(Tensor *ten, float low, float high,
-                            Generator_ *generator, novaStatus_t *st) {
-  const size_t n = ten->size;
-  if (n == 0) {
-    *st = uniform_ok();
-    return;
-  }
-
-  UniformScratch scratch = {0};
-  float base = 0.0f;
-  float span = 0.0f;
-  if (!uniform_prepare_f32(generator, &scratch, n, low, high, &base, &span,
-                           st)) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-
+[[gnu::target("avx512f")]] static void *
+uniform_map_f32_avx512(const uint32_t *raw, void *out, size_t units, float base,
+                       float span) {
+  float *dst = out;
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = n - (n % step);
-  float *out = ten->data.f32;
-  const uint32_t *raw = scratch.data.u32;
+  const size_t rem = units - (units % step);
   const __m512i v_one = _mm512_set1_epi32(1);
   const __m512 v_scale = _mm512_set1_ps(0x1p-24f);
   const __m512 v_base = _mm512_set1_ps(base);
   const __m512 v_span = _mm512_set1_ps(span);
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < rem; i += step) {
+  size_t i = 0;
+  for (; i < rem; i += step) {
     const __m512i v_raw = _mm512_loadu_si512((const void *)&raw[i]);
     const __m512i v_mant = _mm512_or_si512(_mm512_srli_epi32(v_raw, 8), v_one);
     const __m512 v_unit = _mm512_mul_ps(_mm512_cvtepi32_ps(v_mant), v_scale);
-    _mm512_storeu_ps(&out[i], _mm512_fmadd_ps(v_unit, v_span, v_base));
+    _mm512_storeu_ps(&dst[i], _mm512_fmadd_ps(v_unit, v_span, v_base));
   }
-#ifdef NOVA_OPENMP
-  i = rem;
-#endif
-  for (; i < n; ++i) {
-    out[i] = fmaf(uniform_unit_f32(raw[i]), span, base);
+  for (; i < units; ++i) {
+    dst[i] = fmaf(uniform_unit_f32(raw[i]), span, base);
   }
-
-  *st = uniform_scratch_release(&scratch);
+  return dst + units;
 }
 
 /**
- * @brief Fill @p ten with uniform float32 samples using AVX/AVX2.
+ * @brief Map raw words into float32 samples using AVX/AVX2.
  *
  * Requires: AVX/AVX2, FMA
+ *
+ * @return The destination pointer advanced past @p units samples.
  */
-[[gnu::target("avx,avx2,fma")]] void
-uniform_cpu_impl_f32_avx_avx2_fma(Tensor *ten, float low, float high,
-                                  Generator_ *generator, novaStatus_t *st) {
-  const size_t n = ten->size;
-  if (n == 0) {
-    *st = uniform_ok();
-    return;
-  }
-
-  UniformScratch scratch = {0};
-  float base = 0.0f;
-  float span = 0.0f;
-  if (!uniform_prepare_f32(generator, &scratch, n, low, high, &base, &span,
-                           st)) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-
+[[gnu::target("avx,avx2,fma")]] static void *
+uniform_map_f32_avx_avx2_fma(const uint32_t *raw, void *out, size_t units,
+                             float base, float span) {
+  float *dst = out;
   const size_t step = NOVA_SIMD_U32_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = n - (n % step);
-  float *out = ten->data.f32;
-  const uint32_t *raw = scratch.data.u32;
+  const size_t rem = units - (units % step);
   const __m256i v_one = _mm256_set1_epi32(1);
   const __m256 v_scale = _mm256_set1_ps(0x1p-24f);
   const __m256 v_base = _mm256_set1_ps(base);
   const __m256 v_span = _mm256_set1_ps(span);
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < rem; i += step) {
+  size_t i = 0;
+  for (; i < rem; i += step) {
     const __m256i v_raw = _mm256_loadu_si256((const __m256i_u *)&raw[i]);
     const __m256i v_mant = _mm256_or_si256(_mm256_srli_epi32(v_raw, 8), v_one);
     const __m256 v_unit = _mm256_mul_ps(_mm256_cvtepi32_ps(v_mant), v_scale);
-    _mm256_storeu_ps(&out[i], _mm256_fmadd_ps(v_unit, v_span, v_base));
+    _mm256_storeu_ps(&dst[i], _mm256_fmadd_ps(v_unit, v_span, v_base));
   }
-#ifdef NOVA_OPENMP
-  i = rem;
-#endif
-  for (; i < n; ++i) {
-    out[i] = fmaf(uniform_unit_f32(raw[i]), span, base);
+  for (; i < units; ++i) {
+    dst[i] = fmaf(uniform_unit_f32(raw[i]), span, base);
   }
-
-  *st = uniform_scratch_release(&scratch);
+  return dst + units;
 }
 
 /**
- * @brief Fill @p ten with uniform float64 samples using AVX-512.
+ * @brief Map raw words into float64 samples using AVX-512.
  *
  * Requires: AVX512F, AVX512DQ
+ *
+ * @return The destination pointer advanced past @p units samples.
  */
-[[gnu::target("avx512f,avx512dq")]] void
-uniform_cpu_impl_f64_avx512dq(Tensor *ten, float low, float high,
-                              Generator_ *generator, novaStatus_t *st) {
-  const size_t n = ten->size;
-  if (n == 0) {
-    *st = uniform_ok();
-    return;
-  }
-
-  UniformScratch scratch = {0};
-  double base = 0.0;
-  double span = 0.0;
-  if (!uniform_prepare_f64(generator, &scratch, n, low, high, &base, &span,
-                           st)) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-
+[[gnu::target("avx512f,avx512dq")]] static void *
+uniform_map_f64_avx512dq(const uint64_t *raw, void *out, size_t units,
+                         double base, double span) {
+  double *dst = out;
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = n - (n % step);
-  double *out = ten->data.f64;
-  const uint64_t *raw = scratch.data.u64;
+  const size_t rem = units - (units % step);
   const __m512i v_one = _mm512_set1_epi64(1);
   const __m512d v_scale = _mm512_set1_pd(0x1p-53);
   const __m512d v_base = _mm512_set1_pd(base);
   const __m512d v_span = _mm512_set1_pd(span);
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < rem; i += step) {
+  size_t i = 0;
+  for (; i < rem; i += step) {
     const __m512i v_raw = _mm512_loadu_si512((const void *)&raw[i]);
     const __m512i v_mant = _mm512_or_si512(_mm512_srli_epi64(v_raw, 11), v_one);
     const __m512d v_unit = _mm512_mul_pd(_mm512_cvtepu64_pd(v_mant), v_scale);
-    _mm512_storeu_pd(&out[i], _mm512_fmadd_pd(v_unit, v_span, v_base));
+    _mm512_storeu_pd(&dst[i], _mm512_fmadd_pd(v_unit, v_span, v_base));
   }
-#ifdef NOVA_OPENMP
-  i = rem;
-#endif
-  for (; i < n; ++i) {
-    out[i] = fma(uniform_unit_f64(raw[i]), span, base);
+  for (; i < units; ++i) {
+    dst[i] = fma(uniform_unit_f64(raw[i]), span, base);
   }
-
-  *st = uniform_scratch_release(&scratch);
+  return dst + units;
 }
 
 /**
- * @brief Fill @p ten with uniform float64 samples using AVX/AVX2.
+ * @brief Map raw words into float64 samples using AVX/AVX2.
  *
  * Requires: AVX/AVX2, FMA
  *
@@ -1026,30 +1339,15 @@ uniform_cpu_impl_f64_avx512dq(Tensor *ten, float low, float high,
  * mantissa is rebuilt from its two halves. The split is exact: the
  * high part holds 21 bits, the low part 32 bits, and every integer
  * below 2^53 is representable as a double.
+ *
+ * @return The destination pointer advanced past @p units samples.
  */
-[[gnu::target("avx,avx2,fma")]] void
-uniform_cpu_impl_f64_avx_avx2_fma(Tensor *ten, float low, float high,
-                                  Generator_ *generator, novaStatus_t *st) {
-  const size_t n = ten->size;
-  if (n == 0) {
-    *st = uniform_ok();
-    return;
-  }
-
-  UniformScratch scratch = {0};
-  double base = 0.0;
-  double span = 0.0;
-  if (!uniform_prepare_f64(generator, &scratch, n, low, high, &base, &span,
-                           st)) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-
+[[gnu::target("avx,avx2,fma")]] static void *
+uniform_map_f64_avx_avx2_fma(const uint64_t *raw, void *out, size_t units,
+                             double base, double span) {
+  double *dst = out;
   const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = n - (n % step);
-  double *out = ten->data.f64;
-  const uint64_t *raw = scratch.data.u64;
+  const size_t rem = units - (units % step);
   const __m256i v_one = _mm256_set1_epi64x(1);
   const __m256i v_low32 = _mm256_set1_epi64x(0xFFFFFFFFLL);
   const __m256i v_pick = _mm256_setr_epi32(0, 2, 4, 6, 0, 0, 0, 0);
@@ -1060,18 +1358,8 @@ uniform_cpu_impl_f64_avx_avx2_fma(Tensor *ten, float low, float high,
   const __m256d v_scale = _mm256_set1_pd(0x1p-53);
   const __m256d v_base = _mm256_set1_pd(base);
   const __m256d v_span = _mm256_set1_pd(span);
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < rem; i += step) {
+  size_t i = 0;
+  for (; i < rem; i += step) {
     const __m256i v_raw = _mm256_loadu_si256((const __m256i_u *)&raw[i]);
     const __m256i v_mant = _mm256_or_si256(_mm256_srli_epi64(v_raw, 11), v_one);
     const __m256i v_high = _mm256_srli_epi64(v_mant, 32);
@@ -1088,16 +1376,279 @@ uniform_cpu_impl_f64_avx_avx2_fma(Tensor *ten, float low, float high,
                         v_one_pd, v_magic);
     const __m256d v_value = _mm256_fmadd_pd(v_high_d, v_two32, v_low_d);
     const __m256d v_unit = _mm256_mul_pd(v_value, v_scale);
-    _mm256_storeu_pd(&out[i], _mm256_fmadd_pd(v_unit, v_span, v_base));
+    _mm256_storeu_pd(&dst[i], _mm256_fmadd_pd(v_unit, v_span, v_base));
   }
-#ifdef NOVA_OPENMP
-  i = rem;
-#endif
-  for (; i < n; ++i) {
-    out[i] = fma(uniform_unit_f64(raw[i]), span, base);
+  for (; i < units; ++i) {
+    dst[i] = fma(uniform_unit_f64(raw[i]), span, base);
   }
+  return dst + units;
+}
 
-  *st = uniform_scratch_release(&scratch);
+/**
+ * @brief Map raw words into float16 samples using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @return The destination pointer advanced past @p units samples.
+ */
+[[gnu::target("avx512f")]] static void *
+uniform_map_fp16_avx512(const uint32_t *raw, void *out, size_t units,
+                        float base, float span) {
+  float16 *dst = out;
+  const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
+  const size_t rem = units - (units % step);
+  const __m512i v_one = _mm512_set1_epi32(1);
+  const __m512 v_scale = _mm512_set1_ps(0x1p-24f);
+  const __m512 v_base = _mm512_set1_ps(base);
+  const __m512 v_span = _mm512_set1_ps(span);
+  size_t i = 0;
+  for (; i < rem; i += step) {
+    const __m512i v_raw = _mm512_loadu_si512((const void *)&raw[i]);
+    const __m512i v_mant = _mm512_or_si512(_mm512_srli_epi32(v_raw, 8), v_one);
+    const __m512 v_unit = _mm512_mul_ps(_mm512_cvtepi32_ps(v_mant), v_scale);
+    const __m512 v_out = _mm512_fmadd_ps(v_unit, v_span, v_base);
+    const __m256i v_half =
+        _mm512_cvtps_ph(v_out, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+    _mm256_storeu_si256((__m256i_u *)&dst[i], v_half);
+  }
+  for (; i < units; ++i) {
+    dst[i] = fp16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
+  }
+  return dst + units;
+}
+
+/**
+ * @brief Map raw words into float16 samples using AVX/AVX2 and F16C.
+ *
+ * Requires: AVX/AVX2, FMA, F16C
+ *
+ * @return The destination pointer advanced past @p units samples.
+ */
+[[gnu::target("avx,avx2,fma,f16c")]] static void *
+uniform_map_fp16_avx_avx2_fma_f16c(const uint32_t *raw, void *out, size_t units,
+                                   float base, float span) {
+  float16 *dst = out;
+  const size_t step = NOVA_SIMD_U32_WITH_AVX_AVX2;
+  const size_t rem = units - (units % step);
+  const __m256i v_one = _mm256_set1_epi32(1);
+  const __m256 v_scale = _mm256_set1_ps(0x1p-24f);
+  const __m256 v_base = _mm256_set1_ps(base);
+  const __m256 v_span = _mm256_set1_ps(span);
+  size_t i = 0;
+  for (; i < rem; i += step) {
+    const __m256i v_raw = _mm256_loadu_si256((const __m256i_u *)&raw[i]);
+    const __m256i v_mant = _mm256_or_si256(_mm256_srli_epi32(v_raw, 8), v_one);
+    const __m256 v_unit = _mm256_mul_ps(_mm256_cvtepi32_ps(v_mant), v_scale);
+    const __m256 v_out = _mm256_fmadd_ps(v_unit, v_span, v_base);
+    const __m128i v_half =
+        _mm256_cvtps_ph(v_out, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+    _mm_storeu_si128((__m128i_u *)&dst[i], v_half);
+  }
+  for (; i < units; ++i) {
+    dst[i] = fp16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
+  }
+  return dst + units;
+}
+
+/**
+ * @brief Map raw words into bfloat16 samples using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16
+ *
+ * @return The destination pointer advanced past @p units samples.
+ */
+[[gnu::target("avx512f,avx512bf16")]] static void *
+uniform_map_bf16_avx512bf16(const uint32_t *raw, void *out, size_t units,
+                            float base, float span) {
+  bfloat16 *dst = out;
+  const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
+  const size_t rem = units - (units % step);
+  const __m512i v_one = _mm512_set1_epi32(1);
+  const __m512 v_scale = _mm512_set1_ps(0x1p-24f);
+  const __m512 v_base = _mm512_set1_ps(base);
+  const __m512 v_span = _mm512_set1_ps(span);
+  size_t i = 0;
+  for (; i < rem; i += step) {
+    const __m512i v_raw = _mm512_loadu_si512((const void *)&raw[i]);
+    const __m512i v_mant = _mm512_or_si512(_mm512_srli_epi32(v_raw, 8), v_one);
+    const __m512 v_unit = _mm512_mul_ps(_mm512_cvtepi32_ps(v_mant), v_scale);
+    const __m512 v_out = _mm512_fmadd_ps(v_unit, v_span, v_base);
+    const __m256bh v_brain = _mm512_cvtneps_pbh(v_out);
+    memcpy(&dst[i], &v_brain, sizeof v_brain);
+  }
+  for (; i < units; ++i) {
+    dst[i] = bf16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
+  }
+  return dst + units;
+}
+
+/**
+ * @brief Map raw words into bfloat16 samples using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, FMA
+ *
+ * @details
+ * AVX2 has no bfloat16 conversion, so the rounding is integer: add the
+ * nearest-even bias to the float pattern, shift the low half away, and
+ * pack the eight upper halves into eight 16-bit samples. NaNs are
+ * canonicalized to match the scalar encoder.
+ *
+ * @return The destination pointer advanced past @p units samples.
+ */
+[[gnu::target("avx,avx2,fma")]] static void *
+uniform_map_bf16_avx_avx2_fma(const uint32_t *raw, void *out, size_t units,
+                              float base, float span) {
+  bfloat16 *dst = out;
+  const size_t step = NOVA_SIMD_U32_WITH_AVX_AVX2;
+  const size_t rem = units - (units % step);
+  const __m256i v_one = _mm256_set1_epi32(1);
+  const __m256 v_scale = _mm256_set1_ps(0x1p-24f);
+  const __m256 v_base = _mm256_set1_ps(base);
+  const __m256 v_span = _mm256_set1_ps(span);
+  const __m256i v_bias = _mm256_set1_epi32(0x7FFF);
+  const __m256i v_lsb = _mm256_set1_epi32(1);
+  const __m256i v_nan = _mm256_set1_epi32(0x7FC0);
+  size_t i = 0;
+  for (; i < rem; i += step) {
+    const __m256i v_raw = _mm256_loadu_si256((const __m256i_u *)&raw[i]);
+    const __m256i v_mant = _mm256_or_si256(_mm256_srli_epi32(v_raw, 8), v_one);
+    const __m256 v_unit = _mm256_mul_ps(_mm256_cvtepi32_ps(v_mant), v_scale);
+    const __m256 v_out = _mm256_fmadd_ps(v_unit, v_span, v_base);
+    const __m256i v_bits = _mm256_castps_si256(v_out);
+    const __m256i v_tie =
+        _mm256_and_si256(_mm256_srli_epi32(v_bits, 16), v_lsb);
+    const __m256i v_round =
+        _mm256_add_epi32(v_bits, _mm256_add_epi32(v_bias, v_tie));
+    const __m256i v_upper = _mm256_srli_epi32(v_round, 16);
+    const __m256 v_isnan = _mm256_cmp_ps(v_out, v_out, _CMP_UNORD_Q);
+    const __m256i v_fixed =
+        _mm256_blendv_epi8(v_upper, v_nan, _mm256_castps_si256(v_isnan));
+    const __m256i v_packed = _mm256_packus_epi32(v_fixed, v_fixed);
+    const __m256i v_ordered = _mm256_permute4x64_epi64(v_packed, 0xD8);
+    _mm_storeu_si128((__m128i_u *)&dst[i], _mm256_castsi256_si128(v_ordered));
+  }
+  for (; i < units; ++i) {
+    dst[i] = bf16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
+  }
+  return dst + units;
+}
+
+/**
+ * @brief Fill @p ten with uniform float32 samples using AVX-512.
+ *
+ * Requires: AVX512F
+ */
+[[gnu::target("avx512f")]] void
+uniform_cpu_impl_f32_avx512(Tensor *ten, float low, float high,
+                            Generator_ *generator, novaStatus_t *st) {
+  const size_t n = ten->size;
+  if (n == 0U) {
+    *st = uniform_ok();
+    return;
+  }
+  float base = 0.0f;
+  float span = 0.0f;
+  if (!uniform_range_f32(low, high, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit float32. Use "
+                                    "bounds float32 can hold.\n"};
+    return;
+  }
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_f32_avx512,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(float),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_CHEAP_MAP,
+  };
+  uniform_run_u32(ten->data.f32, n, &plan, base, span, generator, st);
+}
+
+/**
+ * @brief Fill @p ten with uniform float32 samples using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, FMA
+ */
+[[gnu::target("avx,avx2,fma")]] void
+uniform_cpu_impl_f32_avx_avx2_fma(Tensor *ten, float low, float high,
+                                  Generator_ *generator, novaStatus_t *st) {
+  const size_t n = ten->size;
+  if (n == 0U) {
+    *st = uniform_ok();
+    return;
+  }
+  float base = 0.0f;
+  float span = 0.0f;
+  if (!uniform_range_f32(low, high, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit float32. Use "
+                                    "bounds float32 can hold.\n"};
+    return;
+  }
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_f32_avx_avx2_fma,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(float),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_CHEAP_MAP,
+  };
+  uniform_run_u32(ten->data.f32, n, &plan, base, span, generator, st);
+}
+
+/**
+ * @brief Fill @p ten with uniform float64 samples using AVX-512.
+ *
+ * Requires: AVX512F, AVX512DQ
+ */
+[[gnu::target("avx512f,avx512dq")]] void
+uniform_cpu_impl_f64_avx512dq(Tensor *ten, float low, float high,
+                              Generator_ *generator, novaStatus_t *st) {
+  const size_t n = ten->size;
+  if (n == 0U) {
+    *st = uniform_ok();
+    return;
+  }
+  double base = 0.0;
+  double span = 0.0;
+  if (!uniform_range_f64(low, high, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit float64. Use "
+                                    "bounds float64 can hold.\n"};
+    return;
+  }
+  static const UniformPlanU64 plan = {
+      .map = uniform_map_f64_avx512dq,
+      .out_bytes = sizeof(double),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_F64,
+  };
+  uniform_run_u64(ten->data.f64, n, &plan, base, span, generator, st);
+}
+
+/**
+ * @brief Fill @p ten with uniform float64 samples using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, FMA
+ */
+[[gnu::target("avx,avx2,fma")]] void
+uniform_cpu_impl_f64_avx_avx2_fma(Tensor *ten, float low, float high,
+                                  Generator_ *generator, novaStatus_t *st) {
+  const size_t n = ten->size;
+  if (n == 0U) {
+    *st = uniform_ok();
+    return;
+  }
+  double base = 0.0;
+  double span = 0.0;
+  if (!uniform_range_f64(low, high, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit float64. Use "
+                                    "bounds float64 can hold.\n"};
+    return;
+  }
+  static const UniformPlanU64 plan = {
+      .map = uniform_map_f64_avx_avx2_fma,
+      .out_bytes = sizeof(double),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_F64,
+  };
+  uniform_run_u64(ten->data.f64, n, &plan, base, span, generator, st);
 }
 
 /**
@@ -1109,65 +1660,27 @@ uniform_cpu_impl_f64_avx_avx2_fma(Tensor *ten, float low, float high,
 uniform_cpu_impl_fp16_avx512(Tensor *ten, float low, float high,
                              Generator_ *generator, novaStatus_t *st) {
   const size_t n = ten->size;
-  if (n == 0) {
+  if (n == 0U) {
     *st = uniform_ok();
     return;
   }
-
-  UniformScratch scratch = {0};
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_prepare_narrow(generator, &scratch, n, low, high,
-                              uniform_fp16_value, uniform_fp16_pattern,
-                              UNIFORM_GRID_MASK_16, UNIFORM_FP16_MAX_FINITE,
-                              &base, &span,
-                              "The interval does not fit the float16 format. "
-                              "Use bounds the format can hold.\n",
-                              st)) {
-    uniform_scratch_release(&scratch);
+  if (!uniform_range_narrow(low, high, uniform_fp16_value,
+                            uniform_fp16_pattern, UNIFORM_GRID_MASK_16,
+                            UNIFORM_FP16_MAX_FINITE, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit the float16 "
+                                    "format. Use bounds the format can hold.\n"};
     return;
   }
-
-  const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = n - (n % step);
-  float16 *out = ten->data.half;
-  const uint32_t *raw = scratch.data.u32;
-  const __m512i v_one = _mm512_set1_epi32(1);
-  const __m512 v_scale = _mm512_set1_ps(0x1p-24f);
-  const __m512 v_base = _mm512_set1_ps(base);
-  const __m512 v_span = _mm512_set1_ps(span);
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < rem; i += step) {
-    const __m512i v_raw = _mm512_loadu_si512((const void *)&raw[i]);
-    const __m512i v_mant = _mm512_or_si512(_mm512_srli_epi32(v_raw, 8), v_one);
-    const __m512 v_unit = _mm512_mul_ps(_mm512_cvtepi32_ps(v_mant), v_scale);
-    const __m512 v_out = _mm512_fmadd_ps(v_unit, v_span, v_base);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-    const __m256i v_half =
-        _mm512_cvtps_ph(v_out, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
-#pragma GCC diagnostic pop
-    _mm256_storeu_si256((__m256i_u *)&out[i], v_half);
-  }
-#ifdef NOVA_OPENMP
-  i = rem;
-#endif
-  for (; i < n; ++i) {
-    out[i] = fp16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
-  }
-
-  *st = uniform_scratch_release(&scratch);
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_fp16_avx512,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(float16),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_CHEAP_MAP,
+  };
+  uniform_run_u32(ten->data.half, n, &plan, base, span, generator, st);
 }
 
 /**
@@ -1180,62 +1693,27 @@ uniform_cpu_impl_fp16_avx_avx2_fma_f16c(Tensor *ten, float low, float high,
                                         Generator_ *generator,
                                         novaStatus_t *st) {
   const size_t n = ten->size;
-  if (n == 0) {
+  if (n == 0U) {
     *st = uniform_ok();
     return;
   }
-
-  UniformScratch scratch = {0};
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_prepare_narrow(generator, &scratch, n, low, high,
-                              uniform_fp16_value, uniform_fp16_pattern,
-                              UNIFORM_GRID_MASK_16, UNIFORM_FP16_MAX_FINITE,
-                              &base, &span,
-                              "The interval does not fit the float16 format. "
-                              "Use bounds the format can hold.\n",
-                              st)) {
-    uniform_scratch_release(&scratch);
+  if (!uniform_range_narrow(low, high, uniform_fp16_value,
+                            uniform_fp16_pattern, UNIFORM_GRID_MASK_16,
+                            UNIFORM_FP16_MAX_FINITE, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit the float16 "
+                                    "format. Use bounds the format can hold.\n"};
     return;
   }
-
-  const size_t step = NOVA_SIMD_U32_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = n - (n % step);
-  float16 *out = ten->data.half;
-  const uint32_t *raw = scratch.data.u32;
-  const __m256i v_one = _mm256_set1_epi32(1);
-  const __m256 v_scale = _mm256_set1_ps(0x1p-24f);
-  const __m256 v_base = _mm256_set1_ps(base);
-  const __m256 v_span = _mm256_set1_ps(span);
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < rem; i += step) {
-    const __m256i v_raw = _mm256_loadu_si256((const __m256i_u *)&raw[i]);
-    const __m256i v_mant = _mm256_or_si256(_mm256_srli_epi32(v_raw, 8), v_one);
-    const __m256 v_unit = _mm256_mul_ps(_mm256_cvtepi32_ps(v_mant), v_scale);
-    const __m256 v_out = _mm256_fmadd_ps(v_unit, v_span, v_base);
-    const __m128i v_half =
-        _mm256_cvtps_ph(v_out, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
-    _mm_storeu_si128((__m128i_u *)&out[i], v_half);
-  }
-#ifdef NOVA_OPENMP
-  i = rem;
-#endif
-  for (; i < n; ++i) {
-    out[i] = fp16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
-  }
-
-  *st = uniform_scratch_release(&scratch);
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_fp16_avx_avx2_fma_f16c,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(float16),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_CHEAP_MAP,
+  };
+  uniform_run_u32(ten->data.half, n, &plan, base, span, generator, st);
 }
 
 /**
@@ -1247,61 +1725,59 @@ uniform_cpu_impl_fp16_avx_avx2_fma_f16c(Tensor *ten, float low, float high,
 uniform_cpu_impl_bf16_avx512bf16(Tensor *ten, float low, float high,
                                  Generator_ *generator, novaStatus_t *st) {
   const size_t n = ten->size;
-  if (n == 0) {
+  if (n == 0U) {
     *st = uniform_ok();
     return;
   }
-
-  UniformScratch scratch = {0};
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_prepare_narrow(generator, &scratch, n, low, high,
-                              uniform_bf16_value, uniform_bf16_pattern,
-                              UNIFORM_GRID_MASK_16, UNIFORM_BF16_MAX_FINITE,
-                              &base, &span,
-                              "The interval does not fit the bfloat16 format. "
-                              "Use bounds the format can hold.\n",
-                              st)) {
-    uniform_scratch_release(&scratch);
+  if (!uniform_range_narrow(low, high, uniform_bf16_value,
+                            uniform_bf16_pattern, UNIFORM_GRID_MASK_16,
+                            UNIFORM_BF16_MAX_FINITE, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit the bfloat16 "
+                                    "format. Use bounds the format can hold.\n"};
     return;
   }
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_bf16_avx512bf16,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(bfloat16),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_CHEAP_MAP,
+  };
+  uniform_run_u32(ten->data.bf16, n, &plan, base, span, generator, st);
+}
 
-  const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = n - (n % step);
-  bfloat16 *out = ten->data.bf16;
-  const uint32_t *raw = scratch.data.u32;
-  const __m512i v_one = _mm512_set1_epi32(1);
-  const __m512 v_scale = _mm512_set1_ps(0x1p-24f);
-  const __m512 v_base = _mm512_set1_ps(base);
-  const __m512 v_span = _mm512_set1_ps(span);
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    uniform_scratch_release(&scratch);
+/**
+ * @brief Fill @p ten with uniform bfloat16 samples using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, FMA
+ */
+[[gnu::target("avx,avx2,fma")]] void
+uniform_cpu_impl_bf16_avx_avx2_fma(Tensor *ten, float low, float high,
+                                   Generator_ *generator, novaStatus_t *st) {
+  const size_t n = ten->size;
+  if (n == 0U) {
+    *st = uniform_ok();
     return;
   }
-  const ElementwiseWork work = make_elementwise_work(ten);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < rem; i += step) {
-    const __m512i v_raw = _mm512_loadu_si512((const void *)&raw[i]);
-    const __m512i v_mant = _mm512_or_si512(_mm512_srli_epi32(v_raw, 8), v_one);
-    const __m512 v_unit = _mm512_mul_ps(_mm512_cvtepi32_ps(v_mant), v_scale);
-    const __m512 v_out = _mm512_fmadd_ps(v_unit, v_span, v_base);
-    const __m256bh v_brain = _mm512_cvtneps_pbh(v_out);
-    memcpy(&out[i], &v_brain, sizeof v_brain);
+  float base = 0.0f;
+  float span = 0.0f;
+  if (!uniform_range_narrow(low, high, uniform_bf16_value,
+                            uniform_bf16_pattern, UNIFORM_GRID_MASK_16,
+                            UNIFORM_BF16_MAX_FINITE, &base, &span)) {
+    *st = (novaStatus_t){.err = novaInvalidValue,
+                         .message = "The interval does not fit the bfloat16 "
+                                    "format. Use bounds the format can hold.\n"};
+    return;
   }
-#ifdef NOVA_OPENMP
-  i = rem;
-#endif
-  for (; i < n; ++i) {
-    out[i] = bf16_from_float(fmaf(uniform_unit_f32(raw[i]), span, base));
-  }
-
-  *st = uniform_scratch_release(&scratch);
+  static const UniformPlanU32 plan = {
+      .map = uniform_map_bf16_avx_avx2_fma,
+      .raw_per_unit = 1U,
+      .out_bytes = sizeof(bfloat16),
+      .parallel_floor = UNIFORM_PARALLEL_FLOOR_CHEAP_MAP,
+  };
+  uniform_run_u32(ten->data.bf16, n, &plan, base, span, generator, st);
 }
 
 #endif
@@ -1336,6 +1812,7 @@ static const UniformVariant uniform_variants_fp16[] = {
 
 static const UniformVariant uniform_variants_bf16[] = {
     {.fn = uniform_cpu_impl_bf16_avx512bf16, .isa = UniformISAAVX512BF16},
+    {.fn = uniform_cpu_impl_bf16_avx_avx2_fma, .isa = UniformISAAVX2FMA},
     {.fn = uniform_cpu_impl_bf16_scalar, .isa = UniformISANone},
     {.fn = nullptr, .isa = UniformISANone},
 };
@@ -1374,6 +1851,11 @@ static const UniformVariant uniform_variants_fp8e5m2[] = {
     {.fn = nullptr, .isa = UniformISANone},
 };
 
+static const UniformVariant uniform_variants_fp4e2m1[] = {
+    {.fn = uniform_cpu_impl_fp4e2m1_scalar, .isa = UniformISANone},
+    {.fn = nullptr, .isa = UniformISANone},
+};
+
 /**
  * @brief Variant tables indexed by the tensor data type.
  *
@@ -1388,6 +1870,7 @@ static const UniformVariant *const uniform_variant_tables[NUM_DTYPES] = {
     [BFloat16] = uniform_variants_bf16,
     [Float8E4M3fn] = uniform_variants_fp8e4m3,
     [Float8E5M2] = uniform_variants_fp8e5m2,
+    [Float4E2M1fn] = uniform_variants_fp4e2m1,
 };
 
 /**

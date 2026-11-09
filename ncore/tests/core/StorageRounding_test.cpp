@@ -642,8 +642,8 @@ TEST_P(RoundingDtypeSweep, SameBytesSameRounding) {
 INSTANTIATE_TEST_SUITE_P(DtypeAgnostic, RoundingDtypeSweep,
                          ::testing::Values(Float32, Float64, Float16, BFloat16,
                                            Float8E4M3fn, Float8E5M2,
-                                           Float4E2M1fn, Signed8, UnSigned8,
-                                           Signed32, Signed64));
+                                           Float8E8M0fnu, Float4E2M1fn, Signed8,
+                                           UnSigned8, Signed32, Signed64));
 
 /**
  * @brief Each dtype's host tensor reports requested == theoretical.

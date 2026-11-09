@@ -33,6 +33,7 @@
  *   @c bf16      = bfloat16         (Brain Float 16)
  *   @c fp8e4m3   = float8_e4m3fn    (FP8 E4M3FN 8-bit)
  *   @c fp8e5m2   = float8_e5m2      (FP8 E5M2 8-bit)
+ *   @c fp8e8m0   = float8_e8m0fnu   (E8M0 scale exponent 8-bit)
  *   @c fp4e2m1   = float4_e2m1fn_x2 (FP4 pair-packed 4-bit)
  *   @c s8/s16/s32/s64 = int8 / int16 / int32 / int64
  *   @c u8/u16/u32/u64 = uint8 / uint16 / uint32 / uint64
@@ -1756,6 +1757,70 @@ void tf64_to_bf16_scalar(const Tensor *restrict src, Tensor *restrict dst,
 #endif
   for (size_t i = 0; i < src->size; ++i) {
     d[i] = bf16_from_float((float)s[i]);
+  }
+
+  *status = (novaStatus_t){.err = novaSuccess,
+                           .message = nova_get_error_msg(novaSuccess, nullptr)};
+}
+
+/**
+ * @brief Convert every element from float to float8_e8m0fnu
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type float8_e8m0fnu.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_fp8e8m0_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status) {
+  const float *s = src->data.f32;
+  float8_e8m0fnu *d = dst->data.fp8e8m0fnu;
+
+#ifdef NOVA_OPENMP
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+#pragma omp parallel for num_threads(decision.num_threads)                     \
+    schedule(static) if (decision.go)
+#endif
+  for (size_t i = 0; i < src->size; ++i) {
+    d[i] = fp8e8m0fnu_from_float(s[i]);
+  }
+
+  *status = (novaStatus_t){.err = novaSuccess,
+                           .message = nova_get_error_msg(novaSuccess, nullptr)};
+}
+
+/**
+ * @brief Convert every element from float8_e8m0fnu to float
+ *
+ * @param[in]  src  Source tensor with element type float8_e8m0fnu.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp8e8m0_to_f32_scalar(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status) {
+  const float8_e8m0fnu *s = src->data.fp8e8m0fnu;
+  float *d = dst->data.f32;
+
+#ifdef NOVA_OPENMP
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+#pragma omp parallel for num_threads(decision.num_threads)                     \
+    schedule(static) if (decision.go)
+#endif
+  for (size_t i = 0; i < src->size; ++i) {
+    d[i] = fp8e8m0fnu_to_float(s[i]);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,

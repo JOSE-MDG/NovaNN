@@ -211,8 +211,8 @@ TEST(RngGenerator, DeviceFillMatchesHostBitwise) {
   expectOk(dev.fillU32(mirror.devTen().data.u32, kN), "device fill");
   mirror.fetch();
 
-  EXPECT_EQ(
-      0, std::memcmp(hostBits, mirror.homeTen().data.u32, kN * sizeof(uint32_t)));
+  EXPECT_EQ(0, std::memcmp(hostBits, mirror.homeTen().data.u32,
+                           kN * sizeof(uint32_t)));
 }
 
 /** Masked tail and parked lane continuation stay aligned on device. */
@@ -235,8 +235,8 @@ TEST(RngGenerator, DeviceTailAndContinuationMatchHost) {
   expectOk(dev.fillU32(mirror.devTen().data.u32 + kHead, kNext), "device tail");
   mirror.fetch();
 
-  EXPECT_EQ(
-      0, std::memcmp(hostBits, mirror.homeTen().data.u32, kN * sizeof(uint32_t)));
+  EXPECT_EQ(0, std::memcmp(hostBits, mirror.homeTen().data.u32,
+                           kN * sizeof(uint32_t)));
 }
 
 /** A nonzero device tail is rejected before any lane is consumed. */
@@ -272,8 +272,8 @@ TEST(RngGenerator, DeviceU64FillMatchesHostBitwise) {
   expectOk(dev.fillU64(mirror.devTen().data.u64 + kHead, kNext), "device tail");
   mirror.fetch();
 
-  EXPECT_EQ(
-      0, std::memcmp(hostBits, mirror.homeTen().data.u64, kN * sizeof(uint64_t)));
+  EXPECT_EQ(0, std::memcmp(hostBits, mirror.homeTen().data.u64,
+                           kN * sizeof(uint64_t)));
 }
 
 /** A device byte fill round-trips through the tensor layer. */
@@ -310,8 +310,8 @@ TEST(RngGenerator, DeviceFillSurvivesHostDelayBeforeRead) {
   std::this_thread::sleep_for(std::chrono::milliseconds(2));
   mirror.fetch();
 
-  EXPECT_EQ(
-      0, std::memcmp(hostBits, mirror.homeTen().data.u32, 8 * sizeof(uint32_t)));
+  EXPECT_EQ(0, std::memcmp(hostBits, mirror.homeTen().data.u32,
+                           8 * sizeof(uint32_t)));
 }
 
 } // namespace

@@ -137,6 +137,25 @@ NCORE_HOST_DEVICE static inline void xoshiro256_long_jump(XoshiroState *state) {
 }
 
 /**
+ * @brief Jump ahead an arbitrary number of calls.
+ *
+ * @details
+ * The distance becomes x to the @p steps modulo the characteristic
+ * polynomial of the state transition, so the jump costs O(log steps)
+ * ring multiplications instead of @p steps calls. Splitting one fill
+ * into contiguous chunks relies on the result matching a sequential
+ * walk exactly.
+ *
+ * @param[in,out] state  Engine state, advanced in place. Must not be
+ *                       nullptr.
+ * @param[in]     steps  Calls to skip. Must stay below the period.
+ *
+ * @return Status with @c err set to @c novaSuccess on success or
+ *         @c novaInvalidPointer when @p state is nullptr.
+ */
+novaStatus_t xoshiro256_jump_to(XoshiroState *state, uint64_t steps);
+
+/**
  * @brief Initialize state from a 64-bit seed.
  *
  * @param[out] state   Destination state. Must not be nullptr.
