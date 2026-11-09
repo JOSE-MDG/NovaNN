@@ -33,6 +33,10 @@ typedef enum : uint8_t {
 /**
  * @def RAND_LANE_CACHE_CAP
  * @brief Lanes a fill may park in the handle cache between fills.
+ *
+ * @details
+ * Philox parks at most three mask lanes of its last block; Xoshiro
+ * parks at most one sample half.
  */
 #define RAND_LANE_CACHE_CAP 3U
 
@@ -209,6 +213,80 @@ novaStatus_t generator_clone(const Generator_ *src, Generator_ *dst);
  *         @c novaInvalidPointer when @p gen is nullptr.
  */
 novaStatus_t default_generator(Device_ device, Generator_ *gen);
+
+/**
+ * @struct DefaultGeneratorLease
+ * @brief Exclusive hold on a process default across a multi-step fill.
+ *
+ * @details
+ * A fill that draws in several calls cannot use
+ * @ref default_fill_u32() per call without letting another thread
+ * interleave. The lease keeps the default mutex for the whole fill.
+ */
+typedef struct {
+  Generator_ *gen; ///< Live default while held, null otherwise.
+  Device_ device;  ///< Placement the lease covers.
+} DefaultGeneratorLease;
+
+/**
+ * @brief Take a process default for a device and hold its mutex.
+ *
+ * @details
+ * The lease carries a pointer to the live default, so the caller draws
+ * from it directly and releases the lease once the whole fill is done.
+ * A lease covers one fill: nested leases on the same device deadlock
+ * under the non-recursive POSIX mutex and nest silently under the
+ * recursive Windows one, so neither is supported.
+ *
+ * @param[in]  device Placement whose default is taken.
+ * @param[out] lease  Destination lease. Must not be nullptr.
+ *
+ * @return Status with @c err set to @c novaSuccess on success,
+ *         @c novaInvalidPointer when @p lease is nullptr, or
+ *         @c novaInvalidDevice for a placement without a default.
+ */
+novaStatus_t default_generator_lease(Device_ device,
+                                     DefaultGeneratorLease *lease);
+
+/**
+ * @brief Release a lease and unlock the default it covers.
+ *
+ * @param[in,out] lease  Lease to release. A null @c gen is a no-op.
+ *
+ * @return Status with @c err set to @c novaSuccess on success or
+ *         @c novaInvalidPointer when @p lease is nullptr.
+ */
+novaStatus_t default_generator_return(DefaultGeneratorLease *lease);
+
+/**
+ * @brief Position a copy of a handle at a value offset of its stream.
+ *
+ * @details
+ * Filling the copy yields exactly the values the source would emit
+ * from @p offset on, so contiguous offsets reproduce a serial fill bit
+ * for bit. Parked lanes travel: an offset inside the cached tail keeps
+ * the remaining lanes in the copy.
+ *
+ * @param[in]  gen     Source handle. Must not be nullptr and must fill
+ *                     the CPU.
+ * @param[in]  offset  Values to skip. Counts 32-bit values for
+ *                     @ref generator_u32_stream_at() and 64-bit values
+ *                     for @ref generator_u64_stream_at().
+ * @param[out] cursor  Copy positioned at @p offset. Must not be
+ *                     nullptr.
+ *
+ * @return Status with @c err set to @c novaSuccess on success,
+ *         @c novaInvalidPointer on null arguments, or
+ *         @c novaInvalidDevice for a handle that does not fill the CPU.
+ */
+novaStatus_t generator_u32_stream_at(const Generator_ *gen, size_t offset,
+                                     Generator_ *cursor);
+
+/**
+ * @copydetails generator_u32_stream_at()
+ */
+novaStatus_t generator_u64_stream_at(const Generator_ *gen, size_t offset,
+                                     Generator_ *cursor);
 
 /**
  * @brief Seed the CPU and GPU defaults together.
