@@ -27,6 +27,8 @@
 #include <ncore/native/cpu/dtype/casting.h>
 #include <ncore/tensor.h>
 
+#include <stdio.h>
+
 #include "element_fmt.h"
 #include "float_formatter.h"
 #include "int_formatter.h"
@@ -90,6 +92,19 @@ static inline int fmt_float8_e5m2(char *buf, size_t cap, const void *ptr,
   (void)ten;
   return float_format_value(
       buf, cap, (double)fp8e5m2_to_float(*(const float8_e5m2 *)ptr), ctx);
+}
+
+/** Format a Float8 E8M0 scale factor as its 2^k exponent form. */
+static inline int fmt_float8_e8m0fnu(char *buf, size_t cap, const void *ptr,
+                                     const Tensor *ten,
+                                     const ReprContext *ctx) {
+  (void)ten;
+  (void)ctx;
+  const float8_e8m0fnu bits = *(const float8_e8m0fnu *)ptr;
+  if (bits == UINT8_C(0xFF)) {
+    return snprintf(buf, cap, "nan");
+  }
+  return snprintf(buf, cap, "2^%d", (int)bits - 127);
 }
 
 /** Format one Float4 E2M1FN lane from a packed pair. */
@@ -243,6 +258,7 @@ element_formatter_t g_element_formatters[NUM_DTYPES] = {
     [BFloat16] = fmt_bfloat16,
     [Float8E4M3fn] = fmt_float8_e4m3fn,
     [Float8E5M2] = fmt_float8_e5m2,
+    [Float8E8M0fnu] = fmt_float8_e8m0fnu,
     [Float4E2M1fn] = fmt_float4_e2m1fn,
     [Signed8] = fmt_signed8,
     [UnSigned8] = fmt_unsigned8,
