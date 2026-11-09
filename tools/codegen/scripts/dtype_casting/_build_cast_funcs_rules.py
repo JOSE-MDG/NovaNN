@@ -23,7 +23,19 @@ CAST_TABLES_RULES = RULES_DIR / "dtype_casting" / "cast_tables_rules.json"
 DTYPE_CASTING_RULES = RULES_DIR / "dtype_casting" / "dtype_casting_rules.json"
 OUTPUT_PATH = RULES_DIR / "dtype_casting" / "cast_funcs_rules.json"
 
-FLOAT_TYPES = {"fp4e2m1", "fp8e4m3", "fp8e5m2", "fp16", "bf16", "f32", "f64"}
+# Note: fp8e8m0 (the E8M0 scale factor) counts as a float dispatch category
+# because its only conversions are f32 <-> e8m0; the codegen deliberately
+# emits no other pair for it.
+FLOAT_TYPES = {
+    "fp4e2m1",
+    "fp8e4m3",
+    "fp8e5m2",
+    "fp8e8m0",
+    "fp16",
+    "bf16",
+    "f32",
+    "f64",
+}
 SINT_TYPES = {"s8", "s16", "s32", "s64"}
 UINT_TYPES = {"u8", "u16", "u32", "u64"}
 

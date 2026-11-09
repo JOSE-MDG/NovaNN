@@ -13,8 +13,8 @@
  * @li Generator : tools/codegen/scripts/dtype_casting/gen_cast_funcs.py
  *
  * @details
- * Header-only file that provides 210 inline cast functions, each
- * selecting the best available SIMD implementation at runtime
+ * Header-only file that provides 210 inline X-macro cast functions,
+ * each selecting the best available SIMD implementation at runtime
  * based on the CPU capabilities reported by @ref get_simd_capabilities().
  *
  * @section architecture Architecture
@@ -1099,6 +1099,32 @@ static inline void tf64_to_bf16(const Tensor *restrict src,
 #else
   lookup_tf64_to_bf16[1](src, dst, status);
 #endif
+}
+
+/**
+ * @brief Casts float tensor to float8_e8m0fnu.
+ * @param[in]  src Source tensor (f32).
+ * @param[out] dst Destination tensor (fp8e8m0).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+static inline void tf32_to_fp8e8m0(const Tensor *restrict src,
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tf32_to_fp8e8m0[0](src, dst, status);
+}
+
+/**
+ * @brief Casts float8_e8m0fnu tensor to float.
+ * @param[in]  src Source tensor (fp8e8m0).
+ * @param[out] dst Destination tensor (f32).
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+static inline void tfp8e8m0_to_f32(const Tensor *restrict src,
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  lookup_tfp8e8m0_to_f32[0](src, dst, status);
 }
 
 /* floating_to_sinteger */

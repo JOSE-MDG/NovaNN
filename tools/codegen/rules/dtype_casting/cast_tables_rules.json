@@ -696,6 +696,32 @@
       ]
     },
     {
+      "signature": "lookup_tf32_to_fp8e8m0",
+      "src_type_abbr": "f32",
+      "dst_type_abbr": "fp8e8m0",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tf32_to_fp8e8m0_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
+      "signature": "lookup_tfp8e8m0_to_f32",
+      "src_type_abbr": "fp8e8m0",
+      "dst_type_abbr": "f32",
+      "guard_required": false,
+      "variants": [
+        {
+          "name": "tfp8e8m0_to_f32_scalar",
+          "requires": [],
+          "is_scalar": true
+        }
+      ]
+    },
+    {
       "signature": "lookup_tfp4e2m1_to_s8",
       "src_type_abbr": "fp4e2m1",
       "dst_type_abbr": "s8",
