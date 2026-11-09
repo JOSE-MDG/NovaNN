@@ -39,8 +39,8 @@
 
 #include <ncore/core/status.h>
 
-#include <ncore/memory/ffi.hpp>
 #include <ncore/headeronly/stream_types.h>
+#include <ncore/memory/ffi.hpp>
 
 /**
  * @brief Copy memory between host and device (or device to device).
