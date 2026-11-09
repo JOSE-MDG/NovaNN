@@ -29,9 +29,9 @@ namespace {
 
 #if defined(NOVA_HAS_CUDA) || defined(NOVA_HAS_HIP)
 
-using tests::memory::ScopedDeviceBuffer;
 using tests::memory::getPoolStats;
 using tests::memory::kTestDeviceBackend;
+using tests::memory::ScopedDeviceBuffer;
 
 using namespace tests::gpu;
 
@@ -65,7 +65,8 @@ public:
 
   ~ScopedThresholdRestore() {
     if (active_) {
-      (void)devicePoolSetReleaseThreshold(kTestDeviceBackend, device_id_, threshold_);
+      (void)devicePoolSetReleaseThreshold(kTestDeviceBackend, device_id_,
+                                          threshold_);
     }
   }
 
@@ -200,7 +201,8 @@ TEST(MemoryPool, ReleaseThresholdAndTrimPreserveLiveAllocations) {
 
   ScopedThresholdRestore restore(deviceId, before.release_threshold);
   constexpr std::uint64_t threshold = 2U * 1024U * 1024U;
-  status = devicePoolSetReleaseThreshold(kTestDeviceBackend, deviceId, threshold);
+  status =
+      devicePoolSetReleaseThreshold(kTestDeviceBackend, deviceId, threshold);
   ASSERT_EQ(status.err, novaSuccess) << status.message;
   restore.activate();
 

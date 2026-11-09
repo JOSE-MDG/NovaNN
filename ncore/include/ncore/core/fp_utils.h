@@ -2,12 +2,13 @@
  * @file fp_utils.h
  * @brief C API for reduced-precision floating-point conversions.
  *
- * Covers FP16, BF16, FP8 E5M2, FP8 E4M3FN and FP4 E2M1FN (pair-packed).
- * Each conversion has a numeric form and a bit-pattern form. When the
- * native compiler type exists (@c _Float16, @c __bf16, CUDA/HIP
- * intrinsics) the hardware conversion is used, otherwise the software
- * fallbacks in @c ncore/include/ncore/headeronly/dtypes/ apply, with
- * round-to-nearest-even semantics where the format requires rounding.
+ * Covers FP16, BF16, FP8 E5M2, FP8 E4M3FN, FP8 E8M0 (scale factor) and
+ * FP4 E2M1FN (pair-packed). Each conversion has a numeric form and a
+ * bit-pattern form. When the native compiler type exists (@c _Float16,
+ * @c __bf16, CUDA/HIP intrinsics) the hardware conversion is used,
+ * otherwise the software fallbacks in @c ncore/include/ncore/headeronly/dtypes/
+ * apply, with round-to-nearest-even semantics where the format requires
+ * rounding.
  */
 
 #pragma once
@@ -122,6 +123,54 @@ extern float8_e4m3fn fp8e4m3fn_from_float(float val);
  * @return The single-precision float representation of @p val.
  */
 extern float fp8e4m3fn_to_float(float8_e4m3fn val);
+
+/**
+ * @brief Convert a single-precision float to an FP8 E8M0 scale factor.
+ *
+ * E8M0 is the OCP MX scale format: eight exponent bits, no sign, no
+ * mantissa, bias 127. The result is the nearest power of two in
+ * round-to-nearest-even applied to the exponent; values that round past
+ * the largest finite exponent land on 0xFF, which the format defines as
+ * NaN. The sign of @p val is ignored: the scale is a magnitude.
+ *
+ * The conversion follows the OCP MX specification (Section 5.4.1) as
+ * implemented by PyTorch's checked-in Float8_e8m0fnu conversion; the
+ * deterministic cuBLASLt round-up derivation used by block-scale
+ * generators lives in @ref fp8e8m0fnu_roundup_from_float.
+ *
+ * @param[in] val  The float value to convert.
+ * @return The FP8 E8M0 scale-factor representation of @p val, or 0xFF
+ *         (NaN) for NaN/+/-inf inputs.
+ */
+extern float8_e8m0fnu fp8e8m0fnu_from_float(float val);
+
+/**
+ * @brief Convert a single-precision float to an FP8 E8M0 scale factor with
+ *        the exponent rounded up.
+ *
+ * Derivation prescribed by the cuBLASLt "1D block quantization" recipe for
+ * UE8M0 scale factors: keep the exponent when @p val is an exact power of
+ * two, round one step up otherwise, and clamp to the largest finite
+ * pattern 0xFE so the result can never be NaN. NVIDIA documents this
+ * scheme as different from the OCP suggested rounding.
+ *
+ * @param[in] val  The float value to convert.
+ * @return The FP8 E8M0 scale factor, at most 0xFE.
+ */
+extern float8_e8m0fnu fp8e8m0fnu_roundup_from_float(float val);
+
+/**
+ * @brief Convert an FP8 E8M0 scale factor to single-precision float.
+ *
+ * For every pattern except the specials, the result is the stored exponent
+ * field shifted into place (E8M0 shares float32's bias 127). Pattern 0x00
+ * widens to the float32 subnormal 2^-127 rather than collapsing to zero,
+ * and 0xFF widens to a quiet NaN.
+ *
+ * @param[in] val  The FP8 E8M0 scale factor to convert.
+ * @return The single-precision float representation of @p val.
+ */
+extern float fp8e8m0fnu_to_float(float8_e8m0fnu val);
 
 /**
  * @brief Pack two single-precision floats into a single FP4 E2M1FN
@@ -275,6 +324,32 @@ extern uint32_t fp8e4m3fn_to_f32_bits(float8_e4m3fn val);
  * @return The FP8 E4M3FN representation of the value described by @p val.
  */
 extern float8_e4m3fn fp8e4m3fn_from_f32_bits(uint32_t val);
+
+/**
+ * @brief Convert an FP8 E8M0 scale factor to the bit pattern of its
+ *        float32 equivalent.
+ *
+ * Minor caveat for pattern 0x00: the widened float32 2^-127 is a subnormal,
+ * not the zero a naive left-shift by 23 would produce, and 0xFF widens to
+ * the quiet NaN. All other patterns are the raw byte shifted into the
+ * exponent field.
+ *
+ * @param[in] val  The FP8 E8M0 scale factor to convert.
+ * @return The float32 bit pattern of @p val.
+ */
+extern uint32_t fp8e8m0fnu_to_f32_bits(float8_e8m0fnu val);
+
+/**
+ * @brief Convert a float32 bit pattern to an FP8 E8M0 scale factor.
+ *
+ * Bit-level counterpart of @ref fp8e8m0fnu_from_float with the same
+ * round-to-nearest-even exponent semantics; NaN and both infinities map
+ * to the 0xFF (NaN) pattern.
+ *
+ * @param[in] val  The float32 bit pattern to convert.
+ * @return The FP8 E8M0 scale factor for the value described by @p val.
+ */
+extern float8_e8m0fnu fp8e8m0fnu_from_f32_bits(uint32_t val);
 
 /**
  * @brief Decompose a pair-packed FP4 E2M1FN byte into its constituent

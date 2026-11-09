@@ -3,9 +3,9 @@
  * @brief Device-agnostic entry points for RNG fill kernels.
  *
  * @details
- * Declares @ref launchRngFillU64() and @ref launchRngFillU32(), which
+ * Declares @ref launchRngFillU64Kernel() and @ref launchRngFillU32Kernel(), which
  * resolve the active GPU backend at run time and forward to
- * @ref launchCudaRngFillU64/U32 or @ref launchHipRngFillU64/U32.
+ * @ref launchCudaRngFillU64Kernel/U32Kernel or @ref launchHipRngFillU64Kernel/U32Kernel.
  * Implemented in @c RngDispatchImpl.cpp through
  * @ref ncore::dispatch::launch().
  *
@@ -49,8 +49,9 @@ extern "C" {
  *
  * Zero demand succeeds without touching @p dst.
  */
-novaStatus_t launchRngFillU64(const uint32_t key[2], const uint32_t base_ctr[4],
-                              uint64_t *dst, size_t n);
+novaStatus_t launchRngFillU64Kernel(const uint32_t key[2],
+                                    const uint32_t base_ctr[4], uint64_t *dst,
+                                    size_t n);
 
 /**
  * @brief Fill device memory with 32-bit Philox draws.
@@ -74,8 +75,9 @@ novaStatus_t launchRngFillU64(const uint32_t key[2], const uint32_t base_ctr[4],
  *
  * Zero demand succeeds without touching @p dst.
  */
-novaStatus_t launchRngFillU32(const uint32_t key[2], const uint32_t base_ctr[4],
-                              uint32_t *dst, size_t n);
+novaStatus_t launchRngFillU32Kernel(const uint32_t key[2],
+                                    const uint32_t base_ctr[4], uint32_t *dst,
+                                    size_t n);
 
 #ifdef __cplusplus
 }

@@ -199,6 +199,9 @@ endfunction()
 
   Additional ``EXTRA_LIBS`` are linked as private libraries.
 
+  Device floating-point flags are explicit.  ``Debug`` adds ``-G`` and
+  ``RelWithDebInfo`` adds ``-lineinfo``; host flags use ``-Xcompiler``.
+
 #]=======================================================================]
 function(nova_configure_cuda_kernels_target TARGET)
     if(NOT NOVA_HAS_CUDA)
@@ -208,6 +211,28 @@ function(nova_configure_cuda_kernels_target TARGET)
     cmake_parse_arguments(_CUDA_K "" "" "EXTRA_LIBS" ${ARGN})
 
     _nova_configure_cuda_common(${TARGET})
+
+    set(_nova_cuda_device_flags
+        -ftz=false
+        -prec-div=true
+        -prec-sqrt=true
+        -fmad=true
+    )
+
+    if(WIN32)
+        # The .cu host pass is cl.exe. MSVC flags are not wired yet.
+        set(_nova_cuda_host_flags)
+    else()
+        set(_nova_cuda_host_flags
+            -Xcompiler=-fstack-protector-strong,-fcf-protection=full,-fstack-clash-protection,-fno-plt,-fno-semantic-interposition
+        )
+    endif()
+
+    target_compile_options(${TARGET} PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:${_nova_cuda_device_flags} ${_nova_cuda_host_flags}>
+        $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:-G>
+        $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:RelWithDebInfo>>:-lineinfo>
+    )
 
     if(_CUDA_K_EXTRA_LIBS)
         target_link_libraries(${TARGET} PRIVATE ${_CUDA_K_EXTRA_LIBS})

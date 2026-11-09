@@ -140,7 +140,7 @@
  * @def NUM_DTYPES
  * @brief Total number of supported data types.
  */
-#define NUM_DTYPES 21
+#define NUM_DTYPES 22
 
 /**
  * @def NUM_ERRORS
@@ -162,13 +162,38 @@
 /**
  * @def NUM_FLOATS
  * @brief Number of floating-point data types (f32, f64, f16, bf16,
- *        fp8_e4m3fn, fp8_e5m2, fp4_e2m1fn_x2).
+ *        fp8_e4m3fn, fp8_e5m2, fp4_e2m1fn_x2, fp8_e8m0fnu).
  *
  * @details
- * Complements @ref NUM_INTEGERS: @c NUM_FLOATS + @c NUM_INTEGERS ==
- * @c NUM_DTYPES (7 + 14 = 21).
+ * Counted by format, exactly mirroring the @c floating[] classification
+ * table: the E8M0 scale factor is an exponent-only floating-point encoding
+ * and belongs here even though it carries no element arithmetic. The
+ * format split partitions every member exactly: @c NUM_FLOATS +
+ * @c NUM_INTEGERS == @c NUM_DTYPES (8 + 14 = 22). Scale-only status is a
+ * role annotation tracked separately by @ref NUM_SCALES, a subset counter
+ * in the style of @ref NUM_QUANTIZED_INTEGERS.
  */
-#define NUM_FLOATS 7
+#define NUM_FLOATS 8
+
+/**
+ * @def NUM_SCALES
+ * @brief Number of floating @ref DType_ members that serve as storage-only
+ *        scale-factor carriers: currently just @c Float8E8M0fnu.
+ *
+ * @details
+ * The E8M0 factor stores block scale exponents for MXFP4/NVFP4 recipes; it
+ * is a full floating-point format (member of the @ref NUM_FLOATS count and
+ * of the @c floating[] classification table) whose role reserves it for
+ * block scales instead of element data. The counter tracks that role, not
+ * an independent dtype family.
+ *
+ * Not the length of the @ref ScaledDType_ taxonomy: that enum lists the
+ * scale storage formats the recipes may adopt (three entries), and only the
+ * OCP MX one is materialized as a @ref DType_ member today.
+ *
+ * @see ScaledDType_  Role taxonomy, not a member count.
+ */
+#define NUM_SCALES 1
 
 /**
  * @def NUM_INTEGERS

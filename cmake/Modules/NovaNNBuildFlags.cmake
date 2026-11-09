@@ -2,12 +2,16 @@
 NovaNNBuildFlags
 ----------------
 
-Centralized build flag configuration for the NovaNN project. Provides
-functions to apply compiler warnings, debug/release optimization flags,
-and linker hardening flags to targets. Includes ``DetectLTO`` and
-``DetectSanitizers`` to resolve optimization dependencies.
+Centralized host build flag configuration for the NovaNN project.
+Provides functions to apply compiler warnings, per-configuration
+optimization flags, and linker hardening flags to targets.  The flags
+apply to C and C++ only; CUDA and HIP device code is configured by the
+backend modules.  Includes ``DetectLTO`` and ``DetectSanitizers``.
 
 This module defines the following variables:
+
+``NOVA_COMMON_FLAGS``
+  Flags applied to every C and C++ translation unit.
 
 ``NOVA_WARNING_FLAGS``
   List of compiler warning flags applied to all targets.
@@ -20,6 +24,12 @@ This module defines the following variables:
 
 ``NOVA_RELEASE_FLAGS``
   Flags applied in ``Release`` configuration.
+
+``NOVA_RELWITHDEBINFO_FLAGS``
+  Flags applied in ``RelWithDebInfo`` configuration.
+
+``NOVA_MINSIZEREL_FLAGS``
+  Flags applied in ``MinSizeRel`` configuration.
 
 This module defines the following functions:
 
@@ -56,14 +66,20 @@ if(WIN32)
   add_compile_definitions(NOMINMAX)
 endif()
 
-# Helper: emit a flag as /clang:<flag> on clang-cl, plain otherwise.
-macro(_nova_wrap_flag _out _flag)
-  if(_nova_is_clang_cl)
-    set(${_out} "/clang:${_flag}")
-  else()
-    set(${_out} "${_flag}")
-  endif()
-endmacro()
+
+if(_nova_is_clang_cl)
+  set(NOVA_COMMON_FLAGS
+    /clang:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.
+    /clang:-ffile-prefix-map=${CMAKE_BINARY_DIR}=build
+    /clang:-fstrict-flex-arrays=3
+  )
+else()
+  set(NOVA_COMMON_FLAGS
+    -ffile-prefix-map=${CMAKE_SOURCE_DIR}=.
+    -ffile-prefix-map=${CMAKE_BINARY_DIR}=build
+    -fstrict-flex-arrays=3
+  )
+endif()
 
 
 # Warning flags
@@ -132,6 +148,7 @@ if(_nova_is_clang_cl)
 else()
   set(NOVA_CXX_FLAGS
     -fno-rtti
+    -fvisibility-inlines-hidden
     -Wpessimizing-move -Wredundant-move -Wold-style-cast
     -Wnon-virtual-dtor -Woverloaded-virtual -Wzero-as-null-pointer-constant
     -Wextra-semi -Wdeprecated -Wregister
@@ -145,46 +162,117 @@ endif()
 
 # Release flags
 #
-# -ffast-math is a group flag; every safety flag below must stay AFTER it
-# (later options override earlier ones). Per GCC/Clang manuals it enables
-# -funsafe-math-optimizations (-fno-signed-zeros, -fassociative-math,
-# -freciprocal-math), -ffinite-math-only and friends; the overrides restore
-# the IEEE guarantees a numeric library depends on while keeping the bulk
-# of the throughput.
+# -ffast-math is a group flag: the overrides after it restore the IEEE
+# guarantees the library depends on.
 if(_nova_is_clang_cl)
-  set(NOVA_RELEASE_FLAGS
-    /O2
+  set(_nova_fast_math_flags
     /clang:-ffast-math
-    /clang:-fno-finite-math-only   # NaN/Inf exist: keep isnan/isinf live
-    /clang:-fsigned-zeros          # -0.0 stays distinct (signbit/copysign)
-    /clang:-fno-associative-math   # no reassociation: stable accumulation
-    /clang:-fno-reciprocal-math    # keep x/y correctly rounded
-    /GS            # buffer security check (clang-cl equivalent of -fstack-protector-strong)
-  )
-  list(APPEND NOVA_RELEASE_FLAGS /clang:-march=x86-64-v2)
-else()
-  set(NOVA_RELEASE_FLAGS
-    -O3 -ffast-math
-    -fno-finite-math-only   # NaN/Inf exist: keep isnan/isinf live
-    -fsigned-zeros          # -0.0 stays distinct (signbit/copysign)
-    -fno-associative-math   # no reassociation: stable accumulation order
-    -fno-reciprocal-math    # keep x/y correctly rounded
-    -fstack-protector-strong
+    /clang:-fno-finite-math-only
+    /clang:-fsigned-zeros
+    /clang:-fno-associative-math
+    /clang:-fno-reciprocal-math
+    /clang:-ffp-contract=fast
   )
 
-  list(APPEND NOVA_RELEASE_FLAGS -mtune=generic -march=x86-64-v2)
+  set(NOVA_RELEASE_FLAGS
+    /GS
+    /Gy
+    /Gw
+    /Zc:inline
+    ${_nova_fast_math_flags}
+  )
+  list(APPEND NOVA_RELEASE_FLAGS /clang:-march=x86-64-v2)
+
+  set(NOVA_RELWITHDEBINFO_FLAGS
+    /GS
+    /Gy
+    /Gw
+    /Zc:inline
+    ${_nova_fast_math_flags}
+  )
+  list(APPEND NOVA_RELWITHDEBINFO_FLAGS /clang:-march=x86-64-v2)
+
+  set(NOVA_MINSIZEREL_FLAGS
+    /GS
+    /Gy
+    /Gw
+    /Zc:inline
+    /clang:-ffp-contract=fast
+    /clang:-march=x86-64-v2
+  )
+else()
+  set(_nova_fast_math_flags
+    -ffast-math
+    -fno-finite-math-only
+    -fsigned-zeros
+    -fno-associative-math
+    -fno-reciprocal-math
+    -ffp-contract=fast
+  )
+
+  # -fcf-protection and -mharden-sls are x86 only.
+  set(_nova_hardening_flags)
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
+    list(APPEND _nova_hardening_flags
+      -fstack-clash-protection
+      -fcf-protection=full
+      -mharden-sls=all
+    )
+  endif()
+  list(APPEND _nova_hardening_flags
+    -D_FORTIFY_SOURCE=3
+  )
+
+  # Safe because nova is a DSO linked with -z now.
+  set(_nova_perf_flags
+    -fno-semantic-interposition
+    -fno-plt
+  )
+
+  set(NOVA_RELEASE_FLAGS
+    -O3
+    ${_nova_fast_math_flags}
+    -fstack-protector-strong
+    ${_nova_hardening_flags}
+    ${_nova_perf_flags}
+    -mtune=generic -march=x86-64-v2
+  )
+
+  set(NOVA_RELWITHDEBINFO_FLAGS
+    ${_nova_fast_math_flags}
+    -fstack-protector-strong
+    ${_nova_hardening_flags}
+    ${_nova_perf_flags}
+    -mtune=generic -march=x86-64-v2
+  )
+
+  # No -fno-semantic-interposition: it can grow code.
+  set(NOVA_MINSIZEREL_FLAGS
+    -ffp-contract=fast
+    -fstack-protector-strong
+    ${_nova_hardening_flags}
+    -fno-plt
+    -mtune=generic -march=x86-64-v2
+  )
 endif()
 
 
-# Debug flags
+# -ffp-contract=off keeps Debug reproducible; -Og keeps it debuggable.
 if(_nova_is_clang_cl)
   set(NOVA_DEBUG_FLAGS
-    /Zi                           # debug info (PDB)
+    /Z7
+    /clang:-Og
     /clang:-fno-omit-frame-pointer
+    /clang:-ffp-contract=off
   )
 else()
   set(NOVA_DEBUG_FLAGS
-    -g -fno-omit-frame-pointer
+    -Og
+    -g3
+    -gdwarf-5
+    -fno-omit-frame-pointer
+    -D_GLIBCXX_ASSERTIONS
+    -ffp-contract=off
   )
 endif()
 
@@ -200,18 +288,20 @@ include(Detect/sanitizers/DetectSanitizers)
 
     nova_configure_build_flags(<target>)
 
-  Applies the ``NOVA_*_FLAGS`` lists per configuration and language.
-  With ``NOVA_HAS_LTO`` it enables ``INTERPROCEDURAL_OPTIMIZATION``
-  (``-ffat-lto-objects`` on GCC only).  Links ``nova::sanitizers`` when
-  enabled.
+  Apply the ``NOVA_*_FLAGS`` lists per configuration to C and C++.
+  Enable ``INTERPROCEDURAL_OPTIMIZATION`` under ``NOVA_HAS_LTO``
+  (``-ffat-lto-objects`` on GCC only) and link ``nova::sanitizers``.
 
 #]=======================================================================]
 function(nova_configure_build_flags TARGET)
   target_compile_options(${TARGET} PRIVATE
-    ${NOVA_WARNING_FLAGS}
+    $<$<COMPILE_LANGUAGE:C,CXX>:${NOVA_COMMON_FLAGS}>
+    $<$<COMPILE_LANGUAGE:C,CXX>:${NOVA_WARNING_FLAGS}>
     $<$<COMPILE_LANGUAGE:CXX>:${NOVA_CXX_FLAGS}>
-    $<$<CONFIG:Debug>:${NOVA_DEBUG_FLAGS}>
-    $<$<CONFIG:Release>:${NOVA_RELEASE_FLAGS}>
+    $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:Debug>>:${NOVA_DEBUG_FLAGS}>
+    $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:Release>>:${NOVA_RELEASE_FLAGS}>
+    $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RelWithDebInfo>>:${NOVA_RELWITHDEBINFO_FLAGS}>
+    $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:MinSizeRel>>:${NOVA_MINSIZEREL_FLAGS}>
   )
 
   if(NOT WIN32)
@@ -238,7 +328,9 @@ function(nova_configure_build_flags TARGET)
   if(NOVA_HAS_LTO)
     set_target_properties(${TARGET} PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-      target_compile_options(${TARGET} PRIVATE -ffat-lto-objects)
+      target_compile_options(${TARGET} PRIVATE
+        $<$<COMPILE_LANGUAGE:C,CXX>:-ffat-lto-objects>
+      )
     endif()
   endif()
 
@@ -283,13 +375,21 @@ endfunction()
   ``/DYNAMICBASE`` (ASLR), ``/NXCOMPAT`` (DEP) and ``/GUARD:CF``
   (Control Flow Guard on the linker side; it requires the matching
   ``/guard:cf`` compiler flag in ``NOVA_WARNING_FLAGS`` to actually
-  take effect).
+  take effect).  Optimized configurations also get ``/OPT:REF``,
+  ``/OPT:ICF=4`` and ``/Brepro``.
 
 #]=======================================================================]
 function(nova_configure_linker TARGET)
   if(WIN32)
     target_link_options(${TARGET} PRIVATE
       /DYNAMICBASE /NXCOMPAT /GUARD:CF
+      /Brepro
+    )
+    target_link_options(${TARGET} PRIVATE
+      $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:/OPT:REF>
+      $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:/OPT:ICF=4>
+      $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/DEBUG:FULL>
+      $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/PDBALTPATH:%_PDB%>
     )
   else()
     target_link_options(${TARGET} PRIVATE

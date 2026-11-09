@@ -107,10 +107,23 @@ void uniform_cpu_impl_bf16_avx512bf16(Tensor *ten, float low, float high,
                                       Generator_ *generator, novaStatus_t *st);
 
 /**
+ * @brief Fill @p ten with uniform bfloat16 samples using AVX/AVX2.
+ */
+void uniform_cpu_impl_bf16_avx_avx2_fma(Tensor *ten, float low, float high,
+                                        Generator_ *generator,
+                                        novaStatus_t *st);
+
+/**
  * @brief Fill @p ten with uniform bfloat16 samples using portable code.
  */
 void uniform_cpu_impl_bf16_scalar(Tensor *ten, float low, float high,
                                   Generator_ *generator, novaStatus_t *st);
+
+/**
+ * @brief Fill @p ten with uniform float4_e2m1fn samples using portable code.
+ */
+void uniform_cpu_impl_fp4e2m1_scalar(Tensor *ten, float low, float high,
+                                     Generator_ *generator, novaStatus_t *st);
 
 /**
  * @brief Fill @p ten with uniform float8_e4m3fn samples using portable code.

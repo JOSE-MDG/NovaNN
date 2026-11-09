@@ -5,13 +5,14 @@
  * Verifies that the reduced-precision structs have the size, alignment, and
  * trivial-copy properties their storage model requires; that the public type
  * aliases map to the intended compiler types; that the DType_ enum keeps the
- * documented 21-value uint8_t-backed layout the dispatch tables index by;
+ * documented 22-value uint8_t-backed layout the dispatch tables index by;
  * and that the metadata tables (byte widths, classification masks) agree
  * with the enum they are indexed by.
  */
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -23,6 +24,7 @@
 #include <ncore/headeronly/dtypes/fp4_e2m1fn_x2.hh>
 #include <ncore/headeronly/dtypes/fp8_e4m3fn.hh>
 #include <ncore/headeronly/dtypes/fp8_e5m2.hh>
+#include <ncore/headeronly/dtypes/fp8_e8m0fnu.hh>
 #include <ncore/headeronly/dtypes/half.hh>
 #include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/wrappers/tensor.hh>
@@ -37,6 +39,7 @@ using ncore::dtypes::Float4_e2m1fn;
 using ncore::dtypes::Float4_e2m1fn_x2;
 using ncore::dtypes::Float8_e4m3fn;
 using ncore::dtypes::Float8_e5m2;
+using ncore::dtypes::Float8_e8m0fnu;
 using ncore::dtypes::Half;
 using ncore::wrappers::TensorCXX;
 
@@ -45,7 +48,7 @@ using ncore::wrappers::TensorCXX;
 constexpr std::array<size_t, NUM_DTYPES> kDocumentedSizes{{
     4, 8,       // Float32, Float64
     2, 2,       // Float16, BFloat16
-    1, 1, 1,    // Float8E4M3fn, Float8E5M2, Float4E2M1fn
+    1, 1, 1, 1, // Float8E4M3fn, Float8E5M2, Float8E8M0fnu, Float4E2M1fn
     1, 1, 1, 1, // Signed8, UnSigned8, QSigned8, QUnSigned8
     2, 2, 2, 2, // Signed16, UnSigned16, QSigned16, QUnSigned16
     4, 4, 4, 4, // Signed32, UnSigned32, QSigned32, QUnSigned32
@@ -65,6 +68,7 @@ TEST(ABICorrectness, ReducedStructSizesAndAlignments) {
   static_assert(sizeof(Float4_e2m1fn) == 1 && alignof(Float4_e2m1fn) == 1);
   static_assert(sizeof(Float4_e2m1fn_x2) == 1 &&
                 alignof(Float4_e2m1fn_x2) == 1);
+  static_assert(sizeof(Float8_e8m0fnu) == 1 && alignof(Float8_e8m0fnu) == 1);
 
   EXPECT_EQ(sizeof(Half), size_t{2});
   EXPECT_EQ(alignof(Half), size_t{2});
@@ -78,6 +82,8 @@ TEST(ABICorrectness, ReducedStructSizesAndAlignments) {
   EXPECT_EQ(alignof(Float4_e2m1fn), size_t{1});
   EXPECT_EQ(sizeof(Float4_e2m1fn_x2), size_t{1});
   EXPECT_EQ(alignof(Float4_e2m1fn_x2), size_t{1});
+  EXPECT_EQ(sizeof(Float8_e8m0fnu), size_t{1});
+  EXPECT_EQ(alignof(Float8_e8m0fnu), size_t{1});
 }
 
 /**
@@ -91,11 +97,13 @@ TEST(ABICorrectness, ReducedStructsAreTriviallyCopyable) {
   static_assert(std::is_trivially_copyable_v<Float8_e5m2>);
   static_assert(std::is_trivially_copyable_v<Float4_e2m1fn>);
   static_assert(std::is_trivially_copyable_v<Float4_e2m1fn_x2>);
+  static_assert(std::is_trivially_copyable_v<Float8_e8m0fnu>);
 
   static_assert(std::is_standard_layout_v<Half>);
   static_assert(std::is_standard_layout_v<ncore::dtypes::BFloat16>);
   static_assert(std::is_standard_layout_v<Float8_e4m3fn>);
   static_assert(std::is_standard_layout_v<Float8_e5m2>);
+  static_assert(std::is_standard_layout_v<Float8_e8m0fnu>);
   static_assert(std::is_standard_layout_v<Float4_e2m1fn>);
   static_assert(std::is_standard_layout_v<Float4_e2m1fn_x2>);
 
@@ -107,7 +115,7 @@ TEST(ABICorrectness, ReducedStructsAreTriviallyCopyable) {
  *        active toolchain.
  */
 TEST(ABICorrectness, TypeAliasIdentitiesMatchToolchain) {
-#if defined(_GNUC_CLANG_)
+#ifdef _GNUC_CLANG_
   static_assert(std::is_same_v<float16, _Float16>);
   static_assert(std::is_same_v<bfloat16, __bf16>);
   SUCCEED() << "GCC/Clang native reduced types active";
@@ -119,6 +127,7 @@ TEST(ABICorrectness, TypeAliasIdentitiesMatchToolchain) {
   static_assert(std::is_same_v<float8_e4m3fn, uint8_t>);
   static_assert(std::is_same_v<float8_e5m2, uint8_t>);
   static_assert(std::is_same_v<float4_e2m1fn_x2, uint8_t>);
+  static_assert(std::is_same_v<float8_e8m0fnu, uint8_t>);
   EXPECT_EQ(sizeof(float16), size_t{2});
   EXPECT_EQ(sizeof(bfloat16), size_t{2});
 }
@@ -131,15 +140,18 @@ TEST(ABICorrectness, TypeAliasIdentitiesMatchToolchain) {
 TEST(ABICorrectness, DTypeEnumLayoutIsStable) {
   static_assert(std::is_same_v<std::underlying_type_t<DType_>, uint8_t>);
   static_assert(static_cast<uint8_t>(DType_::Float32) == 0);
-  static_assert(static_cast<uint8_t>(DType_::UnSigned64) == 20);
-  static_assert(NUM_DTYPES == 21);
-  static_assert(NUM_FLOATS == 7);
+  static_assert(static_cast<uint8_t>(DType_::UnSigned64) == 21);
+  static_assert(static_cast<uint8_t>(DType_::Float8E8M0fnu) == 6);
+  static_assert(NUM_DTYPES == 22);
+  static_assert(NUM_FLOATS == 8);
+  static_assert(NUM_SCALES == 1);
 
   // Contiguity: every index in [0, NUM_DTYPES) must name a distinct valid
   // enumerator; spot-check both ends plus the float/int boundary.
   EXPECT_EQ(static_cast<uint8_t>(DType_::Float32), UINT8_C(0));
-  EXPECT_EQ(static_cast<uint8_t>(DType_::UnSigned64), UINT8_C(20));
-  EXPECT_EQ(NUM_DTYPES, size_t{21});
+  EXPECT_EQ(static_cast<uint8_t>(DType_::UnSigned64), UINT8_C(21));
+  EXPECT_EQ(static_cast<uint8_t>(DType_::Float8E8M0fnu), UINT8_C(6));
+  EXPECT_EQ(NUM_DTYPES, size_t{22});
 }
 
 /**
@@ -158,20 +170,16 @@ TEST(ABICorrectness, DtypeSizeTableMatchesTypeSizes) {
  */
 TEST(ABICorrectness, ClassificationTablesMatchDocumentedSets) {
   auto isOneOf = [](DType_ d, std::initializer_list<DType_> set) {
-    for (const DType_ s : set) {
-      if (s == d) {
-        return true;
-      }
-    }
-    return false;
+    return std::ranges::any_of(set, [d](DType_ s) { return s == d; });
   };
 
   for (size_t i = 0; i < NUM_DTYPES; ++i) {
     const auto d = static_cast<DType_>(i);
 
-    const bool wantFloating = isOneOf(
-        d, {DType_::Float32, DType_::Float64, DType_::Float16, DType_::BFloat16,
-            DType_::Float8E4M3fn, DType_::Float8E5M2, DType_::Float4E2M1fn});
+    const bool wantFloating =
+        isOneOf(d, {DType_::Float32, DType_::Float64, DType_::Float16,
+                    DType_::BFloat16, DType_::Float8E4M3fn, DType_::Float8E5M2,
+                    DType_::Float4E2M1fn, DType_::Float8E8M0fnu});
     const bool wantInteger =
         isOneOf(d, {DType_::Signed8, DType_::UnSigned8, DType_::Signed16,
                     DType_::UnSigned16, DType_::Signed32, DType_::UnSigned32,
@@ -204,7 +212,7 @@ TEST(ABICorrectness, ClassificationTablesMatchDocumentedSets) {
 
 /**
  * @brief Verifies the tensor-field predicates agree with the raw masks for
- *        real tensors of all 21 dtypes.
+ *        real tensors of all 22 dtypes.
  */
 TEST(ABICorrectness, ClassificationPredicatesAgreeWithTables) {
   for (size_t i = 0; i < NUM_DTYPES; ++i) {
@@ -266,5 +274,17 @@ TEST(ABICorrectness, DataPtrUnionMembersAliasSameBytes) {
     std::memcpy(&h, view.data.half, sizeof(h));
     constexpr float16 kOne = static_cast<float16>(1.0F);
     EXPECT_EQ(std::memcmp(&h, &kOne, sizeof(h)), 0);
+  }
+
+  // E8M0: one 1-byte scale exponent viewed through .data and .fp8e8m0fnu.
+  {
+    novaStatus_t st{};
+    TensorCXX ten({1}, DType_::Float8E8M0fnu, DEVICE_CPU, false, false, &st);
+    ASSERT_EQ(st.err, novaSuccess);
+    Tensor view = ten.mutableCTensor();
+    ASSERT_TRUE(is_allocated(&view));
+
+    view.data.data[0] = UINT8_C(0x80); // Scale 2^0.
+    EXPECT_EQ(view.data.fp8e8m0fnu[0], UINT8_C(0x80));
   }
 }

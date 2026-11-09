@@ -11,8 +11,8 @@
  * @see device.h       Provides is_cuda_available() and is_hip_available().
  */
 
-#include <ncore/memory/admin.hpp>
 #include <ncore/core/device.h>
+#include <ncore/memory/admin.hpp>
 
 /**
  * @brief Probe CUDA and HIP runtime availability in priority order.

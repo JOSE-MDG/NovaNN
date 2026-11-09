@@ -81,7 +81,7 @@ typedef struct {
  *
  * @see ReprOptions
  */
-ReprOptions repr_default_options(void);
+ReprOptions repr_default_options();
 
 #ifdef __cplusplus
 }

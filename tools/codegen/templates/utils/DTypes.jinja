@@ -10,6 +10,7 @@
   {%- if abbr == "fp4e2m1" %}float4_e2m1fn_x2
     {%- elif abbr == "fp8e4m3" %}float8_e4m3fn
     {%- elif abbr == "fp8e5m2" %}float8_e5m2
+    {%- elif abbr == "fp8e8m0" %}float8_e8m0fnu
     {%- elif abbr == "fp16" %}float16
     {%- elif abbr == "bf16" %}bfloat16
     {%- elif abbr == "f32" %}float
@@ -31,8 +32,8 @@
   (i.e. `src->data.<ptr_member(abbr)>`).
 
   For most abbreviations the member name is identical to the abbreviation
-  itself (e.g. "s8" -> src->data.s8); only the three reduced-precision
-  float types are renamed to their longer, unambiguous union member names
+  itself (e.g. "s8" -> src->data.s8); only the reduced-precision float
+  types are renamed to their longer, unambiguous union member names
   (e.g. "fp4e2m1" -> src->data.fp4e2m1fn_x2). The `else` branch is a
   passthrough fallback for any abbreviation not explicitly listed, since
   in practice every recognized abbreviation's union member matches its
@@ -45,6 +46,7 @@
   {%- if abbr == "fp4e2m1" %}fp4e2m1fn_x2
     {%- elif abbr == "fp8e4m3" %}fp8e4m3fn
     {%- elif abbr == "fp8e5m2" %}fp8e5m2
+    {%- elif abbr == "fp8e8m0" %}fp8e8m0fnu
     {%- elif abbr == "fp16" %}half
     {%- elif abbr == "bf16" %}bf16
     {%- elif abbr == "f32" %}f32

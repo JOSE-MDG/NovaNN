@@ -513,6 +513,22 @@ const CastFn lookup_tf64_to_bf16[] = {tf64_to_bf16_scalar};
 #endif
 
 /**
+ * @brief Dispatch table for float to float8_e8m0fnu conversions.
+ *
+ * Variants:
+ * @li Index 0: tf32_to_fp8e8m0_scalar() — Portable fallback
+ */
+const CastFn lookup_tf32_to_fp8e8m0[] = {tf32_to_fp8e8m0_scalar};
+
+/**
+ * @brief Dispatch table for float8_e8m0fnu to float conversions.
+ *
+ * Variants:
+ * @li Index 0: tfp8e8m0_to_f32_scalar() — Portable fallback
+ */
+const CastFn lookup_tfp8e8m0_to_f32[] = {tfp8e8m0_to_f32_scalar};
+
+/**
  * @brief Dispatch table for float4_e2m1fn_x2 to int8 conversions.
  *
  * Variants:

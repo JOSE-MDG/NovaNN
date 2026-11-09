@@ -46,6 +46,7 @@ static const char *g_dtype_string[NUM_DTYPES] = {
     [BFloat16] = "bfloat16",
     [Float8E4M3fn] = "float8_e4m3fn",
     [Float8E5M2] = "float8_e5m2",
+    [Float8E8M0fnu] = "float8_e8m0fnu",
     [Float4E2M1fn] = "float4_e2m1fn_x2",
     [Signed8] = "int8",
     [UnSigned8] = "uint8",

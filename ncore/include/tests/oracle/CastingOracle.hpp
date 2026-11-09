@@ -484,10 +484,12 @@ inline DType_ dtypeFrom(std::string_view name) {
 }
 
 /**
- * @brief True when @p d is one of the seven floating dtypes.
+ * @brief True when @p d is one of the eight floating dtypes.
  *
  * @param[in] d Dtype to classify.
- * @return True for Float32/Float64/Float16/BFloat16/FP8/FP4.
+ * @return True for Float32/Float64/Float16/BFloat16/FP8/FP4/E8M0. The
+ *         E8M0 scale factor is an exponent-only floating-point encoding,
+ *         mirroring the runtime @c floating[] classification table.
  */
 constexpr bool isFloatDtype(DType_ d) {
   switch (d) {
@@ -498,6 +500,7 @@ constexpr bool isFloatDtype(DType_ d) {
   case DType_::Float8E4M3fn:
   case DType_::Float8E5M2:
   case DType_::Float4E2M1fn:
+  case DType_::Float8E8M0fnu:
     return true;
   default:
     return false;
@@ -511,6 +514,13 @@ constexpr bool isFloatDtype(DType_ d) {
  * @return Matching FormatSpec; the full-IEEE widths use their real field
  *         layout so the shared decode/encode/field math applies to them
  *         too.
+ *
+ * @note @c Float8E8M0fnu has no declarative spec here on purpose: with
+ *       zero mantissa bits its tie rounding and overflow leg do not fit
+ *       the shared r/g/s encode model, and the pair registry never hands
+ *       it to @c specOf. The dedicated
+ *       @c tests/dtypes/bitPatternIdentity/Float8_e8m0fnu_test.cpp pins
+ *       its semantics through its own frexp-based reference.
  */
 inline FormatSpec specOf(DType_ d) {
   switch (d) {
@@ -644,9 +654,11 @@ inline uint64_t f64BitsOf(double v) {
  * @brief True when a raw pattern of @p dtype encodes NaN (field-level
  *        decision on the storage bits).
  *
- * Supports all seven floating dtypes: full-IEEE widths use their wider
+ * Supports all eight floating dtypes: full-IEEE widths use their wider
  * exponent/mantissa fields; reduced formats follow their documented NaN
- * slot rules (E4M3FN: single all-ones slot; FP4: none).
+ * slot rules (E4M3FN: single all-ones slot; FP4: none); the E8M0 scale
+ * byte reserves only pattern 0xFF, which the decode widens to a quiet
+ * NaN.
  *
  * @param[in] dtype   Floating dtype.
  * @param[in] pattern Raw storage pattern (zero-extended).
@@ -656,6 +668,9 @@ inline bool isNaNPattern(DType_ dtype, uint64_t pattern) {
   if (dtype == DType_::Float32) {
     const uint32_t w = static_cast<uint32_t>(pattern);
     return (w & 0x7F800000U) == 0x7F800000U && (w & 0x007FFFFFU) != 0U;
+  }
+  if (dtype == DType_::Float8E8M0fnu) {
+    return pattern == 0xFFU;
   }
   if (dtype == DType_::Float64) {
     return ((pattern >> 52) & 0x7FFULL) == 0x7FFULL &&

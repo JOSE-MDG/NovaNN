@@ -707,8 +707,7 @@ novaStatus_t collect(Tensor *ten) {
     cur->grad = nullptr;
     if (cur->storage != nullptr) {
       novaStatus_t release_status = {};
-      bool should_free =
-          release(&cur->storage->handle, &release_status);
+      bool should_free = release(&cur->storage->handle, &release_status);
       if (release_status.err != novaSuccess) {
         if (st.err == novaSuccess) {
           st = release_status;
