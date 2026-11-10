@@ -157,7 +157,6 @@ def build_rules() -> dict[str, Any]:
     source_text = _SOURCE_PATH.read_text()
     tables = _parse_tables(source_text)
     return {
-        "source": str(_SOURCE_PATH.relative_to(PROJECT_ROOT)),
         "tables": tables,
     }
 

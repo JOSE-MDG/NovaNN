@@ -1,5 +1,4 @@
 {
-  "source": "ncore/native/cpu/dtype/DTypeCasting.c",
   "tables": [
     {
       "signature": "lookup_tfp4e2m1_to_fp8e4m3",
