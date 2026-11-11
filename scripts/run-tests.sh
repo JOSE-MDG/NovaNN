@@ -1,49 +1,14 @@
 #!/usr/bin/env bash
-## @file run-tests.sh
-## @brief Run ctest suites for the NovaNN test presets.
-##
-## @details
-## Discovers every @c *-test-* CMake preset (optionally restricted by FILTER,
-## using the same prefix/exact matching as build-presets.sh) and runs
-## @c ctest --preset for each configured one.  Sanitizer runtime options are
-## managed automatically: ASan needs @c protect_shadow_gap=0 for CUDA device
-## probes, and LeakSanitizer discards vendor-runtime internals through the
-## repository-root @c suppr.txt.
-##
-## Without arguments the script sweeps **all** test presets and continues past
-## failing presets, collecting a final report.  Pass
-## @c --force-stop-on-failure to abort at the first red preset instead.
-## Anything after a literal @c -- is forwarded verbatim to every ctest call.
-##
-## Full output per preset is written to @c build/logs/tests/@<preset@>.log;
-## the terminal shows one summary line per preset with a live spinner when
-## stdout is a TTY.
-##
-## @par Usage
-## @code
-##   scripts/run-tests.sh [OPTIONS] [FILTER] [-- CTEST_ARGS...]
-## @endcode
-##
-## @par Options
-## @li @c --force-stop-on-failure — abort at the first preset with failures.
-## @li @c -l, @c —list — print matching test presets and exit.
-## @li @c -h, @c —help — show help and exit.
-##
-## @par Exit status
-## @li 0 — all executed presets passed (skips excluded).
-## @li 1 — at least one preset reported failures.
-## @li 2 — usage error.
-##
-## @see clean.sh
+# Run ctest for every *-test-* preset (or the subset matched by FILTER).
+
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname -- "$SCRIPT_DIR")"
-cd "$PROJECT_ROOT"
 
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
-nova::install_err_trap
+common::init
+common::install_err_trap
 
 LOG_DIR="build/logs/tests"
 FORCE_STOP=0
@@ -79,83 +44,43 @@ ${C_BOLD}Environment:${C_RESET} managed automatically from ${C_BOLD}suppr.txt${C
   ASAN_OPTIONS=protect_shadow_gap=0     (CUDA probes fail under ASan otherwise)
   LSAN_OPTIONS=suppressions=<root>/suppr.txt
 
-Full output is written to ${C_BOLD}build/logs/tests/<preset>.log${C_RESET}.
-Exit status: 0 = all executed presets passed, 1 = failures found,
-2 = usage error.
+Full output is written to ${C_BOLD}build/logs/tests/<preset>.log${C_RESET}. Exit status:
+0 = all executed presets passed, 1 = failures found, 2 = usage error.
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -h|--help)
-            usage
-            exit 0
-            ;;
-        -l|--list)
-            LIST_ONLY=1
-            ;;
-        --force-stop-on-failure)
-            FORCE_STOP=1
-            ;;
+        -h|--help) usage; exit 0 ;;
+        -l|--list) LIST_ONLY=1 ;;
+        --force-stop-on-failure) FORCE_STOP=1 ;;
         --)
             shift
-            while [[ $# -gt 0 ]]; do
-                CTEST_ARGS+=("$1")
-                shift
-            done
+            CTEST_ARGS=("$@")
             break
             ;;
-        -*)
-            usage_error "unknown option: $1 (forward ctest flags after '--')"
-            ;;
+        -*) usage_error "unknown option: $1 (forward ctest flags after '--')" ;;
         *)
-            if [[ -n "$FILTER" ]]; then
-                usage_error "only one FILTER is allowed"
-            fi
+            [[ -z "$FILTER" ]] || usage_error "only one FILTER is allowed"
             FILTER="$1"
             ;;
     esac
     shift
 done
 
-# ---------------------------------------------------------------------------
-# Preset discovery: family filter, then keep test presets only.
-# ---------------------------------------------------------------------------
-
-ALL_PRESETS=()
-while IFS= read -r p; do
-    ALL_PRESETS+=("$p")
-done < <(common::list_presets)
-
-if [[ ${#ALL_PRESETS[@]} -eq 0 ]]; then
-    die "no CMake presets found — is CMakePresets.json present?"
-fi
-
+mapfile -t ALL_PRESETS < <(common::list_presets)
 if [[ -n "$FILTER" ]]; then
-    MATCHED=()
-    for preset in "${ALL_PRESETS[@]}"; do
-        if [[ "$preset" == "$FILTER" || "$preset" == "$FILTER-"* ]]; then
-            MATCHED+=("$preset")
-        fi
-    done
-else
-    MATCHED=("${ALL_PRESETS[@]}")
+    mapfile -t ALL_PRESETS < <(printf '%s\n' "${ALL_PRESETS[@]}" | common::select_presets "$FILTER")
 fi
+mapfile -t PRESETS < <(printf '%s\n' "${ALL_PRESETS[@]}" | grep -E -- '-test-')
 
-PRESETS=()
-for preset in "${MATCHED[@]}"; do
-    if [[ "$preset" == *-test-* ]]; then
-        PRESETS+=("$preset")
-    fi
-done
-
-if [[ ${#PRESETS[@]} -eq 0 ]]; then
+if (( ${#PRESETS[@]} == 0 )); then
     die "no test presets match '${FILTER:-*}' (see --list)"
 fi
 
 TOTAL=${#PRESETS[@]}
 
-if [[ "$LIST_ONLY" -eq 1 ]]; then
+if (( LIST_ONLY )); then
     printf '%sMatching test presets (%d):%s\n' "$C_BOLD" "$TOTAL" "$C_RESET"
     for preset in "${PRESETS[@]}"; do
         printf '  %s%s%s\n' "$C_CYAN" "$preset" "$C_RESET"
@@ -163,25 +88,18 @@ if [[ "$LIST_ONLY" -eq 1 ]]; then
     exit 0
 fi
 
-# ---------------------------------------------------------------------------
-# Sanitizer environment (user-provided values are appended last, so they win).
-# ---------------------------------------------------------------------------
-
+# Sanitizer environment. User-provided values are appended last, so they win.
 SUPPR="${PROJECT_ROOT}/suppr.txt"
 SAN_ENV=(ASAN_OPTIONS="protect_shadow_gap=0")
+[[ -n "${ASAN_OPTIONS:-}" ]] && SAN_ENV[0]+=":${ASAN_OPTIONS}"
+
 if [[ -f "$SUPPR" ]]; then
     SAN_ENV+=(LSAN_OPTIONS="suppressions=$SUPPR")
+    [[ -n "${LSAN_OPTIONS:-}" ]] && SAN_ENV[1]+=":${LSAN_OPTIONS}"
 else
     printf '%sWARNING:%s %s not found; LSan suppressions inactive.\n' \
         "$C_YELLOW" "$C_RESET" "$SUPPR" >&2
-fi
-[[ -n "${ASAN_OPTIONS:-}" ]] && SAN_ENV[0]+=":${ASAN_OPTIONS}"
-if [[ -n "${LSAN_OPTIONS:-}" ]]; then
-    if [[ -f "$SUPPR" ]]; then
-        SAN_ENV[1]+=":${LSAN_OPTIONS}"
-    else
-        SAN_ENV+=(LSAN_OPTIONS="${LSAN_OPTIONS}")
-    fi
+    [[ -n "${LSAN_OPTIONS:-}" ]] && SAN_ENV+=(LSAN_OPTIONS="$LSAN_OPTIONS")
 fi
 
 mkdir -p "$LOG_DIR"
@@ -220,27 +138,23 @@ for i in "${!PRESETS[@]}"; do
         common::spinner "$run_pid" "$log" "$preset" "$n" "$TOTAL" \
             '[0-9]+/[0-9]+[ ]+Test[^[:cntrl:]]*' &
         spin_pid=$!
-        if wait "$run_pid"; then rc=0; else rc=$?; fi
+        wait "$run_pid" && rc=0 || rc=$?
         wait "$spin_pid" 2>/dev/null || true
     else
-        if env "${SAN_ENV[@]}" ctest --preset "$preset" "${CTEST_ARGS[@]}" >"$log" 2>&1; then
-            rc=0
-        else
-            rc=$?
-        fi
+        env "${SAN_ENV[@]}" ctest --preset "$preset" "${CTEST_ARGS[@]}" >"$log" 2>&1 && rc=0 || rc=$?
     fi
 
-    elapsed=$(($(date +%s) - start))
+    elapsed=$(( $(date +%s) - start ))
 
-    failed_names=$(awk '/The following tests FAILED:/{f=1; next}
-                        f && /^[[:space:]]*[0-9]+ - / {
-                            sub(/^[[:space:]]*[0-9]+ - /, "");
-                            sub(/ \(.*$/, "");
-                            print "    " $0
-                        }' "$log")
-    n_failed=$(printf '%s' "$failed_names" | grep -c . || true)
+    mapfile -t failed_names < <(awk '/The following tests FAILED:/{f=1; next}
+                                     f && /^[[:space:]]*[0-9]+ - / {
+                                         sub(/^[[:space:]]*[0-9]+ - /, "");
+                                         sub(/ \(.*$/, "");
+                                         print "    " $0
+                                     }' "$log")
+    n_failed=${#failed_names[@]}
 
-    if [[ "$rc" -eq 0 && "$n_failed" -eq 0 ]]; then
+    if (( rc == 0 && n_failed == 0 )); then
         printf '%s  %s✔ passed%s  %s%d/%d%s  %s(%s)%s\n' \
             "$C_CLEAR" "$C_GREEN" "$C_RESET" \
             "$C_BOLD" "$total_tests" "$total_tests" "$C_RESET" \
@@ -253,11 +167,11 @@ for i in "${!PRESETS[@]}"; do
             "$C_DIM" "$(fmt_elapsed "$elapsed")" "$C_RESET"
         printf '%s  ── failing tests (%s/%s.log) ──%s\n' \
             "$C_YELLOW" "$LOG_DIR" "$preset" "$C_RESET" >&2
-        while IFS= read -r line; do
+        for line in "${failed_names[@]}"; do
             printf '%s\n' "$line" >&2
-        done <<<"$failed_names"
+        done
 
-        if [[ "$FORCE_STOP" -eq 1 ]]; then
+        if (( FORCE_STOP )); then
             printf '\n%sAborting: --force-stop-on-failure and %s reported failures.%s\n' \
                 "$C_RED" "$preset" "$C_RESET"
             exit 1
@@ -266,10 +180,10 @@ for i in "${!PRESETS[@]}"; do
 done
 
 printf '\n'
-if [[ ${#FAILED_PRESETS[@]} -eq 0 ]]; then
+if (( ${#FAILED_PRESETS[@]} == 0 )); then
     msg="✔ All $TOTAL test preset(s) passed"
-    [[ "$SKIPPED" -gt 0 ]] && msg+=" ($SKIPPED skipped: not configured)"
-    printf '%s%s%s\n' "$C_GREEN" "$msg.$C_RESET"
+    (( SKIPPED > 0 )) && msg+=" ($SKIPPED skipped: not configured)"
+    printf '%s%s%s\n' "$C_GREEN" "$msg" "$C_RESET"
     exit 0
 fi
 

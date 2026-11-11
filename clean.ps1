@@ -1,40 +1,21 @@
 #!/usr/bin/env pwsh
-<#
-.SYNOPSIS
-    Clean NovaNN build artifacts and logs.
-
-.DESCRIPTION
-    Without --target, removes the complete build directory after an
-    interactive confirmation. A directory target runs the CMake clean target,
-    preserving the configured build tree. Codegen outputs live in the source
-    tree but are Ninja-tracked build outputs, so a plain clean would delete
-    them; the script snapshots them beforehand and restores them afterwards,
-    byte for byte. The log targets remove all logs,
-    test logs, or configure/build logs respectively.
-
-.EXAMPLE
-    ./clean.ps1 --target cuda-test-debug-linux
-.EXAMPLE
-    ./clean.ps1 --dry-run --target logs
-#>
+# Clean build artifacts and logs. Without --target the whole build/ tree is
+# removed; with one, that tree is cleaned and its codegen outputs are preserved.
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$ScriptDir = $PSScriptRoot
-$ProjectRoot = $ScriptDir
+Import-Module (Join-Path $PSScriptRoot 'scripts/lib/common.psm1') -Force
+$ProjectRoot = Initialize-ScriptContext
 $ScriptName = Split-Path -Leaf $PSCommandPath
-Set-Location -Path $ProjectRoot
 
-Import-Module (Join-Path $ProjectRoot 'scripts/lib/common.psm1') -Force
-$NovaColors = Get-NovaColors
-$C_RESET = $NovaColors.Reset
-$C_BOLD = $NovaColors.Bold
-$C_DIM = $NovaColors.Dim
-$C_RED = $NovaColors.Red
-$C_GREEN = $NovaColors.Green
-$C_YELLOW = $NovaColors.Yellow
-$C_CYAN = $NovaColors.Cyan
+$Colors = Get-ScriptColors
+$C_RESET = $Colors.Reset
+$C_BOLD = $Colors.Bold
+$C_RED = $Colors.Red
+$C_GREEN = $Colors.Green
+$C_YELLOW = $Colors.Yellow
+$C_CYAN = $Colors.Cyan
 
 $DryRun = $false
 $AssumeYes = $false
@@ -48,7 +29,7 @@ $($C_BOLD)Targets:$($C_RESET)
   <path>                Run cmake --build <path> --target clean.
                         Configuration is kept; source-tree codegen outputs
                         are snapshotted and restored. A bare preset name
-                        resolves to build/<preset> when that directory exists.
+                        resolves to build/<preset> when it exists.
   logs                  Delete build/logs entirely.
   test-logs             Delete build/logs/tests only.
   build-logs            Delete configure/build logs at build/logs/*.log.
@@ -64,56 +45,36 @@ Exit status: 0 = cleaned or nothing to do, 1 = refused or failed,
 "@ | Write-Host
 }
 
-$i = 0
-while ($i -lt $args.Count) {
+for ($i = 0; $i -lt $args.Count; $i++) {
     $arg = $args[$i]
-    switch ($arg) {
-        { $_ -in @('-h', '--help') } {
-            Show-Usage
-            exit 0
-        }
-        { $_ -in @('-n', '--dry-run') } {
-            $DryRun = $true
-        }
-        { $_ -in @('-y', '--yes') } {
-            $AssumeYes = $true
-        }
-        '--target' {
-            if ($i + 1 -ge $args.Count) {
-                Write-UsageErrorAndExit '--target requires a value'
-            }
-            if ($null -ne $Target) {
-                Write-UsageErrorAndExit '--target given more than once'
-            }
-            $i++
-            $Target = $args[$i]
-            if ([string]::IsNullOrEmpty($Target)) {
-                Write-UsageErrorAndExit '--target requires a non-empty value'
-            }
-        }
-        default {
-            Write-UsageErrorAndExit "unknown option: $arg"
+
+    if ($arg -in '-h', '--help') { Show-Usage; exit 0 }
+    elseif ($arg -in '-n', '--dry-run') { $DryRun = $true }
+    elseif ($arg -in '-y', '--yes') { $AssumeYes = $true }
+    elseif ($arg -eq '--target') {
+        if ($i + 1 -ge $args.Count) { Write-UsageErrorAndExit '--target requires a value' }
+        if ($null -ne $Target) { Write-UsageErrorAndExit '--target given more than once' }
+        $i++
+        $Target = $args[$i]
+        if ([string]::IsNullOrEmpty($Target)) {
+            Write-UsageErrorAndExit '--target requires a non-empty value'
         }
     }
-    $i++
+    else { Write-UsageErrorAndExit "unknown option: $arg" }
 }
 
-function Backup-NovaCodegenOutputs {
-    # Codegen outputs live in the source tree (see
-    # cmake/Modules/NovaNNRuntime.cmake) but are declared as OUTPUTs of the
-    # nova_codegen custom command, so Ninja's clean deletes them together
-    # with the object files. Returns the backup directory path, or $null
-    # when there is nothing to preserve. Never throws: on any failure the
-    # caller simply cleans without a backup.
+# Codegen outputs live in the source tree, but Ninja's clean deletes them along
+# with the object files. Snapshot them before a directory clean, restore them
+# afterwards byte for byte.
+function Backup-CodegenOutputs {
     try {
         $out = & uv run -q tools/codegen/generate.py gen --all --list-outputs 2>$null
     }
     catch {
         return $null
     }
-    if ($LASTEXITCODE -ne 0 -or $null -eq $out) {
-        return $null
-    }
+    if ($LASTEXITCODE -ne 0 -or -not $out) { return $null }
+
     $files = @()
     foreach ($line in $out) {
         $f = "$line".Trim()
@@ -121,9 +82,8 @@ function Backup-NovaCodegenOutputs {
             $files += $f
         }
     }
-    if ($files.Count -eq 0) {
-        return $null
-    }
+    if ($files.Count -eq 0) { return $null }
+
     $backup = Join-Path ([System.IO.Path]::GetTempPath()) ('nova-clean-' + [System.IO.Path]::GetRandomFileName())
     New-Item -ItemType Directory -Path $backup | Out-Null
     foreach ($f in $files) {
@@ -131,23 +91,20 @@ function Backup-NovaCodegenOutputs {
         New-Item -ItemType Directory -Path (Split-Path $dest) -Force | Out-Null
         Copy-Item -LiteralPath $f -Destination $dest -Force
     }
-    return $backup
+    $backup
 }
 
-function Restore-NovaCodegenOutputs {
+function Restore-CodegenOutputs {
     param([string]$BackupDir)
 
-    if ([string]::IsNullOrEmpty($BackupDir)) {
-        return
-    }
-    if (-not (Test-Path -LiteralPath $BackupDir -PathType Container)) {
-        return
-    }
+    if ([string]::IsNullOrEmpty($BackupDir)) { return }
+    if (-not (Test-Path -LiteralPath $BackupDir -PathType Container)) { return }
+
     Copy-Item -Path (Join-Path $BackupDir '*') -Destination $ProjectRoot -Recurse -Force
     Remove-Item -LiteralPath $BackupDir -Recurse -Force
 }
 
-function Remove-NovaItem {
+function Remove-IfNotDryRun {
     param(
         [Parameter(Mandatory)][string]$Path,
         [switch]$Recurse
@@ -181,7 +138,7 @@ if ($null -eq $Target) {
         }
     }
 
-    Remove-NovaItem -Path 'build' -Recurse
+    Remove-IfNotDryRun -Path 'build' -Recurse
     if (-not $DryRun) {
         Write-Host "$($C_GREEN)  ✔ deleted$($C_RESET) build/"
     }
@@ -194,7 +151,7 @@ switch ($Target) {
             Write-Host "$($C_YELLOW)nothing to do:$($C_RESET) build/logs does not exist."
             exit 0
         }
-        Remove-NovaItem -Path 'build/logs' -Recurse
+        Remove-IfNotDryRun -Path 'build/logs' -Recurse
         if (-not $DryRun) { Write-Host "$($C_GREEN)  ✔ deleted$($C_RESET) build/logs" }
     }
     'test-logs' {
@@ -202,21 +159,17 @@ switch ($Target) {
             Write-Host "$($C_YELLOW)nothing to do:$($C_RESET) build/logs/tests does not exist."
             exit 0
         }
-        Remove-NovaItem -Path 'build/logs/tests' -Recurse
+        Remove-IfNotDryRun -Path 'build/logs/tests' -Recurse
         if (-not $DryRun) { Write-Host "$($C_GREEN)  ✔ deleted$($C_RESET) build/logs/tests" }
     }
     'build-logs' {
-        $buildLogDir = 'build/logs'
-        $files = @()
-        if (Test-Path -LiteralPath $buildLogDir -PathType Container) {
-            $files = @(Get-ChildItem -Path (Join-Path $buildLogDir '*.log') -File)
-        }
+        $files = @(Get-ChildItem -Path (Join-Path 'build/logs' '*.log') -File -ErrorAction SilentlyContinue)
         if ($files.Count -eq 0) {
             Write-Host "$($C_YELLOW)nothing to do:$($C_RESET) no build log files."
             exit 0
         }
         foreach ($file in $files) {
-            Remove-NovaItem -Path $file.FullName
+            Remove-IfNotDryRun -Path $file.FullName
         }
         if (-not $DryRun) {
             Write-Host "$($C_GREEN)  ✔ deleted$($C_RESET) $($files.Count) build log file(s)"
@@ -224,10 +177,8 @@ switch ($Target) {
     }
     default {
         $buildDir = $Target
-        $hasSeparator = $Target.Contains('/') -or $Target.Contains('\')
         if (-not (Test-Path -LiteralPath $buildDir -PathType Container) -and
-            -not $hasSeparator -and
-            (Test-Path -LiteralPath (Join-Path 'build' $Target) -PathType Container)) {
+            -not $Target.Contains('/') -and -not $Target.Contains('\')) {
             $buildDir = Join-Path 'build' $Target
         }
 
@@ -245,19 +196,15 @@ switch ($Target) {
         }
 
         Write-Host "  $($C_CYAN)▸ cleaning$($C_RESET) $buildDir"
-        $backupDir = Backup-NovaCodegenOutputs
+        $backupDir = Backup-CodegenOutputs
         try {
-            & cmake --build $buildDir --target clean
-            $rc = $LASTEXITCODE
+            Invoke-Native -FilePath cmake -ArgumentList @('--build', $buildDir, '--target', 'clean')
         }
         catch {
-            Restore-NovaCodegenOutputs -BackupDir $backupDir
-            Write-Die "cmake --build $buildDir --target clean failed: $($_.Exception.Message)"
-        }
-        Restore-NovaCodegenOutputs -BackupDir $backupDir
-        if ($rc -ne 0) {
+            Restore-CodegenOutputs -BackupDir $backupDir
             Write-Die "cmake --build $buildDir --target clean failed"
         }
+        Restore-CodegenOutputs -BackupDir $backupDir
         Write-Host "$($C_GREEN)  ✔ cleaned$($C_RESET) $buildDir"
     }
 }

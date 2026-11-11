@@ -1,53 +1,25 @@
 #!/usr/bin/env pwsh
-<#
-.SYNOPSIS
-    Run ctest suites for NovaNN test presets.
-
-.DESCRIPTION
-    Runs every *-test-* CMake preset, or the matching subset, and writes the
-    complete ctest output to build/logs/tests/<preset>.log. Presets that have
-    not been configured are reported as skipped. Test failures are collected
-    across the sweep by default; --force-stop-on-failure stops at the first
-    failing preset.
-
-    Arguments after -- are passed to ctest. ASan and LSan options are set for
-    the child test processes. Windows configures AddressSanitizer options only;
-    leak-suppression files are not configured by this runner.
-
-.PARAMETER Filter
-    Backend prefix or exact preset name.
-
-.PARAMETER ForceStopOnFailure
-    Stop after the first preset reports a failure.
-
-.PARAMETER List
-    Print matching test presets and exit.
-
-.EXAMPLE
-    scripts/run-tests.ps1 cuda
-.EXAMPLE
-    scripts/run-tests.ps1 hip -- -R 'Tensor.*' -V
-#>
+# Run ctest for every *-test-* preset (or the subset matched by FILTER).
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $ScriptDir = $PSScriptRoot
-$ProjectRoot = Split-Path -Parent $ScriptDir
 $ScriptName = Split-Path -Leaf $PSCommandPath
-Set-Location -Path $ProjectRoot
 
 Import-Module (Join-Path $ScriptDir 'lib/common.psm1') -Force
-$NovaColors = Get-NovaColors
-$IsTTY = [bool]$NovaColors.IsTTY
-$C_RESET = $NovaColors.Reset
-$C_BOLD = $NovaColors.Bold
-$C_DIM = $NovaColors.Dim
-$C_RED = $NovaColors.Red
-$C_GREEN = $NovaColors.Green
-$C_YELLOW = $NovaColors.Yellow
-$C_CYAN = $NovaColors.Cyan
-$C_CLEAR = $NovaColors.Clear
+$ProjectRoot = Initialize-ScriptContext
+
+$Colors = Get-ScriptColors
+$IsTTY = [bool]$Colors.IsTTY
+$C_RESET = $Colors.Reset
+$C_BOLD = $Colors.Bold
+$C_DIM = $Colors.Dim
+$C_RED = $Colors.Red
+$C_GREEN = $Colors.Green
+$C_YELLOW = $Colors.Yellow
+$C_CYAN = $Colors.Cyan
+$C_CLEAR = $Colors.Clear
 
 $LogDir = 'build/logs/tests'
 $ForceStop = $false
@@ -56,7 +28,7 @@ $FilterArg = $null
 $CtestArgs = @()
 
 function Show-Usage {
-@"
+    @"
 $($C_BOLD)Usage:$($C_RESET) $ScriptName [OPTIONS] [FILTER] [-- CTEST_ARGS...]
 
 Run ctest for every *-test-* CMake preset, or the subset matched by FILTER.
@@ -82,52 +54,32 @@ Exit status: 0 = all executed presets passed, 1 = failures found,
 "@ | Write-Host
 }
 
-$i = 0
-while ($i -lt $args.Count) {
+for ($i = 0; $i -lt $args.Count; $i++) {
     $arg = $args[$i]
-    switch ($arg) {
-        { $_ -in @('-h', '--help') } {
-            Show-Usage
-            exit 0
-        }
-        { $_ -in @('-l', '--list') } {
-            $ListOnly = $true
-        }
-        '--force-stop-on-failure' {
-            $ForceStop = $true
-        }
-        '--' {
-            if ($i + 1 -lt $args.Count) {
-                $CtestArgs = @($args[($i + 1)..($args.Count - 1)])
-            }
-            break
-        }
-        default {
-            if ($arg.StartsWith('-')) {
-                Write-UsageErrorAndExit "unknown option: $arg (pass ctest flags after '--')"
-            }
-            if ($null -ne $FilterArg) {
-                Write-UsageErrorAndExit 'only one FILTER is allowed'
-            }
-            $FilterArg = $arg
-        }
+
+    if ($arg -in '-h', '--help') { Show-Usage; exit 0 }
+    elseif ($arg -in '-l', '--list') { $ListOnly = $true }
+    elseif ($arg -eq '--force-stop-on-failure') { $ForceStop = $true }
+    elseif ($arg -eq '--') {
+        $CtestArgs = @($args | Select-Object -Skip ($i + 1))
+        break
     }
-    if ($arg -eq '--') { break }
-    $i++
+    elseif ($arg.StartsWith('-')) {
+        Write-UsageErrorAndExit "unknown option: $arg (pass ctest flags after '--')"
+    }
+    elseif ($FilterArg) { Write-UsageErrorAndExit 'only one FILTER is allowed' }
+    else { $FilterArg = $arg }
 }
 
-$AllPresets = @(Get-NovaPresetNames)
-$MatchedPresets = if ($null -ne $FilterArg) {
-    @($AllPresets | Where-Object { $_ -eq $FilterArg -or $_ -like "$FilterArg-*" })
+$Presets = @(Get-PresetNames)
+if ($FilterArg) {
+    $Presets = @($Presets | Select-Presets -Filter $FilterArg)
 }
-else {
-    @($AllPresets)
-}
+$Presets = @($Presets | Where-Object { $_ -like '*-test-*' })
 
-$Presets = @($MatchedPresets | Where-Object { $_ -like '*-test-*' })
 if ($Presets.Count -eq 0) {
-    $filterDisplay = if ($null -eq $FilterArg) { '*' } else { $FilterArg }
-    Write-Die "no test presets match '$filterDisplay' (see --list)"
+    $label = if ($FilterArg) { $FilterArg } else { '*' }
+    Write-Die "no test presets match '$label' (see --list)"
 }
 
 if ($ListOnly) {
@@ -138,17 +90,8 @@ if ($ListOnly) {
     exit 0
 }
 
-# Windows ASan: protect_shadow_gap=0 triggers CHECK failure
-# sanitizer_common_libcdep.cpp:164 (beg % GetMmapGranularity() == 0).
-# On Linux it is required for CUDA probes, but on Windows CUDA tests
-# pass without it and discovery crashes with it.
-if (-not [string]::IsNullOrEmpty($env:ASAN_OPTIONS)) {
-    $env:ASAN_OPTIONS = $env:ASAN_OPTIONS
-} else {
-    Remove-Item Env:ASAN_OPTIONS -ErrorAction SilentlyContinue
-}
-
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+
 Write-Host ''
 Write-Host "$($C_BOLD)NovaNN — run tests$($C_RESET)"
 Write-Host "$($C_DIM)$($Presets.Count) test preset(s) · full logs: $LogDir$($C_RESET)"
@@ -156,9 +99,9 @@ Write-Host "$($C_DIM)$($Presets.Count) test preset(s) · full logs: $LogDir$($C_
 $FailedPresets = @()
 $Skipped = 0
 
-for ($idx = 0; $idx -lt $Presets.Count; $idx++) {
-    $preset = $Presets[$idx]
-    $n = $idx + 1
+for ($i = 0; $i -lt $Presets.Count; $i++) {
+    $preset = $Presets[$i]
+    $n = $i + 1
     $logFile = Join-Path $LogDir "$preset.log"
 
     Write-Host ''
@@ -170,10 +113,9 @@ for ($idx = 0; $idx -lt $Presets.Count; $idx++) {
         continue
     }
 
-    $testList = @(& ctest --preset $preset @CtestArgs -N 2>$null)
     $totalTests = 0
-    foreach ($line in $testList) {
-        if ($line -match '^\s*Total Tests:\s*(\d+)') {
+    foreach ($line in & ctest --preset $preset @CtestArgs -N 2>$null) {
+        if ($line -match 'Total Tests:\s*(\d+)') {
             $totalTests = [int]$Matches[1]
             break
         }
@@ -186,7 +128,7 @@ for ($idx = 0; $idx -lt $Presets.Count; $idx++) {
             Set-Location -Path $Dir
             & ctest --preset $PresetName @Arguments *> $Log
             $LASTEXITCODE
-        } -ArgumentList @($preset, $logFile, $ProjectRoot, (,$CtestArgs))
+        } -ArgumentList $preset, $logFile, $ProjectRoot, $CtestArgs
 
         Show-Spinner -Job $job -LogFile $logFile -Label $preset -N $n -Total $Presets.Count `
             -Pattern '(\d+)/(\d+)\s+Test([^\r\n]*)'
@@ -212,7 +154,7 @@ for ($idx = 0; $idx -lt $Presets.Count; $idx++) {
     $failedCount = $failedNames.Count
 
     if ($rc -eq 0 -and $failedCount -eq 0) {
-        Write-Host "$($C_CLEAR)  $($C_GREEN)✔ passed$($C_RESET)  $($C_BOLD)$($totalTests)/$($totalTests)$($C_RESET)  $($C_DIM)$(Format-Elapsed $elapsed)$($C_RESET)"
+        Write-Host "$($C_CLEAR)  $($C_GREEN)✔ passed$($C_RESET)  $($C_BOLD)$totalTests/$totalTests$($C_RESET)  $($C_DIM)$(Format-Elapsed $elapsed)$($C_RESET)"
     }
     else {
         $FailedPresets += $preset

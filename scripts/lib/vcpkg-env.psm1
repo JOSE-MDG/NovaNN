@@ -1,64 +1,49 @@
-<#
-.SYNOPSIS
-    Select NovaNN's project-local vcpkg for the current PowerShell process.
-.DESCRIPTION
-    Import this module and call Set-VcpkgEnvironment before invoking CMake
-    or vcpkg. The function overrides VCPKG_ROOT and prepends the project-local
-    vcpkg directory to PATH for the current process and its child processes.
-#>
+#!/usr/bin/env pwsh
+# Select NovaNN's project-local vcpkg for the current PowerShell process.
 
 Set-StrictMode -Version Latest
 
 $script:DefaultProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 function Set-VcpkgEnvironment {
-    [CmdletBinding()]
-    param(
-        [Parameter()]
-        [string]$ProjectRoot = $script:DefaultProjectRoot
-    )
+    param([string]$ProjectRoot = $script:DefaultProjectRoot)
 
-    $resolvedProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot -ErrorAction Stop).Path
-    $vcpkgRoot = Join-Path $resolvedProjectRoot 'thirdParty/vcpkg'
+    $root = (Resolve-Path -LiteralPath $ProjectRoot -ErrorAction Stop).Path
+    $vcpkgRoot = Join-Path $root 'thirdParty/vcpkg'
     $toolchain = Join-Path $vcpkgRoot 'scripts/buildsystems/vcpkg.cmake'
-    $executableName = if ($IsWindows) { 'vcpkg.exe' } else { 'vcpkg' }
-    $executable = Join-Path $vcpkgRoot $executableName
+    $exeName = if ($IsWindows) { 'vcpkg.exe' } else { 'vcpkg' }
+    $exe = Join-Path $vcpkgRoot $exeName
 
-    if (-not (Test-Path -LiteralPath $toolchain -PathType Leaf) -or
-        -not (Test-Path -LiteralPath $executable -PathType Leaf)) {
-        $bootstrapHint = if ($IsWindows) {
-            'Initialize the submodule and run scripts/update-vcpkg.ps1, or thirdParty/vcpkg/bootstrap-vcpkg.bat.'
+    # The submodule is initialized and bootstrapped on demand, so a from-source
+    # build needs no separate setup script.
+    if (-not (Test-Path -LiteralPath $toolchain -PathType Leaf)) {
+        Write-Host 'vcpkg: initializing the thirdParty/vcpkg submodule...'
+        & git -C $root submodule update --init -- thirdParty/vcpkg
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not initialize the vcpkg submodule at '$vcpkgRoot'."
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
+        Write-Host 'vcpkg: bootstrapping the local executable...'
+        if ($IsWindows) {
+            & (Join-Path $vcpkgRoot 'bootstrap-vcpkg.bat') -disableMetrics
         }
         else {
-            'Initialize the submodule and run scripts/update-vcpkg.ps1, or thirdParty/vcpkg/bootstrap-vcpkg.sh.'
+            & bash (Join-Path $vcpkgRoot 'bootstrap-vcpkg.sh') -disableMetrics
         }
-        throw "NovaNN's local vcpkg is missing or not bootstrapped: '$vcpkgRoot'. $bootstrapHint"
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not bootstrap vcpkg at '$vcpkgRoot'."
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $toolchain -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $exe -PathType Leaf)) {
+        throw "NovaNN's local vcpkg is missing or not bootstrapped: '$vcpkgRoot'."
     }
 
     $env:VCPKG_ROOT = $vcpkgRoot
-    $pathSeparator = [IO.Path]::PathSeparator
-    $currentPath = if ($env:PATH) { $env:PATH } else { '' }
-    $localPathEntry = [IO.Path]::GetFullPath($vcpkgRoot).TrimEnd([char[]]@(
-        [IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar
-    ))
-
-    # Keep exactly one local entry and guarantee it has highest precedence.
-    $pathEntries = @($currentPath -split [regex]::Escape([string]$pathSeparator) |
-        Where-Object {
-            if ([string]::IsNullOrWhiteSpace($_)) {
-                $false
-            }
-            else {
-                $normalized = [IO.Path]::GetFullPath($_).TrimEnd([char[]]@(
-                    [IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar
-                ))
-                if ($IsWindows) { $normalized -ine $localPathEntry }
-                else { $normalized -cne $localPathEntry }
-            }
-        })
-    $env:PATH = (@($vcpkgRoot) + $pathEntries) -join $pathSeparator
-
-    Write-Verbose "VCPKG_ROOT set to '$env:VCPKG_ROOT'."
+    $env:PATH = "$vcpkgRoot$([IO.Path]::PathSeparator)$env:PATH"
 }
 
 Export-ModuleMember -Function Set-VcpkgEnvironment
