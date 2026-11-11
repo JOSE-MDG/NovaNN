@@ -221,7 +221,7 @@ The C ABI carries no stream at all: `reserve`, `release`, and `resize` take no s
 
 ### Building the Project
 
-Prerequisites: CMake ≥ 3.27 and Ninja. vcpkg arrives as a git submodule at `thirdParty/vcpkg`; the preset scripts point `VCPKG_ROOT` at it and every preset loads `$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake`. Initialize or refresh it with `scripts/update-vcpkg.sh`, which bootstraps the executable and updates the registry baselines in `vcpkg-configuration.json`. Every preset builds out-of-source into `build/<preset-name>/`; list them all with `cmake --list-presets`.
+Prerequisites: CMake ≥ 3.27 and Ninja. vcpkg arrives as a git submodule at `thirdParty/vcpkg`; the preset scripts point `VCPKG_ROOT` at it and every preset loads `$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake`. The build scripts initialize and bootstrap it on demand through `scripts/lib/vcpkg-env.sh`, so a from-source build needs no separate setup step; `scripts/update-vcpkg.sh --remote` is the maintainer bump. The registry baseline is gone: vcpkg resolves against the submodule commit pinned by the repository. Every preset builds out-of-source into `build/<preset-name>/`; list them all with `cmake --list-presets`.
 
 #### Preset Naming Convention
 
@@ -265,7 +265,7 @@ Configure or build many presets at once. Both scripts print one summary line per
 | `scripts/build-presets.sh` / `.ps1` | Configure matching presets (`cmake --preset`) | `-c/--continue`, `-l/--list` |
 | `scripts/compile-presets.sh` / `.ps1` | Build already-configured presets (`cmake --build`) | `-C/--config Release\|Debug`, `-j/--jobs N`, `-c/--continue`, `-l/--list` |
 | `scripts/run-tests.sh` / `.ps1` | Run matching `*-test-*` presets with ctest | `--force-stop-on-failure`, `-l/--list`, `-- CTEST_ARGS...` |
-| `scripts/update-vcpkg.sh` / `.ps1` | Update the vcpkg submodule, bootstrap it, refresh the registry baselines | `-h/--help` |
+| `scripts/update-vcpkg.sh` / `.ps1` | Initialize or move the vcpkg submodule (maintainer bump) | `-r/--remote`, `-h/--help` |
 | `clean.sh` / `.ps1` | Clean one CMake tree, logs, or the complete `build/` directory | `--target`, `-n/--dry-run`, `-y/--yes` |
 
 The four preset/test runners share colors, error handling, elapsed-time
@@ -404,8 +404,8 @@ exists because skipping it caused a concrete failure during development.
 - Incremental builds hide warnings in the translation units they skip. To
   measure warnings, clean the tree first (`./clean.sh --target
   build/<preset>`) and rebuild: the build must come out warning free.
-- A registry baseline change re-resolves the vcpkg ports. Re-run the gates
-  after moving a baseline, since the installed ports can change with it.
+- Moving the vcpkg submodule re-resolves the ports, since the submodule
+  commit is the registry baseline. Re-run the gates after a bump.
 - Save full command output to files and grep them; truncated pipes have
   hidden hundreds of failures.
 - Intentional GTEST_SKIPs carry reason strings and are part of the spec;
