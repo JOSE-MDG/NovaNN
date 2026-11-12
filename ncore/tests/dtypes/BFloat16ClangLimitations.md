@@ -1,14 +1,16 @@
 # bfloat16 Under Clang on x86-64: Test-Side Limitations
 
-**Scope:** `hip-*` presets (Clang toolchain). **Not affected:** `cpu-*` and
-`cuda-*` presets, which compile exclusively with GCC/G++ (verified from each
-preset's `CMakeCache.txt`: `CMAKE_CXX_COMPILER:STRING=/usr/bin/g++`, CUDA
-device code via `/opt/cuda/bin/nvcc`).
+**Scope:** every preset whose C/C++ host code is compiled by Clang, which
+today means `hip-*` and `cuda-*-windows` (clang-cl). **Not affected:**
+`cpu-*` and `cuda-*-linux`, which compile exclusively with GCC/G++. Verify
+per preset from `CMakeCache.txt`: on Windows the MSVC `cl.exe` in
+`CMAKE_CUDA_HOST_COMPILER` is only nvcc's host compiler, never the project
+compiler.
 
 ## Summary
 
-When NovaNN's test suites are compiled by Clang, every test that pushes a
-`bfloat16` value through a function call boundary can observe that value
+When NovaNN's test suites are compiled by Clang, every test that passes a
+`bfloat16` value across a function call boundary can observe that value
 silently altered: subnormals become zero and NaN payloads become quieted.
 This document explains why that happens, why it is outside this project's
 control, and states the project stance on how the tests behave under each
@@ -64,24 +66,22 @@ float, inserting extensions and truncations as necessary," and by default
 operand is the result of an explicit cast or assignment" [2].
 
 NovaNN typedefs its lowercase `bfloat16` to `__bf16` under GCC/Clang. Every
-function parameter or return value of that type therefore becomes an explicit
-cast/assignment boundary where Clang re-truncates the widened representation,
-and the truncation lowering ends in the `VCVTNEPS2BF16` sequence described
-above. Disassembling our own binaries makes this directly visible:
+function parameter of that type therefore becomes an explicit cast/assignment
+boundary where Clang re-truncates the widened representation, and the
+truncation lowering ends in the `VCVTNEPS2BF16` sequence described above.
+Disassembling our own binaries makes this directly visible:
 
 * Debug builds, argument edge of a scalar kernel calling
   `bf16_to_float(bfloat16)`:
   `movzwl (%..),%eax ; shl $0x10,%eax ; vmovd %eax,%xmm0 ;
   vcvtneps2bf16 %xmm0,%xmm0 ; call ...` - the value is destroyed *before*
   the callee runs.
-* Release builds, return edge of `bf16_from_float`:
-  `shl $0x10,%ebx ; vmovd %ebx,%xmm0 ; vcvtneps2bf16 %xmm0,%xmm0 ; ret`.
 
 For comparison, GCC keeps `bfloat16` values as opaque 16-bit integers and
 performs exact shifts, which is why the identical sources pass every suite
 under the `cpu-*` and `cuda-*` presets.
 
-Which of the two edges fires depends on optimization level; that both do is a
+Which call boundaries fire depends on optimization level; that they do is a
 property of Clang's emulation strategy, not of any NovaNN code. We cannot fix
 it from source without changing public signatures, and the behavior may change
 between Clang versions without notice, since excess-precision handling is an
@@ -91,12 +91,16 @@ than a language guarantee.
 ## Project stance
 
 We considered three ways out: routing production conversions through
-integer-based paths under HIP, gating whole suites, or filing upstream. None
-felt right for now. Production signatures exist for kernel performance and API
-stability, not for the convenience of one compiler's emulation layer; hiding
-the native path would also hide real behavior our users will meet. So the
-tests carry the burden instead: wherever a `bfloat16` value would cross a call
-boundary under Clang, the suites switch to the software reference path
+integer-based paths under Clang, gating whole suites, or filing upstream. The
+first one is now the answer for the narrowing entry points: `bf16_from_float`
+and `fp16_from_float` build their bit pattern with integer math on every
+compiler, so the conversion itself is bit-exact. The remaining clash is at
+argument edges, where a caller hands a `bfloat16` to a function. Production
+signatures exist for kernel performance and API stability, not for the
+convenience of one compiler's emulation layer; changing them to dodge the ABI
+conversion would hide real behavior our users will meet. So the tests carry
+that burden instead: wherever a `bfloat16` value would cross a call boundary
+under Clang, the suites switch to the software reference path
 (`round_to_nearest_even` / `f32_from_bits`, the same integer math our
 `BFloat16` wrapper has always used), and the handful of kernel-mediated cases
 that cannot be rerouted are omitted with a reason string pointing here. On
