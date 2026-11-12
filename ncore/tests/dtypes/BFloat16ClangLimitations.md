@@ -83,8 +83,11 @@ under the `cpu-*` and `cuda-*` presets.
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 95617bd (fix(hip): match the bf16 device narrowing to the host reference)
+=======
+>>>>>>> 8c85803 (docs(dtypes): widen the Clang bfloat16 scope and record the new stance)
 The return edge behaves the same way. Disassembling `bf16_from_float` in a
 Release HIP build (ROCm Clang 22, measured 2026-11-14) shows the integer bit
 math intact (`bt $0x10,%eax ; adc $0x7fff,%eax ; and $0xffff0000,%eax`),
@@ -99,10 +102,15 @@ therefore bit-exact on every compiler, but their `bfloat16`-typed call edges
 remain subject to this document.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 57a0a00 (docs(dtypes): widen the Clang bfloat16 scope and record the new stance)
 =======
 >>>>>>> 95617bd (fix(hip): match the bf16 device narrowing to the host reference)
+=======
+=======
+>>>>>>> 57a0a00 (docs(dtypes): widen the Clang bfloat16 scope and record the new stance)
+>>>>>>> 8c85803 (docs(dtypes): widen the Clang bfloat16 scope and record the new stance)
 Which call boundaries fire depends on optimization level; that they do is a
 property of Clang's emulation strategy, not of any NovaNN code. We cannot fix
 it from source without changing public signatures, and the behavior may change
@@ -119,17 +127,23 @@ and `fp16_from_float` build their bit pattern with integer math on every
 compiler, so the conversion itself is bit-exact. The remaining clash is at
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 8c85803 (docs(dtypes): widen the Clang bfloat16 scope and record the new stance)
 `bfloat16` call edges: argument edges, where a caller hands a `bfloat16` to a
 function, and the return edge of `bf16_from_float` itself under current ROCm
 Clang (see Mechanism 2). Production
 =======
 argument edges, where a caller hands a `bfloat16` to a function. Production
 >>>>>>> 57a0a00 (docs(dtypes): widen the Clang bfloat16 scope and record the new stance)
+<<<<<<< HEAD
 =======
 `bfloat16` call edges: argument edges, where a caller hands a `bfloat16` to a
 function, and the return edge of `bf16_from_float` itself under current ROCm
 Clang (see Mechanism 2). Production
 >>>>>>> 95617bd (fix(hip): match the bf16 device narrowing to the host reference)
+=======
+>>>>>>> 8c85803 (docs(dtypes): widen the Clang bfloat16 scope and record the new stance)
 signatures exist for kernel performance and API stability, not for the
 convenience of one compiler's emulation layer; changing them to dodge the ABI
 conversion would hide real behavior our users will meet. So the tests carry
