@@ -81,6 +81,19 @@ For comparison, GCC keeps `bfloat16` values as opaque 16-bit integers and
 performs exact shifts, which is why the identical sources pass every suite
 under the `cpu-*` and `cuda-*` presets.
 
+The return edge behaves the same way. Disassembling `bf16_from_float` in a
+Release HIP build (ROCm Clang 22, measured 2026-11-14) shows the integer bit
+math intact (`bt $0x10,%eax ; adc $0x7fff,%eax ; and $0xffff0000,%eax`),
+followed by the return materialization `vmovd %eax,%xmm0 ;
+vcvtneps2bf16 %xmm0,%xmm0`: the `std::bit_cast<bfloat16>(uint16)` return is
+lowered as widen-and-retruncate, so a correctly rounded bf16-subnormal result
+leaves the function flushed to sign-preserving zero (measured:
+`bf16_from_float(0x00010000) == 0x0000` and
+`bf16_from_float(0x80010000) == 0x8000`, while GCC returns `0x0001` and
+`0x8001`). The integer computation inside the narrowing entry points is
+therefore bit-exact on every compiler, but their `bfloat16`-typed call edges
+remain subject to this document.
+
 Which call boundaries fire depends on optimization level; that they do is a
 property of Clang's emulation strategy, not of any NovaNN code. We cannot fix
 it from source without changing public signatures, and the behavior may change
@@ -95,7 +108,9 @@ integer-based paths under Clang, gating whole suites, or filing upstream. The
 first one is now the answer for the narrowing entry points: `bf16_from_float`
 and `fp16_from_float` build their bit pattern with integer math on every
 compiler, so the conversion itself is bit-exact. The remaining clash is at
-argument edges, where a caller hands a `bfloat16` to a function. Production
+`bfloat16` call edges: argument edges, where a caller hands a `bfloat16` to a
+function, and the return edge of `bf16_from_float` itself under current ROCm
+Clang (see Mechanism 2). Production
 signatures exist for kernel performance and API stability, not for the
 convenience of one compiler's emulation layer; changing them to dodge the ABI
 conversion would hide real behavior our users will meet. So the tests carry
@@ -103,7 +118,11 @@ that burden instead: wherever a `bfloat16` value would cross a call boundary
 under Clang, the suites switch to the software reference path
 (`round_to_nearest_even` / `f32_from_bits`, the same integer math our
 `BFloat16` wrapper has always used), and the handful of kernel-mediated cases
-that cannot be rerouted are omitted with a reason string pointing here. On
+that cannot be rerouted are omitted with a reason string pointing here. The
+GPU special-values suite applies the reroute to the f32->bf16 probes whose
+rounded result is a bf16 subnormal: their reference is recomputed with
+`round_to_nearest_even` inside the test TU, which has no BF16 target
+features and therefore keeps the integer lowering on Clang. On
 GCC, nothing changes: the native hardware path stays fully exercised. If a
 future Clang stops canonicalizing at ABI edges, deleting these guards should
 make every suite pass unchanged; that is the day we look forward to.
