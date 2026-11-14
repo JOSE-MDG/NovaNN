@@ -299,11 +299,13 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
     return contiguous_1d_cv(cv.strides[0], src, dst);
   }
 
-  const unsigned char *sbase = src->data.data + src->offset;
+  const unsigned char *sbase = src->data.data;
   unsigned char *dbase = dst->data.data;
   const size_t item_size = src->item_size;
 
 #ifdef NOVA_OPENMP
+
+  sbase += src->offset;
 
   auto threads = get_num_threads_from(ParallelComputeGroup, &st);
 
@@ -414,7 +416,7 @@ novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
       offset += coords[dim] * cv.strides[dim];
     }
 
-    copy_storage_unit(dbase + (item * item_size), sbase, item_size);
+    copy_storage_unit(dbase + (item * item_size), sbase + offset, item_size);
     odometer(coords, cv.ndims, cv.shape);
   }
 #endif
