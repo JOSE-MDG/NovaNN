@@ -88,7 +88,9 @@ typedef size_t coords_t[NOVA_MAX_DIMS];
  *
  * @param[in]      ten       Tensor whose @c strides[] will be
  *                           written.
- * @param[in]      ndims     Number of dimensions.
+ * @param[in]      ndims     Number of dimensions.  Zero is allowed:
+ *                           a scalar shell carries no strides and
+ *                           nothing is written.
  * @param[in]      shape     Dimension sizes.
  * @param[in]      item_size Element size in bytes (from
  *                           @c dtype_size()).
@@ -96,6 +98,9 @@ typedef size_t coords_t[NOVA_MAX_DIMS];
 static inline void compute_tensor_strides_(Tensor *ten, size_t ndims,
                                            const shape_t shape,
                                            size_t item_size) {
+  if (ndims == 0) {
+    return;
+  }
   ten->strides[ndims - 1] = item_size;
   for (size_t dim = ndims - 1; dim-- > 0;) {
     ten->strides[dim] = ten->strides[dim + 1] * shape[dim + 1];
@@ -166,13 +171,41 @@ static inline void storage_shape_(shape_t storage, const shape_t shape,
 }
 
 /**
+ * @brief Convert a storage-unit shape to logical units.
+ *
+ * Tensor shapes live in storage units:  the last dimension of a packed
+ * dtype holds several logical values per unit, so it is scaled by the
+ * packing factor here.  The result feeds creation functions, which
+ * take logical shapes and normalize internally.  Inverse of
+ * @ref storage_shape_.
+ *
+ * @param[out] logical Receives the logical shape (first @p ndims
+ *                     entries).
+ * @param[in]  shape   Shape in storage units.
+ * @param[in]  dtype   Element data type (@ref DType_).
+ * @param[in]  ndims   Number of dimensions.
+ */
+static inline void logical_shape_(shape_t logical, const shape_t shape,
+                                  DType_ dtype, size_t ndims) {
+  memcpy(logical, shape, ndims * sizeof(size_t));
+  const size_t packing = dtype_packing_factor(dtype);
+  if (packing > 1 && ndims > 0) {
+    logical[ndims - 1] *= packing;
+  }
+}
+
+/**
  * @brief Compute per-dimension contiguous strides for a TensorGrad.
  *
  * Same logic as @c compute_tensor_strides_() for a pointer tensor.
+ * Zero @p ndims writes nothing, like the @c Tensor variant.
  */
 static inline void compute_grad_tensor_strides_(TensorGrad grad, size_t ndims,
                                                 const shape_t shape,
                                                 size_t item_size) {
+  if (ndims == 0) {
+    return;
+  }
   grad->strides[ndims - 1] = item_size;
   for (size_t dim = ndims - 1; dim-- > 0;) {
     grad->strides[dim] = grad->strides[dim + 1] * shape[dim + 1];

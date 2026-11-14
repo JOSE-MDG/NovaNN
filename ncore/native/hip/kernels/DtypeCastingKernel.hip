@@ -9,7 +9,8 @@
  * @ref launchHipDtypeCastingKernel. Every kernel is a grid stride loop
  * with four element coarsening and masked tails, so any grid size stays
  * correct. Low precision float paths use hardware intrinsics for FP16
- * and BF16; FP8 and FP4 reuse the shared soft float helpers from
+ * and integer RNE matching the host reference for BF16; FP8 and FP4 reuse
+ * the shared soft float helpers from
  * @ref ncore::dtypes::detail, so device conversions follow the same
  * rules as the host scalar kernels (saturating narrowing, NaN to zero
  * for float to integer, round to nearest even packing). The FP8 E8M0
@@ -258,13 +259,12 @@ template <> struct FromF32<DType_::BFloat16, BF16T> {
     if (isnan(v)) {
       return __ushort_as_bfloat16(UINT16_C(0x7FC0));
     }
-    if (fabsf(v) < 0x1p-126F) {
-      // Replicate libgcc soft-float narrowing (__truncsfbf2): magnitudes
-      // below the smallest normal flush to sign-preserving zero, while
-      // the intrinsic rounds them into subnormals.
-      return __float2bfloat16(copysignf(0.0F, v));
-    }
-    return __float2bfloat16(v);
+    // Same integer math as the scalar reference (round_to_nearest_even):
+    // hardware-independent RNE that rounds f32 subnormals into bf16
+    // subnormals, so the device matches the oracle bit for bit.
+    const uint32_t u32 = __float_as_uint(v);
+    const uint32_t bias = ((u32 >> 16U) & 1U) + UINT32_C(0x7FFF);
+    return __ushort_as_bfloat16(static_cast<uint16_t>((u32 + bias) >> 16U));
   }
 };
 template <> struct FromF32<DType_::Float8E4M3fn, uint8_t> {
