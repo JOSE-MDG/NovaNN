@@ -3,16 +3,11 @@
  * @brief Compile-time dispatch implementation for reduced-precision
  *        float conversions.
  *
- * Each (Except FP4 and FP8) conversion function selects between two strategies
- * at compile time:
- *
- *   @li Compiler builtin — when the platform provides a native type
- *     (@c _Float16 for FP16, @c __bf16 for BF16 on GCC/Clang) the conversion
- *     is a simple @c static_cast, producing optimal code.
- *   @li Software fallback — an integer-only bit-manipulation routine
- *     from the corresponding @c ncore/headeronly/dtypes/<file>.hh header.  The
- *     fallback is pulled in via a conditional @c #include on the matching
- *     @c *.hpp wrapper in this directory.
+ * Widening conversions use the native 16-bit compiler types (@c _Float16,
+ * @c __bf16) where available. Narrowing conversions use the integer-only
+ * bit-manipulation routines from the corresponding
+ * @c ncore/headeronly/dtypes/<file>.hh header, pulled in via a conditional
+ * @c #include on the matching @c *.hpp wrapper in this directory.
  *
  * FP8 formats (E5M2, E4M3FN) and FP4 always use the software path because
  * no mainstream compiler exposes a native 8-bit or 4-bit float type.
@@ -30,7 +25,6 @@
  */
 
 #include <bit>
-#include <cmath>
 #include <cstdint>
 
 #include <ncore/core/dtype.h>
@@ -52,11 +46,8 @@
  * @return The FP16 representation of @p val.
  */
 float16 fp16_from_float(float val) {
-#ifdef _GNUC_CLANG_
-  return static_cast<float16>(val);
-#else
-  return ncore::dtypes::detail::fp16_ieee_from_fp32_value(val);
-#endif
+  return std::bit_cast<float16>(
+      ncore::dtypes::detail::fp16_ieee_from_fp32_value(val));
 }
 
 /**
@@ -81,17 +72,8 @@ float fp16_to_float(float16 val) {
  * @return The bfloat16 representation of @p val.
  */
 bfloat16 bf16_from_float(float val) {
-#ifdef _GNUC_CLANG_
-  // Contract (fp_utils.h): NaN maps to the canonical bf16 NaN 0x7FC0.  The
-  // native __bf16 static_cast preserves the f32 NaN sign bit instead, so
-  // canonicalize explicitly to stay consistent with the BFloat16 structure.
-  if (std::isnan(val)) {
-    return std::bit_cast<bfloat16>(static_cast<uint16_t>(UINT16_C(0x7FC0)));
-  }
-  return static_cast<bfloat16>(val);
-#else
-  return ncore::dtypes::detail::bits_from_f32(val);
-#endif
+  return std::bit_cast<bfloat16>(
+      ncore::dtypes::detail::round_to_nearest_even(val));
 }
 
 /**

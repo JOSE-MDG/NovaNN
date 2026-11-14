@@ -16,6 +16,10 @@
 #include <ncore/core/status.h>
 #include <ncore/tensor.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Copy a tensor's data into a contiguous row-major layout on
  *        the CPU.
@@ -52,3 +56,7 @@
  */
 novaStatus_t contiguous_cpu_impl(const Tensor *restrict src,
                                  Tensor *restrict dst);
+
+#ifdef __cplusplus
+}
+#endif

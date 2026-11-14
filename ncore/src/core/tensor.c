@@ -27,10 +27,12 @@
 #include <string.h>
 
 #include <ncore/core/alloc.h>
+#include <ncore/core/broadcast.h>
 #include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
 #include <ncore/core/status.h>
 #include <ncore/core/storage.h>
+#include <ncore/headeronly/broadcast_utils.h>
 #include <ncore/headeronly/macros.h>
 #include <ncore/headeronly/tensor_utils.h>
 #include <ncore/native/cpu/layout/contiguous.h>
@@ -241,16 +243,10 @@ Tensor create_tensor_like(const Tensor *ten, novaStatus_t *status) {
   } else {
     /*
      * The source's shape is stored in storage units.  Creation
-     * functions take logical shapes and normalize internally, so
-     * the innermost dimension is scaled back by the packing factor
-     * before delegating.
+     * functions take logical shapes and normalize internally.
      */
     shape_t logical_shape = {};
-    const size_t packing = dtype_packing_factor(ten->dtype);
-    memcpy(logical_shape, ten->shape, ten->ndims * sizeof(size_t));
-    if (packing > 1) {
-      logical_shape[ten->ndims - 1] *= packing;
-    }
+    logical_shape_(logical_shape, ten->shape, ten->dtype, ten->ndims);
     tensor =
         ((int)is_allocated(ten))
             ? create_tensor(logical_shape, ten->dtype, ten->device,
@@ -274,14 +270,20 @@ Tensor create_tensor_like(const Tensor *ten, novaStatus_t *status) {
  * an unallocated gradient tensor is created for the view; on failure
  * the view's storage is collected and the tensor zeroed.
  *
- * @param[in]  src        Source tensor to view.  Must have non-nullptr
- *                        storage.  Must outlive the view.
+ * A META source has no buffer, so there is nothing to retain: the view
+ * shares the source's layout only.  Any other tensor without storage is
+ * invalid (collected or never built) and fails with @ref novaInvalidTensor.
+ *
+ * @param[in]  src        Source tensor to view.  Must outlive the view.
+ *                        Only a META tensor may carry @c nullptr storage.
  * @param[in]  new_shape  New dimension sizes.  Product must equal
- *                        @c src->size.
+ *                        @c src->size.  May alias @c src->shape:
+ *                        it is only read.
  * @param[in]  new_ndims  Number of dimensions in @p new_shape.
  * @param[out] status     Receives the operation result.
  *
- * @return View @c Tensor sharing @p src's storage.
+ * @return View @c Tensor sharing @p src's storage, or its layout for a
+ *         META source.
  *
  * @pre  @c product(new_shape[0..new_ndims]) must equal @c src->size.
  *
@@ -294,11 +296,23 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
 
   Tensor dst = *src;
 
-  novaStatus_t retain_status = retain(&dst.storage->handle);
-  if (retain_status.err != novaSuccess) {
-    *status = retain_status;
-    memset(&dst, 0, sizeof(Tensor));
-    return dst;
+  if (dst.storage == nullptr) {
+    // A META tensor carries metadata only, so the view shares the
+    // source's layout and there is no reference to retain.
+    if (src->device != DEVICE_META) {
+      status->err = novaInvalidTensor;
+      status->message = "A view shares the source's storage.\n"
+                        "Only a META tensor may have no storage.\n";
+      memset(&dst, 0, sizeof(Tensor));
+      return dst;
+    }
+  } else {
+    novaStatus_t retain_status = retain(&dst.storage->handle);
+    if (retain_status.err != novaSuccess) {
+      *status = retain_status;
+      memset(&dst, 0, sizeof(Tensor));
+      return dst;
+    }
   }
 
   dst.ndims = new_ndims;
@@ -311,9 +325,14 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
   dst.is_leaf_ = false;
 
   if (src->grad != nullptr) {
-    dst.grad =
-        create_unallocated_grad_tensor(new_shape, src->grad->dtype, src->device,
-                                       src->is_pinned_, new_ndims, status);
+    // Gradient creation takes a logical shape, while views carry
+    // shapes in storage units: the packed last dim is scaled back.
+    // The packing comes from the grad's dtype, mirroring deepcopy().
+    shape_t grad_shape = {};
+    logical_shape_(grad_shape, new_shape, src->grad->dtype, new_ndims);
+    dst.grad = create_unallocated_grad_tensor(grad_shape, src->grad->dtype,
+                                              src->device, src->is_pinned_,
+                                              new_ndims, status);
 
     if (status->err != novaSuccess) {
       (void)collect(&dst);
@@ -384,11 +403,7 @@ Tensor contiguous(const Tensor *restrict ten, novaStatus_t *status) {
   }
 
   shape_t logical_shape = {};
-  memcpy(logical_shape, ten->shape, ten->ndims * sizeof(size_t));
-  const size_t packing = dtype_packing_factor(ten->dtype);
-  if (packing > 1 && ten->ndims > 0) {
-    logical_shape[ten->ndims - 1] *= packing;
-  }
+  logical_shape_(logical_shape, ten->shape, ten->dtype, ten->ndims);
 
   Tensor dst =
       (int)is_scalar(ten)
@@ -510,6 +525,11 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
   dst.strides[d0] = ten->strides[d1];
   dst.strides[d1] = ten->strides[d0];
 
+  /**
+  * @brief Autograd configuration (empty yet)
+  * ...
+  */
+
   st->err = novaSuccess;
   st->message = nova_get_error_msg(st->err, nullptr);
   return dst;
@@ -609,6 +629,11 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
       return dst;
     }
   }
+
+  /**
+  * @brief Autograd configuration (empty yet)
+  * ...
+  */
 
   st->err = novaSuccess;
   st->message = nova_get_error_msg(st->err, nullptr);
@@ -1013,4 +1038,114 @@ novaStatus_t transf_tensor_from_host(const Tensor *restrict src,
                      !is_device_memory_handle(&dst->storage->handle))) != 0;
 
   return transf_tensor_common(src, dst, condition);
+}
+
+/**
+ * @brief Broadcast a group of tensors to a single shape.
+ *
+ * @details
+ * The dimensions are compared from the last one towards the first:  two
+ * dimensions are compatible when they are equal or when one of them is
+ * 1, the result dimension takes the size of the other, and a dimension
+ * missing from one of the shapes counts as 1.
+ *
+ * Every output is a view of its input.  The view shares the storage and
+ * the data pointer of the source, and the stretched and the missing
+ * dimensions carry a stride of 0, so the same element is read more than
+ * once without copying data.  The size of an output is the product of
+ * the broadcast shape, which can exceed the capacity of the shared
+ * storage.  A META input has no buffer:  the view shares its layout and
+ * the output stays META.
+ *
+ * @param[in]  inputs  Group of tensors.  Must not be @c nullptr when
+ *                     @c count > 0.
+ * @param[out] outputs Receives one view per input.  Must not be
+ *                     @c nullptr when @c count > 0, and must hold one
+ *                     empty tensor per element, because overwriting a
+ *                     tensor that owns storage or a gradient would
+ *                     drop it without releasing it.  The arrays must
+ *                     not overlap.
+ * @param[in]  count   Number of tensors in the group.
+ *
+ * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
+ *         success, @ref novaInvalidPointer when an array is @c nullptr,
+ *         @ref novaInvalidTensor when a destination already holds
+ *         resources or when a non-META input has no storage, or the
+ *         error propagated from @ref broadcast_shapes_from_tensors().
+ *
+ * @post On success, every output is a view holding the broadcast shape
+ *       of the group and sharing the storage of its input, or its
+ *       layout when the input is META.  On failure, the outputs before
+ *       the failing index are released; an output whose release failed
+ *       keeps its storage attached for a later attempt.
+ *
+ * @see broadcast_shapes_from_tensors()  Broadcast shape of the group.
+ * @see is_broadcast_view()              Detection of a repeated element.
+ */
+novaStatus_t broadcast(const Tensor *const inputs[], Tensor *const outputs[],
+                       size_t count) {
+  if (count == 0) {
+    return (novaStatus_t){.err = novaSuccess,
+                          .message = nova_get_error_msg(novaSuccess, nullptr)};
+  }
+  if (inputs == nullptr || outputs == nullptr) {
+    return (novaStatus_t){.err = novaInvalidPointer,
+                          .message =
+                              nova_get_error_msg(novaInvalidPointer, nullptr)};
+  }
+
+  shape_t broadcast_shape = {};
+  size_t broadcast_ndims = 0;
+
+  novaStatus_t st = broadcast_shapes_from_tensors(
+      inputs, count, broadcast_shape, &broadcast_ndims);
+  if (st.err != novaSuccess) {
+    return st;
+  }
+
+  size_t i = 0;
+  for (; i < count; ++i) {
+    if (outputs[i]->storage != nullptr || outputs[i]->grad != nullptr ||
+        outputs[i]->grad_fn_ != nullptr) {
+      // Overwriting a destination that owns resources would drop them
+      // without releasing them.
+      st = (novaStatus_t){
+          .err = novaInvalidTensor,
+          .message = "Broadcasting needs an empty destination per tensor.\n"
+                     "The destination already holds storage or a gradient.\n"};
+      goto fail;
+    }
+    if (inputs[i]->device != DEVICE_META && !is_allocated(inputs[i])) {
+      st = (novaStatus_t){.err = novaInvalidTensor,
+                          .message =
+                              "Broadcasting builds a view over the input's "
+                              "storage.\nOnly a META tensor may have no "
+                              "storage.\n"};
+      goto fail;
+    }
+
+    *outputs[i] =
+        create_view(inputs[i], inputs[i]->shape, inputs[i]->ndims, &st);
+    if (st.err != novaSuccess) {
+      goto fail;
+    }
+
+    expand_layout_(inputs[i]->shape, inputs[i]->strides, inputs[i]->ndims,
+                   broadcast_shape, broadcast_ndims, outputs[i]->shape,
+                   outputs[i]->strides);
+    outputs[i]->ndims = broadcast_ndims;
+    compute_tensor_size_(outputs[i], outputs[i]->shape);
+  }
+
+  st.err = novaSuccess;
+  st.message = nova_get_error_msg(st.err, nullptr);
+  return st;
+
+fail:
+  // The original error is the one reported.  Views created before the
+  // failure are released.
+  for (size_t j = 0; j < i; ++j) {
+    (void)collect(outputs[j]);
+  }
+  return st;
 }

@@ -4,11 +4,11 @@
  *
  * Covers FP16, BF16, FP8 E5M2, FP8 E4M3FN, FP8 E8M0 (scale factor) and
  * FP4 E2M1FN (pair-packed). Each conversion has a numeric form and a
- * bit-pattern form. When the native compiler type exists (@c _Float16,
- * @c __bf16, CUDA/HIP intrinsics) the hardware conversion is used,
- * otherwise the software fallbacks in @c ncore/include/ncore/headeronly/dtypes/
- * apply, with round-to-nearest-even semantics where the format requires
- * rounding.
+ * bit-pattern form. Widening conversions use the native 16-bit compiler
+ * types (@c _Float16, @c __bf16) where available. Narrowing conversions
+ * use the bit-exact helpers in
+ * @c ncore/include/ncore/headeronly/dtypes/, with round-to-nearest-even
+ * semantics where the format requires rounding.
  */
 
 #pragma once
@@ -22,9 +22,9 @@ extern "C" {
 /**
  * @brief Convert a single-precision float to IEEE 754 half-precision (FP16).
  *
- * On GCC/Clang the conversion uses the native @c _Float16 compiler type;
- * otherwise it falls back to a software bit-manipulation routine with
- * round-to-nearest-even.
+ * Round-to-nearest-even via
+ * @ref ncore::dtypes::detail::fp16_ieee_from_fp32_value, which lowers to a
+ * single F16C instruction when the target provides one.
  *
  * @param[in] val  The float value to convert.  NaN, +/-inf, and values
  *                 outside the representable FP16 range are handled
@@ -48,12 +48,11 @@ extern float fp16_to_float(float16 val);
 /**
  * @brief Convert a single-precision float to bfloat16 (Brain Float 16).
  *
- * On GCC/Clang the conversion uses the native @c __bf16 compiler type;
- * otherwise it uses round-to-nearest-even via @ref
- * ncore::dtypes::detail::round_to_nearest_even.
+ * Round-to-nearest-even via @ref
+ * ncore::dtypes::detail::round_to_nearest_even. NaN maps to the canonical
+ * bf16 NaN pattern (0x7FC0).
  *
- * @param[in] val  The float value to convert.  NaN is mapped to the
- *                 canonical bf16 NaN pattern (0x7FC0).
+ * @param[in] val  The float value to convert.
  * @return The bfloat16 representation of @p val.
  */
 extern bfloat16 bf16_from_float(float val);

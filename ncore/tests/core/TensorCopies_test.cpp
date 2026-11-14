@@ -133,6 +133,50 @@ TEST(TensorCopies, GradientSubtreeDeepCopied) {
                            sv.grad->size * sv.grad->item_size));
 }
 
+/* FP4 gradient shells live in storage units: deepcopy converts the
+   shell shape to logical units before recreating it, so an odd last
+   storage dim no longer fails shell creation. */
+TEST(TensorCopies, PackedGradientSubtreeKeepsStorageShape) {
+  novaStatus_t st{};
+  TensorCXX src({2, 6}, DType_::Float4E2M1fn, DEVICE_CPU, true, false, &st);
+  ASSERT_EQ(st.err, novaSuccess);
+  Tensor sv = src.getCTensor();
+  ASSERT_TRUE(sv.grad != nullptr);
+  ASSERT_EQ(sv.grad->shape[0], size_t{2});
+  ASSERT_EQ(sv.grad->shape[1], size_t{3});
+  EXPECT_EQ(fillBytes(sv.data.data, sv.size * sv.item_size, 0xDEADBEEFu).err,
+            novaSuccess);
+  ASSERT_EQ(tests::tensor::allocateGrad(sv).err, novaSuccess);
+  EXPECT_EQ(fillBytes(sv.grad->data.data, sv.grad->size * sv.grad->item_size,
+                      0x13572468U)
+                .err,
+            novaSuccess);
+
+  TensorCXX dst(unallocated, {2, 6}, DType_::Float4E2M1fn, DEVICE_CPU, false,
+                false, &st);
+  ASSERT_EQ(st.err, novaSuccess);
+
+  deepcopy(&sv, &dst.mutableCTensor(), &st);
+  ASSERT_EQ(st.err, novaSuccess);
+
+  const Tensor dcv = dst.getCTensor();
+  expectMetadataEqual(sv, dcv);
+  expectBytesEqual(sv.data.data, dcv.data.data, sv.size * sv.item_size,
+                   "packed payload");
+
+  ASSERT_TRUE(dcv.grad != nullptr);
+  EXPECT_NE(dcv.grad, sv.grad);
+  EXPECT_EQ(dcv.grad->dtype, DType_::Float4E2M1fn);
+  EXPECT_EQ(dcv.grad->ndims, size_t{2});
+  EXPECT_EQ(dcv.grad->shape[0], size_t{2});
+  EXPECT_EQ(dcv.grad->shape[1], size_t{3});
+  EXPECT_EQ(dcv.grad->size, size_t{6});
+  EXPECT_EQ(dcv.grad->logical_size, size_t{12});
+  ASSERT_TRUE(is_grad_allocated(dcv.grad));
+  expectBytesEqual(sv.grad->data.data, dcv.grad->data.data,
+                   sv.grad->size * sv.grad->item_size, "packed gradient");
+}
+
 TEST(TensorCopies, ScalarGradientBranch) {
   novaStatus_t st{};
   TensorCXX src(Float32, DEVICE_CPU, true, false, &st);

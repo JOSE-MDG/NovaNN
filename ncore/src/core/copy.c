@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include <ncore/core/alloc.h>
+#include <ncore/core/broadcast.h>
 #include <ncore/core/copy.h>
 #include <ncore/core/device.h>
 #include <ncore/core/dtype.h>
@@ -266,6 +267,18 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
     return;
   }
 
+  if (is_broadcast_view(src)) {
+    // The storage of a broadcast view holds fewer elements than its shape
+    // describes, so copying the buffer bytes would leave the copy reading
+    // past its own storage.  Materializing the view first is the way out.
+    status->err = novaInvalidMemoryLayout;
+    status->message =
+        "Cannot deep-copy a broadcast view; the storage holds fewer elements "
+        "than the shape describes.\nCall contiguous() on it first to "
+        "materialize the data.\n";
+    return;
+  }
+
   if (src->device != dst->device) {
     status->err =
         src->dtype != dst->dtype ? novaInvalidDtype : novaInvalidDevice;
@@ -311,13 +324,18 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
   }
 
   if (src->grad != nullptr) {
+    // Gradient creation takes a logical shape, while tensor shapes
+    // live in storage units: the packed last dim is scaled back.
+    shape_t grad_shape = {};
+    logical_shape_(grad_shape, src->grad->shape, src->grad->dtype,
+                   src->grad->ndims);
     auto new_grad =
         (int)is_scalar(src->grad)
             ? create_unallocated_scalar_grad_tensor(
                   src->grad->dtype, src->grad->device, src->grad->is_pinned_,
                   status)
             : create_unallocated_grad_tensor(
-                  src->grad->shape, src->grad->dtype, src->grad->device,
+                  grad_shape, src->grad->dtype, src->grad->device,
                   src->grad->is_pinned_, src->grad->ndims, status);
 
     if (status->err != novaSuccess) {

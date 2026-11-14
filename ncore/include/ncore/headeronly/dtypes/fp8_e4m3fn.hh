@@ -169,23 +169,12 @@ NCORE_HOST_DEVICE inline float fp8e4m3fn_to_fp32_value(uint8_t input) {
    *
    * This function is NCORE_HOST_DEVICE, so it is compiled for both the host
    * and the CUDA/HIP device pass. @c std::countl_zero is only used on host:
-   * NovaNN's compiler floor (GCC 14+ / Clang 17+, see
+   * NovaNN's compiler floor (GCC 15+ / Clang 17+, see
    * CheckCompilerVersion.cmake — MSVC is rejected outright) guarantees a
-   * real <bit> implementation there. On device, nvcc/hipcc are not
-   * guaranteed to lower <bit> through to a device-valid intrinsic, so
-   * __builtin_clz is used instead (__clz exists only under nvcc).
+   * real <bit> implementation there. On device, @ref countlZero32 picks the
+   * intrinsic each toolchain provides.
    */
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-  uint32_t renormShift =
-      static_cast<uint32_t>(__builtin_clz(static_cast<unsigned int>(nonsign)));
-#elif defined(_MSC_VER) && !defined(__clang__)
-  unsigned long nonsignBsr;
-  _BitScanReverse(&nonsignBsr, static_cast<unsigned long>(nonsign));
-  uint32_t renormShift = static_cast<uint32_t>(nonsignBsr) ^ 31;
-#else
-  uint32_t renormShift =
-      static_cast<uint32_t>(std::countl_zero<uint32_t>(nonsign));
-#endif
+  uint32_t renormShift = countlZero32(nonsign);
   renormShift = renormShift > 4 ? renormShift - 4 : 0;
   /*
    * If the fp8 exponent and mantissa bits are all set to 1 (NaN pattern),

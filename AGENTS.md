@@ -120,14 +120,14 @@ Pipeline for serializing tensors to readable strings: scans data to determine a 
 
 #### **Example:**
 ```
-tensor([[2.3474e-01, 4.6948e-01, 7.0422e-01, ..., 7.0422e+00, 7.2769e+00, 7.5117e+00],
-        [7.7464e+00, 7.9812e+00, 8.2159e+00, ..., 1.4554e+01, 1.4789e+01, 1.5023e+01],
-        [1.5258e+01, 1.5493e+01, 1.5728e+01, ..., 2.2066e+01, 2.2300e+01, 2.2535e+01],
+tensor([[-0.1367, -1.3516, -3.4062, ..., -3.3906, -3.8750, -4.6875],
+        [-3.4062, -3.5781,  0.3418, ..., -4.0625,  0.8008, -4.4688],
+        [-1.8125,  3.0469, -1.2891, ...,  2.6719, -1.7891, -4.0312],
         ...,
-        [2.1807e+02, 2.1831e+02, 2.1854e+02, ..., 2.2488e+02, 2.2512e+02, 2.2535e+02],
-        [2.2559e+02, 2.2582e+02, 2.2605e+02, ..., 2.3239e+02, 2.3263e+02, 2.3286e+02],
-        [2.3310e+02, 2.3333e+02, 2.3357e+02, ..., 2.3990e+02, 2.4014e+02, 2.4037e+02]],
-       dtype=float32, shape=(32, 32), device=cuda, requires_grad=False)
+        [-1.6875, -2.5781, -2.6562, ..., -4.2500,  2.4531, -2.5625],
+        [ 2.6406,  1.1875,  1.6406, ..., -1.1641, -3.0000,  0.5469],
+        [ 4.0938, -2.0625,  0.1660, ..., -0.8906, -2.1406, -3.3438]],
+       dtype=bfloat16, shape=(32, 32), device=cuda, requires_grad=False)
 ```
 
 ### Dtypes (Reduced Types)
@@ -291,7 +291,7 @@ target removes the whole `build/` directory and requires confirmation unless
 scripts/build-presets.sh                  # configure every preset
 scripts/build-presets.sh cpu              # configure cpu-* presets
 scripts/compile-presets.sh cpu            # build configured cpu-* presets
-scripts/compile-presets.sh -c -j $(nproc) cuda  # build cuda-* presets, 16 jobs, keep going on failure
+scripts/compile-presets.sh -c -j $(nproc) cuda  # build cuda-* presets, N jobs, keep going on failure
 scripts/run-tests.sh cuda -- -R 'MemoryAllocator.*'  # run a filtered test set
 ./clean.sh --target logs                   # remove all build and test logs
 ```
@@ -345,6 +345,61 @@ exists because skipping it caused a concrete failure during development.
   official source online: Intel SDM / Intrinsics Guide, GCC and Clang
   manuals, LLVM sanitizer documentation. Memorized semantics have been
   wrong here; cited references are part of the deliverable.
+
+### Investigate before designing
+
+- When a case looks unsupported (a dtype the API rejects, a device without
+  storage, an edge the current code refuses, etc), the first move is to find out
+  how it *should* work: read the tree for the established convention, and
+  when the behavior is defined outside this project (IEEE-754 rounding,
+  ABI rules, driver contracts), fetch the official source. Rejecting a
+  valid case instead of designing it is the same failure as guessing
+  semantics that could have been looked up: both ship a private opinion
+  as code.
+- Know the API before writing one. Grep for existing helpers and call
+  patterns first; the codebase already has conventions for views, shapes
+  in storage units vs logical units, error reporting and refcount
+  ownership. Reimplementing what a function already does splits the
+  convention in two, and the review will make you delete one of them.
+
+### Working flow (scale it to the task)
+
+One pass that fits most work, heavier or lighter as the change demands:
+
+1. **Investigate.** Read the code under change and write the facts down
+   with file:line. Mark what is verified and what is still an assumption.
+2. **Propose.** A short plan with the owner's decision points called out.
+   No code before the plan is approved; a silent scope expansion is how
+   trust gets spent.
+3. **Implement the minimal delta.** Docs updated in the same pass, in the
+   tree's voice. One convention per concept: extract the helper rather
+   than copy the pattern a third time.
+4. **Test through the test-creator agent**, following the standards of
+   the existing tests. Pin every semantic that was decided; a changed
+   behavior without a pin will drift back.
+5. **Verify with the preset scripts**, then re-run the relevant suites
+   independently before reporting. Never pass along only a subagent's
+   summary; stale binaries and old logs have lied here before.
+6. **Review.** The implementation-review agent gives the verdict.
+   Iterate on its findings until green; findings that are pre-existing
+   defects get reported with file:line and the owner decides.
+7. **Keep session memory.** A folder under `agents/memory/` per working
+   session (context, plan, evidence, state) so an auto-compact resumes
+   from the repository, not from chat.
+
+### Audit your own work
+
+- Re-read your own spec and diffs looking for the errors you would flag
+  in someone else's code. Incompatible example shapes, a doc line that
+  contradicts the paragraph next to it, a predicate that answers true
+  for a live object: catching these before presenting costs minutes;
+  after, it costs a build cycle each.
+- Incoherences found along the way (dead computations, comments that
+  promise checks the code never performs) are reported with file:line.
+  Neither silently folded into the task nor silently dropped: the owner
+  decides what becomes scope.
+- A fix that does not explain why the tree was built the other way is
+  not understood yet. Understand first, then change.
 
 ### Generated code
 

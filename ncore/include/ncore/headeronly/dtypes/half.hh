@@ -161,6 +161,34 @@ inline std::ostream &operator<<(std::ostream &out, const Half &value) {
 namespace detail {
 
 /**
+ * @brief Counts the leading zero bits of a 32-bit word.
+ *
+ * @details
+ * Single dispatch point for the compilers these headers target: nvcc
+ * provides @c __clz on device, hipcc provides @c __builtin_clz (whose zero
+ * input is undefined), plain MSVC provides @c _BitScanReverse, and every
+ * other host compiler lowers @c std::countl_zero to the matching
+ * instruction.
+ *
+ * @param[in] value Word to scan.
+ * @return Leading zero count, 32 for a zero input.
+ */
+NCORE_HOST_DEVICE inline uint32_t countlZero32(uint32_t value) {
+#ifdef __CUDA_ARCH__
+  return static_cast<uint32_t>(__clz(static_cast<int>(value)));
+#elif defined(__HIP_DEVICE_COMPILE__)
+  return value == 0U ? 32U : static_cast<uint32_t>(__builtin_clz(value));
+#elif defined(_MSC_VER) && !defined(__clang__)
+  unsigned long index = 0UL;
+  return _BitScanReverse(&index, static_cast<unsigned long>(value)) != 0
+             ? 31U - static_cast<uint32_t>(index)
+             : 32U;
+#else
+  return static_cast<uint32_t>(std::countl_zero<uint32_t>(value));
+#endif
+}
+
+/**
  * @brief Reinterpret a @c uint32_t bit-pattern as a float.
  * @param[in] w The 32-bit unsigned integer representing the bit pattern.
  * @return The float value corresponding to the bit pattern.
@@ -397,23 +425,9 @@ inline uint32_t fp16_ieee_to_fp32_bits(uint16_t h) {
    * leading mantissa bit moves into the exponent field (biased exp becomes 1)
    * making it normalized (implicit leading 1 removed).
    *
-   * Host/device/compiler dispatch mirrors fp8_e4m3fn.hh: device uses
-   * __builtin_clz, pure MSVC uses _BitScanReverse, otherwise
-   * std::countl_zero (C++20 <bit>). This keeps the header compilable
-   * under nvcc/hipcc (which cannot lower <bit>) and under pure MSVC
-   * that lacks the builtin.
+   * Host/device/compiler dispatch lives in @ref countlZero32.
    */
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-  uint32_t renormShift =
-      static_cast<uint32_t>(__builtin_clz(static_cast<unsigned int>(nonsign)));
-#elif defined(_MSC_VER) && !defined(__clang__)
-  unsigned long nonsignBsr;
-  _BitScanReverse(&nonsignBsr, static_cast<unsigned long>(nonsign));
-  uint32_t renormShift = static_cast<uint32_t>(nonsignBsr) ^ 31;
-#else
-  uint32_t renormShift =
-      static_cast<uint32_t>(std::countl_zero<uint32_t>(nonsign));
-#endif
+  uint32_t renormShift = countlZero32(nonsign);
   renormShift = renormShift > 5 ? renormShift - 5 : 0;
   /*
    * If the half-precision exponent is 0x1F (max), the addition below

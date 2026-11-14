@@ -89,7 +89,7 @@ struct Tensor {
   BackwardNode grad_fn_; ///< Backward graph node (nullptr for leaves).
   bool requires_grad_;   ///< If @c true, track gradients during backward.
   bool retain_grad_;     ///< If @c true, retain gradient for non-leaf nodes.
-  bool is_view_;         ///< If @c true, shares storage with another tensor.
+  bool is_view_;         ///< If @c true, shares storage (or, for META, the layout) with another tensor.
   bool is_leaf_;         ///< If @c true, leaf node in the computation graph.
   bool is_allocated_;    ///< If @c true, @c storage and @c data are valid.
   bool is_pinned_;       ///< If @c true, page-locked host memory.
@@ -177,19 +177,26 @@ Tensor create_tensor_like(const Tensor *ten, novaStatus_t *status);
  * recomputes strides for the new shape, and marks the result as a
  * non-leaf view. No data is copied.
  *
+ * A META source has no buffer to retain: the view shares the source's
+ * layout only.  Any other tensor without storage is rejected with
+ * @ref novaInvalidTensor.
+ *
  * Scalar sources keep their shape and strides. If the source has a
  * gradient, an unallocated gradient tensor is created for the view;
  * on grad-creation failure the view's storage is released via
  * @ref collect() and the tensor is zeroed.
  *
  * @param[in]  src        Source tensor to view.  Must outlive the
- *                        view and have non-nullptr storage.
+ *                        view.  Only a META tensor may carry
+ *                        @c nullptr storage.
  * @param[in]  new_shape  New dimension sizes.  Product must equal
- *                        @c src->size.
+ *                        @c src->size.  May alias @c src->shape:
+ *                        it is only read.
  * @param[in]  new_ndims  Number of dimensions in @p new_shape.
  * @param[out] status     Receives the operation result.
  *
- * @return View @ref Tensor sharing @p src's storage.
+ * @return View @ref Tensor sharing @p src's storage, or its layout for
+ *         a META source.
  */
 Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
                    size_t new_ndims, novaStatus_t *status);
@@ -436,6 +443,56 @@ novaStatus_t transf_tensor_from_device(const Tensor *restrict src,
  */
 novaStatus_t transf_tensor_from_host(const Tensor *restrict src,
                                      Tensor *restrict dst);
+
+/**
+ * @brief Broadcast a group of tensors to a single shape.
+ *
+ * @details
+ * The dimensions are compared from the last one towards the first:  two
+ * dimensions are compatible when they are equal or when one of them is
+ * 1, the result dimension takes the size of the other, and a dimension
+ * missing from one of the shapes counts as 1.
+ *
+ * Every output is a view of its input:  it shares the storage and the
+ * data pointer, and the stretched and the missing dimensions carry a
+ * stride of 0, so the same element is read more than once without
+ * copying data.  The size of an output is the product of the broadcast
+ * shape, which can exceed the capacity of the shared storage.  A META
+ * input has no buffer:  the view shares its layout and the output
+ * stays META.  A packed dtype cannot stretch the last dim, since
+ * several logical values share one storage unit:  the innermost dim
+ * must agree across the group.
+ *
+ * The group must be homogeneous:  tensors with different dtypes or
+ * different devices are rejected.
+ *
+ * @param[in]  inputs  Group of tensors.  Must not be @c nullptr when
+ *                     @c count > 0.
+ * @param[out] outputs Receives one view per input.  Must not be
+ *                     @c nullptr when @c count > 0, and must hold one
+ *                     empty tensor per element, because overwriting a
+ *                     tensor that owns storage or a gradient would
+ *                     drop it without releasing it.  The arrays must
+ *                     not overlap.
+ * @param[in]  count   Number of tensors in the group.
+ *
+ * @return @ref novaStatus_t with @c err set to @ref novaSuccess on
+ *         success, @ref novaInvalidPointer when an array is @c nullptr,
+ *         @ref novaInvalidTensor when a destination already holds
+ *         resources or when a non-META input has no storage, or the
+ *         error propagated from @ref broadcast_shapes_from_tensors().
+ *
+ * @post On success, every output is a view holding the broadcast shape
+ *       of the group and sharing the storage of its input, or its
+ *       layout when the input is META.  On failure, the outputs before
+ *       the failing index are released; an output whose release failed
+ *       keeps its storage attached for a later attempt.
+ *
+ * @see broadcast_shapes_from_tensors()  Broadcast shape of the group.
+ * @see is_broadcast_view()                Detection of a repeated element.
+ */
+novaStatus_t broadcast(const Tensor *const inputs[], Tensor *const outputs[],
+                       size_t count);
 
 #ifdef __cplusplus
 }

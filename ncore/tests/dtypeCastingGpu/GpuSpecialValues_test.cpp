@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -21,6 +22,8 @@
 #include <ncore/core/dtype.h>
 #include <ncore/core/status.h>
 #include <ncore/tensor.h>
+
+#include <ncore/headeronly/dtypes/bfloat16.hh>
 
 #include <tests/common/Gpu.hpp>
 #include <tests/common/Naming.hpp>
@@ -89,6 +92,27 @@ TEST_P(GpuSpecialValues, SpecialsMatchBitwise) {
   ASSERT_EQ(stageToDevice(gp).err, novaSuccess) << prm.label;
   ASSERT_EQ(castOnDevice(gp, prm.dst).err, novaSuccess) << prm.label;
   scalarRef(gp, findPairFor(prm.src, prm.dst));
+#ifdef __clang__
+  if (prm.src == DType_::Float32 && prm.dst == DType_::BFloat16) {
+    // Clang emulates every bfloat16 call edge with widen + VCVTNEPS2BF16,
+    // and that instruction flushes bf16-subnormal results to zero, so the
+    // scalar kernel's return edge cannot carry those bits
+    // (tests/dtypes/BFloat16ClangLimitations.md). Reroute the references
+    // for the probes whose correctly-rounded result is a bf16 subnormal
+    // through the software integer path: the same math this header keeps
+    // on every compiler and the device kernel mirrors.
+    for (size_t i = 0U; i < probes.size(); ++i) {
+      const auto srcBits =
+          static_cast<uint32_t>(readRaw(gp.host.src.getCTensor(), i));
+      const float srcVal = std::bit_cast<float>(srcBits);
+      const uint16_t want =
+          ncore::dtypes::detail::round_to_nearest_even(srcVal);
+      if ((want & 0x7F80U) == 0U && (want & 0x007FU) != 0U) {
+        writeRaw(gp.host.dst.mutableCTensor(), i, want);
+      }
+    }
+  }
+#endif
   ASSERT_EQ(fetchHome(gp).err, novaSuccess) << prm.label;
   const Tensor &got = gp.home.getCTensor();
   const Tensor &ref = gp.host.dst.getCTensor();
