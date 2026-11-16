@@ -79,9 +79,17 @@ common::spinner() {
     set +e
     trap - ERR
 
+    # Hide the terminal cursor while spinning to avoid visual flicker.
+    if [[ -t 1 ]]; then
+        printf '\033[?25l'
+        trap 'printf "\033[?25h"' RETURN
+        trap 'printf "\033[?25h"; exit 130' INT
+        trap 'printf "\033[?25h"; exit 143' TERM
+    fi
+
     local pid="$1" logfile="$2" label="$3" n="$4" total="$5"
     local ere="${6:-\[[0-9]+/[0-9]+\][^[:cntrl:]]*}"
-    local frames=('|' '/' '-' '\') i=0 start elapsed raw token rest num denom pct target
+    local frames=('⠋' '⠏' '⠇' '⠦' '⠴' '⠼' '⠸' '⠰' '⠠' '⢀' '⠠' '⠰' '⠸' '⠹') i=0 start elapsed raw token rest num denom pct target
     start=$(date +%s)
 
     while kill -0 "$pid" 2>/dev/null; do
@@ -113,7 +121,7 @@ common::spinner() {
         fi
         printf ' %s· [%d/%d] · %s%s' "$C_DIM" "$n" "$total" "$(fmt_elapsed "$elapsed")" "$C_RESET"
 
-        sleep 0.1
-        i=$(( (i + 1) % 4 ))
+        sleep 0.04
+        i=$(( (i + 1) % 14 ))
     done
 }
