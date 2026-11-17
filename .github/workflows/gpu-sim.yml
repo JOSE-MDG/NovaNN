@@ -1,0 +1,95 @@
+name: GPU Simulator
+
+# Optional, non-required check. The hosted runners have no GPU, so this builds
+# the CUDA backend and runs its GPU tests on a simulated NVIDIA H100 using
+# PantheonSim (https://github.com/pantheongpu/pantheonsim). A simulator cannot
+# reproduce hardware-specific behavior or timing, so it complements real-GPU
+# testing and does not replace it.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "ncore/**"
+      - "cmake/**"
+      - "tools/codegen/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cuda-tests:
+    name: CUDA tests (CUDA 13.0 and simulated H100)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      # The build needs GCC 15 (Ubuntu 24.04 ships 13), GoogleTest and Ninja.
+      # The codegen step runs through uv and calls clang-format.
+      - name: Install build dependencies
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y gcc-15 g++-15 ninja-build libgtest-dev
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install uv clang-format
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - name: Set up the simulated GPU and CUDA toolkit
+        uses: pantheongpu/setup-pantheonsim@deff5781e8adfd83dec98dd5242dcbc96a564773 # v0.1.10
+        with:
+          gpu: nvidia/h100
+          cuda-toolkit: "13.0"
+
+      # 90-virtual embeds PTX only, which the simulator runs (the default
+      # architecture list also contains SASS entries). The project already
+      # links the shared CUDA runtime, which the simulator needs.
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_C_COMPILER=gcc-15 \
+            -DCMAKE_CXX_COMPILER=g++-15 \
+            -DCMAKE_CUDA_HOST_COMPILER=g++-15 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DUSE_CUDA=ON \
+            -DCMAKE_CUDA_ARCHITECTURES=90-virtual \
+            -DBUILD_TESTING=ON \
+            -DUSE_LTO=OFF
+
+      - name: Build
+        run: cmake --build build -j3
+
+      # Only the tests that need a device. The job fails if the simulator
+      # reports an error (the allocation limit test provokes an expected
+      # out-of-memory line), if a device test skips because no GPU was found,
+      # or if no test ran.
+      - name: GPU tests
+        run: |
+          set +e
+          vgpu run ctest --test-dir build --no-tests=error -V \
+            -R '^(DeviceDetection|RngGpuParity|GpuDispatch|GpuSaturation|TensorTransfer)\.|^MemoryAllocator\.Device|Gpu(OracleEquivalence|SpecialValues)' \
+            > ctest.log 2>&1
+          rc=$?
+          set -e
+          grep -E "\[  FAILED  \]|\*\*\*Failed" ctest.log | head -n 40
+          tail -n 5 ctest.log
+          grep -E "tests passed|tests failed" ctest.log
+          if grep "VirtualGPU error" ctest.log | grep -v "out-of-memory"; then
+            echo "The simulator reported an error"
+            exit 1
+          fi
+          if grep -E "No CUDA device|GPU backend/device not available|no GPU backend compiled in" ctest.log; then
+            echo "A device test did not run on the simulated GPU"
+            exit 1
+          fi
+          exit "$rc"
