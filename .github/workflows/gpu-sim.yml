@@ -1,10 +1,11 @@
 name: GPU Simulator
 
 # Optional, non-required check. The hosted runners have no GPU, so this builds
-# the CUDA backend and runs its GPU tests on a simulated NVIDIA H100 using
-# PantheonSim (https://github.com/pantheongpu/pantheonsim). A simulator cannot
-# reproduce hardware-specific behavior or timing, so it complements real-GPU
-# testing and does not replace it.
+# the CUDA and HIP backends and runs their GPU tests on a simulated NVIDIA H100
+# and a simulated AMD MI300X using PantheonSim
+# (https://github.com/pantheongpu/pantheonsim). A simulator cannot reproduce
+# hardware-specific behavior or timing, so it complements real-GPU testing and
+# does not replace it.
 
 on:
   workflow_dispatch:
@@ -89,6 +90,83 @@ jobs:
             exit 1
           fi
           if grep -E "No CUDA device|GPU backend/device not available|no GPU backend compiled in" ctest.log; then
+            echo "A device test did not run on the simulated GPU"
+            exit 1
+          fi
+          exit "$rc"
+
+  hip-tests:
+    name: HIP tests (ROCm 7.2 and simulated MI300X)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      # The host C and C++ code is built with GCC 15 as in the CUDA job. The
+      # HIP code is compiled by ROCm's clang. With Clang as the host compiler
+      # the build failed on runners whose CPU lacks AVX-512 (the AVX-512
+      # intrinsics in DTypeCasting.c are compiled without avx512f).
+      - name: Install build dependencies
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y gcc-15 g++-15 ninja-build libgtest-dev
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install uv clang-format
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      # ROCm 7.2 and not 7.1: the 7.1 compiler turns fp16 to float casts into
+      # a negated result at -O2 and -O3 (a wrong NEG modifier on
+      # v_cvt_f32_f16_sdwa), which fails the byte for byte cast tests.
+      - name: Set up the simulated GPU and ROCm
+        uses: pantheongpu/setup-pantheonsim@deff5781e8adfd83dec98dd5242dcbc96a564773 # v0.1.10
+        with:
+          gpu: amd/mi300x
+          cuda-toolkit: none
+          rocm: "7.2"
+
+      # The action installs only the compiler side; the HSA runtime and comgr
+      # come on top for find_package(hip).
+      - name: Install the HSA runtime and comgr
+        run: sudo apt-get install -y hsa-rocr comgr rocm-cmake
+
+      - name: Configure
+        run: |
+          export ROCM_PATH=/opt/rocm
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_C_COMPILER=gcc-15 \
+            -DCMAKE_CXX_COMPILER=g++-15 \
+            -DCMAKE_HIP_COMPILER=/opt/rocm/lib/llvm/bin/clang++ \
+            -DCMAKE_PREFIX_PATH=/opt/rocm \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DUSE_HIP=ON \
+            -DCMAKE_HIP_ARCHITECTURES=gfx942 \
+            -DBUILD_TESTING=ON \
+            -DUSE_LTO=OFF
+
+      - name: Build
+        run: cmake --build build -j3
+
+      # Same selection and guards as the CUDA job.
+      - name: GPU tests
+        run: |
+          set +e
+          vgpu run ctest --test-dir build --no-tests=error -V \
+            -R '^(DeviceDetection|RngGpuParity|GpuDispatch|GpuSaturation|TensorTransfer)\.|^MemoryAllocator\.Device|Gpu(OracleEquivalence|SpecialValues)' \
+            > ctest.log 2>&1
+          rc=$?
+          set -e
+          grep -E "\[  FAILED  \]|\*\*\*Failed" ctest.log | head -n 40
+          tail -n 5 ctest.log
+          grep -E "tests passed|tests failed" ctest.log
+          if grep "VirtualGPU error" ctest.log | grep -v "out-of-memory"; then
+            echo "The simulator reported an error"
+            exit 1
+          fi
+          if grep -E "No HIP device|GPU backend/device not available|no GPU backend compiled in" ctest.log; then
             echo "A device test did not run on the simulated GPU"
             exit 1
           fi
