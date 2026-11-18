@@ -103,8 +103,7 @@ resolveGatherScatterFast(const GatherScatterParams &p) noexcept {
   const uint64_t perThread =
       static_cast<uint64_t>(threads) * FAST_ELEMS_PER_THREAD;
   uint64_t blocks = detail::ceilDiv(work, perThread);
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   if (cap != 0 && blocks > cap) {
     blocks = cap;
   }
@@ -121,10 +120,18 @@ resolveGatherScatterFast(const GatherScatterParams &p) noexcept {
  * @brief Assignment granularity for large segments.
  *
  * @details
- * Medium segments promote to warp-per-segment so lanes stay
- * coalesced; segments past efficient warp reuse promote to
- * block-per-segment. Dedup, presort, and mix tuning belong to kernel
- * selection downstream: geometry here only sizes the launch.
+ * Medium segments promote to warp-per-segment so lanes stay coalesced;
+ * segments past efficient warp reuse promote to block-per-segment.
+ * Dedup, presort, and mix tuning belong to kernel selection downstream:
+ * geometry here only sizes the launch.
+ *
+ * Phase 3.6 re-packed the warp-per-segment branch (keeping the warp
+ * count and folding several warps into one block) only for kernels that
+ * derive their warp id from `(blockIdx.x * blockDim.x + threadIdx.x) /
+ * warpSize` and never from `blockIdx.x` alone. No indirect gather or
+ * scatter kernel exists in the tree yet, so the contract is unverified
+ * and the branch keeps one warp per block: a kernel that reads
+ * `blockIdx.x` as its segment id would lose segments under any packing.
  */
 inline LaunchConfig
 resolveGatherScatter(const GatherScatterParams &p) noexcept {
@@ -136,8 +143,7 @@ resolveGatherScatter(const GatherScatterParams &p) noexcept {
   const uint32_t threads = detail::fastThreads(p.device, p.kernel);
   const uint64_t totalElems =
       detail::satMul(p.numIndices, p.segmentSize != 0 ? p.segmentSize : 1U);
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   uint64_t blocks;
   uint32_t blockThreads;
   if (segBytes > detail::satMul(detail::satMul(static_cast<uint64_t>(warp),

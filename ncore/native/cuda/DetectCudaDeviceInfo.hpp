@@ -64,6 +64,8 @@ struct cudaDetectedDeviceProps_t {
   int memoryBusWidth;                ///< DRAM bus width in bits.
   size_t sharedMemPerBlock;          ///< Shared memory per block, bytes.
   size_t sharedMemPerMultiprocessor; ///< Shared memory per SM, bytes.
+  size_t sharedMemPerBlockOptin;     ///< Opt-in dynamic shared memory, bytes.
+  size_t reservedSharedMemPerBlock;  ///< Driver-reserved shared memory, bytes.
   int regsPerMultiprocessor;         ///< 32-bit registers per SM.
   std::array<int, 3> maxGridSize;    ///< Max grid extent per axis.
   int l2CacheSize;                   ///< L2 capacity, bytes.

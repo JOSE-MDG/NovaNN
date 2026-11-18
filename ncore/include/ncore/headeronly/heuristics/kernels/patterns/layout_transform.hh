@@ -22,6 +22,9 @@ enum class BankStrategy : uint8_t { Auto, Padding, Swizzle };
 /// Maximum rank a layout description can carry.
 inline constexpr uint8_t LAYOUT_MAX_RANK = NOVA_MAX_DIMS;
 
+/// Edge of the staged output tile, in elements per side.
+inline constexpr uint32_t LAYOUT_TILE_EDGE = 32;
+
 /**
  * @struct LayoutShape
  * @brief Full shape plus strides on both sides, in elements.
@@ -126,8 +129,7 @@ inline LaunchConfig layoutStream(const LayoutTransformParams &p,
   const uint64_t perThread =
       static_cast<uint64_t>(threads) * FAST_ELEMS_PER_THREAD;
   uint64_t blocks = detail::ceilDiv(n, perThread);
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   if (cap != 0 && blocks > cap) {
     blocks = cap;
   }
@@ -146,15 +148,15 @@ inline LaunchConfig layoutFastTile(const LayoutTransformParams &p) noexcept {
   LaunchConfig cfg{};
   const int64_t rows = p.layout.shape[0];
   const int64_t cols = p.layout.ndim > 1 ? p.layout.shape[1] : 1;
-  cfg.threads.x = 32;
-  cfg.threads.y = threads >= 256 ? 8 : threads / 32;
+  cfg.threads.x = LAYOUT_TILE_EDGE;
+  cfg.threads.y = threads >= 256 ? 8 : threads / LAYOUT_TILE_EDGE;
   if (cfg.threads.y == 0) {
     cfg.threads.y = 1;
   }
   const uint64_t rowsPerBlock = cfg.threads.y;
   const uint64_t ncols = cols > 0 ? static_cast<uint64_t>(cols) : 1U;
   const uint64_t nrows = rows > 0 ? static_cast<uint64_t>(rows) : 1U;
-  const uint64_t bx = detail::ceilDiv(ncols, 32U);
+  const uint64_t bx = detail::ceilDiv(ncols, LAYOUT_TILE_EDGE);
   const uint64_t by = detail::ceilDiv(nrows, rowsPerBlock);
   cfg.blocks.x = static_cast<uint32_t>(bx > ~0U ? ~0U : bx);
   cfg.blocks.y = static_cast<uint32_t>(by > ~0U ? ~0U : by);
@@ -170,13 +172,22 @@ inline LaunchConfig layoutFastTile(const LayoutTransformParams &p) noexcept {
 } // namespace detail
 
 /**
- * @brief Streaming copy or fixed padded 32x32 tile.
+ * @brief Streaming copy or fixed padded tile.
  *
  * @details
  * Identity permutations stream over the linear index space; a valid
- * non-identity permutation takes the fixed 32-column tile. An
- * unrepresentable permutation streams too: the tile cannot be staged,
+ * non-identity permutation takes the fixed LAYOUT_TILE_EDGE-column tile.
+ * An unrepresentable permutation streams too: the tile cannot be staged,
  * and the all-ones floor would serialize the copy.
+ *
+ * The tiled geometry is advisory today. Its only consumer,
+ * `contiguousKernel2DTileVec`, requires exactly one tile edge by
+ * LAYOUT_TILE_EDGE/8 threads and stages a static 32x33 tile, and its
+ * launcher derives the grid itself; the heuristic call site always
+ * passes an identity permutation, so every launch in the tree streams.
+ * A transposition-aware tiling (canonicalize the shape, tile over the
+ * input and output unit-stride axes, fold outer axes into the grid)
+ * needs a kernel that accepts the geometry first.
  */
 inline LaunchConfig
 resolveLayoutTransformFast(const LayoutTransformParams &p) noexcept {
@@ -196,7 +207,7 @@ namespace detail {
 /// register headroom.
 inline LaunchConfig
 layoutBudgetedTile(const LayoutTransformParams &p) noexcept {
-  uint32_t tileX = 32;
+  uint32_t tileX = LAYOUT_TILE_EDGE;
   while (tileX > 8) {
     const uint64_t rowBytes = static_cast<uint64_t>(tileX) * p.itemSize;
     if (rowBytes == 32 || rowBytes == 64 || rowBytes == 128) {
@@ -273,6 +284,11 @@ layoutBudgetedTile(const LayoutTransformParams &p) noexcept {
  * belong to kernel selection downstream. Identity permutations skip
  * the staging entirely; unrepresentable ones stream over the linear
  * index space instead of collapsing to the all-ones floor.
+ *
+ * Like the Fast tile, this geometry has no consumer yet: the tile
+ * kernel fixes its own block shape, so rows per thread stay derived
+ * from register headroom rather than from modeled occupancy. Sizing
+ * them from occupancy would hand a geometry the kernel rejects.
  */
 inline LaunchConfig
 resolveLayoutTransform(const LayoutTransformParams &p) noexcept {

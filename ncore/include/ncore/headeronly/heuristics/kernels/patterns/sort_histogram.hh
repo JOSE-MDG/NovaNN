@@ -121,8 +121,7 @@ resolveSortHistogramFast(const SortHistogramParams &p) noexcept {
   const uint64_t perThread =
       static_cast<uint64_t>(threads) * FAST_ELEMS_PER_THREAD;
   uint64_t blocks = detail::ceilDiv(p.numElements, perThread);
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   if (cap != 0 && blocks > cap) {
     blocks = cap;
   }
@@ -140,26 +139,16 @@ resolveSortHistogramFast(const SortHistogramParams &p) noexcept {
  *
  * @details
  * Oversized bin counts fall back to a narrower thread budget with a
- * saturating grid; digit tables that overflow shared memory narrow
- * the radix width. Finer privatization levels and skew-driven choices
- * belong to kernel selection downstream: geometry here only sizes
- * the launch.
+ * saturating grid. The radix width is the caller's: a narrower pass
+ * would change how many times the kernel reads its input, which the
+ * kernel decides from its own digit budget. Finer privatization levels
+ * and skew-driven choices belong to kernel selection downstream:
+ * geometry here only sizes the launch.
  */
 inline LaunchConfig
 resolveSortHistogram(const SortHistogramParams &p) noexcept {
   if (p.numElements == 0) {
     return LaunchConfig{};
-  }
-  uint8_t bpp = static_cast<uint8_t>(p.bitsPerPass != 0 ? p.bitsPerPass : 8);
-  if (p.mode == SortHistMode::Sort && p.device.smemPerBlock != 0) {
-    bpp = std::min<uint8_t>(bpp, 8);
-    while (bpp > 1) {
-      const uint64_t digits = 1ULL << bpp;
-      if (digits * 4U <= p.device.smemPerBlock) {
-        break;
-      }
-      bpp = static_cast<uint8_t>(bpp / 2U);
-    }
   }
   uint32_t threads = detail::fastThreads(p.device, p.kernel);
   if (p.mode == SortHistMode::Histogram && p.numBins > 0 &&
@@ -172,8 +161,7 @@ resolveSortHistogram(const SortHistogramParams &p) noexcept {
   const uint64_t perThread =
       static_cast<uint64_t>(threads) * FAST_ELEMS_PER_THREAD;
   uint64_t blocks = detail::ceilDiv(p.numElements, perThread);
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   if (cap != 0 && blocks > cap) {
     blocks = cap;
   }

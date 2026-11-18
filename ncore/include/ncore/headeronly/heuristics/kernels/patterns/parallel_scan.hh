@@ -64,18 +64,39 @@ constexpr bool scanOpSimple(ScanOp op) noexcept {
          op == ScanOp::Max;
 }
 
-/// Odd count per thread while it fits, breaking bank stride alignment.
+/**
+ * @brief Odd elements per thread that fit the final tile in smem.
+ *
+ * @details
+ * Candidates 7, 5, 3 are coprime with the 32 banks without demanding
+ * divisibility. When none fits at @p threads, the block is halved (one
+ * warp floor) and the scan repeats; a tile that still cannot stage
+ * falls back to one element per thread.
+ */
 inline uint64_t scanElemsPerThread(const ParallelScanParams &p,
-                                   uint64_t tile) noexcept {
-  for (uint64_t ept = 7; ept >= 3; ept -= 2) {
-    if (tile % ept == 0 || ept == 3) {
-      const uint64_t bytes = satMul(tile, static_cast<uint64_t>(p.itemSize));
-      if (p.device.smemPerBlock == 0 || bytes <= p.device.smemPerBlock) {
+                                   uint32_t threads) noexcept {
+  const uint32_t warp = detail::effectiveWarp(p.device);
+  uint32_t t = threads != 0 ? threads : warp;
+  const uint64_t fixed =
+      detail::satAdd(static_cast<uint64_t>(p.kernel.staticSmemBytes),
+                     static_cast<uint64_t>(p.kernel.dynSmemPerBlock));
+  for (;;) {
+    for (uint64_t ept = 7; ept >= 3; ept -= 2) {
+      if (p.device.smemPerBlock == 0) {
+        return ept;
+      }
+      const uint64_t bytes = detail::satAdd(
+          detail::satMul(t, detail::satMul(ept, p.itemSize)), fixed);
+      if (bytes <= p.device.smemPerBlock) {
         return ept;
       }
     }
+    if (t <= warp) {
+      break;
+    }
+    t = (t / 2U) < warp ? warp : t / 2U;
   }
-  return 3;
+  return 1;
 }
 
 } // namespace detail
@@ -111,8 +132,7 @@ resolveParallelScanFast(const ParallelScanParams &p) noexcept {
     return LaunchConfig{};
   }
   const uint32_t threads = detail::fastThreads(p.device, p.kernel);
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   uint64_t blocks = p.numScans;
   if (cap != 0 && blocks > cap) {
     blocks = cap;
@@ -141,30 +161,27 @@ inline LaunchConfig resolveParallelScan(const ParallelScanParams &p) noexcept {
     return LaunchConfig{};
   }
   const uint32_t warp = detail::effectiveWarp(p.device);
-  uint32_t threads = detail::fastThreads(p.device, p.kernel);
-  const uint64_t tile = static_cast<uint64_t>(threads) *
-                        detail::scanElemsPerThread(p, threads * 7);
+  uint32_t threads = pickBlockThreads(p.device, p.kernel);
+  const uint64_t ept = detail::scanElemsPerThread(p, threads);
+  const uint64_t tile = detail::satMul(threads, ept);
   uint64_t pieces = detail::ceilDiv(p.scanExtent, tile);
   if (pieces == 0) {
     pieces = 1;
   }
   if (pieces == 1) {
-    uint64_t need = detail::ceilDiv(
-        p.scanExtent, detail::scanElemsPerThread(p, p.scanExtent));
-    uint32_t want = static_cast<uint32_t>(need > ~0U ? ~0U : need);
-    want = (want / warp) * warp;
-    if (want != 0 && want < threads) {
-      threads = want;
+    const uint64_t needThreads = detail::ceilDiv(p.scanExtent, ept);
+    const uint32_t need =
+        needThreads > ~0U ? ~0U : static_cast<uint32_t>(needThreads);
+    uint32_t t = pickBlockThreads(p.device, p.kernel, need);
+    if (p.device.smCount != 0 &&
+        p.numScans >= 2ULL * static_cast<uint64_t>(p.device.smCount)) {
+      t = std::max(t, std::min(minThreadsForBlockLimit(p.device),
+                               pickBlockThreads(p.device, p.kernel)));
     }
+    threads = t;
   }
   if (threads == 0) {
     threads = warp;
-  }
-  uint64_t blocks = detail::satMul(p.numScans, pieces);
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
-  if (cap != 0 && blocks > cap) {
-    blocks = cap;
   }
   LaunchConfig cfg{};
   cfg.threads.x = threads;
@@ -175,12 +192,6 @@ inline LaunchConfig resolveParallelScan(const ParallelScanParams &p) noexcept {
   }
   if (cfg.blocks.y == 0) {
     cfg.blocks.y = 1;
-  }
-  if (detail::satMul(cfg.blocks.x, cfg.blocks.y) > blocks && blocks != 0) {
-    cfg.blocks.y = static_cast<uint32_t>(blocks / cfg.blocks.x);
-    if (cfg.blocks.y == 0) {
-      cfg.blocks.y = 1;
-    }
   }
   return detail::clampConfig(cfg, p.device, p.kernel);
 }

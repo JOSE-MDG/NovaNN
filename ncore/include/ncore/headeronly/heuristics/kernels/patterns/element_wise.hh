@@ -133,8 +133,7 @@ resolveElementWiseFast(const ElementWiseParams &p) noexcept {
   const uint64_t perThread =
       static_cast<uint64_t>(threads) * FAST_ELEMS_PER_THREAD;
   uint64_t blocks = detail::ceilDiv(p.numElements, perThread);
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   if (cap != 0 && blocks > cap) {
     blocks = cap;
   }
@@ -172,31 +171,20 @@ resolveElementWiseFullPlan(const ElementWiseParams &p) noexcept {
   if (p.numInputs > 4 && plan.elementsPerThread > plan.vectorWidthElems) {
     plan.elementsPerThread = plan.vectorWidthElems;
   }
-  const uint32_t warp = detail::effectiveWarp(p.device);
-  uint32_t maxT = p.device.maxThreadsPerBlockDevice;
-  if (p.kernel.maxThreadsPerBlockKernel != 0 &&
-      (maxT == 0 || p.kernel.maxThreadsPerBlockKernel < maxT)) {
-    maxT = p.kernel.maxThreadsPerBlockKernel;
-  }
   const uint64_t need = detail::ceilDiv(p.numElements, plan.elementsPerThread);
-  const uint64_t want = need;
-  // Unknown caps still need a sane ceiling; known caps behave as before.
-  uint32_t ceiling = maxT;
-  if (ceiling == 0) {
-    ceiling = detail::fastThreads(p.device, p.kernel);
-  }
-  uint32_t threads =
-      want > ceiling ? ceiling : static_cast<uint32_t>(want > ~0U ? ~0U : want);
-  threads = (threads / warp) * warp;
+  // One full resident wave: a wider grid leaves a partial tail wave, a
+  // narrower one leaves SMs idle.
+  const uint32_t usefulThreads = need > ~0U ? ~0U : static_cast<uint32_t>(need);
+  uint32_t threads = pickBlockThreads(p.device, p.kernel, usefulThreads);
   if (threads == 0) {
-    threads = warp <= ceiling ? warp : ceiling;
+    threads = detail::effectiveWarp(p.device);
   }
-  uint64_t blocks = detail::ceilDiv(
+  const uint64_t blocksNeeded = detail::ceilDiv(
       p.numElements, static_cast<uint64_t>(threads) * plan.elementsPerThread);
-  const uint64_t cap = static_cast<uint64_t>(p.device.smCount) * 4U;
-  if (cap != 0 && blocks > cap) {
-    blocks = cap;
-  }
+  const uint64_t cap = residentGridCap(p.device, p.kernel, threads,
+                                       /*waves=*/1U, /*legacyPerSM=*/4U);
+  uint64_t blocks =
+      cap != 0 ? std::min<uint64_t>(blocksNeeded, cap) : blocksNeeded;
   if (blocks == 0) {
     blocks = 1;
   }

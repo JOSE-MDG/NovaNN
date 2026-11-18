@@ -534,9 +534,9 @@ typedef void *(*UniformMapU64)(const uint64_t *raw, void *out, size_t units,
  * @brief Chunk schedule of a 32-bit-sourced fill.
  */
 typedef struct {
-  UniformMapU32 map;   ///< Turns raw words into destination units.
-  size_t raw_per_unit; ///< Raw words consumed by one destination unit.
-  size_t out_bytes;    ///< Destination bytes written by one unit.
+  UniformMapU32 map;     ///< Turns raw words into destination units.
+  size_t raw_per_unit;   ///< Raw words consumed by one destination unit.
+  size_t out_bytes;      ///< Destination bytes written by one unit.
   size_t parallel_floor; ///< Xoshiro units below which the fill stays serial.
 } UniformPlanU32;
 
@@ -545,8 +545,8 @@ typedef struct {
  * @brief Chunk schedule of a 64-bit-sourced fill.
  */
 typedef struct {
-  UniformMapU64 map;   ///< Turns raw words into destination samples.
-  size_t out_bytes;    ///< Destination bytes written by one sample.
+  UniformMapU64 map;     ///< Turns raw words into destination samples.
+  size_t out_bytes;      ///< Destination bytes written by one sample.
   size_t parallel_floor; ///< Xoshiro units below which the fill stays serial.
 } UniformPlanU64;
 
@@ -579,8 +579,7 @@ static novaStatus_t uniform_generator_acquire(Generator_ *generator,
     held->lease.gen = nullptr;
     return uniform_ok();
   }
-  const novaStatus_t leased =
-      default_generator_lease(DEVICE_CPU, &held->lease);
+  const novaStatus_t leased = default_generator_lease(DEVICE_CPU, &held->lease);
   if (leased.err != novaSuccess) {
     return leased;
   }
@@ -660,8 +659,7 @@ static novaStatus_t uniform_draw_map_u32(Generator_ *gen,
   const size_t chunk = UNIFORM_CHUNK_U32 / plan->raw_per_unit;
   size_t workers = 1U;
 #ifdef NOVA_OPENMP
-  workers = uniform_worker_count(gen, units, threads, plan->parallel_floor,
-                                 2U);
+  workers = uniform_worker_count(gen, units, threads, plan->parallel_floor, 2U);
 #endif
   if (workers <= 1U) {
     size_t done = 0U;
@@ -757,8 +755,7 @@ static novaStatus_t uniform_draw_map_u64(Generator_ *gen,
   const size_t chunk = UNIFORM_CHUNK_U64;
   size_t workers = 1U;
 #ifdef NOVA_OPENMP
-  workers = uniform_worker_count(gen, units, threads, plan->parallel_floor,
-                                 4U);
+  workers = uniform_worker_count(gen, units, threads, plan->parallel_floor, 4U);
 #endif
   if (workers <= 1U) {
     size_t done = 0U;
@@ -841,9 +838,9 @@ static novaStatus_t uniform_draw_map_u64(Generator_ *gen,
  * @param[in]  generator  Private generator, or null for the default.
  * @param[out] st         Caller-owned status.
  */
-static void uniform_run_u32(void *out, size_t units,
-                            const UniformPlanU32 *plan, float base, float span,
-                            Generator_ *generator, novaStatus_t *st) {
+static void uniform_run_u32(void *out, size_t units, const UniformPlanU32 *plan,
+                            float base, float span, Generator_ *generator,
+                            novaStatus_t *st) {
   UniformGenerator held = {};
   const novaStatus_t acquired = uniform_generator_acquire(generator, &held);
   if (acquired.err != novaSuccess) {
@@ -877,9 +874,8 @@ static void uniform_run_u32(void *out, size_t units,
  * @param[in]  generator  Private generator, or null for the default.
  * @param[out] st         Caller-owned status.
  */
-static void uniform_run_u64(void *out, size_t units,
-                            const UniformPlanU64 *plan, double base,
-                            double span, Generator_ *generator,
+static void uniform_run_u64(void *out, size_t units, const UniformPlanU64 *plan,
+                            double base, double span, Generator_ *generator,
                             novaStatus_t *st) {
   UniformGenerator held = {};
   const novaStatus_t acquired = uniform_generator_acquire(generator, &held);
@@ -910,8 +906,8 @@ static void uniform_run_u64(void *out, size_t units,
  *
  * @return The destination pointer advanced past @p units samples.
  */
-static void *uniform_map_f32_scalar(const uint32_t *raw, void *out, size_t units,
-                                    float base, float span) {
+static void *uniform_map_f32_scalar(const uint32_t *raw, void *out,
+                                    size_t units, float base, float span) {
   float *dst = out;
   for (size_t i = 0; i < units; ++i) {
     dst[i] = fmaf(uniform_unit_f32(raw[i]), span, base);
@@ -924,8 +920,8 @@ static void *uniform_map_f32_scalar(const uint32_t *raw, void *out, size_t units
  *
  * @return The destination pointer advanced past @p units samples.
  */
-static void *uniform_map_f64_scalar(const uint64_t *raw, void *out, size_t units,
-                                    double base, double span) {
+static void *uniform_map_f64_scalar(const uint64_t *raw, void *out,
+                                    size_t units, double base, double span) {
   double *dst = out;
   for (size_t i = 0; i < units; ++i) {
     dst[i] = fma(uniform_unit_f64(raw[i]), span, base);
@@ -1087,12 +1083,13 @@ void uniform_cpu_impl_fp16_scalar(Tensor *ten, float low, float high,
 
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_range_narrow(low, high, uniform_fp16_value,
-                            uniform_fp16_pattern, UNIFORM_GRID_MASK_16,
-                            UNIFORM_FP16_MAX_FINITE, &base, &span)) {
-    *st = (novaStatus_t){.err = novaInvalidValue,
-                         .message = "The interval does not fit the float16 "
-                                    "format. Use bounds the format can hold.\n"};
+  if (!uniform_range_narrow(low, high, uniform_fp16_value, uniform_fp16_pattern,
+                            UNIFORM_GRID_MASK_16, UNIFORM_FP16_MAX_FINITE,
+                            &base, &span)) {
+    *st =
+        (novaStatus_t){.err = novaInvalidValue,
+                       .message = "The interval does not fit the float16 "
+                                  "format. Use bounds the format can hold.\n"};
     return;
   }
   static const UniformPlanU32 plan = {
@@ -1117,12 +1114,13 @@ void uniform_cpu_impl_bf16_scalar(Tensor *ten, float low, float high,
 
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_range_narrow(low, high, uniform_bf16_value,
-                            uniform_bf16_pattern, UNIFORM_GRID_MASK_16,
-                            UNIFORM_BF16_MAX_FINITE, &base, &span)) {
-    *st = (novaStatus_t){.err = novaInvalidValue,
-                         .message = "The interval does not fit the bfloat16 "
-                                    "format. Use bounds the format can hold.\n"};
+  if (!uniform_range_narrow(low, high, uniform_bf16_value, uniform_bf16_pattern,
+                            UNIFORM_GRID_MASK_16, UNIFORM_BF16_MAX_FINITE,
+                            &base, &span)) {
+    *st =
+        (novaStatus_t){.err = novaInvalidValue,
+                       .message = "The interval does not fit the bfloat16 "
+                                  "format. Use bounds the format can hold.\n"};
     return;
   }
   static const UniformPlanU32 plan = {
@@ -1666,12 +1664,13 @@ uniform_cpu_impl_fp16_avx512(Tensor *ten, float low, float high,
   }
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_range_narrow(low, high, uniform_fp16_value,
-                            uniform_fp16_pattern, UNIFORM_GRID_MASK_16,
-                            UNIFORM_FP16_MAX_FINITE, &base, &span)) {
-    *st = (novaStatus_t){.err = novaInvalidValue,
-                         .message = "The interval does not fit the float16 "
-                                    "format. Use bounds the format can hold.\n"};
+  if (!uniform_range_narrow(low, high, uniform_fp16_value, uniform_fp16_pattern,
+                            UNIFORM_GRID_MASK_16, UNIFORM_FP16_MAX_FINITE,
+                            &base, &span)) {
+    *st =
+        (novaStatus_t){.err = novaInvalidValue,
+                       .message = "The interval does not fit the float16 "
+                                  "format. Use bounds the format can hold.\n"};
     return;
   }
   static const UniformPlanU32 plan = {
@@ -1699,12 +1698,13 @@ uniform_cpu_impl_fp16_avx_avx2_fma_f16c(Tensor *ten, float low, float high,
   }
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_range_narrow(low, high, uniform_fp16_value,
-                            uniform_fp16_pattern, UNIFORM_GRID_MASK_16,
-                            UNIFORM_FP16_MAX_FINITE, &base, &span)) {
-    *st = (novaStatus_t){.err = novaInvalidValue,
-                         .message = "The interval does not fit the float16 "
-                                    "format. Use bounds the format can hold.\n"};
+  if (!uniform_range_narrow(low, high, uniform_fp16_value, uniform_fp16_pattern,
+                            UNIFORM_GRID_MASK_16, UNIFORM_FP16_MAX_FINITE,
+                            &base, &span)) {
+    *st =
+        (novaStatus_t){.err = novaInvalidValue,
+                       .message = "The interval does not fit the float16 "
+                                  "format. Use bounds the format can hold.\n"};
     return;
   }
   static const UniformPlanU32 plan = {
@@ -1731,12 +1731,13 @@ uniform_cpu_impl_bf16_avx512bf16(Tensor *ten, float low, float high,
   }
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_range_narrow(low, high, uniform_bf16_value,
-                            uniform_bf16_pattern, UNIFORM_GRID_MASK_16,
-                            UNIFORM_BF16_MAX_FINITE, &base, &span)) {
-    *st = (novaStatus_t){.err = novaInvalidValue,
-                         .message = "The interval does not fit the bfloat16 "
-                                    "format. Use bounds the format can hold.\n"};
+  if (!uniform_range_narrow(low, high, uniform_bf16_value, uniform_bf16_pattern,
+                            UNIFORM_GRID_MASK_16, UNIFORM_BF16_MAX_FINITE,
+                            &base, &span)) {
+    *st =
+        (novaStatus_t){.err = novaInvalidValue,
+                       .message = "The interval does not fit the bfloat16 "
+                                  "format. Use bounds the format can hold.\n"};
     return;
   }
   static const UniformPlanU32 plan = {
@@ -1763,12 +1764,13 @@ uniform_cpu_impl_bf16_avx_avx2_fma(Tensor *ten, float low, float high,
   }
   float base = 0.0f;
   float span = 0.0f;
-  if (!uniform_range_narrow(low, high, uniform_bf16_value,
-                            uniform_bf16_pattern, UNIFORM_GRID_MASK_16,
-                            UNIFORM_BF16_MAX_FINITE, &base, &span)) {
-    *st = (novaStatus_t){.err = novaInvalidValue,
-                         .message = "The interval does not fit the bfloat16 "
-                                    "format. Use bounds the format can hold.\n"};
+  if (!uniform_range_narrow(low, high, uniform_bf16_value, uniform_bf16_pattern,
+                            UNIFORM_GRID_MASK_16, UNIFORM_BF16_MAX_FINITE,
+                            &base, &span)) {
+    *st =
+        (novaStatus_t){.err = novaInvalidValue,
+                       .message = "The interval does not fit the bfloat16 "
+                                  "format. Use bounds the format can hold.\n"};
     return;
   }
   static const UniformPlanU32 plan = {

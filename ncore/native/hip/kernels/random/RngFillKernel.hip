@@ -121,6 +121,29 @@ novaStatus_t fillGeometry(uint64_t blocks, uint32_t outAlignBytes,
 }
 
 /**
+ * @brief Stores one Philox block's four lanes at @p first.
+ *
+ * @details
+ * One 128-bit store per full block on a 16B-aligned destination;
+ * masked scalar stores otherwise, dropping lanes past @p n. Shared by
+ * both iterations of the pair loop so the two copies cannot diverge.
+ */
+__device__ inline void storeU32Block(uint32_t *restrict out, size_t first,
+                                     const uint32_t *restrict lanes,
+                                     bool aligned, size_t n) {
+  if (aligned && first + kPhiloxLanes <= n) {
+    const uint4 packed = make_uint4(lanes[0], lanes[1], lanes[2], lanes[3]);
+    *reinterpret_cast<uint4 *>(out + first) = packed;
+    return;
+  }
+  for (size_t lane = 0U; lane < kPhiloxLanes; ++lane) {
+    if (first + lane < n) {
+      out[first + lane] = lanes[lane];
+    }
+  }
+}
+
+/**
  * @brief Emit four Philox lanes per block. Same contract as the CUDA
  * kernel. See @c RngFillKernel.cu.
  */
@@ -136,22 +159,59 @@ __global__ void rngFillU32Blocks(uint32_t key0, uint32_t key1, uint32_t c0,
       (static_cast<size_t>(blockDim.x) * static_cast<size_t>(blockIdx.x));
   const size_t step =
       static_cast<size_t>(blockDim.x) * static_cast<size_t>(gridDim.x);
-  for (size_t b = idx; b < static_cast<size_t>(blocks); b += step) {
-    uint32_t ctr[4] = {};
-    philox_ctr_add(base, static_cast<uint64_t>(b), ctr);
-    uint32_t lanes[4] = {};
-    philox4x32_10(ctr, key, lanes);
-    const size_t first = b * kU32PerBlock;
-    if (aligned && first + kPhiloxLanes <= n) {
-      const uint4 packed = {lanes[0], lanes[1], lanes[2], lanes[3]};
-      *reinterpret_cast<uint4 *>(out + first) = packed;
-    } else {
-      for (size_t lane = 0U; lane < kPhiloxLanes; ++lane) {
-        if (first + lane < n) {
-          out[first + lane] = lanes[lane];
-        }
-      }
+  const size_t pairs = (static_cast<size_t>(blocks) + 1U) >> 1U;
+  for (size_t p = idx; p < pairs; p += step) {
+    const size_t b0 = p << 1U;
+    const size_t b1 = b0 + 1U;
+    const bool hasPair = b1 < static_cast<size_t>(blocks);
+    // Two whole blocks per iteration run as independent Philox chains
+    // so the round function of one covers the latency of the other.
+    uint32_t ctr0[4] = {};
+    uint32_t ctr1[4] = {};
+    philox_ctr_add(base, static_cast<uint64_t>(b0), ctr0);
+    if (hasPair) {
+      philox_ctr_add(base, static_cast<uint64_t>(b1), ctr1);
     }
+    uint32_t lanes0[4] = {};
+    uint32_t lanes1[4] = {};
+    philox4x32_10(ctr0, key, lanes0);
+    if (hasPair) {
+      philox4x32_10(ctr1, key, lanes1);
+    }
+    const size_t first0 = b0 * kU32PerBlock;
+    storeU32Block(out, first0, lanes0, aligned, n);
+    if (hasPair) {
+      storeU32Block(out, first0 + kU32PerBlock, lanes1, aligned, n);
+    }
+  }
+}
+
+/**
+ * @brief Stores one Philox block's two packed 64-bit values at @p first.
+ *
+ * @details
+ * Lanes 0-1 packed little end first, then lanes 2-3: one 128-bit store
+ * per full pair on a 16B-aligned destination; masked scalar stores
+ * otherwise, dropping the second value past @p n. Shared by both
+ * iterations of the pair loop so the two copies cannot diverge.
+ */
+__device__ inline void storeU64Block(uint64_t *restrict out, size_t first,
+                                     const uint32_t *restrict lanes,
+                                     bool aligned, size_t n) {
+  const uint64_t lo = static_cast<uint64_t>(lanes[0]) |
+                      (static_cast<uint64_t>(lanes[1]) << kLaneBits);
+  const uint64_t hi = static_cast<uint64_t>(lanes[2]) |
+                      (static_cast<uint64_t>(lanes[3]) << kLaneBits);
+  if (aligned && first + kU64PerBlock <= n) {
+    // HIP's ulonglong2 is a class with a constructor, not an aggregate
+    // like the CUDA type, so designated initializers do not compile here.
+    const ulonglong2 packed = make_ulonglong2(lo, hi);
+    *reinterpret_cast<ulonglong2 *>(out + first) = packed;
+    return;
+  }
+  out[first] = lo;
+  if (first + 1U < n) {
+    out[first + 1U] = hi;
   }
 }
 
@@ -170,28 +230,29 @@ __global__ void rngFillU64Blocks(uint32_t key0, uint32_t key1, uint32_t c0,
       (static_cast<size_t>(blockDim.x) * static_cast<size_t>(blockIdx.x));
   const size_t step =
       static_cast<size_t>(blockDim.x) * static_cast<size_t>(gridDim.x);
-  for (size_t b = idx; b < static_cast<size_t>(blocks); b += step) {
-    uint32_t ctr[4] = {};
-    philox_ctr_add(base, static_cast<uint64_t>(b), ctr);
-    uint32_t lanes[4] = {};
-    philox4x32_10(ctr, key, lanes);
-    const size_t first = b * kU64PerBlock;
-    if (aligned && first + kU64PerBlock <= n) {
-      // HIP's ulonglong2 is a class with a constructor, not an aggregate like
-      // the CUDA type, so designated initializers do not compile here.
-      const ulonglong2 packed =
-          make_ulonglong2(static_cast<uint64_t>(lanes[0]) |
-                              (static_cast<uint64_t>(lanes[1]) << kLaneBits),
-                          static_cast<uint64_t>(lanes[2]) |
-                              (static_cast<uint64_t>(lanes[3]) << kLaneBits));
-      *reinterpret_cast<ulonglong2 *>(out + first) = packed;
-    } else {
-      out[first] = static_cast<uint64_t>(lanes[0]) |
-                   (static_cast<uint64_t>(lanes[1]) << kLaneBits);
-      if (first + 1U < n) {
-        out[first + 1U] = static_cast<uint64_t>(lanes[2]) |
-                          (static_cast<uint64_t>(lanes[3]) << kLaneBits);
-      }
+  const size_t pairs = (static_cast<size_t>(blocks) + 1U) >> 1U;
+  for (size_t p = idx; p < pairs; p += step) {
+    const size_t b0 = p << 1U;
+    const size_t b1 = b0 + 1U;
+    const bool hasPair = b1 < static_cast<size_t>(blocks);
+    // Two whole blocks per iteration run as independent Philox chains
+    // so the round function of one covers the latency of the other.
+    uint32_t ctr0[4] = {};
+    uint32_t ctr1[4] = {};
+    philox_ctr_add(base, static_cast<uint64_t>(b0), ctr0);
+    if (hasPair) {
+      philox_ctr_add(base, static_cast<uint64_t>(b1), ctr1);
+    }
+    uint32_t lanes0[4] = {};
+    uint32_t lanes1[4] = {};
+    philox4x32_10(ctr0, key, lanes0);
+    if (hasPair) {
+      philox4x32_10(ctr1, key, lanes1);
+    }
+    const size_t first0 = b0 * kU64PerBlock;
+    storeU64Block(out, first0, lanes0, aligned, n);
+    if (hasPair) {
+      storeU64Block(out, first0 + kU64PerBlock, lanes1, aligned, n);
     }
   }
 }
