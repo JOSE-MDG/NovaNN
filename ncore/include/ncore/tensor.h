@@ -89,13 +89,14 @@ struct Tensor {
   BackwardNode grad_fn_; ///< Backward graph node (nullptr for leaves).
   bool requires_grad_;   ///< If @c true, track gradients during backward.
   bool retain_grad_;     ///< If @c true, retain gradient for non-leaf nodes.
-  bool is_view_;         ///< If @c true, shares storage (or, for META, the layout) with another tensor.
-  bool is_leaf_;         ///< If @c true, leaf node in the computation graph.
-  bool is_allocated_;    ///< If @c true, @c storage and @c data are valid.
-  bool is_pinned_;       ///< If @c true, page-locked host memory.
-  float scale_;          ///< Quantization scale (1.0 if not quantized).
-  int32_t zero_point_;   ///< Quantization zero point (0 if not quantized).
-  int64_t version_;      ///< Mutation counter for in-place alias detection.
+  bool
+      is_view_; ///< If @c true, shares storage (or, for META, the layout) with another tensor.
+  bool is_leaf_;       ///< If @c true, leaf node in the computation graph.
+  bool is_allocated_;  ///< If @c true, @c storage and @c data are valid.
+  bool is_pinned_;     ///< If @c true, page-locked host memory.
+  float scale_;        ///< Quantization scale (1.0 if not quantized).
+  int32_t zero_point_; ///< Quantization zero point (0 if not quantized).
+  int64_t version_;    ///< Mutation counter for in-place alias detection.
 };
 
 /** @brief Gradient tensor type alias: a pointer to a @ref Tensor. */
