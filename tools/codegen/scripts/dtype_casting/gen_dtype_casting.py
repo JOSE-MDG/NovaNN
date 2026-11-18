@@ -17,7 +17,7 @@ from tools.codegen.engine import (
     RULES_DIR,
     ClangFormatter,
     CodeGenEngine,
-    Engine,
+    EngineSpec,
     EnvSpec,
     Renders,
     register_engine,
@@ -55,7 +55,7 @@ if not _RULES_PATH.exists():
 with open(_RULES_PATH) as _f:
     _rules: dict[Any, Any] = json.load(_f)
 
-# Engine
+# EngineSpec
 _env_specs: list[EnvSpec] = [
     EnvSpec(id=0, env=_jinja_env, name="env_0"),
 ]
@@ -81,7 +81,7 @@ _codegen_engine = CodeGenEngine(_env_specs)
 _codegen_engine.add_rendering_templates(_env_specs, _renders)
 
 register_engine(
-    Engine(
+    EngineSpec(
         engine=_codegen_engine,
         name="Dtype Casting Implementations and Declarations",
         id=0,

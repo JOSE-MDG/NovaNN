@@ -23,7 +23,7 @@ from tqdm import tqdm
 
 Provides CodeGenEngine for rendering templates with JSON/YAML rules
 files, EngineManager for orchestrating multiple generation stages,
-the data classes Renders, EnvSpec and Engine, and module-level
+the data classes Renders, EnvSpec and EngineSpec, and module-level
 constants for project paths, formatter binaries and the default
 template loader.
 """
@@ -62,7 +62,7 @@ class EnvSpec(NamedTuple):
     name: str
 
 
-class Engine(NamedTuple):
+class EngineSpec(NamedTuple):
     """Wrap a CodeGenEngine with a name and id for the manager.
 
     Each engine represents one logical stage in the generation
@@ -100,7 +100,7 @@ class EngineRunResult(NamedTuple):
         error: The exception raised, if any (None when ok is True).
     """
 
-    engine: Engine
+    engine: EngineSpec
     ok: bool
     error: Exception | None
 
@@ -273,7 +273,7 @@ class RuffFormatter(Formatter):
 class EngineManager:
     """Register, track, and execute engines as a singleton manager.
 
-    Provides a centralized registry for Engine instances and supports
+    Provides a centralized registry for EngineSpec instances and supports
     running code generation across all registered engines with optional
     exclusion of specific engines by id.
 
@@ -288,7 +288,7 @@ class EngineManager:
         >>> from pathlib import Path
         >>> from jinja2 import Environment, FileSystemLoader
         >>> from tools.codegen.engine import (
-        ...     ClangFormatter, CodeGenEngine, Engine, EnvSpec, Renders,
+        ...     ClangFormatter, CodeGenEngine, EngineSpec, EnvSpec, Renders,
         ...     EngineManager,
         ... )
         >>>
@@ -310,16 +310,16 @@ class EngineManager:
         >>>
         >>> cg = CodeGenEngine(env_spec)
         >>> cg.add_rendering_templates(env_spec, [renders])
-        >>> engine = Engine(engine=cg, name='engine', id=0)
+        >>> spec = EngineSpec(engine=cg, name='engine', id=0)
         >>>
         >>> manager = EngineManager()
-        >>> manager.register_engine(engine)
+        >>> manager.register_engine(spec)
         >>> manager.run()                # generate
-        >>> manager.run(exclude_id=0)    # skip engine 0
-        >>> manager.pop(0)               # remove engine 0
+        >>> manager.run(exclude_id=0)    # skip spec 0
+        >>> manager.pop(0)               # remove spec 0
     """
 
-    _engines: ClassVar[OrderedDict[int, Engine]] = OrderedDict()
+    _engines: ClassVar[OrderedDict[int, EngineSpec]] = OrderedDict()
     _instance: EngineManager | None = None
     _initialized: bool = False
 
@@ -330,7 +330,7 @@ class EngineManager:
             return cls._instance
         return cls._instance
 
-    def __init__(self, engines: list[Engine] | None = None) -> None:
+    def __init__(self, engines: list[EngineSpec] | None = None) -> None:
         """Initialize the engines manager singleton.
 
         Args:
@@ -342,7 +342,7 @@ class EngineManager:
                     self.register_engine(engine)
             self._initialized = True
 
-    def register_engine(self, engine: Engine) -> None:
+    def register_engine(self, engine: EngineSpec) -> None:
         """Register a single engine.
 
         Args:
@@ -356,7 +356,7 @@ class EngineManager:
 
         self._engines[engine.id] = engine
 
-    def pop(self, engine_id: int) -> Engine:
+    def pop(self, engine_id: int) -> EngineSpec:
         """Remove and return an engine by its id.
 
         Args:
@@ -375,7 +375,7 @@ class EngineManager:
 
     def _select_engines(
         self, exclude_id: int | list[int] | None
-    ) -> list[Engine]:
+    ) -> list[EngineSpec]:
         """Return the engines selected for execution, in ascending id order.
 
         Args:
@@ -466,38 +466,40 @@ class EngineManager:
             RuntimeError: If stop_on_error=True and an engine fails; wraps
                 the original exception.
         """
-        engines_to_run = self._select_engines(exclude_id)
+        specs_to_run = self._select_engines(exclude_id)
 
         results: list[EngineRunResult] = []
 
         total_renders = sum(
             len(entry.renders)
-            for engine in engines_to_run
-            for entry in engine.engine._registry.values()
+            for spec in specs_to_run
+            for entry in spec.engine._registry.values()
         )
 
-        with tqdm(total=total_renders, desc="Rendering", unit="render") as pbar:
-            for engine in engines_to_run:
+        with tqdm(
+            total=total_renders, desc="Rendering", unit=" render"
+        ) as pbar:
+            for spec in specs_to_run:
                 if verbose:
                     tqdm.write(
-                        f"Executing {engine.name}... (Engine ID: {engine.id})"
+                        f"Executing {spec.name}... (Engine ID: {spec.id})"
                     )
                 try:
-                    engine.engine.generate(
+                    spec.engine.generate(
                         run_formatters=run_formatters, pbar=pbar
                     )
                 except Exception as exc:
                     if stop_on_error:
                         raise RuntimeError(
-                            f"Engine '{engine.name}' (id={engine.id}) failed: {exc}"
+                            f"Engine '{spec.name}' (id={spec.id}) failed: {exc}"
                         ) from exc
                     results.append(
-                        EngineRunResult(engine=engine, ok=False, error=exc)
+                        EngineRunResult(engine=spec, ok=False, error=exc)
                     )
                     continue
 
                 results.append(
-                    EngineRunResult(engine=engine, ok=True, error=None)
+                    EngineRunResult(engine=spec, ok=True, error=None)
                 )
 
         return results
@@ -524,8 +526,8 @@ class EngineManager:
             TypeError: If exclude_id is not None, int, or list[int].
         """
         paths: list[Path] = []
-        for engine in self._select_engines(exclude_id):
-            for entry in engine.engine._registry.values():
+        for spec in self._select_engines(exclude_id):
+            for entry in spec.engine._registry.values():
                 for render in entry.renders:
                     if render.render_path not in paths:
                         paths.append(render.render_path)
@@ -828,29 +830,31 @@ class CodeGenEngine:
 manager = EngineManager()
 
 
-def register_engine(engine: Engine | list[Engine]) -> None:
+def register_engine(engine: EngineSpec | list[EngineSpec]) -> None:
     """Register one or more engines with the global engine manager.
 
-    This function provides a unified interface to register a single Engine
-    instance or a list of Engine instances.
+    This function provides a unified interface to register a single
+    EngineSpec instance or a list of EngineSpec instances.
 
     Args:
-        engine: An Engine instance or a list of Engine instances to register.
+        engine: An EngineSpec instance or a list of EngineSpec instances
+            to register.
 
     Raises:
         ValueError: If engine is None or an invalid type is provided.
     """
     if engine is None:
-        raise ValueError("Engine cannot be None")
+        raise ValueError("EngineSpec cannot be None")
 
     if isinstance(engine, list):
         for eng in engine:
             manager.register_engine(eng)
-    elif isinstance(engine, Engine):
+    elif isinstance(engine, EngineSpec):
         manager.register_engine(engine)
     else:
         raise ValueError(
-            f"Expected Engine or list[Engine], got {type(engine).__name__}"
+            f"Expected EngineSpec or list[EngineSpec], "
+            f"got {type(engine).__name__}"
         )
 
 
