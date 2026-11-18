@@ -41,7 +41,41 @@ struct FullCacheKey {
   uint32_t dtypeTag = 0;    ///< Caller-defined dtype pair tag.
   uint32_t archTag = 0;     ///< Caller-defined architecture tag.
   uint32_t kernelTag = 0;   ///< Fold of the compiled-kernel attributes.
+  uint64_t deviceTag = 0;   ///< Fold of the device caps (Phase 2.1).
 };
+
+namespace detail {
+
+/**
+ * @brief Hash of a full cache key.
+ *
+ * @details
+ * Single source of truth shared by probe and store, so a key can never
+ * hash differently on the two paths (spec 2.2).
+ */
+inline uint64_t hashKey(const FullCacheKey &key) noexcept {
+  uint64_t h = 1469598103934665603ULL;
+  h ^= static_cast<uint64_t>(key.pattern);
+  h *= 1099511628211ULL;
+  h ^= key.shapeBucket;
+  h *= 1099511628211ULL;
+  h ^= (static_cast<uint64_t>(key.dtypeTag) << 32U) | key.archTag;
+  h *= 1099511628211ULL;
+  h ^= key.kernelTag;
+  h *= 1099511628211ULL;
+  h ^= key.deviceTag;
+  h *= 1099511628211ULL;
+  return h;
+}
+
+/// Equality of two full cache keys, `deviceTag` included (spec 2.2).
+inline bool sameKey(const FullCacheKey &a, const FullCacheKey &b) noexcept {
+  return a.pattern == b.pattern && a.shapeBucket == b.shapeBucket &&
+         a.dtypeTag == b.dtypeTag && a.archTag == b.archTag &&
+         a.kernelTag == b.kernelTag && a.deviceTag == b.deviceTag;
+}
+
+} // namespace detail
 
 /**
  * @struct FullCacheEntry
@@ -53,7 +87,7 @@ struct FullCacheEntry {
   LaunchConfig config;
 };
 
-/// Table capacity; linear probe, drops on full.
+/// Table capacity; linear probe, replaces the start slot when full.
 inline constexpr uint32_t FULL_CACHE_CAPACITY = 64;
 
 /**
@@ -64,6 +98,8 @@ inline constexpr uint32_t FULL_CACHE_CAPACITY = 64;
  * Misses recompute inline and optionally store. A wrong entry
  * only costs performance: every stored config already passed the
  * shared clamps, and grid-stride kernels stay correct under any grid.
+ * When every slot is taken, the new entry overwrites the probe's
+ * start slot so the table cannot freeze on the first shapes seen.
  */
 struct FullConfigCache {
   std::array<FullCacheEntry, FULL_CACHE_CAPACITY> slots;
@@ -76,26 +112,15 @@ struct FullConfigCache {
     if (out == nullptr) {
       return false;
     }
-    uint64_t h = 1469598103934665603ULL;
-    h ^= static_cast<uint64_t>(key.pattern);
-    h *= 1099511628211ULL;
-    h ^= key.shapeBucket;
-    h *= 1099511628211ULL;
-    h ^= (static_cast<uint64_t>(key.dtypeTag) << 32U) | key.archTag;
-    h *= 1099511628211ULL;
-    h ^= key.kernelTag;
-    h *= 1099511628211ULL;
-    const uint32_t start = static_cast<uint32_t>(h % FULL_CACHE_CAPACITY);
+    const uint32_t start =
+        static_cast<uint32_t>(detail::hashKey(key) % FULL_CACHE_CAPACITY);
     for (uint32_t i = 0; i < FULL_CACHE_CAPACITY; ++i) {
       const uint32_t idx = (start + i) % FULL_CACHE_CAPACITY;
       const FullCacheEntry &e = slots[idx];
       if (!e.occupied) {
         return false;
       }
-      if (e.key.pattern == key.pattern &&
-          e.key.shapeBucket == key.shapeBucket &&
-          e.key.dtypeTag == key.dtypeTag && e.key.archTag == key.archTag &&
-          e.key.kernelTag == key.kernelTag) {
+      if (detail::sameKey(e.key, key)) {
         *out = e.config;
         return true;
       }
@@ -103,18 +128,10 @@ struct FullConfigCache {
     return false;
   }
 
-  /// Store or replace; silently drops when full.
+  /// Store or replace; a full table overwrites the start slot.
   void store(const FullCacheKey &key, LaunchConfig cfg) noexcept {
-    uint64_t h = 1469598103934665603ULL;
-    h ^= static_cast<uint64_t>(key.pattern);
-    h *= 1099511628211ULL;
-    h ^= key.shapeBucket;
-    h *= 1099511628211ULL;
-    h ^= (static_cast<uint64_t>(key.dtypeTag) << 32U) | key.archTag;
-    h *= 1099511628211ULL;
-    h ^= key.kernelTag;
-    h *= 1099511628211ULL;
-    const uint32_t start = static_cast<uint32_t>(h % FULL_CACHE_CAPACITY);
+    const uint32_t start =
+        static_cast<uint32_t>(detail::hashKey(key) % FULL_CACHE_CAPACITY);
     for (uint32_t i = 0; i < FULL_CACHE_CAPACITY; ++i) {
       const uint32_t idx = (start + i) % FULL_CACHE_CAPACITY;
       FullCacheEntry &e = slots[idx];
@@ -124,14 +141,13 @@ struct FullConfigCache {
         e.config = cfg;
         return;
       }
-      if (e.key.pattern == key.pattern &&
-          e.key.shapeBucket == key.shapeBucket &&
-          e.key.dtypeTag == key.dtypeTag && e.key.archTag == key.archTag &&
-          e.key.kernelTag == key.kernelTag) {
+      if (detail::sameKey(e.key, key)) {
         e.config = cfg;
         return;
       }
     }
+    slots[start].key = key;
+    slots[start].config = cfg;
   }
 };
 
@@ -250,6 +266,12 @@ inline HeuristicTier resolveTier(const LaunchParamsBase &params) noexcept {
     return HeuristicTier::Full;
   }
   const uint64_t ovh = detail::routeOverhead(params);
+  // A kernel known to be shorter than the analysis is worth skips it.
+  // expectedDivergence stays reserved: no consumer yet.
+  if (ovh != 0 && params.context.expectedDurationNs != 0 &&
+      params.context.expectedDurationNs < ROUTE_LAUNCH_FACTOR * ovh) {
+    return HeuristicTier::Fast;
+  }
   if (ovh != 0) {
     if (flops != 0 && d.peakFlops != 0) {
       const double tEst =

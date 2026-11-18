@@ -188,6 +188,8 @@ cudaDetectedDeviceProps_t initCudaDeviceProperties(novaStatus_t *status) {
             .memoryBusWidth = prop.memoryBusWidth,
             .sharedMemPerBlock = prop.sharedMemPerBlock,
             .sharedMemPerMultiprocessor = prop.sharedMemPerMultiprocessor,
+            .sharedMemPerBlockOptin = prop.sharedMemPerBlockOptin,
+            .reservedSharedMemPerBlock = prop.reservedSharedMemPerBlock,
             .regsPerMultiprocessor = prop.regsPerMultiprocessor,
             .maxGridSize = {prop.maxGridSize[0], prop.maxGridSize[1],
                             prop.maxGridSize[2]},

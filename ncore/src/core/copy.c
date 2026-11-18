@@ -329,14 +329,13 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
     shape_t grad_shape = {};
     logical_shape_(grad_shape, src->grad->shape, src->grad->dtype,
                    src->grad->ndims);
-    auto new_grad =
-        (int)is_scalar(src->grad)
-            ? create_unallocated_scalar_grad_tensor(
-                  src->grad->dtype, src->grad->device, src->grad->is_pinned_,
-                  status)
-            : create_unallocated_grad_tensor(
-                  grad_shape, src->grad->dtype, src->grad->device,
-                  src->grad->is_pinned_, src->grad->ndims, status);
+    auto new_grad = (int)is_scalar(src->grad)
+                        ? create_unallocated_scalar_grad_tensor(
+                              src->grad->dtype, src->grad->device,
+                              src->grad->is_pinned_, status)
+                        : create_unallocated_grad_tensor(
+                              grad_shape, src->grad->dtype, src->grad->device,
+                              src->grad->is_pinned_, src->grad->ndims, status);
 
     if (status->err != novaSuccess) {
       (void)collect(dst);

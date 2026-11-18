@@ -158,8 +158,7 @@ inline uint64_t fusedWork(const FusedOperatorParams &p,
 /// Grid from summed stage work, device-wide when unmeasurable.
 inline uint64_t fusedGridBlocks(const FusedOperatorParams &p,
                                 uint32_t threads) noexcept {
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   uint64_t blocks = cap != 0 ? cap : 1;
   const uint64_t work = fusedWork(p);
   if (work != 0) {
@@ -267,33 +266,24 @@ resolveFusedOperatorFast(const FusedOperatorParams &p) noexcept {
 }
 
 /**
- * @brief Liveness-budgeted fusion.
+ * @brief Occupancy-sized fusion launch.
  *
  * @details
- * Pressure is the live peak over program points, never the stage
- * total. Recompute fires before occupancy is sacrificed when the
- * recorded cost favors it. Placement falls registers, then shared
- * with dead-stage reuse, then breaks the fusion at the first illegal
- * boundary: the caller launches the prefix returned here and the
- * remainder separately, never spilling through global memory inside
- * one fused launch. Single-warp-streamable fusions use warp-only
- * barriers.
+ * Placement falls registers, then shared with dead-stage reuse, then
+ * breaks the fusion at the first illegal boundary: the caller launches
+ * the prefix returned here and the remainder separately, never spilling
+ * through global memory inside one fused launch. Single-warp-streamable
+ * fusions use warp-only barriers. `maxLiveValues` belongs to the fusion
+ * planner (where to cut the fusion) and never sizes the block: the
+ * register footprint that limits occupancy is already fixed in
+ * `KernelAttrs` when the kernel is launched.
  */
 inline LaunchConfig
 resolveFusedOperator(const FusedOperatorParams &p) noexcept {
   if (!detail::fusedStagesValid(p)) {
     return LaunchConfig{};
   }
-  uint32_t threads = detail::fastThreads(p.device, p.kernel);
-  if (p.maxLiveValues != 0 && p.kernel.regsPerThread != 0) {
-    const uint32_t warp = detail::effectiveWarp(p.device);
-    uint64_t need = detail::ceilDiv(static_cast<uint64_t>(p.maxLiveValues), 2U);
-    uint32_t want = static_cast<uint32_t>(need > ~0U ? ~0U : need);
-    want = (want / warp) * warp;
-    if (want != 0 && want < threads) {
-      threads = want;
-    }
-  }
+  uint32_t threads = pickBlockThreads(p.device, p.kernel);
   if (threads == 0) {
     threads = detail::effectiveWarp(p.device);
   }

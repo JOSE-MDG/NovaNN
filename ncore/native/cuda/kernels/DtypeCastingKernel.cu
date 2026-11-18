@@ -7,8 +7,12 @@
  * (plain one to one, FP4 unpack, FP4 pack) instantiated per pair and
  * selected at run time through a dtype keyed map in
  * @ref launchCudaDtypeCastingKernel. Every kernel is a grid stride loop
- * with four element coarsening and masked tails, so any grid size stays
- * correct. Low precision float paths use hardware intrinsics for FP16
+ * that moves whole 16B transactions when both pointers prove a
+ * 16B-aligned run (plain: W = 16 / narrower item elements per chunk;
+ * unpack: eight bytes into sixteen elements; pack: sixteen elements
+ * into 8/S bytes), with a masked scalar loop covering the tail and the
+ * misaligned case, so any grid size and any pointer stay correct.
+ * Low precision float paths use hardware intrinsics for FP16
  * and BF16; FP8 and FP4 reuse the shared soft float helpers from
  * @ref ncore::dtypes::detail, so device conversions follow the same
  * rules as the host scalar kernels (saturating narrowing, NaN to zero
@@ -18,8 +22,10 @@
  * on expansion.
  */
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
@@ -33,6 +39,8 @@
 #include <ncore/headeronly/heuristics/kernels/launch_config.hh>
 #include <ncore/headeronly/macros.h>
 #include <ncore/tensor.h>
+
+namespace hk = ncore::heuristics::kernels;
 
 #include "DtypeCastingKernel.h"
 #include "memory/CudaEngineStream.hpp"
@@ -51,8 +59,7 @@ namespace {
 using F16T = __half;
 using BF16T = __nv_bfloat16;
 
-/* Half bit test and x86 F16C-equivalent NaN widening. */
-
+/// Half bit test and x86 F16C-equivalent NaN widening.
 __device__ inline bool f16IsNan(uint16_t h) {
   return ((h >> 10U) & 0x1FU) == 0x1FU && (h & 0x3FFU) != 0U;
 }
@@ -74,9 +81,7 @@ __device__ inline float f16BitsToF32(uint16_t h) {
   return __half2float(__ushort_as_half(h));
 }
 
-/**
- * @brief Conversion shape of one dtype pair.
- */
+/// @brief Conversion shape of one dtype pair.
 enum class CastKind : uint8_t { kPlain, kUnpack, kPack };
 
 __host__ __device__ constexpr bool isIntDType(DType_ d) {
@@ -88,12 +93,10 @@ __host__ __device__ constexpr bool isSignedInt(DType_ d) {
          d == DType_::Signed32 || d == DType_::Signed64;
 }
 
-/* Reduced precision conversions reuse the shared soft float helpers. */
-
+// Reduced precision conversions reuse the shared soft float helpers.
 namespace dd = ncore::dtypes::detail;
 
-/* Source element to float32. */
-
+// Source element to float32.
 template <DType_ S, typename ST> struct ToF32;
 template <> struct ToF32<DType_::Float32, float> {
   static __device__ float convert(float v) { return v; }
@@ -163,8 +166,7 @@ template <> struct ToF32<DType_::UnSigned64, uint64_t> {
   static __device__ float convert(uint64_t v) { return static_cast<float>(v); }
 };
 
-/* Source element to float64 (ints convert directly, floats widen). */
-
+/// @brief Source element to float64
 template <DType_ S, typename ST> struct ToF64;
 template <> struct ToF64<DType_::Float32, float> {
   static __device__ double convert(float v) { return static_cast<double>(v); }
@@ -223,7 +225,11 @@ template <> struct ToF64<DType_::UnSigned64, uint64_t> {
   }
 };
 
-/* Float32 to destination element (NaN maps to zero for integers). */
+/**
+ * @brief Float32 to destination element.
+ *
+ * NaN maps to zero for integer destinations.
+ */
 
 template <DType_ D, typename DT> struct FromF32;
 template <> struct FromF32<DType_::Float32, float> {
@@ -353,8 +359,11 @@ template <> struct FromF32<DType_::UnSigned64, uint64_t> {
   }
 };
 
-/* Float64 to destination element (double precision bounds for integers). */
-
+/**
+ * @brief Float64 to destination element.
+ *
+ * Integer destinations clamp at double precision bounds.
+ */
 template <DType_ D, typename DT> struct FromF64;
 template <> struct FromF64<DType_::Float32, float> {
   static __device__ float convert(double v) { return static_cast<float>(v); }
@@ -461,8 +470,11 @@ template <> struct FromF64<DType_::UnSigned64, uint64_t> {
   }
 };
 
-/* Integer to integer: saturate only into 8 bit destinations. */
-
+/**
+ * @brief Integer to integer conversion.
+ *
+ * Only 8 bit destinations saturate.
+ */
 template <DType_ D, DType_ S, typename DT, typename ST>
 __device__ inline DT intToInt(ST v) {
   if constexpr (D == S) {
@@ -492,8 +504,7 @@ __device__ inline DT intToInt(ST v) {
   }
 }
 
-/* One element conversion selected by the dtype pair. */
-
+// One element conversion selected by the dtype pair.
 template <DType_ S, DType_ D, typename ST, typename DT>
 __device__ inline DT convertElem(ST v) {
   if constexpr (isIntDType(S) && isIntDType(D)) {
@@ -507,16 +518,175 @@ __device__ inline DT convertElem(ST v) {
   }
 }
 
-/* Plain one to one kernel with coarsened masked grid stride loop. */
+/// Bit reinterpretation between element values and loaded words, so the
+/// vectorized paths never change the bits a scalar conversion would see.
+template <typename T> __device__ inline uint64_t bitsOf(T v) {
+  if constexpr (sizeof(T) == 8U) {
+    if constexpr (std::is_same_v<T, double>) {
+      return static_cast<uint64_t>(__double_as_longlong(v));
+    } else {
+      return static_cast<uint64_t>(v);
+    }
+  } else if constexpr (sizeof(T) == 4U) {
+    if constexpr (std::is_same_v<T, float>) {
+      return __float_as_uint(v);
+    } else {
+      return static_cast<uint32_t>(v);
+    }
+  } else if constexpr (sizeof(T) == 2U) {
+    if constexpr (std::is_same_v<T, F16T>) {
+      return __half_as_ushort(v);
+    } else if constexpr (std::is_same_v<T, BF16T>) {
+      return __bfloat16_as_ushort(v);
+    } else {
+      return static_cast<uint16_t>(v);
+    }
+  } else {
+    return static_cast<uint8_t>(v);
+  }
+}
 
+template <typename T> __device__ inline T fromBits(uint64_t bits) {
+  if constexpr (sizeof(T) == 8U) {
+    if constexpr (std::is_same_v<T, double>) {
+      return __longlong_as_double(static_cast<long long>(bits));
+    } else {
+      return static_cast<T>(bits);
+    }
+  } else if constexpr (sizeof(T) == 4U) {
+    if constexpr (std::is_same_v<T, float>) {
+      return __uint_as_float(static_cast<uint32_t>(bits));
+    } else {
+      return static_cast<T>(static_cast<uint32_t>(bits));
+    }
+  } else if constexpr (sizeof(T) == 2U) {
+    const uint16_t h = static_cast<uint16_t>(bits);
+    if constexpr (std::is_same_v<T, F16T>) {
+      return __ushort_as_half(h);
+    } else if constexpr (std::is_same_v<T, BF16T>) {
+      return __ushort_as_bfloat16(h);
+    } else {
+      return static_cast<T>(h);
+    }
+  } else {
+    return static_cast<T>(static_cast<uint8_t>(bits));
+  }
+}
+
+/** @brief Whole transactions for the vectorized paths.
+ *
+ * @details
+ * One grid-stride iteration moves a full chunk through one unrolled
+ * load, one unrolled conversion run and one unrolled store. loadChunk
+ * and storeChunk each touch only 16B units on the side they own; the
+ * callers pair them with the counterpart width (plain: both sides
+ * 16B; unpack: 8B load with storeChunk stores; pack: loadChunk loads
+ * with a kOut-byte store).
+ */
+
+/// @brief Pulls W elements from @p p through whole 16B transactions.
+template <typename ST, uint32_t W>
+__device__ inline void loadChunk(const unsigned char *restrict p, ST *vals) {
+  constexpr uint32_t kWords = (W * static_cast<uint32_t>(sizeof(ST))) / 4U;
+  static_assert(kWords % 4U == 0U, "chunks fill whole 16B loads");
+  uint32_t w[kWords];
+#pragma unroll
+  for (uint32_t t = 0U; t < kWords; t += 4U) {
+    const uint4 raw = *reinterpret_cast<const uint4 *>(p + ((t / 4U) * 16U));
+    w[t + 0U] = raw.x;
+    w[t + 1U] = raw.y;
+    w[t + 2U] = raw.z;
+    w[t + 3U] = raw.w;
+  }
+#pragma unroll
+  for (uint32_t k = 0U; k < W; ++k) {
+    uint64_t bits = 0U;
+    if constexpr (sizeof(ST) == 1U) {
+      bits = static_cast<uint64_t>((w[k >> 2U] >> ((k & 3U) * 8U)) & 0xFFU);
+    } else if constexpr (sizeof(ST) == 2U) {
+      bits = static_cast<uint64_t>((w[k >> 1U] >> ((k & 1U) * 16U)) & 0xFFFFU);
+    } else if constexpr (sizeof(ST) == 4U) {
+      bits = static_cast<uint64_t>(w[k]);
+    } else {
+      bits = static_cast<uint64_t>(w[k << 1U]) |
+             (static_cast<uint64_t>(w[(k << 1U) + 1U]) << 32U);
+    }
+    vals[k] = fromBits<ST>(bits);
+  }
+}
+
+/// @brief Pushes W elements to @p p through whole 16B transactions.
+template <typename DT, uint32_t W>
+__device__ inline void storeChunk(unsigned char *restrict p, const DT *vals) {
+  constexpr uint32_t kWords = (W * static_cast<uint32_t>(sizeof(DT))) / 4U;
+  static_assert(kWords % 4U == 0U, "chunks fill whole 16B stores");
+  uint32_t w[kWords] = {};
+#pragma unroll
+  for (uint32_t k = 0U; k < W; ++k) {
+    const uint64_t bits = bitsOf(vals[k]);
+    if constexpr (sizeof(DT) == 1U) {
+      w[k >> 2U] |= static_cast<uint32_t>(bits & 0xFFU) << ((k & 3U) * 8U);
+    } else if constexpr (sizeof(DT) == 2U) {
+      w[k >> 1U] |= static_cast<uint32_t>(bits & 0xFFFFU) << ((k & 1U) * 16U);
+    } else if constexpr (sizeof(DT) == 4U) {
+      w[k] = static_cast<uint32_t>(bits);
+    } else {
+      w[k << 1U] = static_cast<uint32_t>(bits);
+      w[(k << 1U) + 1U] = static_cast<uint32_t>(bits >> 32U);
+    }
+  }
+#pragma unroll
+  for (uint32_t t = 0U; t < kWords; t += 4U) {
+    const uint4 packed = make_uint4(w[t + 0U], w[t + 1U], w[t + 2U], w[t + 3U]);
+    *reinterpret_cast<uint4 *>(p + ((t / 4U) * 16U)) = packed;
+  }
+}
+
+/** @brief Casts one dtype pair element by element.
+ *
+ * @details
+ * 16B vector chunks when both pointers prove a 16B-aligned run
+ * (W = 16 / narrower item elements per chunk); a scalar coarsened
+ * grid stride loop covers tails and misaligned pointers, so any grid
+ * size and any pointer stay correct.
+ */
 template <DType_ S, DType_ D, typename ST, typename DT>
 __global__ void castPlainKernel(const ST *restrict src, DT *restrict dst,
                                 size_t n) {
+  constexpr uint32_t kMin = sizeof(ST) < sizeof(DT) ? sizeof(ST) : sizeof(DT);
+  constexpr uint32_t W = 16U / kMin;
+  constexpr uint32_t kIn = W * static_cast<uint32_t>(sizeof(ST));
+  constexpr uint32_t kOut = W * static_cast<uint32_t>(sizeof(DT));
+  static_assert(kIn % 16U == 0U && kOut % 16U == 0U,
+                "plain chunks fill whole transactions");
+
+  const bool vec = (reinterpret_cast<uintptr_t>(src) % 16U == 0U) &&
+                   (reinterpret_cast<uintptr_t>(dst) % 16U == 0U) &&
+                   (n >= static_cast<size_t>(W));
   const size_t tid =
       static_cast<size_t>(threadIdx.x) +
       (static_cast<size_t>(blockIdx.x) * static_cast<size_t>(blockDim.x));
   const size_t stride =
       static_cast<size_t>(blockDim.x) * static_cast<size_t>(gridDim.x);
+  if (vec) {
+    const size_t nVec = n / static_cast<size_t>(W);
+    const auto *sb = reinterpret_cast<const unsigned char *>(src);
+    auto *db = reinterpret_cast<unsigned char *>(dst);
+    for (size_t c = tid; c < nVec; c += stride) {
+      ST vals[W];
+      loadChunk<ST, W>(sb + (c * kIn), vals);
+      DT out[W];
+#pragma unroll
+      for (uint32_t k = 0U; k < W; ++k) {
+        out[k] = convertElem<S, D, ST, DT>(vals[k]);
+      }
+      storeChunk<DT, W>(db + (c * kOut), out);
+    }
+    for (size_t i = (nVec * static_cast<size_t>(W)) + tid; i < n; i += stride) {
+      dst[i] = convertElem<S, D, ST, DT>(src[i]);
+    }
+    return;
+  }
   for (size_t base = tid * 4U; base < n; base += stride * 4U) {
 #pragma unroll
     for (uint32_t k = 0U; k < 4U; ++k) {
@@ -528,16 +698,57 @@ __global__ void castPlainKernel(const ST *restrict src, DT *restrict dst,
   }
 }
 
-/* FP4 unpack kernel: one storage byte fans out to two elements. */
-
+/** @brief Fans each source byte out to two elements.
+ *
+ * @details
+ * The vectorized path expands eight bytes into sixteen elements
+ * behind one 8B load and whole 16B stores; the scalar masked loop
+ * covers tails and misaligned pointers.
+ */
 template <DType_ D, typename DT>
 __global__ void castUnpackKernel(const uint8_t *restrict src, DT *restrict dst,
                                  size_t n) {
+  constexpr uint32_t kIn = 8U;
+  constexpr uint32_t W = 16U;
+  constexpr uint32_t kOut = 16U * static_cast<uint32_t>(sizeof(DT));
+  static_assert(kOut % 16U == 0U, "unpack chunks fill whole stores");
+
+  const bool vec = (reinterpret_cast<uintptr_t>(src) % 8U == 0U) &&
+                   (reinterpret_cast<uintptr_t>(dst) % 16U == 0U) && (n >= kIn);
   const size_t tid =
       static_cast<size_t>(threadIdx.x) +
       (static_cast<size_t>(blockIdx.x) * static_cast<size_t>(blockDim.x));
   const size_t stride =
       static_cast<size_t>(blockDim.x) * static_cast<size_t>(gridDim.x);
+  if (vec) {
+    const size_t nVec = n / kIn;
+    const auto *sb = reinterpret_cast<const unsigned char *>(src);
+    auto *db = reinterpret_cast<unsigned char *>(dst);
+    for (size_t c = tid; c < nVec; c += stride) {
+      const uint2 raw = *reinterpret_cast<const uint2 *>(sb + (c * kIn));
+      const uint32_t words[2] = {raw.x, raw.y};
+      DT out[W];
+#pragma unroll
+      for (uint32_t e = 0U; e < W; ++e) {
+        const uint32_t byteIdx = e >> 1U;
+        const uint32_t shift = ((byteIdx & 3U) * 8U) + ((e & 1U) * 4U);
+        const uint32_t nib = (words[byteIdx >> 2U] >> shift) & 0xFU;
+        out[e] = FromF32<D, DT>::convert(
+            dd::fp4e2m1fn_to_fp32_value(static_cast<uint8_t>(nib)));
+      }
+      storeChunk<DT, W>(db + (c * kOut), out);
+    }
+    for (size_t i = (nVec * kIn) + tid; i < n; i += stride) {
+      const uint8_t byte = src[i];
+      const float lo = dd::fp4e2m1fn_to_fp32_value(
+          static_cast<uint8_t>(byte & UINT8_C(0xF)));
+      const float hi = dd::fp4e2m1fn_to_fp32_value(
+          static_cast<uint8_t>((byte >> 4U) & UINT8_C(0xF)));
+      dst[i * 2U] = FromF32<D, DT>::convert(lo);
+      dst[(i * 2U) + 1U] = FromF32<D, DT>::convert(hi);
+    }
+    return;
+  }
   for (size_t base = tid * 4U; base < n; base += stride * 4U) {
 #pragma unroll
     for (uint32_t k = 0U; k < 4U; ++k) {
@@ -555,16 +766,82 @@ __global__ void castUnpackKernel(const uint8_t *restrict src, DT *restrict dst,
   }
 }
 
-/* FP4 pack kernel: two elements fold into one storage byte. */
-
+/** @brief Folds two elements into one storage byte.
+ *
+ * @details
+ * The vectorized path folds sixteen elements into 8/S bytes behind
+ * one 16B load and one narrow store; the scalar masked loop covers
+ * tails and misaligned pointers.
+ */
 template <DType_ S, typename ST>
 __global__ void castPackKernel(const ST *restrict src, uint8_t *restrict dst,
                                size_t n) {
+  constexpr uint32_t kOut = 8U / static_cast<uint32_t>(sizeof(ST));
+  constexpr uint32_t W = kOut * 2U;
+  constexpr uint32_t kIn = 16U;
+
+  const bool vec = (reinterpret_cast<uintptr_t>(src) % 16U == 0U) &&
+                   (reinterpret_cast<uintptr_t>(dst) % kOut == 0U) &&
+                   (n >= kOut);
   const size_t tid =
       static_cast<size_t>(threadIdx.x) +
       (static_cast<size_t>(blockIdx.x) * static_cast<size_t>(blockDim.x));
   const size_t stride =
       static_cast<size_t>(blockDim.x) * static_cast<size_t>(gridDim.x);
+  if (vec) {
+    const size_t nVec = n / kOut;
+    const auto *sb = reinterpret_cast<const unsigned char *>(src);
+    auto *db = reinterpret_cast<unsigned char *>(dst);
+    for (size_t c = tid; c < nVec; c += stride) {
+      ST vals[W];
+      loadChunk<ST, W>(sb + (c * kIn), vals);
+      uint8_t nib[W];
+#pragma unroll
+      for (uint32_t k = 0U; k < W; ++k) {
+        nib[k] = dd::fp4e2m1fn_from_fp32_value(ToF32<S, ST>::convert(vals[k]));
+      }
+      uint8_t bytes[kOut];
+#pragma unroll
+      for (uint32_t b = 0U; b < kOut; ++b) {
+        bytes[b] =
+            static_cast<uint8_t>((nib[(b << 1U) + 1U] << 4U) | nib[b << 1U]);
+      }
+      if constexpr (kOut == 8U) {
+        const uint2 packed = {
+            .x = static_cast<uint32_t>(bytes[0]) |
+                 (static_cast<uint32_t>(bytes[1]) << 8U) |
+                 (static_cast<uint32_t>(bytes[2]) << 16U) |
+                 (static_cast<uint32_t>(bytes[3]) << 24U),
+            .y = static_cast<uint32_t>(bytes[4]) |
+                 (static_cast<uint32_t>(bytes[5]) << 8U) |
+                 (static_cast<uint32_t>(bytes[6]) << 16U) |
+                 (static_cast<uint32_t>(bytes[7]) << 24U),
+        };
+        *reinterpret_cast<uint2 *>(db + (c * kOut)) = packed;
+      } else if constexpr (kOut == 4U) {
+        const uint32_t packed = static_cast<uint32_t>(bytes[0]) |
+                                (static_cast<uint32_t>(bytes[1]) << 8U) |
+                                (static_cast<uint32_t>(bytes[2]) << 16U) |
+                                (static_cast<uint32_t>(bytes[3]) << 24U);
+        *reinterpret_cast<uint32_t *>(db + (c * kOut)) = packed;
+      } else if constexpr (kOut == 2U) {
+        const uint16_t packed =
+            static_cast<uint16_t>(static_cast<uint16_t>(bytes[0]) |
+                                  (static_cast<uint16_t>(bytes[1]) << 8U));
+        *reinterpret_cast<uint16_t *>(db + (c * kOut)) = packed;
+      } else {
+        *(db + (c * kOut)) = bytes[0];
+      }
+    }
+    for (size_t i = (nVec * kOut) + tid; i < n; i += stride) {
+      const float lo = ToF32<S, ST>::convert(src[i * 2U]);
+      const float hi = ToF32<S, ST>::convert(src[(i * 2U) + 1U]);
+      const uint8_t loNib = dd::fp4e2m1fn_from_fp32_value(lo);
+      const uint8_t hiNib = dd::fp4e2m1fn_from_fp32_value(hi);
+      dst[i] = static_cast<uint8_t>((hiNib << 4U) | loNib);
+    }
+    return;
+  }
   for (size_t base = tid * 4U; base < n; base += stride * 4U) {
 #pragma unroll
     for (uint32_t k = 0U; k < 4U; ++k) {
@@ -580,8 +857,7 @@ __global__ void castPackKernel(const ST *restrict src, uint8_t *restrict dst,
   }
 }
 
-/* Explicit kernel instantiations visible to the device pass. */
-
+// Explicit kernel instantiations visible to the device pass.
 template __global__ void
 castPlainKernel<DType_::Float32, DType_::Float64, float, double>(
     const float *restrict, double *restrict, size_t);
@@ -1228,7 +1504,31 @@ inline uint32_t castKey(DType_ src, DType_ dst) {
 using Launcher = novaStatus_t (*)(const Tensor *restrict, Tensor *restrict,
                                   cudaStream_t);
 
-/* Per pair launcher: shape check, launch sizing, kernel launch. */
+/// Per pair launcher: shape check, launch sizing, kernel launch.
+
+/// Compiled facts of one cast kernel, cached by function pointer.
+inline hk::KernelAttrs kernelAttrsFor(const void *fn) {
+  thread_local std::array<std::pair<const void *, hk::KernelAttrs>, 8> cache{};
+  thread_local size_t n = 0;
+  for (size_t i = 0; i < n; ++i) {
+    if (cache[i].first == fn) {
+      return cache[i].second;
+    }
+  }
+  hk::KernelAttrs a{};
+  cudaFuncAttributes q{};
+  if (cudaFuncGetAttributes(&q, fn) == cudaSuccess) {
+    a.regsPerThread = static_cast<uint32_t>(q.numRegs);
+    a.staticSmemBytes = static_cast<size_t>(q.sharedSizeBytes);
+    a.maxThreadsPerBlockKernel = static_cast<uint32_t>(q.maxThreadsPerBlock);
+  }
+  if (n < cache.size()) {
+    cache[n].first = fn;
+    cache[n].second = a;
+    ++n;
+  }
+  return a;
+}
 
 template <DType_ S, DType_ D, typename ST, typename DT, CastKind K>
 novaStatus_t launchCast(const Tensor *restrict src, Tensor *restrict dst,
@@ -1263,7 +1563,6 @@ novaStatus_t launchCast(const Tensor *restrict src, Tensor *restrict dst,
   if (status.err != novaSuccess) {
     return status;
   }
-  namespace hk = ncore::heuristics::kernels;
   hk::ElementWiseParams hp{};
   hp.device = hk::capsFromDetected(properties);
   if constexpr (K == CastKind::kPlain) {
@@ -1277,11 +1576,20 @@ novaStatus_t launchCast(const Tensor *restrict src, Tensor *restrict dst,
   hp.outputItemSize = static_cast<uint32_t>(dst->item_size);
   hp.inputAlignBytes = hk::pointerAlign(src->data.data + src->offset);
   hp.outputAlignBytes = hk::pointerAlign(dst->data.data);
-  hp.inputContiguous = is_contiguous(src);
-  hp.outputContiguous = is_contiguous(dst);
+  hp.inputContiguous = true;
+  hp.outputContiguous = true;
   hp.numInputs = 1U;
   hp.arithmeticIntensity = 0.0F;
   hp.reuseAfter = false;
+  const void *kernelPtr = nullptr;
+  if constexpr (K == CastKind::kPlain) {
+    kernelPtr = reinterpret_cast<const void *>(&castPlainKernel<S, D, ST, DT>);
+  } else if constexpr (K == CastKind::kUnpack) {
+    kernelPtr = reinterpret_cast<const void *>(&castUnpackKernel<D, DT>);
+  } else {
+    kernelPtr = reinterpret_cast<const void *>(&castPackKernel<S, ST>);
+  }
+  hp.kernel = kernelAttrsFor(kernelPtr);
   thread_local hk::FullConfigCache cache;
   const hk::LaunchConfig cfg = hk::resolveLaunchConfig(hp, &cache);
 
