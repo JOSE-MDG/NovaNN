@@ -92,7 +92,9 @@ struct DeviceCaps {
   uint32_t smCount = 0;                  ///< SM (CUDA) / CU (HIP) count.
   size_t smemPerBlock = 0;               ///< Shared memory per block, bytes.
   size_t smemPerSM = 0;                  ///< Shared memory per SM, bytes.
-  uint32_t regsPerSM = 0;                ///< Registers per SM.
+  size_t smemPerBlockOptin = 0;    ///< Opt-in shared memory per block, bytes.
+  size_t smemReservedPerBlock = 0; ///< Reserved shared memory per block, bytes.
+  uint32_t regsPerSM = 0;          ///< Registers per SM.
   uint32_t regsAllocGranularity =
       0; ///< Per-thread quantum (8 on SM75+/CDNA, 0 disables).
   uint32_t maxGridX = 0, maxGridY = 0, maxGridZ = 0; ///< Grid limits per axis.
@@ -110,8 +112,10 @@ struct DeviceCaps {
  * @brief Compiled-kernel facts from the toolchain.
  */
 struct KernelAttrs {
-  uint32_t regsPerThread = 0;            ///< Registers per thread.
-  size_t staticSmemBytes = 0;            ///< Static shared memory, bytes.
+  uint32_t regsPerThread = 0;  ///< Registers per thread.
+  size_t staticSmemBytes = 0;  ///< Static shared memory, bytes.
+  size_t dynSmemPerBlock = 0;  ///< Dynamic shared memory per block, bytes.
+  size_t dynSmemPerThread = 0; ///< Dynamic shared memory per thread, bytes.
   uint32_t maxThreadsPerBlockKernel = 0; ///< Kernel block-size limit.
 };
 
@@ -420,10 +424,13 @@ inline uint64_t cudaPeakFp32Flops(uint32_t arch, uint32_t smCount,
  * factor): MI100 (120 * 128 * 1502 MHz = 23.1 TFLOPS), MI250X
  * (220 * 128 * 1700 MHz = 47.9 vector), MI300X (304 * 256 * 2100 MHz =
  * 163.4), RX 6900 XT (80 * 128 * 2250 MHz = 23.04), RX 7900 XTX
- * (96 * 256 * 2500 MHz = 61.44, dual-issue). Sources: AMD product specs
- * and the Hot Chips MI200/MI300 decks (per-CU FLOPS/clock tables).
- * Prefixes without a verified row (gfx906, gfx101x, gfx115x, gfx120x)
- * answer 0.
+ * (96 * 256 * 2500 MHz = 61.44, dual-issue), MI355X (256 * 256 *
+ * 2400 MHz = 157.3), RX 9070 XT (64 * 256 * 2970 MHz = 48.7).
+ * Sources: AMD product specifications (Instinct MI300/MI350, Radeon
+ * RX 6000/7000/9000 pages) and the Hot Chips MI200/MI300 decks
+ * (per-CU FLOPS/clock tables). The gfx115 row covers gfx1150-gfx1153;
+ * gfx120 covers gfx1200/gfx1201. Prefixes without a verified row
+ * (gfx906, gfx101x; both rejected by the build) answer 0.
  *
  * WGP/CU caveat: on RDNA the runtime may report work-group processors
  * instead of CUs (one WGP holds two CUs), halving the unit count. The
@@ -436,7 +443,13 @@ inline uint32_t amdFlopsPerCU(std::string_view gfx) noexcept {
       gfx.starts_with("gfx103")) {
     return 128U;
   }
-  if (gfx.starts_with("gfx94") || gfx.starts_with("gfx110")) {
+  // gfx950 is CDNA4 (MI350/MI355): 256 FP32 flop/clock/CU. gfx94 does
+  // not prefix-match it, so it keeps its own row.
+  if (gfx.starts_with("gfx950")) {
+    return 256U;
+  }
+  if (gfx.starts_with("gfx94") || gfx.starts_with("gfx110") ||
+      gfx.starts_with("gfx115") || gfx.starts_with("gfx120")) {
     return 256U;
   }
   return 0U;
@@ -482,7 +495,19 @@ inline DeviceCaps capsFromDetected(const DetectedProps &p) noexcept {
   d.smCount = static_cast<uint32_t>(p.multiProcessorCount);
   d.smemPerBlock = static_cast<size_t>(p.sharedMemPerBlock);
   d.smemPerSM = static_cast<size_t>(p.sharedMemPerMultiprocessor);
+  if constexpr (requires { p.sharedMemPerBlockOptin; }) {
+    d.smemPerBlockOptin = static_cast<size_t>(p.sharedMemPerBlockOptin);
+  }
+  if constexpr (requires { p.reservedSharedMemPerBlock; }) {
+    d.smemReservedPerBlock = static_cast<size_t>(p.reservedSharedMemPerBlock);
+  }
   d.regsPerSM = static_cast<uint32_t>(p.regsPerMultiprocessor);
+  // CUDA allocates registers per warp in 256-register units, which is a
+  // quantum of 8 per thread for a 32-lane warp. HIP VGPR allocation is
+  // per wave and SIMD, so no per-thread quantum is claimed there.
+  if constexpr (!requires { p.gcnArchName; }) {
+    d.regsAllocGranularity = 8U;
+  }
   d.maxGridX = static_cast<uint32_t>(p.maxGridSize[0]);
   d.maxGridY = static_cast<uint32_t>(p.maxGridSize[1]);
   d.maxGridZ = static_cast<uint32_t>(p.maxGridSize[2]);
@@ -494,6 +519,220 @@ inline DeviceCaps capsFromDetected(const DetectedProps &p) noexcept {
   d.l2Size = static_cast<size_t>(p.l2CacheSize);
   d.l2MaxWindow = static_cast<size_t>(p.persistingL2CacheMaxSize);
   return d;
+}
+
+// Occupancy model (Phase 1). Header-only, no runtime, no allocation.
+// Kept in this header because every pattern includes it before its own
+// definitions; a separate occupancy header would close an include cycle.
+
+/**
+ * @enum OccupancyLimiter
+ * @brief Which resource caps the number of resident blocks.
+ */
+enum class OccupancyLimiter : uint8_t {
+  Unknown,     ///< No limiter had data; nothing can be claimed.
+  Threads,     ///< Resident-thread limit of the SM/CU.
+  Blocks,      ///< Resident-block limit of the SM/CU.
+  Registers,   ///< Register file.
+  SharedMem,   ///< Shared memory / LDS.
+  CannotLaunch ///< One block does not fit at all.
+};
+
+/**
+ * @struct Occupancy
+ * @brief Result of the analytic occupancy model for one block size.
+ */
+struct Occupancy {
+  uint32_t blocksPerSM = 0;  ///< Resident blocks per SM/CU.
+  uint32_t threadsPerSM = 0; ///< Resident threads, warp-rounded.
+  float fraction = 0.0F;     ///< threadsPerSM / maxThreadsPerSM.
+  OccupancyLimiter limiter = OccupancyLimiter::Unknown; ///< Binding limit.
+
+  /// @brief True when at least one limiter had data and one block fits.
+  [[nodiscard]] bool known() const noexcept {
+    return limiter != OccupancyLimiter::Unknown &&
+           limiter != OccupancyLimiter::CannotLaunch;
+  }
+};
+
+/**
+ * @brief Resident blocks per SM/CU for a given block size.
+ *
+ * @details
+ * Each limiter whose input is known contributes a block count; the
+ * minimum wins and names the limiter. A block that does not fit the
+ * per-block shared-memory budget is CannotLaunch. With no limiter data
+ * the result stays Unknown and the legacy paths apply.
+ */
+inline Occupancy computeOccupancy(const DeviceCaps &d, const KernelAttrs &k,
+                                  uint32_t threadsPerBlock) noexcept {
+  Occupancy o{};
+  if (threadsPerBlock == 0) {
+    o.limiter = OccupancyLimiter::CannotLaunch;
+    return o;
+  }
+  const uint64_t warp = detail::effectiveWarp(d);
+  const uint64_t warps = detail::ceilDiv(threadsPerBlock, warp);
+  const uint64_t allocThreads = warps * warp;
+
+  const uint64_t smemUse =
+      detail::satAdd(detail::satAdd(k.staticSmemBytes, k.dynSmemPerBlock),
+                     detail::satMul(k.dynSmemPerThread, threadsPerBlock));
+  const uint64_t smemBlockLimit = d.smemPerBlock > d.smemPerBlockOptin
+                                      ? d.smemPerBlock
+                                      : d.smemPerBlockOptin;
+  if (smemBlockLimit != 0 && smemUse > smemBlockLimit) {
+    o.limiter = OccupancyLimiter::CannotLaunch;
+    return o;
+  }
+
+  uint64_t best = ~0ULL;
+  OccupancyLimiter who = OccupancyLimiter::Unknown;
+  const auto consider = [&](uint64_t limit, OccupancyLimiter by) noexcept {
+    if (limit < best) {
+      best = limit;
+      who = by;
+    }
+  };
+  if (d.maxThreadsPerSM != 0) {
+    consider(d.maxThreadsPerSM / allocThreads, OccupancyLimiter::Threads);
+  }
+  if (d.maxBlocksPerSM != 0) {
+    consider(d.maxBlocksPerSM, OccupancyLimiter::Blocks);
+  }
+  if (d.regsPerSM != 0 && k.regsPerThread != 0) {
+    const uint64_t gran =
+        d.regsAllocGranularity != 0 ? d.regsAllocGranularity : 1U;
+    const uint64_t perWarp =
+        detail::ceilDiv(k.regsPerThread, gran) * gran * warp;
+    consider(d.regsPerSM / detail::satMul(perWarp, warps),
+             OccupancyLimiter::Registers);
+  }
+  const uint64_t smemTotal = detail::satAdd(smemUse, d.smemReservedPerBlock);
+  if (d.smemPerSM != 0 && smemTotal != 0) {
+    consider(d.smemPerSM / smemTotal, OccupancyLimiter::SharedMem);
+  }
+
+  if (who == OccupancyLimiter::Unknown) {
+    return o;
+  }
+  if (best == 0) {
+    o.limiter = OccupancyLimiter::CannotLaunch;
+    return o;
+  }
+  o.limiter = who;
+  o.blocksPerSM =
+      static_cast<uint32_t>(best > 0xFFFFFFFFULL ? 0xFFFFFFFFULL : best);
+  const uint64_t resident = detail::satMul(o.blocksPerSM, allocThreads);
+  o.threadsPerSM = static_cast<uint32_t>(
+      resident > 0xFFFFFFFFULL ? 0xFFFFFFFFULL : resident);
+  if (d.maxThreadsPerSM != 0) {
+    const float f = static_cast<float>(o.threadsPerSM) /
+                    static_cast<float>(d.maxThreadsPerSM);
+    o.fraction = f > 1.0F ? 1.0F : f;
+  }
+  return o;
+}
+
+/**
+ * @brief Block size at which the block-count limit stops binding.
+ *
+ * @details
+ * Below this size the SM runs out of block slots before thread slots
+ * (for example 1536 threads / 16 blocks -> 96 -> 128). Zero data
+ * answers one warp.
+ */
+inline uint32_t minThreadsForBlockLimit(const DeviceCaps &d) noexcept {
+  const uint32_t warp = detail::effectiveWarp(d);
+  if (d.maxThreadsPerSM == 0 || d.maxBlocksPerSM == 0) {
+    return warp;
+  }
+  const uint64_t raw = detail::ceilDiv(d.maxThreadsPerSM, d.maxBlocksPerSM);
+  uint64_t t = detail::nextPow2(raw);
+  if (t < warp) {
+    t = warp;
+  }
+  return static_cast<uint32_t>(t);
+}
+
+/**
+ * @brief Block size that maximizes modeled occupancy.
+ *
+ * @param usefulThreads Upper bound on threads that have work, ~0U if none.
+ *
+ * @details
+ * Candidates are tried in preference order 256, 512, 128, 1024, 64; the
+ * first strictly best occupancy wins, so ties keep the earlier (cheaper)
+ * size. With no occupancy data the result equals detail::fastThreads.
+ */
+inline uint32_t pickBlockThreads(const DeviceCaps &d, const KernelAttrs &k,
+                                 uint32_t usefulThreads = ~0U) noexcept {
+  const uint32_t warp = detail::effectiveWarp(d);
+  uint32_t cap =
+      d.maxThreadsPerBlockDevice != 0 ? d.maxThreadsPerBlockDevice : 1024U;
+  if (k.maxThreadsPerBlockKernel != 0 && k.maxThreadsPerBlockKernel < cap) {
+    cap = k.maxThreadsPerBlockKernel;
+  }
+  if (usefulThreads != ~0U) {
+    const uint64_t rounded = detail::ceilDiv(usefulThreads, warp) * warp;
+    const uint32_t want = static_cast<uint32_t>(
+        rounded < warp ? warp : (rounded > cap ? cap : rounded));
+    cap = want;
+  }
+  if (cap < warp) {
+    return cap != 0 ? cap : warp;
+  }
+  static constexpr uint32_t kCandidates[] = {256U, 512U, 128U, 1024U, 64U};
+  uint32_t bestT = 0;
+  float bestFrac = -1.0F;
+  bool sawKnown = false;
+  for (const uint32_t t : kCandidates) {
+    if (t > cap || t < warp || t % warp != 0) {
+      continue;
+    }
+    const Occupancy o = computeOccupancy(d, k, t);
+    if (o.limiter == OccupancyLimiter::CannotLaunch) {
+      continue;
+    }
+    if (!o.known()) {
+      // No data at all: first valid candidate, same as the cheap path.
+      return t;
+    }
+    sawKnown = true;
+    if (o.fraction > bestFrac + 1e-6F) {
+      bestFrac = o.fraction;
+      bestT = t;
+    }
+  }
+  if (sawKnown && bestT != 0) {
+    return bestT;
+  }
+  // Nothing passed: largest warp multiple within the cap.
+  return (cap / warp) * warp;
+}
+
+/**
+ * @brief Grid cap in blocks: waves full residencies of the device.
+ *
+ * @param legacyPerSM Fallback blocks per SM when occupancy is unknown.
+ * @return 0 when even the fallback is unknown (no cap).
+ */
+inline uint64_t residentGridCap(const DeviceCaps &d, const KernelAttrs &k,
+                                uint32_t threadsPerBlock, uint32_t waves,
+                                uint32_t legacyPerSM) noexcept {
+  if (d.smCount == 0) {
+    return 0;
+  }
+  const Occupancy o = computeOccupancy(d, k, threadsPerBlock);
+  const uint64_t perSM = o.known() ? o.blocksPerSM : legacyPerSM;
+  return detail::satMul(detail::satMul(perSM, d.smCount),
+                        waves != 0 ? waves : 1U);
+}
+
+/// Grid cap for the cheap paths: one resident wave, legacy constant when unknown.
+inline uint64_t fastGridCap(const DeviceCaps &d, const KernelAttrs &k,
+                            uint32_t threads) noexcept {
+  return residentGridCap(d, k, threads, /*waves=*/1U, FAST_BLOCKS_PER_SM);
 }
 
 } // namespace ncore::heuristics::kernels
