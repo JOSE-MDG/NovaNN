@@ -55,6 +55,8 @@ enum class WarpRole : uint8_t {
 
 /// Fast coverage bound on every dimension.
 inline constexpr uint64_t GEMM_FAST_MAX_DIM = 128;
+/// Smallest K left to one split, so a split never starves its loop.
+inline constexpr uint64_t GEMM_MIN_K_PER_SPLIT = 256;
 
 /**
  * @struct Epilogue
@@ -198,18 +200,14 @@ inline LaunchConfig resolveGemmFast(const GemmParams &p) noexcept {
   const uint32_t threads = detail::fastThreads(p.device, p.kernel);
   const uint64_t tiles =
       detail::satMul(detail::ceilDiv(p.M, 16U), detail::ceilDiv(p.N, 16U));
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   uint64_t blocks = tiles != 0 ? tiles : 1;
   if (cap != 0 && blocks > cap) {
     blocks = cap;
   }
   LaunchConfig cfg{};
-  cfg.threads.x = threads >= 256 ? 16 : threads / 16;
-  if (cfg.threads.x == 0) {
-    cfg.threads.x = 1;
-  }
-  cfg.threads.y = threads / cfg.threads.x;
+  cfg.threads.x = 16;
+  cfg.threads.y = threads >= 16 ? threads / 16 : 1;
   if (cfg.threads.y == 0) {
     cfg.threads.y = 1;
   }
@@ -220,57 +218,38 @@ inline LaunchConfig resolveGemmFast(const GemmParams &p) noexcept {
   return detail::clampConfig(cfg, p.device, p.kernel);
 }
 
+namespace detail {
+
+/// Useful fill of the last wave: n / (waves * waveSize), 1.0 at exact fills.
+inline double gemmWaveEfficiency(uint64_t n, uint64_t waveSize) noexcept {
+  if (waveSize == 0) {
+    return 0.0;
+  }
+  const uint64_t waves = detail::ceilDiv(n, waveSize);
+  return static_cast<double>(n) /
+         (static_cast<double>(waves) * static_cast<double>(waveSize));
+}
+
+} // namespace detail
+
 /**
- * @brief Analytic tiles, split-K refill, schedule.
+ * @brief Analytic tiles, split-K by wave efficiency, schedule.
  *
  * @details
- * Fixed 128x128 output tiles with K strips of 32. Past the idle-wave
- * threshold with large K it splits K to refill waves; tile counts
- * dwarfing the SMs switch to a persistent work queue. A forced StreamK
- * schedule takes the same SM-proportional fixed grid with fractional
- * K assignment left to the kernel. A tuning-table hit overrides tiles
- * and splits and takes the persistent schedule.
- * Pipeline stages, traversal order, and warp roles belong to kernel
- * selection downstream: geometry here only sizes the launch.
+ * Fixed 128x128 output tiles with K strips of 32. Split-K only pays
+ * when the last wave is underfilled; each candidate split is scored by
+ * the resulting wave fill minus a penalty per extra split, and no split
+ * may leave less than GEMM_MIN_K_PER_SPLIT of K. Tile counts dwarfing
+ * the SMs switch to a persistent work queue sized to one resident wave
+ * when occupancy is known. A forced StreamK schedule takes the same
+ * fixed grid with fractional K assignment left to the kernel. A
+ * tuning-table hit overrides tiles and splits and takes the persistent
+ * schedule. Pipeline stages, traversal order, and warp roles belong to
+ * kernel selection downstream: geometry here only sizes the launch.
  */
 inline LaunchConfig resolveGemm(const GemmParams &p) noexcept {
   if (p.M == 0 || p.N == 0 || p.K == 0) {
     return LaunchConfig{};
-  }
-  const GemmTuningEntry *hit = detail::gemmTableHit(p);
-  uint32_t tileM = 128, tileN = 128;
-  uint32_t splits = 1;
-  bool persistent = false;
-  if (hit != nullptr && hit->tileM != 0 && hit->tileN != 0) {
-    tileM = hit->tileM;
-    tileN = hit->tileN;
-    splits = hit->numSplits != 0 ? hit->numSplits : splits;
-    persistent = true;
-  } else {
-    uint64_t tiles = detail::satMul(detail::ceilDiv(p.M, tileM),
-                                    detail::ceilDiv(p.N, tileN));
-    const uint64_t sm = p.device.smCount;
-    if (sm != 0 && p.K >= 1024 && tiles > 0) {
-      const uint64_t waves = detail::ceilDiv(tiles, sm);
-      const uint64_t last = tiles - ((waves - 1) * sm);
-      if (p.splitK != SplitK::NoSplit && last * 4U < sm * 3U) {
-        splits =
-            static_cast<uint32_t>(detail::ceilDiv(sm, tiles > 0 ? tiles : 1U));
-        splits = std::max<uint32_t>(splits, 2);
-        splits = std::min<uint32_t>(splits, 8);
-      }
-    }
-    if (p.splitK == SplitK::NoSplit) {
-      splits = 1;
-    }
-    if (p.splitK == SplitK::SplitK && splits < 2) {
-      splits = 2;
-    }
-    if ((p.schedule == CtaSchedule::Persistent ||
-         (p.schedule == CtaSchedule::Auto && sm != 0 && tiles > sm * 8U)) &&
-        p.schedule != CtaSchedule::BlockPerTile) {
-      persistent = true;
-    }
   }
   const uint32_t warp = detail::effectiveWarp(p.device);
   uint32_t threads = detail::fastThreads(p.device, p.kernel);
@@ -279,19 +258,63 @@ inline LaunchConfig resolveGemm(const GemmParams &p) noexcept {
   if (threads == 0) {
     threads = warp;
   }
-  uint64_t tiles =
+  const Occupancy resident = computeOccupancy(p.device, p.kernel, threads);
+  const uint64_t sm = p.device.smCount;
+  const uint64_t waveSize = resident.known() && sm != 0
+                                ? detail::satMul(resident.blocksPerSM, sm)
+                                : sm;
+
+  const GemmTuningEntry *hit = detail::gemmTableHit(p);
+  uint32_t tileM = 128, tileN = 128;
+  uint32_t splits = 1;
+  bool persistent = false;
+  const uint64_t tiles =
       detail::satMul(detail::ceilDiv(p.M, tileM), detail::ceilDiv(p.N, tileN));
+  if (hit != nullptr && hit->tileM != 0 && hit->tileN != 0) {
+    tileM = hit->tileM;
+    tileN = hit->tileN;
+    splits = hit->numSplits != 0 ? hit->numSplits : splits;
+    persistent = true;
+  } else {
+    if (p.splitK != SplitK::NoSplit && waveSize != 0) {
+      const double base = detail::gemmWaveEfficiency(tiles, waveSize);
+      if (base < 0.75) {
+        uint32_t bestS = 1;
+        double bestScore = base;
+        for (uint32_t s = 2; s <= 8; ++s) {
+          if (detail::ceilDiv(p.K, s) < GEMM_MIN_K_PER_SPLIT) {
+            break;
+          }
+          const double score = detail::gemmWaveEfficiency(tiles * s, waveSize) -
+                               (0.03 * static_cast<double>(s - 1));
+          if (score > bestScore) {
+            bestScore = score;
+            bestS = s;
+          }
+        }
+        splits = bestS;
+      }
+      if (p.splitK == SplitK::SplitK && splits < 2) {
+        splits = 2;
+      }
+    }
+    if ((p.schedule == CtaSchedule::Persistent ||
+         (p.schedule == CtaSchedule::Auto && sm != 0 && tiles > sm * 8U)) &&
+        p.schedule != CtaSchedule::BlockPerTile) {
+      persistent = true;
+    }
+  }
   // Forced StreamK sizes the same SM-proportional fixed grid as
   // persistent; fractional K assignment lives in the kernel.
   const bool fixedGrid = persistent || p.schedule == CtaSchedule::StreamK;
-  uint64_t blocks = fixedGrid ? static_cast<uint64_t>(p.device.smCount)
-                              : detail::satMul(tiles, splits);
+  const uint64_t fixedBlocks =
+      resident.known() && waveSize != 0 ? waveSize : sm;
+  uint64_t blocks = fixedGrid ? fixedBlocks : detail::satMul(tiles, splits);
   if (blocks == 0) {
     blocks = 1;
   }
   const uint64_t cap =
-      fixedGrid ? 0U
-                : static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+      fixedGrid ? 0U : fastGridCap(p.device, p.kernel, threads);
   if (cap != 0 && blocks > cap) {
     blocks = cap;
   }

@@ -166,8 +166,7 @@ inline LaunchConfig resolveReductionFast(const ReductionParams &p) noexcept {
     return LaunchConfig{};
   }
   const uint32_t threads = detail::fastThreads(p.device, p.kernel);
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
+  const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   uint64_t blocks = p.numReductions;
   if (cap != 0 && blocks > cap) {
     blocks = cap;
@@ -208,41 +207,32 @@ inline LaunchConfig resolveReduction(const ReductionParams &p) noexcept {
   if (splits == 0) {
     splits = 1;
   }
-  uint32_t threads = detail::fastThreads(p.device, p.kernel);
-  if (splits == 1 && p.reduceExtent <= warp * elemsPerThread &&
-      p.intraBlock != IntraBlockStrategy::SharedMem &&
+  uint32_t threads = pickBlockThreads(p.device, p.kernel);
+  if (splits == 1 && p.intraBlock != IntraBlockStrategy::SharedMem &&
       detail::reductionSimpleCombine(p.op)) {
-    uint64_t need = detail::ceilDiv(p.reduceExtent, elemsPerThread * width);
-    uint32_t want = static_cast<uint32_t>(need > ~0U ? ~0U : need) * width;
-    want = (want / warp) * warp;
-    if (want != 0 && want < threads) {
-      threads = want;
+    const uint64_t needThreads =
+        detail::ceilDiv(p.reduceExtent, elemsPerThread);
+    const uint32_t need =
+        needThreads > ~0U ? ~0U : static_cast<uint32_t>(needThreads);
+    uint32_t t = pickBlockThreads(p.device, p.kernel, need);
+    const uint64_t totalBlocks = detail::satMul(p.numReductions, splits);
+    if (p.device.smCount != 0 &&
+        totalBlocks >= 2ULL * static_cast<uint64_t>(p.device.smCount)) {
+      // Below the block-count threshold the SM runs out of block slots
+      // before thread slots, so a sub-warp block costs occupancy.
+      t = std::max(t, std::min(minThreadsForBlockLimit(p.device),
+                               pickBlockThreads(p.device, p.kernel)));
     }
+    threads = t;
   }
   if (threads == 0) {
     threads = warp;
-  }
-  uint64_t blocks = detail::satMul(p.numReductions, splits);
-  const uint64_t cap =
-      static_cast<uint64_t>(p.device.smCount) * FAST_BLOCKS_PER_SM;
-  if (cap != 0 && blocks > cap) {
-    blocks = cap;
-  }
-  if (blocks == 0) {
-    blocks = 1;
   }
   LaunchConfig cfg{};
   cfg.threads.x = threads;
   cfg.blocks.x =
       static_cast<uint32_t>(p.numReductions > ~0U ? ~0U : p.numReductions);
   cfg.blocks.y = static_cast<uint32_t>(splits > ~0U ? ~0U : splits);
-  if (detail::satMul(cfg.blocks.x, cfg.blocks.y) > blocks) {
-    cfg.blocks.y =
-        static_cast<uint32_t>(blocks / (cfg.blocks.x != 0 ? cfg.blocks.x : 1U));
-    if (cfg.blocks.y == 0) {
-      cfg.blocks.y = 1;
-    }
-  }
   return detail::clampConfig(cfg, p.device, p.kernel);
 }
 

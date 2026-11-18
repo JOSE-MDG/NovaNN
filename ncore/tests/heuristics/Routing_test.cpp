@@ -260,6 +260,7 @@ TEST(HeuristicCache, PreloadedHitReturnsStored) {
 
   hk::FullCacheKey key = hk::detail::fullKeyFor(p, p.device.archVersion);
   key.kernelTag = hk::detail::kernelTagFor(p.kernel);
+  key.deviceTag = hk::detail::deviceTagFor(p.device);
 
   hk::FullConfigCache cache{};
   hk::LaunchConfig stored{};
@@ -306,7 +307,7 @@ TEST(HeuristicCache, MissStoresForNextCall) {
   const hk::LaunchConfig second = hk::resolveLaunchConfig(p, &cache);
   EXPECT_EQ(first.threads.x, second.threads.x);
   EXPECT_EQ(first.blocks.x, second.blocks.x);
-  EXPECT_EQ(first.blocks.x, 32U);
+  EXPECT_EQ(first.blocks.x, 64U);
 }
 
 /**

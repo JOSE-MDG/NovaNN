@@ -110,8 +110,8 @@ TEST(ElementWiseFull, UnknownCapsCapped) {
 }
 
 /**
- * @brief Wide axis splits across block rows under the SM cap.
- * @test 1M extent x batch 2: 256 splits capped to y=32.
+ * @brief Wide axis splits keep every piece the combiner expects.
+ * @test 1M extent x batch 2: 256 pieces, none trimmed to a wave budget.
  */
 TEST(ReductionFull, SplitPiecesCapped) {
   hk::ReductionParams p{};
@@ -128,7 +128,7 @@ TEST(ReductionFull, SplitPiecesCapped) {
   const hk::LaunchConfig cfg = hk::resolveLaunchConfig(p);
   EXPECT_EQ(cfg.threads.x, 256U);
   EXPECT_EQ(cfg.blocks.x, 2U);
-  EXPECT_EQ(cfg.blocks.y, 32U);
+  EXPECT_EQ(cfg.blocks.y, 256U);
 }
 
 /**
@@ -468,11 +468,11 @@ TEST(SpatialFull, StridedGrid) {
 
   ASSERT_TRUE(hk::resolveTier(p) == hk::HeuristicTier::Full);
   const hk::LaunchConfig cfg = hk::resolveLaunchConfig(p);
-  EXPECT_EQ(cfg.threads.x, 32U);
-  EXPECT_EQ(cfg.threads.y, 8U);
-  EXPECT_EQ(cfg.blocks.x, 8U);
+  EXPECT_EQ(cfg.threads.x, 8U);
+  EXPECT_EQ(cfg.threads.y, 4U);
+  EXPECT_EQ(cfg.blocks.x, 64U);
   EXPECT_EQ(cfg.blocks.y, 1U);
-  EXPECT_EQ(cfg.blocks.z, 2U);
+  EXPECT_EQ(cfg.blocks.z, 8U);
 }
 
 /**
@@ -494,12 +494,12 @@ TEST(GemmFull, MediumBlockPerTile) {
   ASSERT_TRUE(hk::resolveTier(p) == hk::HeuristicTier::Full);
   const hk::LaunchConfig cfg = hk::resolveLaunchConfig(p);
   EXPECT_EQ(cfg.threads.x, 256U);
-  EXPECT_EQ(cfg.blocks.x, 16U);
+  EXPECT_EQ(cfg.blocks.x, 32U);
 }
 
 /**
  * @brief Tuning-table hit overrides tiles and splits.
- * @test Persistent schedule collapses the grid to the SM count.
+ * @test Persistent schedule collapses the grid to one resident wave.
  */
 TEST(GemmFull, TuningHitOverrides) {
   const std::array<hk::GemmTuningEntry, 1> entries{{{
@@ -531,7 +531,7 @@ TEST(GemmFull, TuningHitOverrides) {
 
   ASSERT_TRUE(hk::resolveTier(p) == hk::HeuristicTier::Full);
   const hk::LaunchConfig cfg = hk::resolveLaunchConfig(p);
-  EXPECT_EQ(cfg.blocks.x, 8U);
+  EXPECT_EQ(cfg.blocks.x, 64U);
 }
 
 /**
@@ -594,14 +594,14 @@ TEST(GemmFull, SplitKRefillsWaves) {
   ASSERT_TRUE(hk::resolveTier(p) == hk::HeuristicTier::Full);
   const hk::LaunchConfig cfg = hk::resolveLaunchConfig(p);
   EXPECT_EQ(cfg.threads.x, 256U);
-  EXPECT_EQ(cfg.blocks.x, 8U);
+  EXPECT_EQ(cfg.blocks.x, 32U);
   EXPECT_EQ(cfg.threads.y, 1U);
   EXPECT_EQ(cfg.blocks.y, 1U);
 }
 
 /**
  * @brief Tile counts past eight waves switch to the persistent grid.
- * @test 1152x1152 output tiles dwarf 8 SMs: grid collapses to 8.
+ * @test 1152x1152 output tiles dwarf the device: grid collapses to one wave.
  */
 TEST(GemmFull, PersistentCollapsesGrid) {
   hk::GemmParams p{};
@@ -618,7 +618,7 @@ TEST(GemmFull, PersistentCollapsesGrid) {
   ASSERT_TRUE(hk::resolveTier(p) == hk::HeuristicTier::Full);
   const hk::LaunchConfig cfg = hk::resolveLaunchConfig(p);
   EXPECT_EQ(cfg.threads.x, 256U);
-  EXPECT_EQ(cfg.blocks.x, 8U);
+  EXPECT_EQ(cfg.blocks.x, 64U);
   EXPECT_EQ(cfg.threads.y, 1U);
   EXPECT_EQ(cfg.blocks.y, 1U);
 }
@@ -703,8 +703,8 @@ TEST(GemmFull, CustomEpilogueForcesFull) {
 }
 
 /**
- * @brief Forced StreamK takes the SM-proportional fixed grid.
- * @test 256x256x16: Auto sizes 4 block-per-tile, StreamK takes 8.
+ * @brief Forced StreamK takes the resident-wave fixed grid.
+ * @test 256x256x16: Auto sizes 4 block-per-tile, StreamK takes the wave.
  */
 TEST(GemmFull, StreamKFixesGrid) {
   hk::GemmParams p{};
@@ -722,7 +722,7 @@ TEST(GemmFull, StreamKFixesGrid) {
   ASSERT_TRUE(hk::resolveTier(p) == hk::HeuristicTier::Full);
   const hk::LaunchConfig forced = hk::resolveLaunchConfig(p);
   EXPECT_EQ(forced.threads.x, 256U);
-  EXPECT_EQ(forced.blocks.x, 8U);
+  EXPECT_EQ(forced.blocks.x, 64U);
 
   p.schedule = hk::CtaSchedule::Auto;
   const hk::LaunchConfig analytic = hk::resolveLaunchConfig(p);
