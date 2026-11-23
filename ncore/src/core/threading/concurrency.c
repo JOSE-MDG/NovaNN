@@ -237,24 +237,24 @@ static inline uint32 get_num_threads_windows_impl() {
     return 0;
   }
 
+  uint32 total = 0;
   USHORT *groups = malloc(group_count * sizeof(*groups));
   if (groups == nullptr) {
     return 0;
   }
 
+  WindowsGroupWalk walk;
+  HANDLE worker;
   if (!GetProcessGroupAffinity(GetCurrentProcess(), &group_count, groups)) {
-    free(groups);
-    return 0;
+    goto out;
   }
 
-  WindowsGroupWalk walk = {
+  walk = (WindowsGroupWalk){
       .groups = groups,
       .group_count = group_count,
       .total = 0,
   };
-
-  uint32 total = 0;
-  HANDLE worker =
+  worker =
       CreateThread(nullptr, 0, count_group_affinity_worker, &walk, 0, nullptr);
   if (worker != nullptr) {
     DWORD exit_code = 1;
@@ -265,6 +265,7 @@ static inline uint32 get_num_threads_windows_impl() {
     CloseHandle(worker);
   }
 
+out:
   free(groups);
   return total;
 }
