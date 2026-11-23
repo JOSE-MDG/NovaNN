@@ -38,13 +38,7 @@ jobs:
       # The build needs GCC 15 (Ubuntu 24.04 ships 13), GoogleTest and Ninja.
       # The codegen step runs through uv and calls clang-format.
       - name: Install build dependencies
-        run: |
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo apt-get update
-          sudo apt-get install -y gcc-15 g++-15 ninja-build libgtest-dev
-          python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install uv clang-format
-          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+        run: scripts/ci/run_gpu_tests.sh cuda deps
 
       - name: Set up the simulated GPU and CUDA toolkit
         uses: pantheongpu/setup-pantheonsim@deff5781e8adfd83dec98dd5242dcbc96a564773 # v0.1.10
@@ -75,25 +69,7 @@ jobs:
       # out-of-memory line), if a device test skips because no GPU was found,
       # or if no test ran.
       - name: GPU tests
-        run: |
-          set +e
-          vgpu run ctest --test-dir build --no-tests=error -V \
-            -R '^(DeviceDetection|RngGpuParity|GpuDispatch|GpuSaturation|TensorTransfer)\.|^MemoryAllocator\.Device|Gpu(OracleEquivalence|SpecialValues)' \
-            > ctest.log 2>&1
-          rc=$?
-          set -e
-          grep -E "\[  FAILED  \]|\*\*\*Failed" ctest.log | head -n 40
-          tail -n 5 ctest.log
-          grep -E "tests passed|tests failed" ctest.log
-          if grep "VirtualGPU error" ctest.log | grep -v "out-of-memory"; then
-            echo "The simulator reported an error"
-            exit 1
-          fi
-          if grep -E "No CUDA device|GPU backend/device not available|no GPU backend compiled in" ctest.log; then
-            echo "A device test did not run on the simulated GPU"
-            exit 1
-          fi
-          exit "$rc"
+        run: scripts/ci/run_gpu_tests.sh cuda test
 
   hip-tests:
     name: HIP tests (ROCm 7.2 and simulated MI300X)
@@ -110,13 +86,7 @@ jobs:
       # the build failed on runners whose CPU lacks AVX-512 (the AVX-512
       # intrinsics in DTypeCasting.c are compiled without avx512f).
       - name: Install build dependencies
-        run: |
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo apt-get update
-          sudo apt-get install -y gcc-15 g++-15 ninja-build libgtest-dev
-          python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install uv clang-format
-          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+        run: scripts/ci/run_gpu_tests.sh hip deps
 
       # ROCm 7.2 and not 7.1: the 7.1 compiler turns fp16 to float casts into
       # a negated result at -O2 and -O3 (a wrong NEG modifier on
@@ -152,22 +122,4 @@ jobs:
 
       # Same selection and guards as the CUDA job.
       - name: GPU tests
-        run: |
-          set +e
-          vgpu run ctest --test-dir build --no-tests=error -V \
-            -R '^(DeviceDetection|RngGpuParity|GpuDispatch|GpuSaturation|TensorTransfer)\.|^MemoryAllocator\.Device|Gpu(OracleEquivalence|SpecialValues)' \
-            > ctest.log 2>&1
-          rc=$?
-          set -e
-          grep -E "\[  FAILED  \]|\*\*\*Failed" ctest.log | head -n 40
-          tail -n 5 ctest.log
-          grep -E "tests passed|tests failed" ctest.log
-          if grep "VirtualGPU error" ctest.log | grep -v "out-of-memory"; then
-            echo "The simulator reported an error"
-            exit 1
-          fi
-          if grep -E "No HIP device|GPU backend/device not available|no GPU backend compiled in" ctest.log; then
-            echo "A device test did not run on the simulated GPU"
-            exit 1
-          fi
-          exit "$rc"
+        run: scripts/ci/run_gpu_tests.sh hip test
