@@ -842,23 +842,23 @@ static void uniform_run_u32(void *out, size_t units, const UniformPlanU32 *plan,
                             float base, float span, Generator_ *generator,
                             novaStatus_t *st) {
   UniformGenerator held = {};
-  const novaStatus_t acquired = uniform_generator_acquire(generator, &held);
-  if (acquired.err != novaSuccess) {
-    *st = acquired;
+  *st = uniform_generator_acquire(generator, &held);
+  if (st->err != novaSuccess) {
     return;
   }
   uint32 threads = 1U;
 #ifdef NOVA_OPENMP
   threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    (void)uniform_generator_release(&held);
-    return;
-  }
 #endif
-  const novaStatus_t drawn =
-      uniform_draw_map_u32(held.gen, plan, out, units, base, span, threads);
+  // Single release point: the draw runs only while the status is
+  // success, and a release error surfaces only when the draw succeeded.
+  if (st->err == novaSuccess) {
+    *st = uniform_draw_map_u32(held.gen, plan, out, units, base, span, threads);
+  }
   const novaStatus_t released = uniform_generator_release(&held);
-  *st = drawn.err != novaSuccess ? drawn : released;
+  if (st->err == novaSuccess) {
+    *st = released;
+  }
 }
 
 /**
@@ -878,23 +878,23 @@ static void uniform_run_u64(void *out, size_t units, const UniformPlanU64 *plan,
                             double base, double span, Generator_ *generator,
                             novaStatus_t *st) {
   UniformGenerator held = {};
-  const novaStatus_t acquired = uniform_generator_acquire(generator, &held);
-  if (acquired.err != novaSuccess) {
-    *st = acquired;
+  *st = uniform_generator_acquire(generator, &held);
+  if (st->err != novaSuccess) {
     return;
   }
   uint32 threads = 1U;
 #ifdef NOVA_OPENMP
   threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    (void)uniform_generator_release(&held);
-    return;
-  }
 #endif
-  const novaStatus_t drawn =
-      uniform_draw_map_u64(held.gen, plan, out, units, base, span, threads);
+  // Single release point: the draw runs only while the status is
+  // success, and a release error surfaces only when the draw succeeded.
+  if (st->err == novaSuccess) {
+    *st = uniform_draw_map_u64(held.gen, plan, out, units, base, span, threads);
+  }
   const novaStatus_t released = uniform_generator_release(&held);
-  *st = drawn.err != novaSuccess ? drawn : released;
+  if (st->err == novaSuccess) {
+    *st = released;
+  }
 }
 
 /* =========================================================================
