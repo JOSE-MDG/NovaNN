@@ -46,8 +46,8 @@
  * Copies the shape, computes row-major strides, and allocates backing
  * storage through @ref safe_allocator().  META tensors skip allocation
  * and keep @c nullptr storage.  With @c requires_grad an unallocated
- * gradient tensor is attached; if that fails the just-allocated
- * storage is collected and the tensor zeroed.
+ * gradient tensor is attached; if that fails everything the call
+ * acquired is collected and the tensor zeroed.
  *
  * @param[in]  shape         Dimension sizes (only the first @c ndims
  *                           entries are read).
@@ -106,8 +106,7 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device_ device,
       tensor.grad = create_unallocated_grad_tensor(shape, dtype, device,
                                                    pin_memory, ndims, status);
       if (status->err != novaSuccess) {
-        memset(&tensor, 0, sizeof(Tensor));
-        return tensor;
+        goto fail_collect;
       }
     }
     return tensor;
@@ -117,19 +116,22 @@ Tensor create_tensor(const shape_t shape, DType_ dtype, Device_ device,
                            nullptr, &tensor, true);
 
   if (status->err != novaSuccess) {
-    memset(&tensor, 0, sizeof(Tensor));
-    return tensor;
+    goto fail;
   }
   if (requires_grad) {
     tensor.grad = create_unallocated_grad_tensor(shape, dtype, device,
                                                  pin_memory, ndims, status);
     if (status->err != novaSuccess) {
-      (void)collect(&tensor);
-      memset(&tensor, 0, sizeof(Tensor));
-      return tensor;
+      goto fail_collect;
     }
   }
 
+  return tensor;
+
+fail_collect:
+  (void)collect(&tensor);
+fail:
+  memset(&tensor, 0, sizeof(Tensor));
   return tensor;
 }
 
@@ -184,8 +186,7 @@ Tensor create_scalar_tensor(DType_ dtype, Device_ device, bool requires_grad,
       tensor.grad = create_unallocated_scalar_grad_tensor(dtype, device,
                                                           pin_memory, status);
       if (status->err != novaSuccess) {
-        memset(&tensor, 0, sizeof(Tensor));
-        return tensor;
+        goto fail_collect;
       }
     }
     return tensor;
@@ -195,20 +196,23 @@ Tensor create_scalar_tensor(DType_ dtype, Device_ device, bool requires_grad,
                            nullptr, &tensor, true);
 
   if (status->err != novaSuccess) {
-    memset(&tensor, 0, sizeof(Tensor));
-    return tensor;
+    goto fail;
   }
 
   if (requires_grad) {
     tensor.grad = create_unallocated_scalar_grad_tensor(dtype, device,
                                                         pin_memory, status);
     if (status->err != novaSuccess) {
-      (void)collect(&tensor);
-      memset(&tensor, 0, sizeof(Tensor));
-      return tensor;
+      goto fail_collect;
     }
   }
 
+  return tensor;
+
+fail_collect:
+  (void)collect(&tensor);
+fail:
+  memset(&tensor, 0, sizeof(Tensor));
   return tensor;
 }
 
@@ -303,15 +307,13 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
       status->err = novaInvalidTensor;
       status->message = "A view shares the source's storage.\n"
                         "Only a META tensor may have no storage.\n";
-      memset(&dst, 0, sizeof(Tensor));
-      return dst;
+      goto fail;
     }
   } else {
     novaStatus_t retain_status = retain(&dst.storage->handle);
     if (retain_status.err != novaSuccess) {
       *status = retain_status;
-      memset(&dst, 0, sizeof(Tensor));
-      return dst;
+      goto fail;
     }
   }
 
@@ -335,15 +337,19 @@ Tensor create_view(const Tensor *restrict src, const shape_t new_shape,
                                               new_ndims, status);
 
     if (status->err != novaSuccess) {
-      (void)collect(&dst);
-      memset(&dst, 0, sizeof(Tensor));
-      return dst;
+      goto fail_collect;
     }
   }
 
   status->err = novaSuccess;
   status->message = nova_get_error_msg(status->err, nullptr);
 
+  return dst;
+
+fail_collect:
+  (void)collect(&dst);
+fail:
+  memset(&dst, 0, sizeof(Tensor));
   return dst;
 }
 
@@ -421,15 +427,20 @@ Tensor contiguous(const Tensor *restrict ten, novaStatus_t *status) {
   if (in_device(ten)) {
     *status = launchContiguousKernel(ten, &dst);
     if (status->err != novaSuccess) {
-      (void)collect(&dst);
+      goto fail;
     }
   } else if (in_host(ten)) {
     *status = contiguous_cpu_impl(ten, &dst);
     if (status->err != novaSuccess) {
-      (void)collect(&dst);
+      goto fail;
     }
   }
 
+  return dst;
+
+fail:
+  (void)collect(&dst);
+  memset(&dst, 0, sizeof(Tensor));
   return dst;
 }
 
@@ -464,7 +475,7 @@ static thread_local char err_msg_buf[512];
  * @param[in]  dim1  Second dimension to swap. May be negative.
  *
  * @return View @c Tensor sharing @p ten's storage.  On failure the
- *         result must not be used.
+ *         result is zeroed and must not be used.
  *
  * @pre  @p ten must not be @c nullptr.
  * @pre  @p st must not be @c nullptr.
@@ -492,8 +503,7 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
              "transpose(): dims (%d, %d) out of range for tensor with %d dims",
              dim0, dim1, ndims);
     st->message = err_msg_buf;
-    (void)collect(&dst);
-    return dst;
+    goto fail;
   }
 
   if (ten->ndims > 0 && dtype_packing_factor(ten->dtype) > 1) {
@@ -513,8 +523,7 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
                "that exclude the last one.\n",
                packing, dim0, dim1);
       st->message = err_msg_buf;
-      (void)collect(&dst);
-      return dst;
+      goto fail;
     }
   }
 
@@ -532,6 +541,11 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
 
   st->err = novaSuccess;
   st->message = nova_get_error_msg(st->err, nullptr);
+  return dst;
+
+fail:
+  (void)collect(&dst);
+  memset(&dst, 0, sizeof(Tensor));
   return dst;
 }
 
@@ -557,7 +571,7 @@ Tensor transpose(const Tensor *ten, novaStatus_t *st, int dim0, int dim1) {
  *                   count from the last dimension.
  *
  * @return View @c Tensor sharing @p ten's storage.  On failure the
- *         result must not be used.
+ *         result is zeroed and must not be used.
  *
  * @pre  @p ten must not be @c nullptr.
  * @pre  @p st must not be @c nullptr.
@@ -592,16 +606,14 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
                "permute(): dims[%d] = %d out of range for tensor with %d dims",
                i, dims[i], ndims);
       st->message = err_msg_buf;
-      (void)collect(&dst);
-      return dst;
+      goto fail;
     }
     if (seen[dim]) {
       st->err = novaInvalidValue;
       snprintf(err_msg_buf, sizeof(err_msg_buf),
                "permute(): duplicate dimension %d in permutation", dim);
       st->message = err_msg_buf;
-      (void)collect(&dst);
-      return dst;
+      goto fail;
     }
     seen[dim] = true;
     dst.shape[i] = tmp_shape[dim];
@@ -625,8 +637,7 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
                "innermost.\n",
                packing);
       st->message = err_msg_buf;
-      (void)collect(&dst);
-      return dst;
+      goto fail;
     }
   }
 
@@ -637,6 +648,11 @@ Tensor permute(const Tensor *ten, novaStatus_t *st,
 
   st->err = novaSuccess;
   st->message = nova_get_error_msg(st->err, nullptr);
+  return dst;
+
+fail:
+  (void)collect(&dst);
+  memset(&dst, 0, sizeof(Tensor));
   return dst;
 }
 
