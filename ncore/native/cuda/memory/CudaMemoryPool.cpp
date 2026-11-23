@@ -119,14 +119,17 @@ novaStatus_t CudaDevicePool::initialize(std::int32_t device_id) {
   error = cudaMemPoolSetAttribute(nativePool, cudaMemPoolAttrReleaseThreshold,
                                   &threshold);
   if (error != cudaSuccess) {
-    (void)cudaMemPoolDestroy(nativePool);
-    return statusFor(error);
+    goto fail_destroy_pool;
   }
 
   native_pool_ = nativePool;
   native_pool_supported_ = true;
   state_ = State::Ready;
   return CUDA_OK;
+
+fail_destroy_pool:
+  (void)cudaMemPoolDestroy(nativePool);
+  return statusFor(error);
 }
 
 novaStatus_t CudaDevicePool::currentDeviceId(std::int32_t *device_id) {
@@ -265,14 +268,10 @@ novaStatus_t CudaDevicePool::releaseBuffer(cudaBuffer_t *buf,
       return statusFor(error);
     }
   } else if (native_pool_supported_) {
-
     const cudaError_t error = cudaFreeAsync(buf->ptr, work);
     if (error != cudaSuccess) {
       return statusFor(error);
     }
-    *buf = cudaBuffer_t{};
-
-    return CUDA_OK;
   } else {
     const cudaError_t error = cudaFree(buf->ptr);
     if (error != cudaSuccess) {
@@ -314,6 +313,9 @@ novaStatus_t CudaDevicePool::resize(std::int32_t device_id, cudaBuffer_t *buf,
  *                          device engine stream.
  *
  * @return Status; @c novaSuccess on success, or a mapped CUDA error.
+ *         When the rollback free of the replacement buffer also fails,
+ *         the original error is reported with a message recording both
+ *         failures.
  *
  * @warning On failure the original buffer may already be freed; do not
  *          reuse its pointer after a failed resize.
@@ -324,6 +326,7 @@ novaStatus_t CudaDevicePool::resizeBuffer(cudaBuffer_t *buf,
   const std::size_t copyBytes = std::min(buf->bytes, new_bytes);
   void *newPointer = nullptr;
   cudaStream_t work = stream;
+  cudaError_t error = cudaSuccess;
 
   if (work == nullptr) {
     const novaStatus_t engineStatus = CudaEngineStream::current(&work);
@@ -337,21 +340,18 @@ novaStatus_t CudaDevicePool::resizeBuffer(cudaBuffer_t *buf,
   }
 
   if (buf->isPinned) {
-    cudaError_t error = cudaMallocHost(&newPointer, new_bytes);
+    error = cudaMallocHost(&newPointer, new_bytes);
     if (error != cudaSuccess) {
       return statusFor(error);
     }
     std::memcpy(newPointer, buf->ptr, copyBytes);
     error = cudaFreeHost(buf->ptr);
     if (error != cudaSuccess) {
-      (void)cudaFreeHost(newPointer);
-      return statusFor(error);
+      goto fail_free_new;
     }
   } else if (native_pool_supported_) {
-
-    cudaMemPool_t nativePool = static_cast<cudaMemPool_t>(native_pool_);
-    cudaError_t error =
-        cudaMallocFromPoolAsync(&newPointer, new_bytes, nativePool, work);
+    error = cudaMallocFromPoolAsync(
+        &newPointer, new_bytes, static_cast<cudaMemPool_t>(native_pool_), work);
     if (error != cudaSuccess) {
       return statusFor(error);
     }
@@ -359,43 +359,26 @@ novaStatus_t CudaDevicePool::resizeBuffer(cudaBuffer_t *buf,
     error = cudaMemcpyAsync(newPointer, buf->ptr, copyBytes,
                             cudaMemcpyDeviceToDevice, work);
     if (error != cudaSuccess) {
-      const cudaError_t freeAsyncErr = cudaFreeAsync(newPointer, work);
-      if (freeAsyncErr != cudaSuccess) {
-        return statusFor(freeAsyncErr);
-      }
-      return statusFor(error);
+      goto fail_free_new;
     }
 
     error = cudaFreeAsync(buf->ptr, work);
-
     if (error != cudaSuccess) {
-      const cudaError_t freeAsyncErr = cudaFreeAsync(newPointer, work);
-
-      if (freeAsyncErr != cudaSuccess) {
-        return statusFor(freeAsyncErr);
-      }
-      return statusFor(error);
+      goto fail_free_new;
     }
-
-    buf->ptr = newPointer;
-    buf->bytes = new_bytes;
-    buf->streamOrigin = work;
-    return CUDA_OK;
   } else {
-    cudaError_t error = cudaMalloc(&newPointer, new_bytes);
+    error = cudaMalloc(&newPointer, new_bytes);
     if (error != cudaSuccess) {
       return statusFor(error);
     }
     error =
         cudaMemcpy(newPointer, buf->ptr, copyBytes, cudaMemcpyDeviceToDevice);
     if (error != cudaSuccess) {
-      (void)cudaFree(newPointer);
-      return statusFor(error);
+      goto fail_free_new;
     }
     error = cudaFree(buf->ptr);
     if (error != cudaSuccess) {
-      (void)cudaFree(newPointer);
-      return statusFor(error);
+      goto fail_free_new;
     }
   }
 
@@ -403,6 +386,22 @@ novaStatus_t CudaDevicePool::resizeBuffer(cudaBuffer_t *buf,
   buf->bytes = new_bytes;
   buf->streamOrigin = work;
   return CUDA_OK;
+
+fail_free_new:
+  novaStatus_t status = statusFor(error);
+  cudaError_t rollbackError = cudaSuccess;
+  if (buf->isPinned) {
+    rollbackError = cudaFreeHost(newPointer);
+  } else if (native_pool_supported_) {
+    rollbackError = cudaFreeAsync(newPointer, work);
+  } else {
+    rollbackError = cudaFree(newPointer);
+  }
+  if (rollbackError != cudaSuccess) {
+    status = statusWithRollbackFailure(status, mapError(rollbackError),
+                                       "the replacement buffer");
+  }
+  return status;
 }
 
 /**
@@ -470,24 +469,28 @@ novaStatus_t CudaDevicePool::stats(std::int32_t device_id,
     cuuint64_t releaseThreshold = 0;
     cudaError_t error = cudaMemPoolGetAttribute(
         nativePool, cudaMemPoolAttrReservedMemCurrent, &reservedCurrent);
-    if (error == cudaSuccess) {
-      error = cudaMemPoolGetAttribute(
-          nativePool, cudaMemPoolAttrReservedMemHigh, &reservedHigh);
-    }
-    if (error == cudaSuccess) {
-      error = cudaMemPoolGetAttribute(nativePool, cudaMemPoolAttrUsedMemCurrent,
-                                      &usedCurrent);
-    }
-    if (error == cudaSuccess) {
-      error = cudaMemPoolGetAttribute(nativePool, cudaMemPoolAttrUsedMemHigh,
-                                      &usedHigh);
-    }
-    if (error == cudaSuccess) {
-      error = cudaMemPoolGetAttribute(
-          nativePool, cudaMemPoolAttrReleaseThreshold, &releaseThreshold);
-    }
     if (error != cudaSuccess) {
-      return statusFor(error);
+      goto fail;
+    }
+    error = cudaMemPoolGetAttribute(nativePool, cudaMemPoolAttrReservedMemHigh,
+                                    &reservedHigh);
+    if (error != cudaSuccess) {
+      goto fail;
+    }
+    error = cudaMemPoolGetAttribute(nativePool, cudaMemPoolAttrUsedMemCurrent,
+                                    &usedCurrent);
+    if (error != cudaSuccess) {
+      goto fail;
+    }
+    error = cudaMemPoolGetAttribute(nativePool, cudaMemPoolAttrUsedMemHigh,
+                                    &usedHigh);
+    if (error != cudaSuccess) {
+      goto fail;
+    }
+    error = cudaMemPoolGetAttribute(nativePool, cudaMemPoolAttrReleaseThreshold,
+                                    &releaseThreshold);
+    if (error != cudaSuccess) {
+      goto fail;
     }
 
     out->reserved_current = reservedCurrent;
@@ -496,6 +499,9 @@ novaStatus_t CudaDevicePool::stats(std::int32_t device_id,
     out->used_high = usedHigh;
     out->release_threshold = releaseThreshold;
     return CUDA_OK;
+
+  fail:
+    return statusFor(error);
   });
 }
 

@@ -16,6 +16,39 @@
 
 #pragma once
 
+#include <array>
+#include <cstdio>
+
+#include <ncore/core/status.h>
+
+/**
+ * @brief Compose a status for a failure whose rollback also failed.
+ *
+ * @details
+ * The original error code is the one reported; the message records both
+ * failures so a resource leaked by the rollback is not silent. The
+ * buffer is thread-local, mirroring @c err_msg_buf in @c tensor.c and
+ * @c STATUS_MESSAGE in the Rust layer: valid until the next formatted
+ * error on the same thread. @p original.message is expected to be
+ * newline-terminated, like every status-table message.
+ *
+ * @param[in] original       Status of the operation that failed first.
+ * @param[in] rollback_error Error category of the failed cleanup attempt.
+ * @param[in] resource       Name of the resource the rollback may leak.
+ *
+ * @return @ref novaStatus_t with @p original's code and a composed message.
+ */
+static inline novaStatus_t statusWithRollbackFailure(novaStatus_t original,
+                                                     novaError_t rollback_error,
+                                                     const char *resource) {
+  static thread_local std::array<char, 512> buffer;
+  snprintf(buffer.data(), sizeof(buffer),
+           "%sRollback also failed (%s): %s may leak.\n",
+           original.message != nullptr ? original.message : "",
+           nova_get_error_msg(rollback_error, nullptr), resource);
+  return {.err = original.err, .message = buffer.data()};
+}
+
 #if defined(NOVA_HAS_CUDA) && __has_include(<cuda_runtime_api.h>)
 
 #include <cuda_runtime_api.h>
