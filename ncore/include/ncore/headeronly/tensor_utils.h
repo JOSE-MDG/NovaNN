@@ -309,7 +309,8 @@ compute_coords_from_linear_index_(size_t item, size_t ndims,
  * Metadata-only shell: @c storage and @c data.data stay @c nullptr.
  * When @p requires_grad is @c true, an unallocated gradient tensor is
  * created via @ref create_unallocated_grad_tensor(); a failure there
- * zeroes the tensor and reports through @p status.
+ * releases the gradient shell, zeroes the tensor and reports through
+ * @p status.
  *
  * @param[in]  shape         Dimension sizes.
  * @param[in]  dtype         Element data type (@c DType_).
@@ -362,6 +363,10 @@ static inline Tensor create_unallocated_tensor(const shape_t shape,
                                                  pin_memory, ndims, status);
 
     if (status->err != novaSuccess) {
+      // The grad factory returns its heap shell even on failure; drop it
+      // here or zeroing the tensor would leak it.
+      (void)collect(tensor.grad);
+      free(tensor.grad);
       memset(&tensor, 0, sizeof(Tensor));
       return tensor;
     }
@@ -420,7 +425,8 @@ create_unallocated_grad_tensor(const shape_t shape, DType_ dtype,
  * Sets the scalar invariant: @c shape[0] = 0, @c strides[0] = 0,
  * @c size = 1, @c ndims = 0. When @p requires_grad is @c true, an
  * unallocated scalar gradient tensor is created; a failure there
- * zeroes the tensor and reports through @p status.
+ * releases the gradient shell, zeroes the tensor and reports through
+ * @p status.
  *
  * @param[in]  dtype         Element data type (@c DType_).
  * @param[in]  device        Target device.
@@ -464,6 +470,10 @@ static inline Tensor create_unallocated_scalar_tensor(DType_ dtype,
                                                         pin_memory, status);
 
     if (status->err != novaSuccess) {
+      // The grad factory returns its heap shell even on failure; drop it
+      // here or zeroing the tensor would leak it.
+      (void)collect(tensor.grad);
+      free(tensor.grad);
       memset(&tensor, 0, sizeof(Tensor));
       return tensor;
     }
