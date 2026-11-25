@@ -40,10 +40,129 @@ INT_TYPES = {
 
 FUNC_RE = re.compile(
     r"(?P<comment>/\*\*(?:.|\n)*?\*/)\s*"
-    r"(?:\[\[gnu::target\([^\n]*\)\]\]\s*)?"
+    r"(?P<attribute>\[\[gnu::target\([^\n]*\)\]\]\s*)?"
     r"void\s+(?P<name>[A-Za-z0-9_]+)\s*\(",
     re.DOTALL,
 )
+TARGET_RE = re.compile(r'\[\[gnu::target\("([^"]*)"\)\]\]')
+
+# Requires token -> SimdIsa bit names.
+REQUIRES_TO_BITS = {
+    "SSE4.2": ("SSE4_2",),
+    "SSE4_2": ("SSE4_2",),
+    "AVX/AVX2": ("AVX", "AVX2"),
+    "AVX": ("AVX",),
+    "AVX2": ("AVX2",),
+    "F16C": ("F16C",),
+    "FMA": ("FMA3",),
+    "FMA3": ("FMA3",),
+    "AVX512F": ("AVX512F",),
+    "AVX512BW": ("AVX512BW",),
+    "AVX512DQ": ("AVX512DQ",),
+    "AVX512VL": ("AVX512VL",),
+    "AVX512VNNI": ("AVX512VNNI",),
+    "AVX512FP16": ("AVX512FP16",),
+    "AVX512BF16": ("AVX512BF16",),
+    "AVX10.1": ("AVX10_1",),
+    "AVX10.2": ("AVX10_2",),
+    "AMX-TILE": ("AMX",),
+    "AMX-FP16": ("AMXFP16",),
+    "AMX-BF16": ("AMXBF16",),
+    "AMX-INT8": ("AMXINT8",),
+}
+
+# gnu::target spelling -> SimdIsa bit names.
+TARGET_TO_BITS = {
+    "sse4.2": ("SSE4_2",),
+    "avx": ("AVX",),
+    "avx2": ("AVX2",),
+    "f16c": ("F16C",),
+    "fma": ("FMA3",),
+    "fma3": ("FMA3",),
+    "avx512f": ("AVX512F",),
+    "avx512bw": ("AVX512BW",),
+    "avx512dq": ("AVX512DQ",),
+    "avx512vl": ("AVX512VL",),
+    "avx512vnni": ("AVX512VNNI",),
+    "avx512fp16": ("AVX512FP16",),
+    "avx512bf16": ("AVX512BF16",),
+    "avx10.1": ("AVX10_1",),
+    "avx10.2": ("AVX10_2",),
+    "amx-tile": ("AMX",),
+    "amx-fp16": ("AMXFP16",),
+    "amx-bf16": ("AMXBF16",),
+    "amx-int8": ("AMXINT8",),
+}
+
+# Bits whose instructions are VEX encoded: the compiler accepts the
+# target alone, but the CPU still needs AVX state to execute them.
+IMPLIED_BITS = {
+    "AVX2": ("AVX",),
+    "F16C": ("AVX",),
+    "FMA3": ("AVX",),
+}
+
+BIT_ORDER = [
+    "SSE4_2",
+    "AVX",
+    "AVX2",
+    "AVX2Int8",
+    "AVX2VNNI",
+    "F16C",
+    "VNNI",
+    "FMA3",
+    "AVX512F",
+    "AVX512BW",
+    "AVX512DQ",
+    "AVX512VL",
+    "AVX512VNNI",
+    "AVX512FP16",
+    "AVX512BF16",
+    "AVX10_1",
+    "AVX10_2",
+    "AMX",
+    "AMXFP16",
+    "AMXBF16",
+    "AMXINT8",
+]
+
+
+def _expand_bits(bits: list[str]) -> set[str]:
+    """Add the bits implied by VEX/EVEX encoding."""
+    expanded: set[str] = set()
+    for bit in bits:
+        expanded.add(bit)
+        expanded.update(IMPLIED_BITS.get(bit, ()))
+    return expanded
+
+
+def _canonical_requires(requires: list[str], name: str) -> set[str]:
+    """Canonicalize a Requires: list into SimdIsa bit names."""
+    bits: list[str] = []
+    for token in requires:
+        key = token.strip().upper()
+        if key not in REQUIRES_TO_BITS:
+            raise ValueError(f"{name}: unknown Requires token {token!r}")
+        bits.extend(REQUIRES_TO_BITS[key])
+    return _expand_bits(bits)
+
+
+def _canonical_target(target: str, name: str) -> set[str]:
+    """Canonicalize a gnu::target list into SimdIsa bit names."""
+    bits: list[str] = []
+    for token in target.split(","):
+        key = token.strip().lower()
+        if not key:
+            continue
+        if key not in TARGET_TO_BITS:
+            raise ValueError(f"{name}: unknown gnu::target token {token!r}")
+        bits.extend(TARGET_TO_BITS[key])
+    return _expand_bits(bits)
+
+
+def _sorted_bits(bits: set[str]) -> list[str]:
+    """Return bit names in mask order."""
+    return sorted(bits, key=BIT_ORDER.index)
 
 
 def _extract_requires(comment: str) -> list[str]:
@@ -70,7 +189,7 @@ def _extract_requires(comment: str) -> list[str]:
                 break
             parts.append(body)
 
-        requires = " ".join(parts).replace("  ", " ").strip()
+        requires = " ".join(" ".join(parts).split())
         return [item.strip() for item in requires.split(",") if item.strip()]
 
     return []
@@ -84,8 +203,11 @@ def _parse_tables(source_text: str) -> list[dict[str, Any]]:
     for match in FUNC_RE.finditer(source_text):
         name = match.group("name")
         comment = match.group("comment")
+        attribute = match.group("attribute")
 
         if name.endswith("_scalar"):
+            if attribute is not None:
+                raise ValueError(f"{name}: scalar kernels take no target")
             base = name[:-7]
         else:
             scalar_candidates = [
@@ -115,10 +237,26 @@ def _parse_tables(source_text: str) -> list[dict[str, Any]]:
             entry["scalar_name"] = name
             continue
 
+        if attribute is None:
+            raise ValueError(f"{name}: SIMD kernel is missing [[gnu::target]]")
+        target_match = TARGET_RE.fullmatch(attribute.strip())
+        if target_match is None:
+            raise ValueError(f"{name}: cannot parse {attribute!r}")
+        target = target_match.group(1)
+
         requires = _extract_requires(comment)
+        requires_bits = _canonical_requires(requires, name)
+        target_bits = _canonical_target(target, name)
+        if requires_bits != target_bits:
+            raise ValueError(
+                f"{name}: Requires {sorted(requires_bits)} do not match "
+                f'[[gnu::target("{target}")]] {sorted(target_bits)}'
+            )
+
         entry["variants"].append({
             "name": name,
             "requires": requires,
+            "isa": _sorted_bits(requires_bits),
             "is_scalar": False,
         })
         entry["guard_required"] = True
@@ -135,6 +273,7 @@ def _parse_tables(source_text: str) -> list[dict[str, Any]]:
             {
                 "name": scalar_name,
                 "requires": [],
+                "isa": [],
                 "is_scalar": True,
             },
         ]
