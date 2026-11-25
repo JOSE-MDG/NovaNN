@@ -31,7 +31,9 @@
  * Variants:
  * @li Index 0: tfp4e2m1_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_fp8e4m3[] = {tfp4e2m1_to_fp8e4m3_scalar};
+const CastVariant lookup_tfp4e2m1_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to float8_e5m2 conversions.
@@ -39,7 +41,9 @@ const CastFn lookup_tfp4e2m1_to_fp8e4m3[] = {tfp4e2m1_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_fp8e5m2[] = {tfp4e2m1_to_fp8e5m2_scalar};
+const CastVariant lookup_tfp4e2m1_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_fp8e5m2_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to float16 conversions.
@@ -47,7 +51,9 @@ const CastFn lookup_tfp4e2m1_to_fp8e5m2[] = {tfp4e2m1_to_fp8e5m2_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_fp16[] = {tfp4e2m1_to_fp16_scalar};
+const CastVariant lookup_tfp4e2m1_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_fp16_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to bfloat16 conversions.
@@ -55,7 +61,9 @@ const CastFn lookup_tfp4e2m1_to_fp16[] = {tfp4e2m1_to_fp16_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_bf16[] = {tfp4e2m1_to_bf16_scalar};
+const CastVariant lookup_tfp4e2m1_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_bf16_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to float conversions.
@@ -63,7 +71,9 @@ const CastFn lookup_tfp4e2m1_to_bf16[] = {tfp4e2m1_to_bf16_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_f32[] = {tfp4e2m1_to_f32_scalar};
+const CastVariant lookup_tfp4e2m1_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_f32_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to double conversions.
@@ -71,7 +81,9 @@ const CastFn lookup_tfp4e2m1_to_f32[] = {tfp4e2m1_to_f32_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_f64[] = {tfp4e2m1_to_f64_scalar};
+const CastVariant lookup_tfp4e2m1_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_f64_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to float4_e2m1fn_x2 conversions.
@@ -79,7 +91,9 @@ const CastFn lookup_tfp4e2m1_to_f64[] = {tfp4e2m1_to_f64_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_fp4e2m1[] = {tfp8e4m3_to_fp4e2m1_scalar};
+const CastVariant lookup_tfp8e4m3_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to float8_e5m2 conversions.
@@ -87,7 +101,9 @@ const CastFn lookup_tfp8e4m3_to_fp4e2m1[] = {tfp8e4m3_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_fp8e5m2[] = {tfp8e4m3_to_fp8e5m2_scalar};
+const CastVariant lookup_tfp8e4m3_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_fp8e5m2_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to float16 conversions.
@@ -95,7 +111,9 @@ const CastFn lookup_tfp8e4m3_to_fp8e5m2[] = {tfp8e4m3_to_fp8e5m2_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_fp16[] = {tfp8e4m3_to_fp16_scalar};
+const CastVariant lookup_tfp8e4m3_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_fp16_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to bfloat16 conversions.
@@ -103,7 +121,9 @@ const CastFn lookup_tfp8e4m3_to_fp16[] = {tfp8e4m3_to_fp16_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_bf16[] = {tfp8e4m3_to_bf16_scalar};
+const CastVariant lookup_tfp8e4m3_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_bf16_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to float conversions.
@@ -111,7 +131,9 @@ const CastFn lookup_tfp8e4m3_to_bf16[] = {tfp8e4m3_to_bf16_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_f32[] = {tfp8e4m3_to_f32_scalar};
+const CastVariant lookup_tfp8e4m3_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_f32_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to double conversions.
@@ -119,7 +141,9 @@ const CastFn lookup_tfp8e4m3_to_f32[] = {tfp8e4m3_to_f32_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_f64[] = {tfp8e4m3_to_f64_scalar};
+const CastVariant lookup_tfp8e4m3_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_f64_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to float4_e2m1fn_x2 conversions.
@@ -127,7 +151,9 @@ const CastFn lookup_tfp8e4m3_to_f64[] = {tfp8e4m3_to_f64_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_fp4e2m1[] = {tfp8e5m2_to_fp4e2m1_scalar};
+const CastVariant lookup_tfp8e5m2_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to float8_e4m3fn conversions.
@@ -135,7 +161,9 @@ const CastFn lookup_tfp8e5m2_to_fp4e2m1[] = {tfp8e5m2_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_fp8e4m3[] = {tfp8e5m2_to_fp8e4m3_scalar};
+const CastVariant lookup_tfp8e5m2_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to float16 conversions.
@@ -143,7 +171,9 @@ const CastFn lookup_tfp8e5m2_to_fp8e4m3[] = {tfp8e5m2_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_fp16[] = {tfp8e5m2_to_fp16_scalar};
+const CastVariant lookup_tfp8e5m2_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_fp16_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to bfloat16 conversions.
@@ -151,7 +181,9 @@ const CastFn lookup_tfp8e5m2_to_fp16[] = {tfp8e5m2_to_fp16_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_bf16[] = {tfp8e5m2_to_bf16_scalar};
+const CastVariant lookup_tfp8e5m2_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_bf16_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to float conversions.
@@ -159,7 +191,9 @@ const CastFn lookup_tfp8e5m2_to_bf16[] = {tfp8e5m2_to_bf16_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_f32[] = {tfp8e5m2_to_f32_scalar};
+const CastVariant lookup_tfp8e5m2_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_f32_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to double conversions.
@@ -167,7 +201,9 @@ const CastFn lookup_tfp8e5m2_to_f32[] = {tfp8e5m2_to_f32_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_f64[] = {tfp8e5m2_to_f64_scalar};
+const CastVariant lookup_tfp8e5m2_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_f64_scalar},
+};
 
 /**
  * @brief Dispatch table for float16 to float4_e2m1fn_x2 conversions.
@@ -175,7 +211,9 @@ const CastFn lookup_tfp8e5m2_to_f64[] = {tfp8e5m2_to_f64_scalar};
  * Variants:
  * @li Index 0: tfp16_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_fp4e2m1[] = {tfp16_to_fp4e2m1_scalar};
+const CastVariant lookup_tfp16_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for float16 to float8_e4m3fn conversions.
@@ -183,7 +221,9 @@ const CastFn lookup_tfp16_to_fp4e2m1[] = {tfp16_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: tfp16_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_fp8e4m3[] = {tfp16_to_fp8e4m3_scalar};
+const CastVariant lookup_tfp16_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for float16 to float8_e5m2 conversions.
@@ -191,7 +231,9 @@ const CastFn lookup_tfp16_to_fp8e4m3[] = {tfp16_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: tfp16_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_fp8e5m2[] = {tfp16_to_fp8e5m2_scalar};
+const CastVariant lookup_tfp16_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_fp8e5m2_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -202,8 +244,12 @@ const CastFn lookup_tfp16_to_fp8e5m2[] = {tfp16_to_fp8e5m2_scalar};
  * @li Index 1: tfp16_to_f32_avx_avx2_fp16c() — Requires: AVX/AVX2, F16C
  * @li Index 2: tfp16_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_f32[] = {
-    tfp16_to_f32_avx512, tfp16_to_f32_avx_avx2_fp16c, tfp16_to_f32_scalar};
+const CastVariant lookup_tfp16_to_f32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tfp16_to_f32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2 | SimdIsaF16C},
+     .fn = tfp16_to_f32_avx_avx2_fp16c},
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_f32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float16 to float conversions.
@@ -211,7 +257,9 @@ const CastFn lookup_tfp16_to_f32[] = {
  * Variants:
  * @li Index 0: tfp16_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_f32[] = {tfp16_to_f32_scalar};
+const CastVariant lookup_tfp16_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_f32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -223,8 +271,13 @@ const CastFn lookup_tfp16_to_f32[] = {tfp16_to_f32_scalar};
  * @li Index 1: tfp16_to_f64_avx_avx2_fp16c() — Requires: F16C
  * @li Index 2: tfp16_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_f64[] = {
-    tfp16_to_f64_avx512, tfp16_to_f64_avx_avx2_fp16c, tfp16_to_f64_scalar};
+const CastVariant lookup_tfp16_to_f64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512FP16},
+     .fn = tfp16_to_f64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaF16C},
+     .fn = tfp16_to_f64_avx_avx2_fp16c},
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_f64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float16 to double conversions.
@@ -232,7 +285,9 @@ const CastFn lookup_tfp16_to_f64[] = {
  * Variants:
  * @li Index 0: tfp16_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_f64[] = {tfp16_to_f64_scalar};
+const CastVariant lookup_tfp16_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_f64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -243,8 +298,11 @@ const CastFn lookup_tfp16_to_f64[] = {tfp16_to_f64_scalar};
  * @li Index 0: tfp16_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
  * @li Index 1: tfp16_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_bf16[] = {tfp16_to_bf16_avx512bf16,
-                                       tfp16_to_bf16_scalar};
+const CastVariant lookup_tfp16_to_bf16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BF16},
+     .fn = tfp16_to_bf16_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_bf16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float16 to bfloat16 conversions.
@@ -252,7 +310,9 @@ const CastFn lookup_tfp16_to_bf16[] = {tfp16_to_bf16_avx512bf16,
  * Variants:
  * @li Index 0: tfp16_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_bf16[] = {tfp16_to_bf16_scalar};
+const CastVariant lookup_tfp16_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_bf16_scalar},
+};
 #endif
 
 /**
@@ -261,7 +321,9 @@ const CastFn lookup_tfp16_to_bf16[] = {tfp16_to_bf16_scalar};
  * Variants:
  * @li Index 0: tf32_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_fp4e2m1[] = {tf32_to_fp4e2m1_scalar};
+const CastVariant lookup_tf32_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for float to float8_e4m3fn conversions.
@@ -269,7 +331,9 @@ const CastFn lookup_tf32_to_fp4e2m1[] = {tf32_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: tf32_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_fp8e4m3[] = {tf32_to_fp8e4m3_scalar};
+const CastVariant lookup_tf32_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for float to float8_e5m2 conversions.
@@ -277,7 +341,9 @@ const CastFn lookup_tf32_to_fp8e4m3[] = {tf32_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: tf32_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_fp8e5m2[] = {tf32_to_fp8e5m2_scalar};
+const CastVariant lookup_tf32_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_fp8e5m2_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -288,8 +354,13 @@ const CastFn lookup_tf32_to_fp8e5m2[] = {tf32_to_fp8e5m2_scalar};
  * @li Index 1: tf32_to_fp16_avx_avx2_f16c() — Requires: F16C
  * @li Index 2: tf32_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_fp16[] = {
-    tf32_to_fp16_avx512fp16, tf32_to_fp16_avx_avx2_f16c, tf32_to_fp16_scalar};
+const CastVariant lookup_tf32_to_fp16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512FP16},
+     .fn = tf32_to_fp16_avx512fp16},
+    {.base = {.isa = SimdIsaAVX | SimdIsaF16C},
+     .fn = tf32_to_fp16_avx_avx2_f16c},
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_fp16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float to float16 conversions.
@@ -297,7 +368,9 @@ const CastFn lookup_tf32_to_fp16[] = {
  * Variants:
  * @li Index 0: tf32_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_fp16[] = {tf32_to_fp16_scalar};
+const CastVariant lookup_tf32_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_fp16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -310,8 +383,12 @@ const CastFn lookup_tf32_to_fp16[] = {tf32_to_fp16_scalar};
  * @li Index 2: tf32_to_f64_sse4_2() — Requires: SSE4.2
  * @li Index 3: tf32_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_f64[] = {tf32_to_f64_avx512, tf32_to_f64_avx_avx2,
-                                     tf32_to_f64_sse4_2, tf32_to_f64_scalar};
+const CastVariant lookup_tf32_to_f64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tf32_to_f64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tf32_to_f64_avx_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tf32_to_f64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_f64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float to double conversions.
@@ -319,7 +396,9 @@ const CastFn lookup_tf32_to_f64[] = {tf32_to_f64_avx512, tf32_to_f64_avx_avx2,
  * Variants:
  * @li Index 0: tf32_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_f64[] = {tf32_to_f64_scalar};
+const CastVariant lookup_tf32_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_f64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -330,8 +409,12 @@ const CastFn lookup_tf32_to_f64[] = {tf32_to_f64_scalar};
  * @li Index 0: tf32_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
  * @li Index 1: tf32_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_bf16[] = {tf32_to_bf16_avx512bf16,
-                                      tf32_to_bf16_scalar};
+const CastVariant lookup_tf32_to_bf16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW | SimdIsaAVX512VL |
+                     SimdIsaAVX512BF16},
+     .fn = tf32_to_bf16_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_bf16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float to bfloat16 conversions.
@@ -339,7 +422,9 @@ const CastFn lookup_tf32_to_bf16[] = {tf32_to_bf16_avx512bf16,
  * Variants:
  * @li Index 0: tf32_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_bf16[] = {tf32_to_bf16_scalar};
+const CastVariant lookup_tf32_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_bf16_scalar},
+};
 #endif
 
 /**
@@ -348,7 +433,9 @@ const CastFn lookup_tf32_to_bf16[] = {tf32_to_bf16_scalar};
  * Variants:
  * @li Index 0: tbf16_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_fp4e2m1[] = {tbf16_to_fp4e2m1_scalar};
+const CastVariant lookup_tbf16_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for bfloat16 to float8_e4m3fn conversions.
@@ -356,7 +443,9 @@ const CastFn lookup_tbf16_to_fp4e2m1[] = {tbf16_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: tbf16_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_fp8e4m3[] = {tbf16_to_fp8e4m3_scalar};
+const CastVariant lookup_tbf16_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for bfloat16 to float8_e5m2 conversions.
@@ -364,7 +453,9 @@ const CastFn lookup_tbf16_to_fp8e4m3[] = {tbf16_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: tbf16_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_fp8e5m2[] = {tbf16_to_fp8e5m2_scalar};
+const CastVariant lookup_tbf16_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_fp8e5m2_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -374,8 +465,11 @@ const CastFn lookup_tbf16_to_fp8e5m2[] = {tbf16_to_fp8e5m2_scalar};
  * @li Index 0: tbf16_to_fp16_avx512bf16_fp16() — Requires: AVX512F, AVX512BF16, AVX512FP16
  * @li Index 1: tbf16_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_fp16[] = {tbf16_to_fp16_avx512bf16_fp16,
-                                       tbf16_to_fp16_scalar};
+const CastVariant lookup_tbf16_to_fp16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512FP16 | SimdIsaAVX512BF16},
+     .fn = tbf16_to_fp16_avx512bf16_fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_fp16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for bfloat16 to float16 conversions.
@@ -383,7 +477,9 @@ const CastFn lookup_tbf16_to_fp16[] = {tbf16_to_fp16_avx512bf16_fp16,
  * Variants:
  * @li Index 0: tbf16_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_fp16[] = {tbf16_to_fp16_scalar};
+const CastVariant lookup_tbf16_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_fp16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -394,8 +490,11 @@ const CastFn lookup_tbf16_to_fp16[] = {tbf16_to_fp16_scalar};
  * @li Index 0: tbf16_to_f32_avx512bf16() — Requires: AVX512BF16, AVX512F
  * @li Index 1: tbf16_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_f32[] = {tbf16_to_f32_avx512bf16,
-                                      tbf16_to_f32_scalar};
+const CastVariant lookup_tbf16_to_f32[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BF16},
+     .fn = tbf16_to_f32_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_f32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for bfloat16 to float conversions.
@@ -403,7 +502,9 @@ const CastFn lookup_tbf16_to_f32[] = {tbf16_to_f32_avx512bf16,
  * Variants:
  * @li Index 0: tbf16_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_f32[] = {tbf16_to_f32_scalar};
+const CastVariant lookup_tbf16_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_f32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -414,8 +515,11 @@ const CastFn lookup_tbf16_to_f32[] = {tbf16_to_f32_scalar};
  * @li Index 0: tbf16_to_f64_avx512bf16() — Requires: AVX512F, AVX512BF16, AVX512VL
  * @li Index 1: tbf16_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_f64[] = {tbf16_to_f64_avx512bf16,
-                                      tbf16_to_f64_scalar};
+const CastVariant lookup_tbf16_to_f64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512VL | SimdIsaAVX512BF16},
+     .fn = tbf16_to_f64_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_f64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for bfloat16 to double conversions.
@@ -423,7 +527,9 @@ const CastFn lookup_tbf16_to_f64[] = {tbf16_to_f64_avx512bf16,
  * Variants:
  * @li Index 0: tbf16_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_f64[] = {tbf16_to_f64_scalar};
+const CastVariant lookup_tbf16_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_f64_scalar},
+};
 #endif
 
 /**
@@ -432,7 +538,9 @@ const CastFn lookup_tbf16_to_f64[] = {tbf16_to_f64_scalar};
  * Variants:
  * @li Index 0: tf64_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_fp4e2m1[] = {tf64_to_fp4e2m1_scalar};
+const CastVariant lookup_tf64_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for double to float8_e4m3fn conversions.
@@ -440,7 +548,9 @@ const CastFn lookup_tf64_to_fp4e2m1[] = {tf64_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: tf64_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_fp8e4m3[] = {tf64_to_fp8e4m3_scalar};
+const CastVariant lookup_tf64_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for double to float8_e5m2 conversions.
@@ -448,7 +558,9 @@ const CastFn lookup_tf64_to_fp8e4m3[] = {tf64_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: tf64_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_fp8e5m2[] = {tf64_to_fp8e5m2_scalar};
+const CastVariant lookup_tf64_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_fp8e5m2_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -458,8 +570,11 @@ const CastFn lookup_tf64_to_fp8e5m2[] = {tf64_to_fp8e5m2_scalar};
  * @li Index 0: tf64_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
  * @li Index 1: tf64_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_fp16[] = {tf64_to_fp16_avx512fp16,
-                                      tf64_to_fp16_scalar};
+const CastVariant lookup_tf64_to_fp16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512FP16},
+     .fn = tf64_to_fp16_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_fp16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for double to float16 conversions.
@@ -467,7 +582,9 @@ const CastFn lookup_tf64_to_fp16[] = {tf64_to_fp16_avx512fp16,
  * Variants:
  * @li Index 0: tf64_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_fp16[] = {tf64_to_fp16_scalar};
+const CastVariant lookup_tf64_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_fp16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -480,8 +597,12 @@ const CastFn lookup_tf64_to_fp16[] = {tf64_to_fp16_scalar};
  * @li Index 2: tf64_to_f32_sse4_2() — Requires: SSE4.2
  * @li Index 3: tf64_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_f32[] = {tf64_to_f32_avx512, tf64_to_f32_avx_avx2,
-                                     tf64_to_f32_sse4_2, tf64_to_f32_scalar};
+const CastVariant lookup_tf64_to_f32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tf64_to_f32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tf64_to_f32_avx_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tf64_to_f32_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_f32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for double to float conversions.
@@ -489,7 +610,9 @@ const CastFn lookup_tf64_to_f32[] = {tf64_to_f32_avx512, tf64_to_f32_avx_avx2,
  * Variants:
  * @li Index 0: tf64_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_f32[] = {tf64_to_f32_scalar};
+const CastVariant lookup_tf64_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_f32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -500,8 +623,11 @@ const CastFn lookup_tf64_to_f32[] = {tf64_to_f32_scalar};
  * @li Index 0: tf64_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16, AVX512VL
  * @li Index 1: tf64_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_bf16[] = {tf64_to_bf16_avx512bf16,
-                                      tf64_to_bf16_scalar};
+const CastVariant lookup_tf64_to_bf16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512VL | SimdIsaAVX512BF16},
+     .fn = tf64_to_bf16_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_bf16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for double to bfloat16 conversions.
@@ -509,7 +635,9 @@ const CastFn lookup_tf64_to_bf16[] = {tf64_to_bf16_avx512bf16,
  * Variants:
  * @li Index 0: tf64_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_bf16[] = {tf64_to_bf16_scalar};
+const CastVariant lookup_tf64_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_bf16_scalar},
+};
 #endif
 
 /**
@@ -518,7 +646,9 @@ const CastFn lookup_tf64_to_bf16[] = {tf64_to_bf16_scalar};
  * Variants:
  * @li Index 0: tf32_to_fp8e8m0_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_fp8e8m0[] = {tf32_to_fp8e8m0_scalar};
+const CastVariant lookup_tf32_to_fp8e8m0[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_fp8e8m0_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e8m0fnu to float conversions.
@@ -526,7 +656,9 @@ const CastFn lookup_tf32_to_fp8e8m0[] = {tf32_to_fp8e8m0_scalar};
  * Variants:
  * @li Index 0: tfp8e8m0_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e8m0_to_f32[] = {tfp8e8m0_to_f32_scalar};
+const CastVariant lookup_tfp8e8m0_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e8m0_to_f32_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to int8 conversions.
@@ -534,7 +666,9 @@ const CastFn lookup_tfp8e8m0_to_f32[] = {tfp8e8m0_to_f32_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_s8[] = {tfp4e2m1_to_s8_scalar};
+const CastVariant lookup_tfp4e2m1_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_s8_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to int16 conversions.
@@ -542,7 +676,9 @@ const CastFn lookup_tfp4e2m1_to_s8[] = {tfp4e2m1_to_s8_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_s16[] = {tfp4e2m1_to_s16_scalar};
+const CastVariant lookup_tfp4e2m1_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_s16_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to int32 conversions.
@@ -550,7 +686,9 @@ const CastFn lookup_tfp4e2m1_to_s16[] = {tfp4e2m1_to_s16_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_s32[] = {tfp4e2m1_to_s32_scalar};
+const CastVariant lookup_tfp4e2m1_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_s32_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to int64 conversions.
@@ -558,7 +696,9 @@ const CastFn lookup_tfp4e2m1_to_s32[] = {tfp4e2m1_to_s32_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_s64[] = {tfp4e2m1_to_s64_scalar};
+const CastVariant lookup_tfp4e2m1_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_s64_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to int8 conversions.
@@ -566,7 +706,9 @@ const CastFn lookup_tfp4e2m1_to_s64[] = {tfp4e2m1_to_s64_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_s8[] = {tfp8e4m3_to_s8_scalar};
+const CastVariant lookup_tfp8e4m3_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_s8_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to int16 conversions.
@@ -574,7 +716,9 @@ const CastFn lookup_tfp8e4m3_to_s8[] = {tfp8e4m3_to_s8_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_s16[] = {tfp8e4m3_to_s16_scalar};
+const CastVariant lookup_tfp8e4m3_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_s16_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to int32 conversions.
@@ -582,7 +726,9 @@ const CastFn lookup_tfp8e4m3_to_s16[] = {tfp8e4m3_to_s16_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_s32[] = {tfp8e4m3_to_s32_scalar};
+const CastVariant lookup_tfp8e4m3_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_s32_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to int64 conversions.
@@ -590,7 +736,9 @@ const CastFn lookup_tfp8e4m3_to_s32[] = {tfp8e4m3_to_s32_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_s64[] = {tfp8e4m3_to_s64_scalar};
+const CastVariant lookup_tfp8e4m3_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_s64_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to int8 conversions.
@@ -598,7 +746,9 @@ const CastFn lookup_tfp8e4m3_to_s64[] = {tfp8e4m3_to_s64_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_s8[] = {tfp8e5m2_to_s8_scalar};
+const CastVariant lookup_tfp8e5m2_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_s8_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to int16 conversions.
@@ -606,7 +756,9 @@ const CastFn lookup_tfp8e5m2_to_s8[] = {tfp8e5m2_to_s8_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_s16[] = {tfp8e5m2_to_s16_scalar};
+const CastVariant lookup_tfp8e5m2_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_s16_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to int32 conversions.
@@ -614,7 +766,9 @@ const CastFn lookup_tfp8e5m2_to_s16[] = {tfp8e5m2_to_s16_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_s32[] = {tfp8e5m2_to_s32_scalar};
+const CastVariant lookup_tfp8e5m2_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_s32_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to int64 conversions.
@@ -622,7 +776,9 @@ const CastFn lookup_tfp8e5m2_to_s32[] = {tfp8e5m2_to_s32_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_s64[] = {tfp8e5m2_to_s64_scalar};
+const CastVariant lookup_tfp8e5m2_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_s64_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -632,8 +788,12 @@ const CastFn lookup_tfp8e5m2_to_s64[] = {tfp8e5m2_to_s64_scalar};
  * @li Index 0: tfp16_to_s8_avx512fp16() — Requires: AVX512FP16, AVX512BW, AVX512F, AVX512VL
  * @li Index 1: tfp16_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_s8[] = {tfp16_to_s8_avx512fp16,
-                                     tfp16_to_s8_scalar};
+const CastVariant lookup_tfp16_to_s8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW | SimdIsaAVX512VL |
+                     SimdIsaAVX512FP16},
+     .fn = tfp16_to_s8_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_s8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float16 to int8 conversions.
@@ -641,7 +801,9 @@ const CastFn lookup_tfp16_to_s8[] = {tfp16_to_s8_avx512fp16,
  * Variants:
  * @li Index 0: tfp16_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_s8[] = {tfp16_to_s8_scalar};
+const CastVariant lookup_tfp16_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_s8_scalar},
+};
 #endif
 
 /**
@@ -650,7 +812,9 @@ const CastFn lookup_tfp16_to_s8[] = {tfp16_to_s8_scalar};
  * Variants:
  * @li Index 0: tfp16_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_s16[] = {tfp16_to_s16_scalar};
+const CastVariant lookup_tfp16_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_s16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -660,8 +824,11 @@ const CastFn lookup_tfp16_to_s16[] = {tfp16_to_s16_scalar};
  * @li Index 0: tfp16_to_s32_avx512fp16() — Requires: AVX512FP16, AVX512F, AVX512VL
  * @li Index 1: tfp16_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_s32[] = {tfp16_to_s32_avx512fp16,
-                                      tfp16_to_s32_scalar};
+const CastVariant lookup_tfp16_to_s32[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512VL | SimdIsaAVX512FP16},
+     .fn = tfp16_to_s32_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_s32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float16 to int32 conversions.
@@ -669,7 +836,9 @@ const CastFn lookup_tfp16_to_s32[] = {tfp16_to_s32_avx512fp16,
  * Variants:
  * @li Index 0: tfp16_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_s32[] = {tfp16_to_s32_scalar};
+const CastVariant lookup_tfp16_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_s32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -680,8 +849,11 @@ const CastFn lookup_tfp16_to_s32[] = {tfp16_to_s32_scalar};
  * @li Index 0: tfp16_to_s64_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL
  * @li Index 1: tfp16_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_s64[] = {tfp16_to_s64_avx512fp16,
-                                      tfp16_to_s64_scalar};
+const CastVariant lookup_tfp16_to_s64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512VL | SimdIsaAVX512FP16},
+     .fn = tfp16_to_s64_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_s64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float16 to int64 conversions.
@@ -689,7 +861,9 @@ const CastFn lookup_tfp16_to_s64[] = {tfp16_to_s64_avx512fp16,
  * Variants:
  * @li Index 0: tfp16_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_s64[] = {tfp16_to_s64_scalar};
+const CastVariant lookup_tfp16_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_s64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -701,8 +875,12 @@ const CastFn lookup_tfp16_to_s64[] = {tfp16_to_s64_scalar};
  * @li Index 1: tf32_to_s8_avx2() — Requires: AVX2
  * @li Index 2: tf32_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_s8[] = {tf32_to_s8_avx512, tf32_to_s8_avx2,
-                                    tf32_to_s8_scalar};
+const CastVariant lookup_tf32_to_s8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW},
+     .fn = tf32_to_s8_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tf32_to_s8_avx2},
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_s8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float to int8 conversions.
@@ -710,7 +888,9 @@ const CastFn lookup_tf32_to_s8[] = {tf32_to_s8_avx512, tf32_to_s8_avx2,
  * Variants:
  * @li Index 0: tf32_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_s8[] = {tf32_to_s8_scalar};
+const CastVariant lookup_tf32_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_s8_scalar},
+};
 #endif
 
 /**
@@ -719,7 +899,9 @@ const CastFn lookup_tf32_to_s8[] = {tf32_to_s8_scalar};
  * Variants:
  * @li Index 0: tf32_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_s16[] = {tf32_to_s16_scalar};
+const CastVariant lookup_tf32_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_s16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -731,8 +913,12 @@ const CastFn lookup_tf32_to_s16[] = {tf32_to_s16_scalar};
  * @li Index 2: tf32_to_s32_sse4_2() — Requires: SSE4.2
  * @li Index 3: tf32_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_s32[] = {tf32_to_s32_avx512, tf32_to_s32_avx2,
-                                     tf32_to_s32_sse4_2, tf32_to_s32_scalar};
+const CastVariant lookup_tf32_to_s32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tf32_to_s32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tf32_to_s32_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tf32_to_s32_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_s32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float to int32 conversions.
@@ -740,7 +926,9 @@ const CastFn lookup_tf32_to_s32[] = {tf32_to_s32_avx512, tf32_to_s32_avx2,
  * Variants:
  * @li Index 0: tf32_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_s32[] = {tf32_to_s32_scalar};
+const CastVariant lookup_tf32_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_s32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -751,7 +939,11 @@ const CastFn lookup_tf32_to_s32[] = {tf32_to_s32_scalar};
  * @li Index 0: tf32_to_s64_avx512() — Requires: AVX512F, AVX512DQ, AVX512VL
  * @li Index 1: tf32_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_s64[] = {tf32_to_s64_avx512, tf32_to_s64_scalar};
+const CastVariant lookup_tf32_to_s64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ | SimdIsaAVX512VL},
+     .fn = tf32_to_s64_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_s64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float to int64 conversions.
@@ -759,7 +951,9 @@ const CastFn lookup_tf32_to_s64[] = {tf32_to_s64_avx512, tf32_to_s64_scalar};
  * Variants:
  * @li Index 0: tf32_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_s64[] = {tf32_to_s64_scalar};
+const CastVariant lookup_tf32_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_s64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -770,8 +964,11 @@ const CastFn lookup_tf32_to_s64[] = {tf32_to_s64_scalar};
  * @li Index 0: tbf16_to_s8_avx512bf16() — Requires: AVX512BF16, AVX512BW, AVX512F
  * @li Index 1: tbf16_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_s8[] = {tbf16_to_s8_avx512bf16,
-                                     tbf16_to_s8_scalar};
+const CastVariant lookup_tbf16_to_s8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW | SimdIsaAVX512BF16},
+     .fn = tbf16_to_s8_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_s8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for bfloat16 to int8 conversions.
@@ -779,7 +976,9 @@ const CastFn lookup_tbf16_to_s8[] = {tbf16_to_s8_avx512bf16,
  * Variants:
  * @li Index 0: tbf16_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_s8[] = {tbf16_to_s8_scalar};
+const CastVariant lookup_tbf16_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_s8_scalar},
+};
 #endif
 
 /**
@@ -788,7 +987,9 @@ const CastFn lookup_tbf16_to_s8[] = {tbf16_to_s8_scalar};
  * Variants:
  * @li Index 0: tbf16_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_s16[] = {tbf16_to_s16_scalar};
+const CastVariant lookup_tbf16_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_s16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -798,8 +999,11 @@ const CastFn lookup_tbf16_to_s16[] = {tbf16_to_s16_scalar};
  * @li Index 0: tbf16_to_s32_avx512bf16() — Requires: AVX512BF16, AVX512F
  * @li Index 1: tbf16_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_s32[] = {tbf16_to_s32_avx512bf16,
-                                      tbf16_to_s32_scalar};
+const CastVariant lookup_tbf16_to_s32[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BF16},
+     .fn = tbf16_to_s32_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_s32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for bfloat16 to int32 conversions.
@@ -807,7 +1011,9 @@ const CastFn lookup_tbf16_to_s32[] = {tbf16_to_s32_avx512bf16,
  * Variants:
  * @li Index 0: tbf16_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_s32[] = {tbf16_to_s32_scalar};
+const CastVariant lookup_tbf16_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_s32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -818,8 +1024,12 @@ const CastFn lookup_tbf16_to_s32[] = {tbf16_to_s32_scalar};
  * @li Index 0: tbf16_to_s64_avx512bf16() — Requires: AVX512F, AVX512BF16, AVX512VL, AVX512DQ
  * @li Index 1: tbf16_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_s64[] = {tbf16_to_s64_avx512bf16,
-                                      tbf16_to_s64_scalar};
+const CastVariant lookup_tbf16_to_s64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ | SimdIsaAVX512VL |
+                     SimdIsaAVX512BF16},
+     .fn = tbf16_to_s64_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_s64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for bfloat16 to int64 conversions.
@@ -827,7 +1037,9 @@ const CastFn lookup_tbf16_to_s64[] = {tbf16_to_s64_avx512bf16,
  * Variants:
  * @li Index 0: tbf16_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_s64[] = {tbf16_to_s64_scalar};
+const CastVariant lookup_tbf16_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_s64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -838,7 +1050,10 @@ const CastFn lookup_tbf16_to_s64[] = {tbf16_to_s64_scalar};
  * @li Index 0: tf64_to_s8_avx512() — Requires: AVX512F
  * @li Index 1: tf64_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_s8[] = {tf64_to_s8_avx512, tf64_to_s8_scalar};
+const CastVariant lookup_tf64_to_s8[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tf64_to_s8_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_s8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for double to int8 conversions.
@@ -846,7 +1061,9 @@ const CastFn lookup_tf64_to_s8[] = {tf64_to_s8_avx512, tf64_to_s8_scalar};
  * Variants:
  * @li Index 0: tf64_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_s8[] = {tf64_to_s8_scalar};
+const CastVariant lookup_tf64_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_s8_scalar},
+};
 #endif
 
 /**
@@ -855,7 +1072,9 @@ const CastFn lookup_tf64_to_s8[] = {tf64_to_s8_scalar};
  * Variants:
  * @li Index 0: tf64_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_s16[] = {tf64_to_s16_scalar};
+const CastVariant lookup_tf64_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_s16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -867,8 +1086,12 @@ const CastFn lookup_tf64_to_s16[] = {tf64_to_s16_scalar};
  * @li Index 2: tf64_to_s32_sse4_2() — Requires: SSE4.2
  * @li Index 3: tf64_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_s32[] = {tf64_to_s32_avx512, tf64_to_s32_avx_avx2,
-                                     tf64_to_s32_sse4_2, tf64_to_s32_scalar};
+const CastVariant lookup_tf64_to_s32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tf64_to_s32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tf64_to_s32_avx_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tf64_to_s32_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_s32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for double to int32 conversions.
@@ -876,7 +1099,9 @@ const CastFn lookup_tf64_to_s32[] = {tf64_to_s32_avx512, tf64_to_s32_avx_avx2,
  * Variants:
  * @li Index 0: tf64_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_s32[] = {tf64_to_s32_scalar};
+const CastVariant lookup_tf64_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_s32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -887,7 +1112,11 @@ const CastFn lookup_tf64_to_s32[] = {tf64_to_s32_scalar};
  * @li Index 0: tf64_to_s64_avx512() — Requires: AVX512F, AVX512DQ
  * @li Index 1: tf64_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_s64[] = {tf64_to_s64_avx512, tf64_to_s64_scalar};
+const CastVariant lookup_tf64_to_s64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ},
+     .fn = tf64_to_s64_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_s64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for double to int64 conversions.
@@ -895,7 +1124,9 @@ const CastFn lookup_tf64_to_s64[] = {tf64_to_s64_avx512, tf64_to_s64_scalar};
  * Variants:
  * @li Index 0: tf64_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_s64[] = {tf64_to_s64_scalar};
+const CastVariant lookup_tf64_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_s64_scalar},
+};
 #endif
 
 /**
@@ -904,7 +1135,9 @@ const CastFn lookup_tf64_to_s64[] = {tf64_to_s64_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_u8[] = {tfp4e2m1_to_u8_scalar};
+const CastVariant lookup_tfp4e2m1_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_u8_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to uint16 conversions.
@@ -912,7 +1145,9 @@ const CastFn lookup_tfp4e2m1_to_u8[] = {tfp4e2m1_to_u8_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_u16[] = {tfp4e2m1_to_u16_scalar};
+const CastVariant lookup_tfp4e2m1_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_u16_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to uint32 conversions.
@@ -920,7 +1155,9 @@ const CastFn lookup_tfp4e2m1_to_u16[] = {tfp4e2m1_to_u16_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_u32[] = {tfp4e2m1_to_u32_scalar};
+const CastVariant lookup_tfp4e2m1_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_u32_scalar},
+};
 
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to uint64 conversions.
@@ -928,7 +1165,9 @@ const CastFn lookup_tfp4e2m1_to_u32[] = {tfp4e2m1_to_u32_scalar};
  * Variants:
  * @li Index 0: tfp4e2m1_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp4e2m1_to_u64[] = {tfp4e2m1_to_u64_scalar};
+const CastVariant lookup_tfp4e2m1_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp4e2m1_to_u64_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to uint8 conversions.
@@ -936,7 +1175,9 @@ const CastFn lookup_tfp4e2m1_to_u64[] = {tfp4e2m1_to_u64_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_u8[] = {tfp8e4m3_to_u8_scalar};
+const CastVariant lookup_tfp8e4m3_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_u8_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to uint16 conversions.
@@ -944,7 +1185,9 @@ const CastFn lookup_tfp8e4m3_to_u8[] = {tfp8e4m3_to_u8_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_u16[] = {tfp8e4m3_to_u16_scalar};
+const CastVariant lookup_tfp8e4m3_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_u16_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to uint32 conversions.
@@ -952,7 +1195,9 @@ const CastFn lookup_tfp8e4m3_to_u16[] = {tfp8e4m3_to_u16_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_u32[] = {tfp8e4m3_to_u32_scalar};
+const CastVariant lookup_tfp8e4m3_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_u32_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e4m3fn to uint64 conversions.
@@ -960,7 +1205,9 @@ const CastFn lookup_tfp8e4m3_to_u32[] = {tfp8e4m3_to_u32_scalar};
  * Variants:
  * @li Index 0: tfp8e4m3_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e4m3_to_u64[] = {tfp8e4m3_to_u64_scalar};
+const CastVariant lookup_tfp8e4m3_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e4m3_to_u64_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to uint8 conversions.
@@ -968,7 +1215,9 @@ const CastFn lookup_tfp8e4m3_to_u64[] = {tfp8e4m3_to_u64_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_u8[] = {tfp8e5m2_to_u8_scalar};
+const CastVariant lookup_tfp8e5m2_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_u8_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to uint16 conversions.
@@ -976,7 +1225,9 @@ const CastFn lookup_tfp8e5m2_to_u8[] = {tfp8e5m2_to_u8_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_u16[] = {tfp8e5m2_to_u16_scalar};
+const CastVariant lookup_tfp8e5m2_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_u16_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to uint32 conversions.
@@ -984,7 +1235,9 @@ const CastFn lookup_tfp8e5m2_to_u16[] = {tfp8e5m2_to_u16_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_u32[] = {tfp8e5m2_to_u32_scalar};
+const CastVariant lookup_tfp8e5m2_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_u32_scalar},
+};
 
 /**
  * @brief Dispatch table for float8_e5m2 to uint64 conversions.
@@ -992,7 +1245,9 @@ const CastFn lookup_tfp8e5m2_to_u32[] = {tfp8e5m2_to_u32_scalar};
  * Variants:
  * @li Index 0: tfp8e5m2_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp8e5m2_to_u64[] = {tfp8e5m2_to_u64_scalar};
+const CastVariant lookup_tfp8e5m2_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp8e5m2_to_u64_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1002,8 +1257,12 @@ const CastFn lookup_tfp8e5m2_to_u64[] = {tfp8e5m2_to_u64_scalar};
  * @li Index 0: tfp16_to_u8_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
  * @li Index 1: tfp16_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_u8[] = {tfp16_to_u8_avx512fp16,
-                                     tfp16_to_u8_scalar};
+const CastVariant lookup_tfp16_to_u8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW | SimdIsaAVX512VL |
+                     SimdIsaAVX512FP16},
+     .fn = tfp16_to_u8_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_u8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float16 to uint8 conversions.
@@ -1011,7 +1270,9 @@ const CastFn lookup_tfp16_to_u8[] = {tfp16_to_u8_avx512fp16,
  * Variants:
  * @li Index 0: tfp16_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_u8[] = {tfp16_to_u8_scalar};
+const CastVariant lookup_tfp16_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_u8_scalar},
+};
 #endif
 
 /**
@@ -1020,7 +1281,9 @@ const CastFn lookup_tfp16_to_u8[] = {tfp16_to_u8_scalar};
  * Variants:
  * @li Index 0: tfp16_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_u16[] = {tfp16_to_u16_scalar};
+const CastVariant lookup_tfp16_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_u16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1030,8 +1293,11 @@ const CastFn lookup_tfp16_to_u16[] = {tfp16_to_u16_scalar};
  * @li Index 0: tfp16_to_u32_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL
  * @li Index 1: tfp16_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_u32[] = {tfp16_to_u32_avx512fp16,
-                                      tfp16_to_u32_scalar};
+const CastVariant lookup_tfp16_to_u32[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512VL | SimdIsaAVX512FP16},
+     .fn = tfp16_to_u32_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_u32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float16 to uint32 conversions.
@@ -1039,7 +1305,9 @@ const CastFn lookup_tfp16_to_u32[] = {tfp16_to_u32_avx512fp16,
  * Variants:
  * @li Index 0: tfp16_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_u32[] = {tfp16_to_u32_scalar};
+const CastVariant lookup_tfp16_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_u32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1050,8 +1318,11 @@ const CastFn lookup_tfp16_to_u32[] = {tfp16_to_u32_scalar};
  * @li Index 0: tfp16_to_u64_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL
  * @li Index 1: tfp16_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_u64[] = {tfp16_to_u64_avx512fp16,
-                                      tfp16_to_u64_scalar};
+const CastVariant lookup_tfp16_to_u64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512VL | SimdIsaAVX512FP16},
+     .fn = tfp16_to_u64_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_u64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float16 to uint64 conversions.
@@ -1059,7 +1330,9 @@ const CastFn lookup_tfp16_to_u64[] = {tfp16_to_u64_avx512fp16,
  * Variants:
  * @li Index 0: tfp16_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tfp16_to_u64[] = {tfp16_to_u64_scalar};
+const CastVariant lookup_tfp16_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_u64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1071,8 +1344,12 @@ const CastFn lookup_tfp16_to_u64[] = {tfp16_to_u64_scalar};
  * @li Index 1: tf32_to_u8_avx2() — Requires: AVX2
  * @li Index 2: tf32_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_u8[] = {tf32_to_u8_avx512, tf32_to_u8_avx2,
-                                    tf32_to_u8_scalar};
+const CastVariant lookup_tf32_to_u8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW | SimdIsaAVX512VL},
+     .fn = tf32_to_u8_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tf32_to_u8_avx2},
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_u8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float to uint8 conversions.
@@ -1080,7 +1357,9 @@ const CastFn lookup_tf32_to_u8[] = {tf32_to_u8_avx512, tf32_to_u8_avx2,
  * Variants:
  * @li Index 0: tf32_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_u8[] = {tf32_to_u8_scalar};
+const CastVariant lookup_tf32_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_u8_scalar},
+};
 #endif
 
 /**
@@ -1089,7 +1368,9 @@ const CastFn lookup_tf32_to_u8[] = {tf32_to_u8_scalar};
  * Variants:
  * @li Index 0: tf32_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_u16[] = {tf32_to_u16_scalar};
+const CastVariant lookup_tf32_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_u16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1099,7 +1380,10 @@ const CastFn lookup_tf32_to_u16[] = {tf32_to_u16_scalar};
  * @li Index 0: tf32_to_u32_avx512() — Requires: AVX512F
  * @li Index 1: tf32_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_u32[] = {tf32_to_u32_avx512, tf32_to_u32_scalar};
+const CastVariant lookup_tf32_to_u32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tf32_to_u32_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_u32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float to uint32 conversions.
@@ -1107,7 +1391,9 @@ const CastFn lookup_tf32_to_u32[] = {tf32_to_u32_avx512, tf32_to_u32_scalar};
  * Variants:
  * @li Index 0: tf32_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_u32[] = {tf32_to_u32_scalar};
+const CastVariant lookup_tf32_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_u32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1118,7 +1404,11 @@ const CastFn lookup_tf32_to_u32[] = {tf32_to_u32_scalar};
  * @li Index 0: tf32_to_u64_avx512() — Requires: AVX512F, AVX512DQ, AVX512VL
  * @li Index 1: tf32_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_u64[] = {tf32_to_u64_avx512, tf32_to_u64_scalar};
+const CastVariant lookup_tf32_to_u64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ | SimdIsaAVX512VL},
+     .fn = tf32_to_u64_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_u64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for float to uint64 conversions.
@@ -1126,7 +1416,9 @@ const CastFn lookup_tf32_to_u64[] = {tf32_to_u64_avx512, tf32_to_u64_scalar};
  * Variants:
  * @li Index 0: tf32_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tf32_to_u64[] = {tf32_to_u64_scalar};
+const CastVariant lookup_tf32_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf32_to_u64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1137,8 +1429,11 @@ const CastFn lookup_tf32_to_u64[] = {tf32_to_u64_scalar};
  * @li Index 0: tbf16_to_u8_avx512bf16() — Requires: AVX512BF16, AVX512BW, AVX512F
  * @li Index 1: tbf16_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_u8[] = {tbf16_to_u8_avx512bf16,
-                                     tbf16_to_u8_scalar};
+const CastVariant lookup_tbf16_to_u8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW | SimdIsaAVX512BF16},
+     .fn = tbf16_to_u8_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_u8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for bfloat16 to uint8 conversions.
@@ -1146,7 +1441,9 @@ const CastFn lookup_tbf16_to_u8[] = {tbf16_to_u8_avx512bf16,
  * Variants:
  * @li Index 0: tbf16_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_u8[] = {tbf16_to_u8_scalar};
+const CastVariant lookup_tbf16_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_u8_scalar},
+};
 #endif
 
 /**
@@ -1155,7 +1452,9 @@ const CastFn lookup_tbf16_to_u8[] = {tbf16_to_u8_scalar};
  * Variants:
  * @li Index 0: tbf16_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_u16[] = {tbf16_to_u16_scalar};
+const CastVariant lookup_tbf16_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_u16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1165,8 +1464,11 @@ const CastFn lookup_tbf16_to_u16[] = {tbf16_to_u16_scalar};
  * @li Index 0: tbf16_to_u32_avx512bf16() — Requires: AVX512BF16, AVX512F
  * @li Index 1: tbf16_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_u32[] = {tbf16_to_u32_avx512bf16,
-                                      tbf16_to_u32_scalar};
+const CastVariant lookup_tbf16_to_u32[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BF16},
+     .fn = tbf16_to_u32_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_u32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for bfloat16 to uint32 conversions.
@@ -1174,7 +1476,9 @@ const CastFn lookup_tbf16_to_u32[] = {tbf16_to_u32_avx512bf16,
  * Variants:
  * @li Index 0: tbf16_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_u32[] = {tbf16_to_u32_scalar};
+const CastVariant lookup_tbf16_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_u32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1185,8 +1489,12 @@ const CastFn lookup_tbf16_to_u32[] = {tbf16_to_u32_scalar};
  * @li Index 0: tbf16_to_u64_avx512bf16() — Requires: AVX512F, AVX512BF16, AVX512VL, AVX512DQ
  * @li Index 1: tbf16_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_u64[] = {tbf16_to_u64_avx512bf16,
-                                      tbf16_to_u64_scalar};
+const CastVariant lookup_tbf16_to_u64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ | SimdIsaAVX512VL |
+                     SimdIsaAVX512BF16},
+     .fn = tbf16_to_u64_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_u64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for bfloat16 to uint64 conversions.
@@ -1194,7 +1502,9 @@ const CastFn lookup_tbf16_to_u64[] = {tbf16_to_u64_avx512bf16,
  * Variants:
  * @li Index 0: tbf16_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tbf16_to_u64[] = {tbf16_to_u64_scalar};
+const CastVariant lookup_tbf16_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tbf16_to_u64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1205,7 +1515,10 @@ const CastFn lookup_tbf16_to_u64[] = {tbf16_to_u64_scalar};
  * @li Index 0: tf64_to_u8_avx512() — Requires: AVX512F
  * @li Index 1: tf64_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_u8[] = {tf64_to_u8_avx512, tf64_to_u8_scalar};
+const CastVariant lookup_tf64_to_u8[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tf64_to_u8_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_u8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for double to uint8 conversions.
@@ -1213,7 +1526,9 @@ const CastFn lookup_tf64_to_u8[] = {tf64_to_u8_avx512, tf64_to_u8_scalar};
  * Variants:
  * @li Index 0: tf64_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_u8[] = {tf64_to_u8_scalar};
+const CastVariant lookup_tf64_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_u8_scalar},
+};
 #endif
 
 /**
@@ -1222,7 +1537,9 @@ const CastFn lookup_tf64_to_u8[] = {tf64_to_u8_scalar};
  * Variants:
  * @li Index 0: tf64_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_u16[] = {tf64_to_u16_scalar};
+const CastVariant lookup_tf64_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_u16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1232,7 +1549,10 @@ const CastFn lookup_tf64_to_u16[] = {tf64_to_u16_scalar};
  * @li Index 0: tf64_to_u32_avx512() — Requires: AVX512F
  * @li Index 1: tf64_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_u32[] = {tf64_to_u32_avx512, tf64_to_u32_scalar};
+const CastVariant lookup_tf64_to_u32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tf64_to_u32_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_u32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for double to uint32 conversions.
@@ -1240,7 +1560,9 @@ const CastFn lookup_tf64_to_u32[] = {tf64_to_u32_avx512, tf64_to_u32_scalar};
  * Variants:
  * @li Index 0: tf64_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_u32[] = {tf64_to_u32_scalar};
+const CastVariant lookup_tf64_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_u32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1251,7 +1573,11 @@ const CastFn lookup_tf64_to_u32[] = {tf64_to_u32_scalar};
  * @li Index 0: tf64_to_u64_avx512() — Requires: AVX512F, AVX512DQ
  * @li Index 1: tf64_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_u64[] = {tf64_to_u64_avx512, tf64_to_u64_scalar};
+const CastVariant lookup_tf64_to_u64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ},
+     .fn = tf64_to_u64_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_u64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for double to uint64 conversions.
@@ -1259,7 +1585,9 @@ const CastFn lookup_tf64_to_u64[] = {tf64_to_u64_avx512, tf64_to_u64_scalar};
  * Variants:
  * @li Index 0: tf64_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tf64_to_u64[] = {tf64_to_u64_scalar};
+const CastVariant lookup_tf64_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tf64_to_u64_scalar},
+};
 #endif
 
 /**
@@ -1268,7 +1596,9 @@ const CastFn lookup_tf64_to_u64[] = {tf64_to_u64_scalar};
  * Variants:
  * @li Index 0: ts8_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_fp4e2m1[] = {ts8_to_fp4e2m1_scalar};
+const CastVariant lookup_ts8_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for int8 to float8_e4m3fn conversions.
@@ -1276,7 +1606,9 @@ const CastFn lookup_ts8_to_fp4e2m1[] = {ts8_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: ts8_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_fp8e4m3[] = {ts8_to_fp8e4m3_scalar};
+const CastVariant lookup_ts8_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for int8 to float8_e5m2 conversions.
@@ -1284,7 +1616,9 @@ const CastFn lookup_ts8_to_fp8e4m3[] = {ts8_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: ts8_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_fp8e5m2[] = {ts8_to_fp8e5m2_scalar};
+const CastVariant lookup_ts8_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_fp8e5m2_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1294,7 +1628,11 @@ const CastFn lookup_ts8_to_fp8e5m2[] = {ts8_to_fp8e5m2_scalar};
  * @li Index 0: ts8_to_fp16_avx512() — Requires: AVX512F, AVX512FP16
  * @li Index 1: ts8_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_fp16[] = {ts8_to_fp16_avx512, ts8_to_fp16_scalar};
+const CastVariant lookup_ts8_to_fp16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512FP16},
+     .fn = ts8_to_fp16_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_fp16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int8 to float16 conversions.
@@ -1302,7 +1640,9 @@ const CastFn lookup_ts8_to_fp16[] = {ts8_to_fp16_avx512, ts8_to_fp16_scalar};
  * Variants:
  * @li Index 0: ts8_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_fp16[] = {ts8_to_fp16_scalar};
+const CastVariant lookup_ts8_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_fp16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1313,8 +1653,11 @@ const CastFn lookup_ts8_to_fp16[] = {ts8_to_fp16_scalar};
  * @li Index 0: ts8_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
  * @li Index 1: ts8_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_bf16[] = {ts8_to_bf16_avx512bf16,
-                                     ts8_to_bf16_scalar};
+const CastVariant lookup_ts8_to_bf16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BF16},
+     .fn = ts8_to_bf16_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_bf16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int8 to bfloat16 conversions.
@@ -1322,7 +1665,9 @@ const CastFn lookup_ts8_to_bf16[] = {ts8_to_bf16_avx512bf16,
  * Variants:
  * @li Index 0: ts8_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_bf16[] = {ts8_to_bf16_scalar};
+const CastVariant lookup_ts8_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_bf16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1334,8 +1679,11 @@ const CastFn lookup_ts8_to_bf16[] = {ts8_to_bf16_scalar};
  * @li Index 1: ts8_to_f32_avx2() — Requires: AVX2
  * @li Index 2: ts8_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_f32[] = {ts8_to_f32_avx512, ts8_to_f32_avx2,
-                                    ts8_to_f32_scalar};
+const CastVariant lookup_ts8_to_f32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts8_to_f32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts8_to_f32_avx2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_f32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int8 to float conversions.
@@ -1343,7 +1691,9 @@ const CastFn lookup_ts8_to_f32[] = {ts8_to_f32_avx512, ts8_to_f32_avx2,
  * Variants:
  * @li Index 0: ts8_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_f32[] = {ts8_to_f32_scalar};
+const CastVariant lookup_ts8_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_f32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1354,7 +1704,10 @@ const CastFn lookup_ts8_to_f32[] = {ts8_to_f32_scalar};
  * @li Index 0: ts8_to_f64_avx512() — Requires: AVX512F
  * @li Index 1: ts8_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_f64[] = {ts8_to_f64_avx512, ts8_to_f64_scalar};
+const CastVariant lookup_ts8_to_f64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts8_to_f64_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_f64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int8 to double conversions.
@@ -1362,7 +1715,9 @@ const CastFn lookup_ts8_to_f64[] = {ts8_to_f64_avx512, ts8_to_f64_scalar};
  * Variants:
  * @li Index 0: ts8_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_f64[] = {ts8_to_f64_scalar};
+const CastVariant lookup_ts8_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_f64_scalar},
+};
 #endif
 
 /**
@@ -1371,7 +1726,9 @@ const CastFn lookup_ts8_to_f64[] = {ts8_to_f64_scalar};
  * Variants:
  * @li Index 0: ts16_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_fp4e2m1[] = {ts16_to_fp4e2m1_scalar};
+const CastVariant lookup_ts16_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to float8_e4m3fn conversions.
@@ -1379,7 +1736,9 @@ const CastFn lookup_ts16_to_fp4e2m1[] = {ts16_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: ts16_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_fp8e4m3[] = {ts16_to_fp8e4m3_scalar};
+const CastVariant lookup_ts16_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to float8_e5m2 conversions.
@@ -1387,7 +1746,9 @@ const CastFn lookup_ts16_to_fp8e4m3[] = {ts16_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: ts16_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_fp8e5m2[] = {ts16_to_fp8e5m2_scalar};
+const CastVariant lookup_ts16_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_fp8e5m2_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to float16 conversions.
@@ -1395,7 +1756,9 @@ const CastFn lookup_ts16_to_fp8e5m2[] = {ts16_to_fp8e5m2_scalar};
  * Variants:
  * @li Index 0: ts16_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_fp16[] = {ts16_to_fp16_scalar};
+const CastVariant lookup_ts16_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_fp16_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to bfloat16 conversions.
@@ -1403,7 +1766,9 @@ const CastFn lookup_ts16_to_fp16[] = {ts16_to_fp16_scalar};
  * Variants:
  * @li Index 0: ts16_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_bf16[] = {ts16_to_bf16_scalar};
+const CastVariant lookup_ts16_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_bf16_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to float conversions.
@@ -1411,7 +1776,9 @@ const CastFn lookup_ts16_to_bf16[] = {ts16_to_bf16_scalar};
  * Variants:
  * @li Index 0: ts16_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_f32[] = {ts16_to_f32_scalar};
+const CastVariant lookup_ts16_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_f32_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to double conversions.
@@ -1419,7 +1786,9 @@ const CastFn lookup_ts16_to_f32[] = {ts16_to_f32_scalar};
  * Variants:
  * @li Index 0: ts16_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_f64[] = {ts16_to_f64_scalar};
+const CastVariant lookup_ts16_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_f64_scalar},
+};
 
 /**
  * @brief Dispatch table for int32 to float4_e2m1fn_x2 conversions.
@@ -1427,7 +1796,9 @@ const CastFn lookup_ts16_to_f64[] = {ts16_to_f64_scalar};
  * Variants:
  * @li Index 0: ts32_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_fp4e2m1[] = {ts32_to_fp4e2m1_scalar};
+const CastVariant lookup_ts32_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for int32 to float8_e4m3fn conversions.
@@ -1435,7 +1806,9 @@ const CastFn lookup_ts32_to_fp4e2m1[] = {ts32_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: ts32_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_fp8e4m3[] = {ts32_to_fp8e4m3_scalar};
+const CastVariant lookup_ts32_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for int32 to float8_e5m2 conversions.
@@ -1443,7 +1816,9 @@ const CastFn lookup_ts32_to_fp8e4m3[] = {ts32_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: ts32_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_fp8e5m2[] = {ts32_to_fp8e5m2_scalar};
+const CastVariant lookup_ts32_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_fp8e5m2_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1453,8 +1828,11 @@ const CastFn lookup_ts32_to_fp8e5m2[] = {ts32_to_fp8e5m2_scalar};
  * @li Index 0: ts32_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
  * @li Index 1: ts32_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_fp16[] = {ts32_to_fp16_avx512fp16,
-                                      ts32_to_fp16_scalar};
+const CastVariant lookup_ts32_to_fp16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512FP16},
+     .fn = ts32_to_fp16_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_fp16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int32 to float16 conversions.
@@ -1462,7 +1840,9 @@ const CastFn lookup_ts32_to_fp16[] = {ts32_to_fp16_avx512fp16,
  * Variants:
  * @li Index 0: ts32_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_fp16[] = {ts32_to_fp16_scalar};
+const CastVariant lookup_ts32_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_fp16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1473,8 +1853,11 @@ const CastFn lookup_ts32_to_fp16[] = {ts32_to_fp16_scalar};
  * @li Index 0: ts32_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
  * @li Index 1: ts32_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_bf16[] = {ts32_to_bf16_avx512bf16,
-                                      ts32_to_bf16_scalar};
+const CastVariant lookup_ts32_to_bf16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BF16},
+     .fn = ts32_to_bf16_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_bf16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int32 to bfloat16 conversions.
@@ -1482,7 +1865,9 @@ const CastFn lookup_ts32_to_bf16[] = {ts32_to_bf16_avx512bf16,
  * Variants:
  * @li Index 0: ts32_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_bf16[] = {ts32_to_bf16_scalar};
+const CastVariant lookup_ts32_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_bf16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1495,8 +1880,12 @@ const CastFn lookup_ts32_to_bf16[] = {ts32_to_bf16_scalar};
  * @li Index 2: ts32_to_f32_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts32_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_f32[] = {ts32_to_f32_avx512, ts32_to_f32_avx_avx2,
-                                     ts32_to_f32_sse4_2, ts32_to_f32_scalar};
+const CastVariant lookup_ts32_to_f32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts32_to_f32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts32_to_f32_avx_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts32_to_f32_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_f32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int32 to float conversions.
@@ -1504,7 +1893,9 @@ const CastFn lookup_ts32_to_f32[] = {ts32_to_f32_avx512, ts32_to_f32_avx_avx2,
  * Variants:
  * @li Index 0: ts32_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_f32[] = {ts32_to_f32_scalar};
+const CastVariant lookup_ts32_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_f32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1517,8 +1908,12 @@ const CastFn lookup_ts32_to_f32[] = {ts32_to_f32_scalar};
  * @li Index 2: ts32_to_f64_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts32_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_f64[] = {ts32_to_f64_avx512, ts32_to_f64_avx_avx2,
-                                     ts32_to_f64_sse4_2, ts32_to_f64_scalar};
+const CastVariant lookup_ts32_to_f64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts32_to_f64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts32_to_f64_avx_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts32_to_f64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_f64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int32 to double conversions.
@@ -1526,7 +1921,9 @@ const CastFn lookup_ts32_to_f64[] = {ts32_to_f64_avx512, ts32_to_f64_avx_avx2,
  * Variants:
  * @li Index 0: ts32_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_f64[] = {ts32_to_f64_scalar};
+const CastVariant lookup_ts32_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_f64_scalar},
+};
 #endif
 
 /**
@@ -1535,7 +1932,9 @@ const CastFn lookup_ts32_to_f64[] = {ts32_to_f64_scalar};
  * Variants:
  * @li Index 0: ts64_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_fp4e2m1[] = {ts64_to_fp4e2m1_scalar};
+const CastVariant lookup_ts64_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for int64 to float8_e4m3fn conversions.
@@ -1543,7 +1942,9 @@ const CastFn lookup_ts64_to_fp4e2m1[] = {ts64_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: ts64_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_fp8e4m3[] = {ts64_to_fp8e4m3_scalar};
+const CastVariant lookup_ts64_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for int64 to float8_e5m2 conversions.
@@ -1551,7 +1952,9 @@ const CastFn lookup_ts64_to_fp8e4m3[] = {ts64_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: ts64_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_fp8e5m2[] = {ts64_to_fp8e5m2_scalar};
+const CastVariant lookup_ts64_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_fp8e5m2_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1561,8 +1964,11 @@ const CastFn lookup_ts64_to_fp8e5m2[] = {ts64_to_fp8e5m2_scalar};
  * @li Index 0: ts64_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
  * @li Index 1: ts64_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_fp16[] = {ts64_to_fp16_avx512fp16,
-                                      ts64_to_fp16_scalar};
+const CastVariant lookup_ts64_to_fp16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512FP16},
+     .fn = ts64_to_fp16_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_fp16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int64 to float16 conversions.
@@ -1570,7 +1976,9 @@ const CastFn lookup_ts64_to_fp16[] = {ts64_to_fp16_avx512fp16,
  * Variants:
  * @li Index 0: ts64_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_fp16[] = {ts64_to_fp16_scalar};
+const CastVariant lookup_ts64_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_fp16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1581,8 +1989,12 @@ const CastFn lookup_ts64_to_fp16[] = {ts64_to_fp16_scalar};
  * @li Index 0: ts64_to_bf16_avx512bf16() — Requires: AVX512F, AVX512DQ, AVX512BF16, AVX512VL
  * @li Index 1: ts64_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_bf16[] = {ts64_to_bf16_avx512bf16,
-                                      ts64_to_bf16_scalar};
+const CastVariant lookup_ts64_to_bf16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ | SimdIsaAVX512VL |
+                     SimdIsaAVX512BF16},
+     .fn = ts64_to_bf16_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_bf16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int64 to bfloat16 conversions.
@@ -1590,7 +2002,9 @@ const CastFn lookup_ts64_to_bf16[] = {ts64_to_bf16_avx512bf16,
  * Variants:
  * @li Index 0: ts64_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_bf16[] = {ts64_to_bf16_scalar};
+const CastVariant lookup_ts64_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_bf16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1601,7 +2015,11 @@ const CastFn lookup_ts64_to_bf16[] = {ts64_to_bf16_scalar};
  * @li Index 0: ts64_to_f32_avx512() — Requires: AVX512F, AVX512DQ
  * @li Index 1: ts64_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_f32[] = {ts64_to_f32_avx512, ts64_to_f32_scalar};
+const CastVariant lookup_ts64_to_f32[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ},
+     .fn = ts64_to_f32_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_f32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int64 to float conversions.
@@ -1609,7 +2027,9 @@ const CastFn lookup_ts64_to_f32[] = {ts64_to_f32_avx512, ts64_to_f32_scalar};
  * Variants:
  * @li Index 0: ts64_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_f32[] = {ts64_to_f32_scalar};
+const CastVariant lookup_ts64_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_f32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1620,7 +2040,11 @@ const CastFn lookup_ts64_to_f32[] = {ts64_to_f32_scalar};
  * @li Index 0: ts64_to_f64_avx512() — Requires: AVX512F, AVX512DQ
  * @li Index 1: ts64_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_f64[] = {ts64_to_f64_avx512, ts64_to_f64_scalar};
+const CastVariant lookup_ts64_to_f64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ},
+     .fn = ts64_to_f64_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_f64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int64 to double conversions.
@@ -1628,7 +2052,9 @@ const CastFn lookup_ts64_to_f64[] = {ts64_to_f64_avx512, ts64_to_f64_scalar};
  * Variants:
  * @li Index 0: ts64_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_f64[] = {ts64_to_f64_scalar};
+const CastVariant lookup_ts64_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_f64_scalar},
+};
 #endif
 
 /**
@@ -1637,7 +2063,9 @@ const CastFn lookup_ts64_to_f64[] = {ts64_to_f64_scalar};
  * Variants:
  * @li Index 0: ts8_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_s16[] = {ts8_to_s16_scalar};
+const CastVariant lookup_ts8_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_s16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1649,8 +2077,12 @@ const CastFn lookup_ts8_to_s16[] = {ts8_to_s16_scalar};
  * @li Index 2: ts8_to_s32_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts8_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_s32[] = {ts8_to_s32_avx512, ts8_to_s32_avx2,
-                                    ts8_to_s32_sse4_2, ts8_to_s32_scalar};
+const CastVariant lookup_ts8_to_s32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts8_to_s32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts8_to_s32_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts8_to_s32_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_s32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int8 to int32 conversions.
@@ -1658,7 +2090,9 @@ const CastFn lookup_ts8_to_s32[] = {ts8_to_s32_avx512, ts8_to_s32_avx2,
  * Variants:
  * @li Index 0: ts8_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_s32[] = {ts8_to_s32_scalar};
+const CastVariant lookup_ts8_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_s32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1671,8 +2105,12 @@ const CastFn lookup_ts8_to_s32[] = {ts8_to_s32_scalar};
  * @li Index 2: ts8_to_s64_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts8_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_s64[] = {ts8_to_s64_avx512, ts8_to_s64_avx2,
-                                    ts8_to_s64_sse4_2, ts8_to_s64_scalar};
+const CastVariant lookup_ts8_to_s64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts8_to_s64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts8_to_s64_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts8_to_s64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_s64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int8 to int64 conversions.
@@ -1680,7 +2118,9 @@ const CastFn lookup_ts8_to_s64[] = {ts8_to_s64_avx512, ts8_to_s64_avx2,
  * Variants:
  * @li Index 0: ts8_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_s64[] = {ts8_to_s64_scalar};
+const CastVariant lookup_ts8_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_s64_scalar},
+};
 #endif
 
 /**
@@ -1689,7 +2129,9 @@ const CastFn lookup_ts8_to_s64[] = {ts8_to_s64_scalar};
  * Variants:
  * @li Index 0: ts16_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_s8[] = {ts16_to_s8_scalar};
+const CastVariant lookup_ts16_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_s8_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to int32 conversions.
@@ -1697,7 +2139,9 @@ const CastFn lookup_ts16_to_s8[] = {ts16_to_s8_scalar};
  * Variants:
  * @li Index 0: ts16_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_s32[] = {ts16_to_s32_scalar};
+const CastVariant lookup_ts16_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_s32_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to int64 conversions.
@@ -1705,7 +2149,9 @@ const CastFn lookup_ts16_to_s32[] = {ts16_to_s32_scalar};
  * Variants:
  * @li Index 0: ts16_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_s64[] = {ts16_to_s64_scalar};
+const CastVariant lookup_ts16_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_s64_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1715,7 +2161,10 @@ const CastFn lookup_ts16_to_s64[] = {ts16_to_s64_scalar};
  * @li Index 0: ts32_to_s8_avx512() — Requires: AVX512F
  * @li Index 1: ts32_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_s8[] = {ts32_to_s8_avx512, ts32_to_s8_scalar};
+const CastVariant lookup_ts32_to_s8[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts32_to_s8_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_s8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int32 to int8 conversions.
@@ -1723,7 +2172,9 @@ const CastFn lookup_ts32_to_s8[] = {ts32_to_s8_avx512, ts32_to_s8_scalar};
  * Variants:
  * @li Index 0: ts32_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_s8[] = {ts32_to_s8_scalar};
+const CastVariant lookup_ts32_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_s8_scalar},
+};
 #endif
 
 /**
@@ -1732,7 +2183,9 @@ const CastFn lookup_ts32_to_s8[] = {ts32_to_s8_scalar};
  * Variants:
  * @li Index 0: ts32_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_s16[] = {ts32_to_s16_scalar};
+const CastVariant lookup_ts32_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_s16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1744,8 +2197,12 @@ const CastFn lookup_ts32_to_s16[] = {ts32_to_s16_scalar};
  * @li Index 2: ts32_to_s64_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts32_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_s64[] = {ts32_to_s64_avx512, ts32_to_s64_avx2,
-                                     ts32_to_s64_sse4_2, ts32_to_s64_scalar};
+const CastVariant lookup_ts32_to_s64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts32_to_s64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts32_to_s64_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts32_to_s64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_s64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int32 to int64 conversions.
@@ -1753,7 +2210,9 @@ const CastFn lookup_ts32_to_s64[] = {ts32_to_s64_avx512, ts32_to_s64_avx2,
  * Variants:
  * @li Index 0: ts32_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_s64[] = {ts32_to_s64_scalar};
+const CastVariant lookup_ts32_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_s64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1764,7 +2223,11 @@ const CastFn lookup_ts32_to_s64[] = {ts32_to_s64_scalar};
  * @li Index 0: ts64_to_s8_avx512() — Requires: AVX512F, AVX512BW
  * @li Index 1: ts64_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_s8[] = {ts64_to_s8_avx512, ts64_to_s8_scalar};
+const CastVariant lookup_ts64_to_s8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW},
+     .fn = ts64_to_s8_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_s8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int64 to int8 conversions.
@@ -1772,7 +2235,9 @@ const CastFn lookup_ts64_to_s8[] = {ts64_to_s8_avx512, ts64_to_s8_scalar};
  * Variants:
  * @li Index 0: ts64_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_s8[] = {ts64_to_s8_scalar};
+const CastVariant lookup_ts64_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_s8_scalar},
+};
 #endif
 
 /**
@@ -1781,7 +2246,9 @@ const CastFn lookup_ts64_to_s8[] = {ts64_to_s8_scalar};
  * Variants:
  * @li Index 0: ts64_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_s16[] = {ts64_to_s16_scalar};
+const CastVariant lookup_ts64_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_s16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1791,7 +2258,10 @@ const CastFn lookup_ts64_to_s16[] = {ts64_to_s16_scalar};
  * @li Index 0: ts64_to_s32_avx512() — Requires: AVX512F
  * @li Index 1: ts64_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_s32[] = {ts64_to_s32_avx512, ts64_to_s32_scalar};
+const CastVariant lookup_ts64_to_s32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts64_to_s32_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_s32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int64 to int32 conversions.
@@ -1799,7 +2269,9 @@ const CastFn lookup_ts64_to_s32[] = {ts64_to_s32_avx512, ts64_to_s32_scalar};
  * Variants:
  * @li Index 0: ts64_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_s32[] = {ts64_to_s32_scalar};
+const CastVariant lookup_ts64_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_s32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1812,8 +2284,12 @@ const CastFn lookup_ts64_to_s32[] = {ts64_to_s32_scalar};
  * @li Index 2: ts8_to_u8_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts8_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_u8[] = {ts8_to_u8_avx512, ts8_to_u8_avx_avx2,
-                                   ts8_to_u8_sse4_2, ts8_to_u8_scalar};
+const CastVariant lookup_ts8_to_u8[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts8_to_u8_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts8_to_u8_avx_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts8_to_u8_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_u8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int8 to uint8 conversions.
@@ -1821,7 +2297,9 @@ const CastFn lookup_ts8_to_u8[] = {ts8_to_u8_avx512, ts8_to_u8_avx_avx2,
  * Variants:
  * @li Index 0: ts8_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_u8[] = {ts8_to_u8_scalar};
+const CastVariant lookup_ts8_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_u8_scalar},
+};
 #endif
 
 /**
@@ -1830,7 +2308,9 @@ const CastFn lookup_ts8_to_u8[] = {ts8_to_u8_scalar};
  * Variants:
  * @li Index 0: ts8_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_u16[] = {ts8_to_u16_scalar};
+const CastVariant lookup_ts8_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_u16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1842,8 +2322,12 @@ const CastFn lookup_ts8_to_u16[] = {ts8_to_u16_scalar};
  * @li Index 2: ts8_to_u32_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts8_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_u32[] = {ts8_to_u32_avx512, ts8_to_u32_avx2,
-                                    ts8_to_u32_sse4_2, ts8_to_u32_scalar};
+const CastVariant lookup_ts8_to_u32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts8_to_u32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts8_to_u32_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts8_to_u32_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_u32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int8 to uint32 conversions.
@@ -1851,7 +2335,9 @@ const CastFn lookup_ts8_to_u32[] = {ts8_to_u32_avx512, ts8_to_u32_avx2,
  * Variants:
  * @li Index 0: ts8_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_u32[] = {ts8_to_u32_scalar};
+const CastVariant lookup_ts8_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_u32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1862,7 +2348,10 @@ const CastFn lookup_ts8_to_u32[] = {ts8_to_u32_scalar};
  * @li Index 0: ts8_to_u64_avx512() — Requires: AVX512F
  * @li Index 1: ts8_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_u64[] = {ts8_to_u64_avx512, ts8_to_u64_scalar};
+const CastVariant lookup_ts8_to_u64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts8_to_u64_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_u64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int8 to uint64 conversions.
@@ -1870,7 +2359,9 @@ const CastFn lookup_ts8_to_u64[] = {ts8_to_u64_avx512, ts8_to_u64_scalar};
  * Variants:
  * @li Index 0: ts8_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_ts8_to_u64[] = {ts8_to_u64_scalar};
+const CastVariant lookup_ts8_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts8_to_u64_scalar},
+};
 #endif
 
 /**
@@ -1879,7 +2370,9 @@ const CastFn lookup_ts8_to_u64[] = {ts8_to_u64_scalar};
  * Variants:
  * @li Index 0: ts16_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_u8[] = {ts16_to_u8_scalar};
+const CastVariant lookup_ts16_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_u8_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to uint16 conversions.
@@ -1887,7 +2380,9 @@ const CastFn lookup_ts16_to_u8[] = {ts16_to_u8_scalar};
  * Variants:
  * @li Index 0: ts16_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_u16[] = {ts16_to_u16_scalar};
+const CastVariant lookup_ts16_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_u16_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to uint32 conversions.
@@ -1895,7 +2390,9 @@ const CastFn lookup_ts16_to_u16[] = {ts16_to_u16_scalar};
  * Variants:
  * @li Index 0: ts16_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_u32[] = {ts16_to_u32_scalar};
+const CastVariant lookup_ts16_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_u32_scalar},
+};
 
 /**
  * @brief Dispatch table for int16 to uint64 conversions.
@@ -1903,7 +2400,9 @@ const CastFn lookup_ts16_to_u32[] = {ts16_to_u32_scalar};
  * Variants:
  * @li Index 0: ts16_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_ts16_to_u64[] = {ts16_to_u64_scalar};
+const CastVariant lookup_ts16_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts16_to_u64_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1915,8 +2414,13 @@ const CastFn lookup_ts16_to_u64[] = {ts16_to_u64_scalar};
  * @li Index 2: ts32_to_u8_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts32_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_u8[] = {ts32_to_u8_avx512, ts32_to_u8_avx2,
-                                    ts32_to_u8_sse4_2, ts32_to_u8_scalar};
+const CastVariant lookup_ts32_to_u8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW},
+     .fn = ts32_to_u8_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts32_to_u8_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts32_to_u8_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_u8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int32 to uint8 conversions.
@@ -1924,7 +2428,9 @@ const CastFn lookup_ts32_to_u8[] = {ts32_to_u8_avx512, ts32_to_u8_avx2,
  * Variants:
  * @li Index 0: ts32_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_u8[] = {ts32_to_u8_scalar};
+const CastVariant lookup_ts32_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_u8_scalar},
+};
 #endif
 
 /**
@@ -1933,7 +2439,9 @@ const CastFn lookup_ts32_to_u8[] = {ts32_to_u8_scalar};
  * Variants:
  * @li Index 0: ts32_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_u16[] = {ts32_to_u16_scalar};
+const CastVariant lookup_ts32_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_u16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -1945,8 +2453,12 @@ const CastFn lookup_ts32_to_u16[] = {ts32_to_u16_scalar};
  * @li Index 2: ts32_to_u32_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts32_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_u32[] = {ts32_to_u32_avx512, ts32_to_u32_avx_avx2,
-                                     ts32_to_u32_sse4_2, ts32_to_u32_scalar};
+const CastVariant lookup_ts32_to_u32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts32_to_u32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts32_to_u32_avx_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts32_to_u32_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_u32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int32 to uint32 conversions.
@@ -1954,7 +2466,9 @@ const CastFn lookup_ts32_to_u32[] = {ts32_to_u32_avx512, ts32_to_u32_avx_avx2,
  * Variants:
  * @li Index 0: ts32_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_u32[] = {ts32_to_u32_scalar};
+const CastVariant lookup_ts32_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_u32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1967,8 +2481,12 @@ const CastFn lookup_ts32_to_u32[] = {ts32_to_u32_scalar};
  * @li Index 2: ts32_to_u64_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts32_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_u64[] = {ts32_to_u64_avx512, ts32_to_u64_avx2,
-                                     ts32_to_u64_sse4_2, ts32_to_u64_scalar};
+const CastVariant lookup_ts32_to_u64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts32_to_u64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts32_to_u64_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts32_to_u64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_u64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int32 to uint64 conversions.
@@ -1976,7 +2494,9 @@ const CastFn lookup_ts32_to_u64[] = {ts32_to_u64_avx512, ts32_to_u64_avx2,
  * Variants:
  * @li Index 0: ts32_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_ts32_to_u64[] = {ts32_to_u64_scalar};
+const CastVariant lookup_ts32_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts32_to_u64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -1987,7 +2507,10 @@ const CastFn lookup_ts32_to_u64[] = {ts32_to_u64_scalar};
  * @li Index 0: ts64_to_u8_avx512() — Requires: AVX512F
  * @li Index 1: ts64_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_u8[] = {ts64_to_u8_avx512, ts64_to_u8_scalar};
+const CastVariant lookup_ts64_to_u8[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts64_to_u8_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_u8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int64 to uint8 conversions.
@@ -1995,7 +2518,9 @@ const CastFn lookup_ts64_to_u8[] = {ts64_to_u8_avx512, ts64_to_u8_scalar};
  * Variants:
  * @li Index 0: ts64_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_u8[] = {ts64_to_u8_scalar};
+const CastVariant lookup_ts64_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_u8_scalar},
+};
 #endif
 
 /**
@@ -2004,7 +2529,9 @@ const CastFn lookup_ts64_to_u8[] = {ts64_to_u8_scalar};
  * Variants:
  * @li Index 0: ts64_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_u16[] = {ts64_to_u16_scalar};
+const CastVariant lookup_ts64_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_u16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2014,7 +2541,10 @@ const CastFn lookup_ts64_to_u16[] = {ts64_to_u16_scalar};
  * @li Index 0: ts64_to_u32_avx512() — Requires: AVX512F
  * @li Index 1: ts64_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_u32[] = {ts64_to_u32_avx512, ts64_to_u32_scalar};
+const CastVariant lookup_ts64_to_u32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts64_to_u32_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_u32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int64 to uint32 conversions.
@@ -2022,7 +2552,9 @@ const CastFn lookup_ts64_to_u32[] = {ts64_to_u32_avx512, ts64_to_u32_scalar};
  * Variants:
  * @li Index 0: ts64_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_u32[] = {ts64_to_u32_scalar};
+const CastVariant lookup_ts64_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_u32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2035,8 +2567,12 @@ const CastFn lookup_ts64_to_u32[] = {ts64_to_u32_scalar};
  * @li Index 2: ts64_to_u64_sse4_2() — Requires: SSE4.2
  * @li Index 3: ts64_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_u64[] = {ts64_to_u64_avx512, ts64_to_u64_avx_avx2,
-                                     ts64_to_u64_sse4_2, ts64_to_u64_scalar};
+const CastVariant lookup_ts64_to_u64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = ts64_to_u64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = ts64_to_u64_avx_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = ts64_to_u64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_u64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for int64 to uint64 conversions.
@@ -2044,7 +2580,9 @@ const CastFn lookup_ts64_to_u64[] = {ts64_to_u64_avx512, ts64_to_u64_avx_avx2,
  * Variants:
  * @li Index 0: ts64_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_ts64_to_u64[] = {ts64_to_u64_scalar};
+const CastVariant lookup_ts64_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = ts64_to_u64_scalar},
+};
 #endif
 
 /**
@@ -2053,7 +2591,9 @@ const CastFn lookup_ts64_to_u64[] = {ts64_to_u64_scalar};
  * Variants:
  * @li Index 0: tu8_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_fp4e2m1[] = {tu8_to_fp4e2m1_scalar};
+const CastVariant lookup_tu8_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for uint8 to float8_e4m3fn conversions.
@@ -2061,7 +2601,9 @@ const CastFn lookup_tu8_to_fp4e2m1[] = {tu8_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: tu8_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_fp8e4m3[] = {tu8_to_fp8e4m3_scalar};
+const CastVariant lookup_tu8_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for uint8 to float8_e5m2 conversions.
@@ -2069,7 +2611,9 @@ const CastFn lookup_tu8_to_fp8e4m3[] = {tu8_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: tu8_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_fp8e5m2[] = {tu8_to_fp8e5m2_scalar};
+const CastVariant lookup_tu8_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_fp8e5m2_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2079,8 +2623,11 @@ const CastFn lookup_tu8_to_fp8e5m2[] = {tu8_to_fp8e5m2_scalar};
  * @li Index 0: tu8_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
  * @li Index 1: tu8_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_fp16[] = {tu8_to_fp16_avx512fp16,
-                                     tu8_to_fp16_scalar};
+const CastVariant lookup_tu8_to_fp16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512FP16},
+     .fn = tu8_to_fp16_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_fp16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint8 to float16 conversions.
@@ -2088,7 +2635,9 @@ const CastFn lookup_tu8_to_fp16[] = {tu8_to_fp16_avx512fp16,
  * Variants:
  * @li Index 0: tu8_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_fp16[] = {tu8_to_fp16_scalar};
+const CastVariant lookup_tu8_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_fp16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2099,8 +2648,11 @@ const CastFn lookup_tu8_to_fp16[] = {tu8_to_fp16_scalar};
  * @li Index 0: tu8_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
  * @li Index 1: tu8_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_bf16[] = {tu8_to_bf16_avx512bf16,
-                                     tu8_to_bf16_scalar};
+const CastVariant lookup_tu8_to_bf16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BF16},
+     .fn = tu8_to_bf16_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_bf16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint8 to bfloat16 conversions.
@@ -2108,7 +2660,9 @@ const CastFn lookup_tu8_to_bf16[] = {tu8_to_bf16_avx512bf16,
  * Variants:
  * @li Index 0: tu8_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_bf16[] = {tu8_to_bf16_scalar};
+const CastVariant lookup_tu8_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_bf16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2120,8 +2674,11 @@ const CastFn lookup_tu8_to_bf16[] = {tu8_to_bf16_scalar};
  * @li Index 1: tu8_to_f32_avx2() — Requires: AVX2
  * @li Index 2: tu8_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_f32[] = {tu8_to_f32_avx512, tu8_to_f32_avx2,
-                                    tu8_to_f32_scalar};
+const CastVariant lookup_tu8_to_f32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu8_to_f32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tu8_to_f32_avx2},
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_f32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint8 to float conversions.
@@ -2129,7 +2686,9 @@ const CastFn lookup_tu8_to_f32[] = {tu8_to_f32_avx512, tu8_to_f32_avx2,
  * Variants:
  * @li Index 0: tu8_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_f32[] = {tu8_to_f32_scalar};
+const CastVariant lookup_tu8_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_f32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2140,7 +2699,10 @@ const CastFn lookup_tu8_to_f32[] = {tu8_to_f32_scalar};
  * @li Index 0: tu8_to_f64_avx512() — Requires: AVX512F
  * @li Index 1: tu8_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_f64[] = {tu8_to_f64_avx512, tu8_to_f64_scalar};
+const CastVariant lookup_tu8_to_f64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu8_to_f64_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_f64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint8 to double conversions.
@@ -2148,7 +2710,9 @@ const CastFn lookup_tu8_to_f64[] = {tu8_to_f64_avx512, tu8_to_f64_scalar};
  * Variants:
  * @li Index 0: tu8_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_f64[] = {tu8_to_f64_scalar};
+const CastVariant lookup_tu8_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_f64_scalar},
+};
 #endif
 
 /**
@@ -2157,7 +2721,9 @@ const CastFn lookup_tu8_to_f64[] = {tu8_to_f64_scalar};
  * Variants:
  * @li Index 0: tu16_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_fp4e2m1[] = {tu16_to_fp4e2m1_scalar};
+const CastVariant lookup_tu16_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to float8_e4m3fn conversions.
@@ -2165,7 +2731,9 @@ const CastFn lookup_tu16_to_fp4e2m1[] = {tu16_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: tu16_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_fp8e4m3[] = {tu16_to_fp8e4m3_scalar};
+const CastVariant lookup_tu16_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to float8_e5m2 conversions.
@@ -2173,7 +2741,9 @@ const CastFn lookup_tu16_to_fp8e4m3[] = {tu16_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: tu16_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_fp8e5m2[] = {tu16_to_fp8e5m2_scalar};
+const CastVariant lookup_tu16_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_fp8e5m2_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to float16 conversions.
@@ -2181,7 +2751,9 @@ const CastFn lookup_tu16_to_fp8e5m2[] = {tu16_to_fp8e5m2_scalar};
  * Variants:
  * @li Index 0: tu16_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_fp16[] = {tu16_to_fp16_scalar};
+const CastVariant lookup_tu16_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_fp16_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to bfloat16 conversions.
@@ -2189,7 +2761,9 @@ const CastFn lookup_tu16_to_fp16[] = {tu16_to_fp16_scalar};
  * Variants:
  * @li Index 0: tu16_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_bf16[] = {tu16_to_bf16_scalar};
+const CastVariant lookup_tu16_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_bf16_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to float conversions.
@@ -2197,7 +2771,9 @@ const CastFn lookup_tu16_to_bf16[] = {tu16_to_bf16_scalar};
  * Variants:
  * @li Index 0: tu16_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_f32[] = {tu16_to_f32_scalar};
+const CastVariant lookup_tu16_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_f32_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to double conversions.
@@ -2205,7 +2781,9 @@ const CastFn lookup_tu16_to_f32[] = {tu16_to_f32_scalar};
  * Variants:
  * @li Index 0: tu16_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_f64[] = {tu16_to_f64_scalar};
+const CastVariant lookup_tu16_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_f64_scalar},
+};
 
 /**
  * @brief Dispatch table for uint32 to float4_e2m1fn_x2 conversions.
@@ -2213,7 +2791,9 @@ const CastFn lookup_tu16_to_f64[] = {tu16_to_f64_scalar};
  * Variants:
  * @li Index 0: tu32_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_fp4e2m1[] = {tu32_to_fp4e2m1_scalar};
+const CastVariant lookup_tu32_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for uint32 to float8_e4m3fn conversions.
@@ -2221,7 +2801,9 @@ const CastFn lookup_tu32_to_fp4e2m1[] = {tu32_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: tu32_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_fp8e4m3[] = {tu32_to_fp8e4m3_scalar};
+const CastVariant lookup_tu32_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for uint32 to float8_e5m2 conversions.
@@ -2229,7 +2811,9 @@ const CastFn lookup_tu32_to_fp8e4m3[] = {tu32_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: tu32_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_fp8e5m2[] = {tu32_to_fp8e5m2_scalar};
+const CastVariant lookup_tu32_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_fp8e5m2_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2239,8 +2823,11 @@ const CastFn lookup_tu32_to_fp8e5m2[] = {tu32_to_fp8e5m2_scalar};
  * @li Index 0: tu32_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
  * @li Index 1: tu32_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_fp16[] = {tu32_to_fp16_avx512fp16,
-                                      tu32_to_fp16_scalar};
+const CastVariant lookup_tu32_to_fp16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512FP16},
+     .fn = tu32_to_fp16_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_fp16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint32 to float16 conversions.
@@ -2248,7 +2835,9 @@ const CastFn lookup_tu32_to_fp16[] = {tu32_to_fp16_avx512fp16,
  * Variants:
  * @li Index 0: tu32_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_fp16[] = {tu32_to_fp16_scalar};
+const CastVariant lookup_tu32_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_fp16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2259,8 +2848,11 @@ const CastFn lookup_tu32_to_fp16[] = {tu32_to_fp16_scalar};
  * @li Index 0: tu32_to_bf16_avx512bf16() — Requires: AVX512F, AVX512BF16
  * @li Index 1: tu32_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_bf16[] = {tu32_to_bf16_avx512bf16,
-                                      tu32_to_bf16_scalar};
+const CastVariant lookup_tu32_to_bf16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BF16},
+     .fn = tu32_to_bf16_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_bf16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint32 to bfloat16 conversions.
@@ -2268,7 +2860,9 @@ const CastFn lookup_tu32_to_bf16[] = {tu32_to_bf16_avx512bf16,
  * Variants:
  * @li Index 0: tu32_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_bf16[] = {tu32_to_bf16_scalar};
+const CastVariant lookup_tu32_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_bf16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2279,7 +2873,10 @@ const CastFn lookup_tu32_to_bf16[] = {tu32_to_bf16_scalar};
  * @li Index 0: tu32_to_f32_avx512() — Requires: AVX512F
  * @li Index 1: tu32_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_f32[] = {tu32_to_f32_avx512, tu32_to_f32_scalar};
+const CastVariant lookup_tu32_to_f32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu32_to_f32_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_f32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint32 to float conversions.
@@ -2287,7 +2884,9 @@ const CastFn lookup_tu32_to_f32[] = {tu32_to_f32_avx512, tu32_to_f32_scalar};
  * Variants:
  * @li Index 0: tu32_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_f32[] = {tu32_to_f32_scalar};
+const CastVariant lookup_tu32_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_f32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2298,7 +2897,10 @@ const CastFn lookup_tu32_to_f32[] = {tu32_to_f32_scalar};
  * @li Index 0: tu32_to_f64_avx512() — Requires: AVX512F
  * @li Index 1: tu32_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_f64[] = {tu32_to_f64_avx512, tu32_to_f64_scalar};
+const CastVariant lookup_tu32_to_f64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu32_to_f64_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_f64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint32 to double conversions.
@@ -2306,7 +2908,9 @@ const CastFn lookup_tu32_to_f64[] = {tu32_to_f64_avx512, tu32_to_f64_scalar};
  * Variants:
  * @li Index 0: tu32_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_f64[] = {tu32_to_f64_scalar};
+const CastVariant lookup_tu32_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_f64_scalar},
+};
 #endif
 
 /**
@@ -2315,7 +2919,9 @@ const CastFn lookup_tu32_to_f64[] = {tu32_to_f64_scalar};
  * Variants:
  * @li Index 0: tu64_to_fp4e2m1_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_fp4e2m1[] = {tu64_to_fp4e2m1_scalar};
+const CastVariant lookup_tu64_to_fp4e2m1[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_fp4e2m1_scalar},
+};
 
 /**
  * @brief Dispatch table for uint64 to float8_e4m3fn conversions.
@@ -2323,7 +2929,9 @@ const CastFn lookup_tu64_to_fp4e2m1[] = {tu64_to_fp4e2m1_scalar};
  * Variants:
  * @li Index 0: tu64_to_fp8e4m3_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_fp8e4m3[] = {tu64_to_fp8e4m3_scalar};
+const CastVariant lookup_tu64_to_fp8e4m3[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_fp8e4m3_scalar},
+};
 
 /**
  * @brief Dispatch table for uint64 to float8_e5m2 conversions.
@@ -2331,7 +2939,9 @@ const CastFn lookup_tu64_to_fp8e4m3[] = {tu64_to_fp8e4m3_scalar};
  * Variants:
  * @li Index 0: tu64_to_fp8e5m2_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_fp8e5m2[] = {tu64_to_fp8e5m2_scalar};
+const CastVariant lookup_tu64_to_fp8e5m2[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_fp8e5m2_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2341,8 +2951,11 @@ const CastFn lookup_tu64_to_fp8e5m2[] = {tu64_to_fp8e5m2_scalar};
  * @li Index 0: tu64_to_fp16_avx512fp16() — Requires: AVX512F, AVX512FP16
  * @li Index 1: tu64_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_fp16[] = {tu64_to_fp16_avx512fp16,
-                                      tu64_to_fp16_scalar};
+const CastVariant lookup_tu64_to_fp16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512FP16},
+     .fn = tu64_to_fp16_avx512fp16},
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_fp16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint64 to float16 conversions.
@@ -2350,7 +2963,9 @@ const CastFn lookup_tu64_to_fp16[] = {tu64_to_fp16_avx512fp16,
  * Variants:
  * @li Index 0: tu64_to_fp16_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_fp16[] = {tu64_to_fp16_scalar};
+const CastVariant lookup_tu64_to_fp16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_fp16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2361,8 +2976,12 @@ const CastFn lookup_tu64_to_fp16[] = {tu64_to_fp16_scalar};
  * @li Index 0: tu64_to_bf16_avx512bf16() — Requires: AVX512F, AVX512DQ, AVX512BF16, AVX512VL
  * @li Index 1: tu64_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_bf16[] = {tu64_to_bf16_avx512bf16,
-                                      tu64_to_bf16_scalar};
+const CastVariant lookup_tu64_to_bf16[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ | SimdIsaAVX512VL |
+                     SimdIsaAVX512BF16},
+     .fn = tu64_to_bf16_avx512bf16},
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_bf16_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint64 to bfloat16 conversions.
@@ -2370,7 +2989,9 @@ const CastFn lookup_tu64_to_bf16[] = {tu64_to_bf16_avx512bf16,
  * Variants:
  * @li Index 0: tu64_to_bf16_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_bf16[] = {tu64_to_bf16_scalar};
+const CastVariant lookup_tu64_to_bf16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_bf16_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2381,7 +3002,11 @@ const CastFn lookup_tu64_to_bf16[] = {tu64_to_bf16_scalar};
  * @li Index 0: tu64_to_f32_avx512() — Requires: AVX512F, AVX512DQ
  * @li Index 1: tu64_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_f32[] = {tu64_to_f32_avx512, tu64_to_f32_scalar};
+const CastVariant lookup_tu64_to_f32[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ},
+     .fn = tu64_to_f32_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_f32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint64 to float conversions.
@@ -2389,7 +3014,9 @@ const CastFn lookup_tu64_to_f32[] = {tu64_to_f32_avx512, tu64_to_f32_scalar};
  * Variants:
  * @li Index 0: tu64_to_f32_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_f32[] = {tu64_to_f32_scalar};
+const CastVariant lookup_tu64_to_f32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_f32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2400,7 +3027,11 @@ const CastFn lookup_tu64_to_f32[] = {tu64_to_f32_scalar};
  * @li Index 0: tu64_to_f64_avx512() — Requires: AVX512F, AVX512DQ
  * @li Index 1: tu64_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_f64[] = {tu64_to_f64_avx512, tu64_to_f64_scalar};
+const CastVariant lookup_tu64_to_f64[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ},
+     .fn = tu64_to_f64_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_f64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint64 to double conversions.
@@ -2408,7 +3039,9 @@ const CastFn lookup_tu64_to_f64[] = {tu64_to_f64_avx512, tu64_to_f64_scalar};
  * Variants:
  * @li Index 0: tu64_to_f64_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_f64[] = {tu64_to_f64_scalar};
+const CastVariant lookup_tu64_to_f64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_f64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2421,8 +3054,12 @@ const CastFn lookup_tu64_to_f64[] = {tu64_to_f64_scalar};
  * @li Index 2: tu8_to_s8_sse4_2() — Requires: SSE4.2
  * @li Index 3: tu8_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_s8[] = {tu8_to_s8_avx512, tu8_to_s8_avx2,
-                                   tu8_to_s8_sse4_2, tu8_to_s8_scalar};
+const CastVariant lookup_tu8_to_s8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW}, .fn = tu8_to_s8_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tu8_to_s8_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tu8_to_s8_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_s8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint8 to int8 conversions.
@@ -2430,7 +3067,9 @@ const CastFn lookup_tu8_to_s8[] = {tu8_to_s8_avx512, tu8_to_s8_avx2,
  * Variants:
  * @li Index 0: tu8_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_s8[] = {tu8_to_s8_scalar};
+const CastVariant lookup_tu8_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_s8_scalar},
+};
 #endif
 
 /**
@@ -2439,7 +3078,9 @@ const CastFn lookup_tu8_to_s8[] = {tu8_to_s8_scalar};
  * Variants:
  * @li Index 0: tu8_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_s16[] = {tu8_to_s16_scalar};
+const CastVariant lookup_tu8_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_s16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2451,8 +3092,12 @@ const CastFn lookup_tu8_to_s16[] = {tu8_to_s16_scalar};
  * @li Index 2: tu8_to_s32_sse4_2() — Requires: SSE4.2
  * @li Index 3: tu8_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_s32[] = {tu8_to_s32_avx512, tu8_to_s32_avx2,
-                                    tu8_to_s32_sse4_2, tu8_to_s32_scalar};
+const CastVariant lookup_tu8_to_s32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu8_to_s32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tu8_to_s32_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tu8_to_s32_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_s32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint8 to int32 conversions.
@@ -2460,7 +3105,9 @@ const CastFn lookup_tu8_to_s32[] = {tu8_to_s32_avx512, tu8_to_s32_avx2,
  * Variants:
  * @li Index 0: tu8_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_s32[] = {tu8_to_s32_scalar};
+const CastVariant lookup_tu8_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_s32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2473,8 +3120,12 @@ const CastFn lookup_tu8_to_s32[] = {tu8_to_s32_scalar};
  * @li Index 2: tu8_to_s64_sse4_2() — Requires: SSE4.2
  * @li Index 3: tu8_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_s64[] = {tu8_to_s64_avx512, tu8_to_s64_avx2,
-                                    tu8_to_s64_sse4_2, tu8_to_s64_scalar};
+const CastVariant lookup_tu8_to_s64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu8_to_s64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tu8_to_s64_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tu8_to_s64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_s64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint8 to int64 conversions.
@@ -2482,7 +3133,9 @@ const CastFn lookup_tu8_to_s64[] = {tu8_to_s64_avx512, tu8_to_s64_avx2,
  * Variants:
  * @li Index 0: tu8_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_s64[] = {tu8_to_s64_scalar};
+const CastVariant lookup_tu8_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_s64_scalar},
+};
 #endif
 
 /**
@@ -2491,7 +3144,9 @@ const CastFn lookup_tu8_to_s64[] = {tu8_to_s64_scalar};
  * Variants:
  * @li Index 0: tu16_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_s8[] = {tu16_to_s8_scalar};
+const CastVariant lookup_tu16_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_s8_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to int16 conversions.
@@ -2499,7 +3154,9 @@ const CastFn lookup_tu16_to_s8[] = {tu16_to_s8_scalar};
  * Variants:
  * @li Index 0: tu16_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_s16[] = {tu16_to_s16_scalar};
+const CastVariant lookup_tu16_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_s16_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to int32 conversions.
@@ -2507,7 +3164,9 @@ const CastFn lookup_tu16_to_s16[] = {tu16_to_s16_scalar};
  * Variants:
  * @li Index 0: tu16_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_s32[] = {tu16_to_s32_scalar};
+const CastVariant lookup_tu16_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_s32_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to int64 conversions.
@@ -2515,7 +3174,9 @@ const CastFn lookup_tu16_to_s32[] = {tu16_to_s32_scalar};
  * Variants:
  * @li Index 0: tu16_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_s64[] = {tu16_to_s64_scalar};
+const CastVariant lookup_tu16_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_s64_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2525,7 +3186,11 @@ const CastFn lookup_tu16_to_s64[] = {tu16_to_s64_scalar};
  * @li Index 0: tu32_to_s8_avx512() — Requires: AVX512F, AVX512BW
  * @li Index 1: tu32_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_s8[] = {tu32_to_s8_avx512, tu32_to_s8_scalar};
+const CastVariant lookup_tu32_to_s8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW},
+     .fn = tu32_to_s8_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_s8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint32 to int8 conversions.
@@ -2533,7 +3198,9 @@ const CastFn lookup_tu32_to_s8[] = {tu32_to_s8_avx512, tu32_to_s8_scalar};
  * Variants:
  * @li Index 0: tu32_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_s8[] = {tu32_to_s8_scalar};
+const CastVariant lookup_tu32_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_s8_scalar},
+};
 #endif
 
 /**
@@ -2542,7 +3209,9 @@ const CastFn lookup_tu32_to_s8[] = {tu32_to_s8_scalar};
  * Variants:
  * @li Index 0: tu32_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_s16[] = {tu32_to_s16_scalar};
+const CastVariant lookup_tu32_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_s16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2554,8 +3223,12 @@ const CastFn lookup_tu32_to_s16[] = {tu32_to_s16_scalar};
  * @li Index 2: tu32_to_s32_sse4_2() — Requires: SSE4.2
  * @li Index 3: tu32_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_s32[] = {tu32_to_s32_avx512, tu32_to_s32_avx_avx2,
-                                     tu32_to_s32_sse4_2, tu32_to_s32_scalar};
+const CastVariant lookup_tu32_to_s32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu32_to_s32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tu32_to_s32_avx_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tu32_to_s32_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_s32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint32 to int32 conversions.
@@ -2563,7 +3236,9 @@ const CastFn lookup_tu32_to_s32[] = {tu32_to_s32_avx512, tu32_to_s32_avx_avx2,
  * Variants:
  * @li Index 0: tu32_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_s32[] = {tu32_to_s32_scalar};
+const CastVariant lookup_tu32_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_s32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2576,8 +3251,12 @@ const CastFn lookup_tu32_to_s32[] = {tu32_to_s32_scalar};
  * @li Index 2: tu32_to_s64_sse4_2() — Requires: SSE4.2
  * @li Index 3: tu32_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_s64[] = {tu32_to_s64_avx512, tu32_to_s64_avx2,
-                                     tu32_to_s64_sse4_2, tu32_to_s64_scalar};
+const CastVariant lookup_tu32_to_s64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu32_to_s64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tu32_to_s64_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tu32_to_s64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_s64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint32 to int64 conversions.
@@ -2585,7 +3264,9 @@ const CastFn lookup_tu32_to_s64[] = {tu32_to_s64_avx512, tu32_to_s64_avx2,
  * Variants:
  * @li Index 0: tu32_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_s64[] = {tu32_to_s64_scalar};
+const CastVariant lookup_tu32_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_s64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2596,7 +3277,10 @@ const CastFn lookup_tu32_to_s64[] = {tu32_to_s64_scalar};
  * @li Index 0: tu64_to_s8_avx512() — Requires: AVX512F
  * @li Index 1: tu64_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_s8[] = {tu64_to_s8_avx512, tu64_to_s8_scalar};
+const CastVariant lookup_tu64_to_s8[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu64_to_s8_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_s8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint64 to int8 conversions.
@@ -2604,7 +3288,9 @@ const CastFn lookup_tu64_to_s8[] = {tu64_to_s8_avx512, tu64_to_s8_scalar};
  * Variants:
  * @li Index 0: tu64_to_s8_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_s8[] = {tu64_to_s8_scalar};
+const CastVariant lookup_tu64_to_s8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_s8_scalar},
+};
 #endif
 
 /**
@@ -2613,7 +3299,9 @@ const CastFn lookup_tu64_to_s8[] = {tu64_to_s8_scalar};
  * Variants:
  * @li Index 0: tu64_to_s16_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_s16[] = {tu64_to_s16_scalar};
+const CastVariant lookup_tu64_to_s16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_s16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2623,7 +3311,10 @@ const CastFn lookup_tu64_to_s16[] = {tu64_to_s16_scalar};
  * @li Index 0: tu64_to_s32_avx512() — Requires: AVX512F
  * @li Index 1: tu64_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_s32[] = {tu64_to_s32_avx512, tu64_to_s32_scalar};
+const CastVariant lookup_tu64_to_s32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu64_to_s32_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_s32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint64 to int32 conversions.
@@ -2631,7 +3322,9 @@ const CastFn lookup_tu64_to_s32[] = {tu64_to_s32_avx512, tu64_to_s32_scalar};
  * Variants:
  * @li Index 0: tu64_to_s32_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_s32[] = {tu64_to_s32_scalar};
+const CastVariant lookup_tu64_to_s32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_s32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2644,8 +3337,12 @@ const CastFn lookup_tu64_to_s32[] = {tu64_to_s32_scalar};
  * @li Index 2: tu64_to_s64_sse4_2() — Requires: SSE4.2
  * @li Index 3: tu64_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_s64[] = {tu64_to_s64_avx512, tu64_to_s64_avx_avx2,
-                                     tu64_to_s64_sse4_2, tu64_to_s64_scalar};
+const CastVariant lookup_tu64_to_s64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu64_to_s64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tu64_to_s64_avx_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tu64_to_s64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_s64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint64 to int64 conversions.
@@ -2653,7 +3350,9 @@ const CastFn lookup_tu64_to_s64[] = {tu64_to_s64_avx512, tu64_to_s64_avx_avx2,
  * Variants:
  * @li Index 0: tu64_to_s64_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_s64[] = {tu64_to_s64_scalar};
+const CastVariant lookup_tu64_to_s64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_s64_scalar},
+};
 #endif
 
 /**
@@ -2662,7 +3361,9 @@ const CastFn lookup_tu64_to_s64[] = {tu64_to_s64_scalar};
  * Variants:
  * @li Index 0: tu8_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_u16[] = {tu8_to_u16_scalar};
+const CastVariant lookup_tu8_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_u16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2673,8 +3374,11 @@ const CastFn lookup_tu8_to_u16[] = {tu8_to_u16_scalar};
  * @li Index 1: tu8_to_u32_avx2() — Requires: AVX2
  * @li Index 2: tu8_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_u32[] = {tu8_to_u32_avx512, tu8_to_u32_avx2,
-                                    tu8_to_u32_scalar};
+const CastVariant lookup_tu8_to_u32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu8_to_u32_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tu8_to_u32_avx2},
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_u32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint8 to uint32 conversions.
@@ -2682,7 +3386,9 @@ const CastFn lookup_tu8_to_u32[] = {tu8_to_u32_avx512, tu8_to_u32_avx2,
  * Variants:
  * @li Index 0: tu8_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_u32[] = {tu8_to_u32_scalar};
+const CastVariant lookup_tu8_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_u32_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2695,8 +3401,12 @@ const CastFn lookup_tu8_to_u32[] = {tu8_to_u32_scalar};
  * @li Index 2: tu8_to_u64_sse4_2() — Requires: SSE4.2
  * @li Index 3: tu8_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_u64[] = {tu8_to_u64_avx512, tu8_to_u64_avx2,
-                                    tu8_to_u64_sse4_2, tu8_to_u64_scalar};
+const CastVariant lookup_tu8_to_u64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu8_to_u64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tu8_to_u64_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tu8_to_u64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_u64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint8 to uint64 conversions.
@@ -2704,7 +3414,9 @@ const CastFn lookup_tu8_to_u64[] = {tu8_to_u64_avx512, tu8_to_u64_avx2,
  * Variants:
  * @li Index 0: tu8_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tu8_to_u64[] = {tu8_to_u64_scalar};
+const CastVariant lookup_tu8_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu8_to_u64_scalar},
+};
 #endif
 
 /**
@@ -2713,7 +3425,9 @@ const CastFn lookup_tu8_to_u64[] = {tu8_to_u64_scalar};
  * Variants:
  * @li Index 0: tu16_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_u8[] = {tu16_to_u8_scalar};
+const CastVariant lookup_tu16_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_u8_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to uint32 conversions.
@@ -2721,7 +3435,9 @@ const CastFn lookup_tu16_to_u8[] = {tu16_to_u8_scalar};
  * Variants:
  * @li Index 0: tu16_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_u32[] = {tu16_to_u32_scalar};
+const CastVariant lookup_tu16_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_u32_scalar},
+};
 
 /**
  * @brief Dispatch table for uint16 to uint64 conversions.
@@ -2729,7 +3445,9 @@ const CastFn lookup_tu16_to_u32[] = {tu16_to_u32_scalar};
  * Variants:
  * @li Index 0: tu16_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tu16_to_u64[] = {tu16_to_u64_scalar};
+const CastVariant lookup_tu16_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu16_to_u64_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2739,7 +3457,10 @@ const CastFn lookup_tu16_to_u64[] = {tu16_to_u64_scalar};
  * @li Index 0: tu32_to_u8_avx512() — Requires: AVX512F
  * @li Index 1: tu32_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_u8[] = {tu32_to_u8_avx512, tu32_to_u8_scalar};
+const CastVariant lookup_tu32_to_u8[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu32_to_u8_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_u8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint32 to uint8 conversions.
@@ -2747,7 +3468,9 @@ const CastFn lookup_tu32_to_u8[] = {tu32_to_u8_avx512, tu32_to_u8_scalar};
  * Variants:
  * @li Index 0: tu32_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_u8[] = {tu32_to_u8_scalar};
+const CastVariant lookup_tu32_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_u8_scalar},
+};
 #endif
 
 /**
@@ -2756,7 +3479,9 @@ const CastFn lookup_tu32_to_u8[] = {tu32_to_u8_scalar};
  * Variants:
  * @li Index 0: tu32_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_u16[] = {tu32_to_u16_scalar};
+const CastVariant lookup_tu32_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_u16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2768,8 +3493,12 @@ const CastFn lookup_tu32_to_u16[] = {tu32_to_u16_scalar};
  * @li Index 2: tu32_to_u64_sse4_2() — Requires: SSE4.2
  * @li Index 3: tu32_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_u64[] = {tu32_to_u64_avx512, tu32_to_u64_avx2,
-                                     tu32_to_u64_sse4_2, tu32_to_u64_scalar};
+const CastVariant lookup_tu32_to_u64[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu32_to_u64_avx512},
+    {.base = {.isa = SimdIsaAVX | SimdIsaAVX2}, .fn = tu32_to_u64_avx2},
+    {.base = {.isa = SimdIsaSSE4_2}, .fn = tu32_to_u64_sse4_2},
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_u64_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint32 to uint64 conversions.
@@ -2777,7 +3506,9 @@ const CastFn lookup_tu32_to_u64[] = {tu32_to_u64_avx512, tu32_to_u64_avx2,
  * Variants:
  * @li Index 0: tu32_to_u64_scalar() — Portable fallback
  */
-const CastFn lookup_tu32_to_u64[] = {tu32_to_u64_scalar};
+const CastVariant lookup_tu32_to_u64[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu32_to_u64_scalar},
+};
 #endif
 
 #ifdef _GNUC_CLANG_
@@ -2788,7 +3519,11 @@ const CastFn lookup_tu32_to_u64[] = {tu32_to_u64_scalar};
  * @li Index 0: tu64_to_u8_avx512() — Requires: AVX512F, AVX512BW
  * @li Index 1: tu64_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_u8[] = {tu64_to_u8_avx512, tu64_to_u8_scalar};
+const CastVariant lookup_tu64_to_u8[] = {
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512BW},
+     .fn = tu64_to_u8_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_u8_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint64 to uint8 conversions.
@@ -2796,7 +3531,9 @@ const CastFn lookup_tu64_to_u8[] = {tu64_to_u8_avx512, tu64_to_u8_scalar};
  * Variants:
  * @li Index 0: tu64_to_u8_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_u8[] = {tu64_to_u8_scalar};
+const CastVariant lookup_tu64_to_u8[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_u8_scalar},
+};
 #endif
 
 /**
@@ -2805,7 +3542,9 @@ const CastFn lookup_tu64_to_u8[] = {tu64_to_u8_scalar};
  * Variants:
  * @li Index 0: tu64_to_u16_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_u16[] = {tu64_to_u16_scalar};
+const CastVariant lookup_tu64_to_u16[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_u16_scalar},
+};
 
 #ifdef _GNUC_CLANG_
 /**
@@ -2815,7 +3554,10 @@ const CastFn lookup_tu64_to_u16[] = {tu64_to_u16_scalar};
  * @li Index 0: tu64_to_u32_avx512() — Requires: AVX512F
  * @li Index 1: tu64_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_u32[] = {tu64_to_u32_avx512, tu64_to_u32_scalar};
+const CastVariant lookup_tu64_to_u32[] = {
+    {.base = {.isa = SimdIsaAVX512F}, .fn = tu64_to_u32_avx512},
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_u32_scalar},
+};
 #else
 /**
  * @brief Dispatch table for uint64 to uint32 conversions.
@@ -2823,5 +3565,7 @@ const CastFn lookup_tu64_to_u32[] = {tu64_to_u32_avx512, tu64_to_u32_scalar};
  * Variants:
  * @li Index 0: tu64_to_u32_scalar() — Portable fallback
  */
-const CastFn lookup_tu64_to_u32[] = {tu64_to_u32_scalar};
+const CastVariant lookup_tu64_to_u32[] = {
+    {.base = {.isa = SimdIsaNone}, .fn = tu64_to_u32_scalar},
+};
 #endif
