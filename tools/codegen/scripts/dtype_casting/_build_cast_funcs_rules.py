@@ -1,9 +1,9 @@
 """Build cast_funcs_rules.json from cast_tables_rules.json + dtype_casting_rules.json.
 
-Derives the dispatch rules (ISA conditions, lookup tables, variant indices) needed
+Derives the dispatch rules (lookup tables, variant indices) needed
 to generate the header-only cast.h file. The output JSON contains only dispatch
 information: function names, lookup table references, guard requirements, and
-pre-computed C condition expressions for each SIMD variant.
+variant order.
 """
 
 from __future__ import annotations
@@ -39,21 +39,6 @@ FLOAT_TYPES = {
 SINT_TYPES = {"s8", "s16", "s32", "s64"}
 UINT_TYPES = {"u8", "u16", "u32", "u64"}
 
-ISA_TO_SIMD = {
-    "AVX512F": "SIMD->avx512f_",
-    "AVX512FP16": "SIMD->avx512_fp16_",
-    "AVX512BF16": "SIMD->avx512_bf16_",
-    "AVX512BW": "SIMD->avx512_bw_",
-    "AVX512VL": "SIMD->avx512_vl_",
-    "AVX512DQ": "SIMD->avx512_dq_",
-    "AVX": "SIMD->avx_",
-    "AVX2": "SIMD->avx2_",
-    "AVX/AVX2": "SIMD->avx_ || SIMD->avx2_",
-    "F16C": "SIMD->f16c_",
-    "SSE4.2": "SIMD->sse4_2_",
-    "AVX10.2": "SIMD->avx10_2_",
-}
-
 
 def categorize_cast(src: str, dst: str) -> str:
     """Classify a cast pair into its dispatch category."""
@@ -85,25 +70,12 @@ def categorize_cast(src: str, dst: str) -> str:
     return "unknown"
 
 
-def requires_to_condition(requires: list[str]) -> str:
-    """Convert a list of ISA requirement strings into a C condition expression."""
-    if not requires:
-        return "1"
-    conds = []
-    for req in requires:
-        if req in ISA_TO_SIMD:
-            conds.append(f"({ISA_TO_SIMD[req]})")
-        else:
-            conds.append(f"/* UNKNOWN_ISA: {req} */ 0")
-    return " && ".join(conds)
-
-
 def build_rules() -> dict:
     """Build the complete cast_funcs_rules.json structure.
 
     Loads both input rule files, merges dispatch information from
     cast_tables_rules with scalar metadata from dtype_casting_rules, and
-    produces a dict organized by cast category with pre-computed conditions.
+    produces a dict organized by cast category.
     """
     with open(CAST_TABLES_RULES) as f:
         cast_tables = json.load(f)
@@ -126,11 +98,7 @@ def build_rules() -> dict:
         for idx, v in enumerate(table["variants"]):
             is_scalar = v.get("is_scalar", False)
             vdata = {"name": v["name"], "idx": idx}
-            if not is_scalar:
-                reqs = v.get("requires", [])
-                vdata["isa_required"] = reqs
-                vdata["condition"] = requires_to_condition(reqs)
-            else:
+            if is_scalar:
                 vdata["is_scalar"] = True
             variants.append(vdata)
 

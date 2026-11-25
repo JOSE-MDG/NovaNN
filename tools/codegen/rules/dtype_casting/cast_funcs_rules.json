@@ -329,20 +329,11 @@
               "funcs": [
                 {
                   "name": "tfp16_to_f32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tfp16_to_f32_avx_avx2_fp16c",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2",
-                    "F16C"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_) && (SIMD->f16c_)"
+                  "idx": 1
                 },
                 {
                   "name": "tfp16_to_f32_scalar",
@@ -361,20 +352,11 @@
               "funcs": [
                 {
                   "name": "tfp16_to_f64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                  "idx": 0
                 },
                 {
                   "name": "tfp16_to_f64_avx_avx2_fp16c",
-                  "idx": 1,
-                  "isa_required": [
-                    "F16C"
-                  ],
-                  "condition": "(SIMD->f16c_)"
+                  "idx": 1
                 },
                 {
                   "name": "tfp16_to_f64_scalar",
@@ -393,12 +375,7 @@
               "funcs": [
                 {
                   "name": "tfp16_to_bf16_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_)"
+                  "idx": 0
                 },
                 {
                   "name": "tfp16_to_bf16_scalar",
@@ -462,20 +439,11 @@
               "funcs": [
                 {
                   "name": "tf32_to_fp16_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf32_to_fp16_avx_avx2_f16c",
-                  "idx": 1,
-                  "isa_required": [
-                    "F16C"
-                  ],
-                  "condition": "(SIMD->f16c_)"
+                  "idx": 1
                 },
                 {
                   "name": "tf32_to_fp16_scalar",
@@ -494,27 +462,15 @@
               "funcs": [
                 {
                   "name": "tf32_to_f64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf32_to_f64_avx_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tf32_to_f64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tf32_to_f64_scalar",
@@ -533,14 +489,7 @@
               "funcs": [
                 {
                   "name": "tf32_to_bf16_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16",
-                    "AVX512BW",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_bw_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf32_to_bf16_scalar",
@@ -604,13 +553,7 @@
               "funcs": [
                 {
                   "name": "tbf16_to_fp16_avx512bf16_fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16",
-                    "AVX512FP16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_fp16_)"
+                  "idx": 0
                 },
                 {
                   "name": "tbf16_to_fp16_scalar",
@@ -629,12 +572,7 @@
               "funcs": [
                 {
                   "name": "tbf16_to_f32_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512BF16",
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512_bf16_) && (SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tbf16_to_f32_scalar",
@@ -653,13 +591,7 @@
               "funcs": [
                 {
                   "name": "tbf16_to_f64_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tbf16_to_f64_scalar",
@@ -723,12 +655,7 @@
               "funcs": [
                 {
                   "name": "tf64_to_fp16_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf64_to_fp16_scalar",
@@ -747,27 +674,15 @@
               "funcs": [
                 {
                   "name": "tf64_to_f32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf64_to_f32_avx_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tf64_to_f32_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tf64_to_f32_scalar",
@@ -786,13 +701,7 @@
               "funcs": [
                 {
                   "name": "tf64_to_bf16_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf64_to_bf16_scalar",
@@ -1023,14 +932,7 @@
               "funcs": [
                 {
                   "name": "tfp16_to_s8_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512FP16",
-                    "AVX512BW",
-                    "AVX512F",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512_fp16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tfp16_to_s8_scalar",
@@ -1064,13 +966,7 @@
               "funcs": [
                 {
                   "name": "tfp16_to_s32_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512FP16",
-                    "AVX512F",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512_fp16_) && (SIMD->avx512f_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tfp16_to_s32_scalar",
@@ -1089,13 +985,7 @@
               "funcs": [
                 {
                   "name": "tfp16_to_s64_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tfp16_to_s64_scalar",
@@ -1114,20 +1004,11 @@
               "funcs": [
                 {
                   "name": "tf32_to_s8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BW"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf32_to_s8_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tf32_to_s8_scalar",
@@ -1161,27 +1042,15 @@
               "funcs": [
                 {
                   "name": "tf32_to_s32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf32_to_s32_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tf32_to_s32_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tf32_to_s32_scalar",
@@ -1200,13 +1069,7 @@
               "funcs": [
                 {
                   "name": "tf32_to_s64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512DQ",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf32_to_s64_scalar",
@@ -1225,13 +1088,7 @@
               "funcs": [
                 {
                   "name": "tbf16_to_s8_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512BF16",
-                    "AVX512BW",
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512_bf16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tbf16_to_s8_scalar",
@@ -1265,12 +1122,7 @@
               "funcs": [
                 {
                   "name": "tbf16_to_s32_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512BF16",
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512_bf16_) && (SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tbf16_to_s32_scalar",
@@ -1289,14 +1141,7 @@
               "funcs": [
                 {
                   "name": "tbf16_to_s64_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16",
-                    "AVX512VL",
-                    "AVX512DQ"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_) && (SIMD->avx512_dq_)"
+                  "idx": 0
                 },
                 {
                   "name": "tbf16_to_s64_scalar",
@@ -1315,11 +1160,7 @@
               "funcs": [
                 {
                   "name": "tf64_to_s8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf64_to_s8_scalar",
@@ -1353,27 +1194,15 @@
               "funcs": [
                 {
                   "name": "tf64_to_s32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf64_to_s32_avx_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tf64_to_s32_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tf64_to_s32_scalar",
@@ -1392,12 +1221,7 @@
               "funcs": [
                 {
                   "name": "tf64_to_s64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512DQ"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf64_to_s64_scalar",
@@ -1598,14 +1422,7 @@
               "funcs": [
                 {
                   "name": "tfp16_to_u8_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16",
-                    "AVX512BW",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_bw_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tfp16_to_u8_scalar",
@@ -1639,13 +1456,7 @@
               "funcs": [
                 {
                   "name": "tfp16_to_u32_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tfp16_to_u32_scalar",
@@ -1664,13 +1475,7 @@
               "funcs": [
                 {
                   "name": "tfp16_to_u64_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tfp16_to_u64_scalar",
@@ -1689,21 +1494,11 @@
               "funcs": [
                 {
                   "name": "tf32_to_u8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BW",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf32_to_u8_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tf32_to_u8_scalar",
@@ -1737,11 +1532,7 @@
               "funcs": [
                 {
                   "name": "tf32_to_u32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf32_to_u32_scalar",
@@ -1760,13 +1551,7 @@
               "funcs": [
                 {
                   "name": "tf32_to_u64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512DQ",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf32_to_u64_scalar",
@@ -1785,13 +1570,7 @@
               "funcs": [
                 {
                   "name": "tbf16_to_u8_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512BF16",
-                    "AVX512BW",
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512_bf16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tbf16_to_u8_scalar",
@@ -1825,12 +1604,7 @@
               "funcs": [
                 {
                   "name": "tbf16_to_u32_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512BF16",
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512_bf16_) && (SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tbf16_to_u32_scalar",
@@ -1849,14 +1623,7 @@
               "funcs": [
                 {
                   "name": "tbf16_to_u64_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16",
-                    "AVX512VL",
-                    "AVX512DQ"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_) && (SIMD->avx512_dq_)"
+                  "idx": 0
                 },
                 {
                   "name": "tbf16_to_u64_scalar",
@@ -1875,11 +1642,7 @@
               "funcs": [
                 {
                   "name": "tf64_to_u8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf64_to_u8_scalar",
@@ -1913,11 +1676,7 @@
               "funcs": [
                 {
                   "name": "tf64_to_u32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf64_to_u32_scalar",
@@ -1936,12 +1695,7 @@
               "funcs": [
                 {
                   "name": "tf64_to_u64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512DQ"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                  "idx": 0
                 },
                 {
                   "name": "tf64_to_u64_scalar",
@@ -2007,12 +1761,7 @@
               "funcs": [
                 {
                   "name": "ts8_to_fp16_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts8_to_fp16_scalar",
@@ -2031,12 +1780,7 @@
               "funcs": [
                 {
                   "name": "ts8_to_bf16_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts8_to_bf16_scalar",
@@ -2055,19 +1799,11 @@
               "funcs": [
                 {
                   "name": "ts8_to_f32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts8_to_f32_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts8_to_f32_scalar",
@@ -2086,11 +1822,7 @@
               "funcs": [
                 {
                   "name": "ts8_to_f64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts8_to_f64_scalar",
@@ -2259,12 +1991,7 @@
               "funcs": [
                 {
                   "name": "ts32_to_fp16_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts32_to_fp16_scalar",
@@ -2283,12 +2010,7 @@
               "funcs": [
                 {
                   "name": "ts32_to_bf16_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts32_to_bf16_scalar",
@@ -2307,27 +2029,15 @@
               "funcs": [
                 {
                   "name": "ts32_to_f32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts32_to_f32_avx_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts32_to_f32_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts32_to_f32_scalar",
@@ -2346,27 +2056,15 @@
               "funcs": [
                 {
                   "name": "ts32_to_f64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts32_to_f64_avx_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts32_to_f64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts32_to_f64_scalar",
@@ -2430,12 +2128,7 @@
               "funcs": [
                 {
                   "name": "ts64_to_fp16_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts64_to_fp16_scalar",
@@ -2454,14 +2147,7 @@
               "funcs": [
                 {
                   "name": "ts64_to_bf16_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512DQ",
-                    "AVX512BF16",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts64_to_bf16_scalar",
@@ -2480,12 +2166,7 @@
               "funcs": [
                 {
                   "name": "ts64_to_f32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512DQ"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts64_to_f32_scalar",
@@ -2504,12 +2185,7 @@
               "funcs": [
                 {
                   "name": "ts64_to_f64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512DQ"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts64_to_f64_scalar",
@@ -2545,27 +2221,15 @@
               "funcs": [
                 {
                   "name": "ts8_to_s32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts8_to_s32_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts8_to_s32_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts8_to_s32_scalar",
@@ -2584,27 +2248,15 @@
               "funcs": [
                 {
                   "name": "ts8_to_s64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts8_to_s64_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts8_to_s64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts8_to_s64_scalar",
@@ -2668,11 +2320,7 @@
               "funcs": [
                 {
                   "name": "ts32_to_s8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts32_to_s8_scalar",
@@ -2706,27 +2354,15 @@
               "funcs": [
                 {
                   "name": "ts32_to_s64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts32_to_s64_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts32_to_s64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts32_to_s64_scalar",
@@ -2745,12 +2381,7 @@
               "funcs": [
                 {
                   "name": "ts64_to_s8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BW"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts64_to_s8_scalar",
@@ -2784,11 +2415,7 @@
               "funcs": [
                 {
                   "name": "ts64_to_s32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts64_to_s32_scalar",
@@ -2809,27 +2436,15 @@
               "funcs": [
                 {
                   "name": "ts8_to_u8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts8_to_u8_avx_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts8_to_u8_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts8_to_u8_scalar",
@@ -2863,27 +2478,15 @@
               "funcs": [
                 {
                   "name": "ts8_to_u32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts8_to_u32_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts8_to_u32_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts8_to_u32_scalar",
@@ -2902,11 +2505,7 @@
               "funcs": [
                 {
                   "name": "ts8_to_u64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts8_to_u64_scalar",
@@ -2985,28 +2584,15 @@
               "funcs": [
                 {
                   "name": "ts32_to_u8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BW"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts32_to_u8_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts32_to_u8_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts32_to_u8_scalar",
@@ -3040,27 +2626,15 @@
               "funcs": [
                 {
                   "name": "ts32_to_u32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts32_to_u32_avx_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts32_to_u32_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts32_to_u32_scalar",
@@ -3079,27 +2653,15 @@
               "funcs": [
                 {
                   "name": "ts32_to_u64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts32_to_u64_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts32_to_u64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts32_to_u64_scalar",
@@ -3118,11 +2680,7 @@
               "funcs": [
                 {
                   "name": "ts64_to_u8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts64_to_u8_scalar",
@@ -3156,11 +2714,7 @@
               "funcs": [
                 {
                   "name": "ts64_to_u32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts64_to_u32_scalar",
@@ -3179,27 +2733,15 @@
               "funcs": [
                 {
                   "name": "ts64_to_u64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "ts64_to_u64_avx_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "ts64_to_u64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "ts64_to_u64_scalar",
@@ -3265,12 +2807,7 @@
               "funcs": [
                 {
                   "name": "tu8_to_fp16_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu8_to_fp16_scalar",
@@ -3289,12 +2826,7 @@
               "funcs": [
                 {
                   "name": "tu8_to_bf16_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu8_to_bf16_scalar",
@@ -3313,19 +2845,11 @@
               "funcs": [
                 {
                   "name": "tu8_to_f32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu8_to_f32_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tu8_to_f32_scalar",
@@ -3344,11 +2868,7 @@
               "funcs": [
                 {
                   "name": "tu8_to_f64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu8_to_f64_scalar",
@@ -3517,12 +3037,7 @@
               "funcs": [
                 {
                   "name": "tu32_to_fp16_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu32_to_fp16_scalar",
@@ -3541,12 +3056,7 @@
               "funcs": [
                 {
                   "name": "tu32_to_bf16_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BF16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bf16_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu32_to_bf16_scalar",
@@ -3565,11 +3075,7 @@
               "funcs": [
                 {
                   "name": "tu32_to_f32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu32_to_f32_scalar",
@@ -3588,11 +3094,7 @@
               "funcs": [
                 {
                   "name": "tu32_to_f64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu32_to_f64_scalar",
@@ -3656,12 +3158,7 @@
               "funcs": [
                 {
                   "name": "tu64_to_fp16_avx512fp16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512FP16"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_fp16_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu64_to_fp16_scalar",
@@ -3680,14 +3177,7 @@
               "funcs": [
                 {
                   "name": "tu64_to_bf16_avx512bf16",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512DQ",
-                    "AVX512BF16",
-                    "AVX512VL"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu64_to_bf16_scalar",
@@ -3706,12 +3196,7 @@
               "funcs": [
                 {
                   "name": "tu64_to_f32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512DQ"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu64_to_f32_scalar",
@@ -3730,12 +3215,7 @@
               "funcs": [
                 {
                   "name": "tu64_to_f64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512DQ"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_dq_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu64_to_f64_scalar",
@@ -3756,28 +3236,15 @@
               "funcs": [
                 {
                   "name": "tu8_to_s8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BW"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu8_to_s8_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tu8_to_s8_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tu8_to_s8_scalar",
@@ -3811,27 +3278,15 @@
               "funcs": [
                 {
                   "name": "tu8_to_s32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu8_to_s32_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tu8_to_s32_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tu8_to_s32_scalar",
@@ -3850,27 +3305,15 @@
               "funcs": [
                 {
                   "name": "tu8_to_s64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu8_to_s64_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tu8_to_s64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tu8_to_s64_scalar",
@@ -3949,12 +3392,7 @@
               "funcs": [
                 {
                   "name": "tu32_to_s8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BW"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu32_to_s8_scalar",
@@ -3988,27 +3426,15 @@
               "funcs": [
                 {
                   "name": "tu32_to_s32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu32_to_s32_avx_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tu32_to_s32_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tu32_to_s32_scalar",
@@ -4027,27 +3453,15 @@
               "funcs": [
                 {
                   "name": "tu32_to_s64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu32_to_s64_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tu32_to_s64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tu32_to_s64_scalar",
@@ -4066,11 +3480,7 @@
               "funcs": [
                 {
                   "name": "tu64_to_s8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu64_to_s8_scalar",
@@ -4104,11 +3514,7 @@
               "funcs": [
                 {
                   "name": "tu64_to_s32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu64_to_s32_scalar",
@@ -4127,27 +3533,15 @@
               "funcs": [
                 {
                   "name": "tu64_to_s64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu64_to_s64_avx_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX/AVX2"
-                  ],
-                  "condition": "(SIMD->avx_ || SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tu64_to_s64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tu64_to_s64_scalar",
@@ -4183,19 +3577,11 @@
               "funcs": [
                 {
                   "name": "tu8_to_u32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu8_to_u32_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tu8_to_u32_scalar",
@@ -4214,27 +3600,15 @@
               "funcs": [
                 {
                   "name": "tu8_to_u64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu8_to_u64_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tu8_to_u64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tu8_to_u64_scalar",
@@ -4298,11 +3672,7 @@
               "funcs": [
                 {
                   "name": "tu32_to_u8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu32_to_u8_scalar",
@@ -4336,27 +3706,15 @@
               "funcs": [
                 {
                   "name": "tu32_to_u64_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu32_to_u64_avx2",
-                  "idx": 1,
-                  "isa_required": [
-                    "AVX2"
-                  ],
-                  "condition": "(SIMD->avx2_)"
+                  "idx": 1
                 },
                 {
                   "name": "tu32_to_u64_sse4_2",
-                  "idx": 2,
-                  "isa_required": [
-                    "SSE4.2"
-                  ],
-                  "condition": "(SIMD->sse4_2_)"
+                  "idx": 2
                 },
                 {
                   "name": "tu32_to_u64_scalar",
@@ -4375,12 +3733,7 @@
               "funcs": [
                 {
                   "name": "tu64_to_u8_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F",
-                    "AVX512BW"
-                  ],
-                  "condition": "(SIMD->avx512f_) && (SIMD->avx512_bw_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu64_to_u8_scalar",
@@ -4414,11 +3767,7 @@
               "funcs": [
                 {
                   "name": "tu64_to_u32_avx512",
-                  "idx": 0,
-                  "isa_required": [
-                    "AVX512F"
-                  ],
-                  "condition": "(SIMD->avx512f_)"
+                  "idx": 0
                 },
                 {
                   "name": "tu64_to_u32_scalar",
