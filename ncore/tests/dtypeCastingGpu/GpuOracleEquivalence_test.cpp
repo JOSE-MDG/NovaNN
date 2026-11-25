@@ -2,7 +2,7 @@
  * @file GpuOracleEquivalence_test.cpp
  * @brief Full-matrix bitwise equivalence of device casts vs CPU scalar.
  *
- * Parameterized over all 210 supported pairs: each case stages the
+ * Parameterized over all supported pairs: each case stages the
  * deterministic fill to the device, converts on the device and with
  * the scalar reference kernel, transfers the device result home, and
  * compares byte-exact (strict bitwise contract, NaN payloads
