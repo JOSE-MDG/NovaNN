@@ -13,7 +13,7 @@
  * @li Generator : tools/codegen/scripts/dtype_casting/gen_cast_funcs.py
  *
  * @details
- * Header-only file that provides 210 inline X-macro cast functions,
+ * Header-only file that provides 212 inline X-macro cast functions,
  * each selecting the best available SIMD implementation at runtime
  * based on the CPU capabilities reported by @ref get_simd_capabilities().
  *
@@ -23,11 +23,14 @@
  *
  * @code{.c}
  * tfP_to_Q(src, dst):
- *     if (AVX-512 available)  → lookup_tP_to_Q[0](src, dst)
- *     if (AVX2/F16C available)→ lookup_tP_to_Q[1](src, dst)
- *     ...
- *     fallback               → lookup_tP_to_Q[N](src, dst)
+ *     variant = SIMD_SELECT(lookup_tP_to_Q, count, SIMD)
+ *     variant->fn(src, dst, status)
  * @endcode
+ *
+ * @ref simd_select_stride() walks the table in order and returns the first
+ * entry whose @ref SimdIsa requirement the host satisfies, including the
+ * operating-system XCR0 state. Every table ends with the scalar fallback
+ * (@ref SimdIsaNone), so a non-empty table always yields a kernel.
  *
  * On non-GCC/Clang compilers, SIMD variants are not
  * available; the dispatch resolves directly to the scalar fallback.
@@ -42,7 +45,7 @@
  * The cast functions are grouped into seven X-macro families that
  * enumerate every supported (src, dst) pair:
  *
- * @li @ref CAST_FP_TYPES     — 42 pairs — Float ↔ Float (all combinations)
+ * @li @ref CAST_FP_TYPES     — 44 pairs — Float ↔ Float (core types + E8M0 ↔ Float32)
  * @li @ref CAST_FP_TO_INT    — 56 pairs — Float → Signed/Unsigned integer
  * @li @ref CAST_INT_TO_FP    — 56 pairs — Signed/Unsigned integer → Float
  * @li @ref CAST_SINT_TO_SINT — 12 pairs — Signed integer width changes
@@ -52,7 +55,7 @@
  *
  * Each macro accepts a callback @c F(from, to) and expands to a
  * series of @c F(...) invocations.  The @ref DECL_CAST macro uses
- * these to generate forward declarations for all 210 functions.
+ * these to generate forward declarations for all 212 functions.
  *
  * @section quantized-types Quantized types
  *
@@ -84,6 +87,8 @@
 
 #pragma once
 
+#include <assert.h>
+
 #include <ncore/headeronly/macros.h>
 #include <ncore/simd/simd.h>
 #include <ncore/tables/cast_tables.h>
@@ -95,10 +100,11 @@
  * @brief X-macro enumerating all float-to-float conversion pairs.
  *
  * @details
- * Generates 42 entries covering every combination of
- * @c {Float16, Float32, Float64, BFloat16, Float8E4M3fn,
+ * Generates 44 entries: every combination of the seven core float
+ * types @c {Float16, Float32, Float64, BFloat16, Float8E4M3fn,
  * Float8E5M2, Float4E2M1fn} as both source and target
- * (excluding identity).
+ * (excluding identity), plus @c Float32 ↔ @c Float8E8M0fnu
+ * in both directions.
  */
 #define CAST_FP_TYPES(F)                                                       \
   F(fp16, f32)                                                                 \
@@ -142,7 +148,9 @@
   F(fp4e2m1, f64)                                                              \
   F(fp4e2m1, bf16)                                                             \
   F(fp4e2m1, fp8e4m3)                                                          \
-  F(fp4e2m1, fp8e5m2)
+  F(fp4e2m1, fp8e5m2)                                                          \
+  F(f32, fp8e8m0)                                                              \
+  F(fp8e8m0, f32)
 /** @} */
 
 /**
@@ -374,7 +382,7 @@
  *                                     novaStatus_t *status);
  * @endcode
  *
- * Called via the X-macro families to declare all 210 cast
+ * Called via the X-macro families to declare all 212 cast
  * functions before their definitions.
  *
  * @param from  Source dtype short name (e.g., @c fp16, @c s8).
@@ -423,7 +431,7 @@ CAST_UINT_TO_SINT(DECL_CAST)
 static inline void tfp4e2m1_to_fp8e4m3(const Tensor *restrict src,
                                        Tensor *restrict dst,
                                        novaStatus_t *status) {
-  lookup_tfp4e2m1_to_fp8e4m3[0](src, dst, status);
+  lookup_tfp4e2m1_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -437,7 +445,7 @@ static inline void tfp4e2m1_to_fp8e4m3(const Tensor *restrict src,
 static inline void tfp4e2m1_to_fp8e5m2(const Tensor *restrict src,
                                        Tensor *restrict dst,
                                        novaStatus_t *status) {
-  lookup_tfp4e2m1_to_fp8e5m2[0](src, dst, status);
+  lookup_tfp4e2m1_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -451,7 +459,7 @@ static inline void tfp4e2m1_to_fp8e5m2(const Tensor *restrict src,
 static inline void tfp4e2m1_to_fp16(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tfp4e2m1_to_fp16[0](src, dst, status);
+  lookup_tfp4e2m1_to_fp16[0].fn(src, dst, status);
 }
 
 /**
@@ -465,7 +473,7 @@ static inline void tfp4e2m1_to_fp16(const Tensor *restrict src,
 static inline void tfp4e2m1_to_bf16(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tfp4e2m1_to_bf16[0](src, dst, status);
+  lookup_tfp4e2m1_to_bf16[0].fn(src, dst, status);
 }
 
 /**
@@ -478,7 +486,7 @@ static inline void tfp4e2m1_to_bf16(const Tensor *restrict src,
  */
 static inline void tfp4e2m1_to_f32(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp4e2m1_to_f32[0](src, dst, status);
+  lookup_tfp4e2m1_to_f32[0].fn(src, dst, status);
 }
 
 /**
@@ -491,7 +499,7 @@ static inline void tfp4e2m1_to_f32(const Tensor *restrict src,
  */
 static inline void tfp4e2m1_to_f64(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp4e2m1_to_f64[0](src, dst, status);
+  lookup_tfp4e2m1_to_f64[0].fn(src, dst, status);
 }
 
 /**
@@ -505,7 +513,7 @@ static inline void tfp4e2m1_to_f64(const Tensor *restrict src,
 static inline void tfp8e4m3_to_fp4e2m1(const Tensor *restrict src,
                                        Tensor *restrict dst,
                                        novaStatus_t *status) {
-  lookup_tfp8e4m3_to_fp4e2m1[0](src, dst, status);
+  lookup_tfp8e4m3_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -519,7 +527,7 @@ static inline void tfp8e4m3_to_fp4e2m1(const Tensor *restrict src,
 static inline void tfp8e4m3_to_fp8e5m2(const Tensor *restrict src,
                                        Tensor *restrict dst,
                                        novaStatus_t *status) {
-  lookup_tfp8e4m3_to_fp8e5m2[0](src, dst, status);
+  lookup_tfp8e4m3_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -533,7 +541,7 @@ static inline void tfp8e4m3_to_fp8e5m2(const Tensor *restrict src,
 static inline void tfp8e4m3_to_fp16(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tfp8e4m3_to_fp16[0](src, dst, status);
+  lookup_tfp8e4m3_to_fp16[0].fn(src, dst, status);
 }
 
 /**
@@ -547,7 +555,7 @@ static inline void tfp8e4m3_to_fp16(const Tensor *restrict src,
 static inline void tfp8e4m3_to_bf16(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tfp8e4m3_to_bf16[0](src, dst, status);
+  lookup_tfp8e4m3_to_bf16[0].fn(src, dst, status);
 }
 
 /**
@@ -560,7 +568,7 @@ static inline void tfp8e4m3_to_bf16(const Tensor *restrict src,
  */
 static inline void tfp8e4m3_to_f32(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e4m3_to_f32[0](src, dst, status);
+  lookup_tfp8e4m3_to_f32[0].fn(src, dst, status);
 }
 
 /**
@@ -573,7 +581,7 @@ static inline void tfp8e4m3_to_f32(const Tensor *restrict src,
  */
 static inline void tfp8e4m3_to_f64(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e4m3_to_f64[0](src, dst, status);
+  lookup_tfp8e4m3_to_f64[0].fn(src, dst, status);
 }
 
 /**
@@ -587,7 +595,7 @@ static inline void tfp8e4m3_to_f64(const Tensor *restrict src,
 static inline void tfp8e5m2_to_fp4e2m1(const Tensor *restrict src,
                                        Tensor *restrict dst,
                                        novaStatus_t *status) {
-  lookup_tfp8e5m2_to_fp4e2m1[0](src, dst, status);
+  lookup_tfp8e5m2_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -601,7 +609,7 @@ static inline void tfp8e5m2_to_fp4e2m1(const Tensor *restrict src,
 static inline void tfp8e5m2_to_fp8e4m3(const Tensor *restrict src,
                                        Tensor *restrict dst,
                                        novaStatus_t *status) {
-  lookup_tfp8e5m2_to_fp8e4m3[0](src, dst, status);
+  lookup_tfp8e5m2_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -615,7 +623,7 @@ static inline void tfp8e5m2_to_fp8e4m3(const Tensor *restrict src,
 static inline void tfp8e5m2_to_fp16(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tfp8e5m2_to_fp16[0](src, dst, status);
+  lookup_tfp8e5m2_to_fp16[0].fn(src, dst, status);
 }
 
 /**
@@ -629,7 +637,7 @@ static inline void tfp8e5m2_to_fp16(const Tensor *restrict src,
 static inline void tfp8e5m2_to_bf16(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tfp8e5m2_to_bf16[0](src, dst, status);
+  lookup_tfp8e5m2_to_bf16[0].fn(src, dst, status);
 }
 
 /**
@@ -642,7 +650,7 @@ static inline void tfp8e5m2_to_bf16(const Tensor *restrict src,
  */
 static inline void tfp8e5m2_to_f32(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e5m2_to_f32[0](src, dst, status);
+  lookup_tfp8e5m2_to_f32[0].fn(src, dst, status);
 }
 
 /**
@@ -655,7 +663,7 @@ static inline void tfp8e5m2_to_f32(const Tensor *restrict src,
  */
 static inline void tfp8e5m2_to_f64(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e5m2_to_f64[0](src, dst, status);
+  lookup_tfp8e5m2_to_f64[0].fn(src, dst, status);
 }
 
 /**
@@ -669,7 +677,7 @@ static inline void tfp8e5m2_to_f64(const Tensor *restrict src,
 static inline void tfp16_to_fp4e2m1(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tfp16_to_fp4e2m1[0](src, dst, status);
+  lookup_tfp16_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -683,7 +691,7 @@ static inline void tfp16_to_fp4e2m1(const Tensor *restrict src,
 static inline void tfp16_to_fp8e4m3(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tfp16_to_fp8e4m3[0](src, dst, status);
+  lookup_tfp16_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -697,7 +705,7 @@ static inline void tfp16_to_fp8e4m3(const Tensor *restrict src,
 static inline void tfp16_to_fp8e5m2(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tfp16_to_fp8e5m2[0](src, dst, status);
+  lookup_tfp16_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -711,17 +719,12 @@ static inline void tfp16_to_fp8e5m2(const Tensor *restrict src,
 static inline void tfp16_to_f32(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tfp16_to_f32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_) && (SIMD->f16c_)) {
-    lookup_tfp16_to_f32[1](src, dst, status);
-    return;
-  }
-  lookup_tfp16_to_f32[2](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tfp16_to_f32, 3, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tfp16_to_f32[2](src, dst, status);
+  lookup_tfp16_to_f32[0].fn(src, dst, status);
 #endif
 }
 
@@ -736,17 +739,12 @@ static inline void tfp16_to_f32(const Tensor *restrict src,
 static inline void tfp16_to_f64(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tfp16_to_f64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->f16c_)) {
-    lookup_tfp16_to_f64[1](src, dst, status);
-    return;
-  }
-  lookup_tfp16_to_f64[2](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tfp16_to_f64, 3, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tfp16_to_f64[2](src, dst, status);
+  lookup_tfp16_to_f64[0].fn(src, dst, status);
 #endif
 }
 
@@ -761,13 +759,12 @@ static inline void tfp16_to_f64(const Tensor *restrict src,
 static inline void tfp16_to_bf16(const Tensor *restrict src,
                                  Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_)) {
-    lookup_tfp16_to_bf16[0](src, dst, status);
-    return;
-  }
-  lookup_tfp16_to_bf16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tfp16_to_bf16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tfp16_to_bf16[1](src, dst, status);
+  lookup_tfp16_to_bf16[0].fn(src, dst, status);
 #endif
 }
 
@@ -781,7 +778,7 @@ static inline void tfp16_to_bf16(const Tensor *restrict src,
  */
 static inline void tf32_to_fp4e2m1(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tf32_to_fp4e2m1[0](src, dst, status);
+  lookup_tf32_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -794,7 +791,7 @@ static inline void tf32_to_fp4e2m1(const Tensor *restrict src,
  */
 static inline void tf32_to_fp8e4m3(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tf32_to_fp8e4m3[0](src, dst, status);
+  lookup_tf32_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -807,7 +804,7 @@ static inline void tf32_to_fp8e4m3(const Tensor *restrict src,
  */
 static inline void tf32_to_fp8e5m2(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tf32_to_fp8e5m2[0](src, dst, status);
+  lookup_tf32_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -821,17 +818,12 @@ static inline void tf32_to_fp8e5m2(const Tensor *restrict src,
 static inline void tf32_to_fp16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tf32_to_fp16[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->f16c_)) {
-    lookup_tf32_to_fp16[1](src, dst, status);
-    return;
-  }
-  lookup_tf32_to_fp16[2](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf32_to_fp16, 3, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf32_to_fp16[2](src, dst, status);
+  lookup_tf32_to_fp16[0].fn(src, dst, status);
 #endif
 }
 
@@ -846,21 +838,12 @@ static inline void tf32_to_fp16(const Tensor *restrict src,
 static inline void tf32_to_f64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tf32_to_f64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_tf32_to_f64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tf32_to_f64[2](src, dst, status);
-    return;
-  }
-  lookup_tf32_to_f64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf32_to_f64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf32_to_f64[3](src, dst, status);
+  lookup_tf32_to_f64[0].fn(src, dst, status);
 #endif
 }
 
@@ -875,14 +858,12 @@ static inline void tf32_to_f64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tf32_to_bf16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_bw_) &&
-      (SIMD->avx512_vl_)) {
-    lookup_tf32_to_bf16[0](src, dst, status);
-    return;
-  }
-  lookup_tf32_to_bf16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf32_to_bf16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf32_to_bf16[1](src, dst, status);
+  lookup_tf32_to_bf16[0].fn(src, dst, status);
 #endif
 }
 
@@ -897,7 +878,7 @@ static inline void tf32_to_bf16(const Tensor *restrict src,
 static inline void tbf16_to_fp4e2m1(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tbf16_to_fp4e2m1[0](src, dst, status);
+  lookup_tbf16_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -911,7 +892,7 @@ static inline void tbf16_to_fp4e2m1(const Tensor *restrict src,
 static inline void tbf16_to_fp8e4m3(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tbf16_to_fp8e4m3[0](src, dst, status);
+  lookup_tbf16_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -925,7 +906,7 @@ static inline void tbf16_to_fp8e4m3(const Tensor *restrict src,
 static inline void tbf16_to_fp8e5m2(const Tensor *restrict src,
                                     Tensor *restrict dst,
                                     novaStatus_t *status) {
-  lookup_tbf16_to_fp8e5m2[0](src, dst, status);
+  lookup_tbf16_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -939,13 +920,12 @@ static inline void tbf16_to_fp8e5m2(const Tensor *restrict src,
 static inline void tbf16_to_fp16(const Tensor *restrict src,
                                  Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_fp16_)) {
-    lookup_tbf16_to_fp16[0](src, dst, status);
-    return;
-  }
-  lookup_tbf16_to_fp16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tbf16_to_fp16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tbf16_to_fp16[1](src, dst, status);
+  lookup_tbf16_to_fp16[0].fn(src, dst, status);
 #endif
 }
 
@@ -960,13 +940,12 @@ static inline void tbf16_to_fp16(const Tensor *restrict src,
 static inline void tbf16_to_f32(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512_bf16_) && (SIMD->avx512f_)) {
-    lookup_tbf16_to_f32[0](src, dst, status);
-    return;
-  }
-  lookup_tbf16_to_f32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tbf16_to_f32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tbf16_to_f32[1](src, dst, status);
+  lookup_tbf16_to_f32[0].fn(src, dst, status);
 #endif
 }
 
@@ -981,13 +960,12 @@ static inline void tbf16_to_f32(const Tensor *restrict src,
 static inline void tbf16_to_f64(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)) {
-    lookup_tbf16_to_f64[0](src, dst, status);
-    return;
-  }
-  lookup_tbf16_to_f64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tbf16_to_f64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tbf16_to_f64[1](src, dst, status);
+  lookup_tbf16_to_f64[0].fn(src, dst, status);
 #endif
 }
 
@@ -1001,7 +979,7 @@ static inline void tbf16_to_f64(const Tensor *restrict src,
  */
 static inline void tf64_to_fp4e2m1(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tf64_to_fp4e2m1[0](src, dst, status);
+  lookup_tf64_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -1014,7 +992,7 @@ static inline void tf64_to_fp4e2m1(const Tensor *restrict src,
  */
 static inline void tf64_to_fp8e4m3(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tf64_to_fp8e4m3[0](src, dst, status);
+  lookup_tf64_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -1027,7 +1005,7 @@ static inline void tf64_to_fp8e4m3(const Tensor *restrict src,
  */
 static inline void tf64_to_fp8e5m2(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tf64_to_fp8e5m2[0](src, dst, status);
+  lookup_tf64_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -1041,13 +1019,12 @@ static inline void tf64_to_fp8e5m2(const Tensor *restrict src,
 static inline void tf64_to_fp16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tf64_to_fp16[0](src, dst, status);
-    return;
-  }
-  lookup_tf64_to_fp16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf64_to_fp16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf64_to_fp16[1](src, dst, status);
+  lookup_tf64_to_fp16[0].fn(src, dst, status);
 #endif
 }
 
@@ -1062,21 +1039,12 @@ static inline void tf64_to_fp16(const Tensor *restrict src,
 static inline void tf64_to_f32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tf64_to_f32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_tf64_to_f32[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tf64_to_f32[2](src, dst, status);
-    return;
-  }
-  lookup_tf64_to_f32[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf64_to_f32, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf64_to_f32[3](src, dst, status);
+  lookup_tf64_to_f32[0].fn(src, dst, status);
 #endif
 }
 
@@ -1091,13 +1059,12 @@ static inline void tf64_to_f32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tf64_to_bf16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_)) {
-    lookup_tf64_to_bf16[0](src, dst, status);
-    return;
-  }
-  lookup_tf64_to_bf16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf64_to_bf16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf64_to_bf16[1](src, dst, status);
+  lookup_tf64_to_bf16[0].fn(src, dst, status);
 #endif
 }
 
@@ -1111,7 +1078,7 @@ static inline void tf64_to_bf16(const Tensor *restrict src,
  */
 static inline void tf32_to_fp8e8m0(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tf32_to_fp8e8m0[0](src, dst, status);
+  lookup_tf32_to_fp8e8m0[0].fn(src, dst, status);
 }
 
 /**
@@ -1124,7 +1091,7 @@ static inline void tf32_to_fp8e8m0(const Tensor *restrict src,
  */
 static inline void tfp8e8m0_to_f32(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e8m0_to_f32[0](src, dst, status);
+  lookup_tfp8e8m0_to_f32[0].fn(src, dst, status);
 }
 
 /* floating_to_sinteger */
@@ -1139,7 +1106,7 @@ static inline void tfp8e8m0_to_f32(const Tensor *restrict src,
  */
 static inline void tfp4e2m1_to_s8(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp4e2m1_to_s8[0](src, dst, status);
+  lookup_tfp4e2m1_to_s8[0].fn(src, dst, status);
 }
 
 /**
@@ -1152,7 +1119,7 @@ static inline void tfp4e2m1_to_s8(const Tensor *restrict src,
  */
 static inline void tfp4e2m1_to_s16(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp4e2m1_to_s16[0](src, dst, status);
+  lookup_tfp4e2m1_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -1165,7 +1132,7 @@ static inline void tfp4e2m1_to_s16(const Tensor *restrict src,
  */
 static inline void tfp4e2m1_to_s32(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp4e2m1_to_s32[0](src, dst, status);
+  lookup_tfp4e2m1_to_s32[0].fn(src, dst, status);
 }
 
 /**
@@ -1178,7 +1145,7 @@ static inline void tfp4e2m1_to_s32(const Tensor *restrict src,
  */
 static inline void tfp4e2m1_to_s64(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp4e2m1_to_s64[0](src, dst, status);
+  lookup_tfp4e2m1_to_s64[0].fn(src, dst, status);
 }
 
 /**
@@ -1191,7 +1158,7 @@ static inline void tfp4e2m1_to_s64(const Tensor *restrict src,
  */
 static inline void tfp8e4m3_to_s8(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e4m3_to_s8[0](src, dst, status);
+  lookup_tfp8e4m3_to_s8[0].fn(src, dst, status);
 }
 
 /**
@@ -1204,7 +1171,7 @@ static inline void tfp8e4m3_to_s8(const Tensor *restrict src,
  */
 static inline void tfp8e4m3_to_s16(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e4m3_to_s16[0](src, dst, status);
+  lookup_tfp8e4m3_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -1217,7 +1184,7 @@ static inline void tfp8e4m3_to_s16(const Tensor *restrict src,
  */
 static inline void tfp8e4m3_to_s32(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e4m3_to_s32[0](src, dst, status);
+  lookup_tfp8e4m3_to_s32[0].fn(src, dst, status);
 }
 
 /**
@@ -1230,7 +1197,7 @@ static inline void tfp8e4m3_to_s32(const Tensor *restrict src,
  */
 static inline void tfp8e4m3_to_s64(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e4m3_to_s64[0](src, dst, status);
+  lookup_tfp8e4m3_to_s64[0].fn(src, dst, status);
 }
 
 /**
@@ -1243,7 +1210,7 @@ static inline void tfp8e4m3_to_s64(const Tensor *restrict src,
  */
 static inline void tfp8e5m2_to_s8(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e5m2_to_s8[0](src, dst, status);
+  lookup_tfp8e5m2_to_s8[0].fn(src, dst, status);
 }
 
 /**
@@ -1256,7 +1223,7 @@ static inline void tfp8e5m2_to_s8(const Tensor *restrict src,
  */
 static inline void tfp8e5m2_to_s16(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e5m2_to_s16[0](src, dst, status);
+  lookup_tfp8e5m2_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -1269,7 +1236,7 @@ static inline void tfp8e5m2_to_s16(const Tensor *restrict src,
  */
 static inline void tfp8e5m2_to_s32(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e5m2_to_s32[0](src, dst, status);
+  lookup_tfp8e5m2_to_s32[0].fn(src, dst, status);
 }
 
 /**
@@ -1282,7 +1249,7 @@ static inline void tfp8e5m2_to_s32(const Tensor *restrict src,
  */
 static inline void tfp8e5m2_to_s64(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e5m2_to_s64[0](src, dst, status);
+  lookup_tfp8e5m2_to_s64[0].fn(src, dst, status);
 }
 
 /**
@@ -1296,14 +1263,12 @@ static inline void tfp8e5m2_to_s64(const Tensor *restrict src,
 static inline void tfp16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512_fp16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_) &&
-      (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_s8[0](src, dst, status);
-    return;
-  }
-  lookup_tfp16_to_s8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tfp16_to_s8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tfp16_to_s8[1](src, dst, status);
+  lookup_tfp16_to_s8[0].fn(src, dst, status);
 #endif
 }
 
@@ -1317,7 +1282,7 @@ static inline void tfp16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tfp16_to_s16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp16_to_s16[0](src, dst, status);
+  lookup_tfp16_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -1331,13 +1296,12 @@ static inline void tfp16_to_s16(const Tensor *restrict src,
 static inline void tfp16_to_s32(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512_fp16_) && (SIMD->avx512f_) && (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_s32[0](src, dst, status);
-    return;
-  }
-  lookup_tfp16_to_s32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tfp16_to_s32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tfp16_to_s32[1](src, dst, status);
+  lookup_tfp16_to_s32[0].fn(src, dst, status);
 #endif
 }
 
@@ -1352,13 +1316,12 @@ static inline void tfp16_to_s32(const Tensor *restrict src,
 static inline void tfp16_to_s64(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_s64[0](src, dst, status);
-    return;
-  }
-  lookup_tfp16_to_s64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tfp16_to_s64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tfp16_to_s64[1](src, dst, status);
+  lookup_tfp16_to_s64[0].fn(src, dst, status);
 #endif
 }
 
@@ -1373,17 +1336,12 @@ static inline void tfp16_to_s64(const Tensor *restrict src,
 static inline void tf32_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_tf32_to_s8[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tf32_to_s8[1](src, dst, status);
-    return;
-  }
-  lookup_tf32_to_s8[2](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf32_to_s8, 3, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf32_to_s8[2](src, dst, status);
+  lookup_tf32_to_s8[0].fn(src, dst, status);
 #endif
 }
 
@@ -1397,7 +1355,7 @@ static inline void tf32_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tf32_to_s16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tf32_to_s16[0](src, dst, status);
+  lookup_tf32_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -1411,21 +1369,12 @@ static inline void tf32_to_s16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tf32_to_s32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tf32_to_s32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tf32_to_s32[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tf32_to_s32[2](src, dst, status);
-    return;
-  }
-  lookup_tf32_to_s32[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf32_to_s32, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf32_to_s32[3](src, dst, status);
+  lookup_tf32_to_s32[0].fn(src, dst, status);
 #endif
 }
 
@@ -1440,13 +1389,12 @@ static inline void tf32_to_s32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tf32_to_s64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_vl_)) {
-    lookup_tf32_to_s64[0](src, dst, status);
-    return;
-  }
-  lookup_tf32_to_s64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf32_to_s64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf32_to_s64[1](src, dst, status);
+  lookup_tf32_to_s64[0].fn(src, dst, status);
 #endif
 }
 
@@ -1461,13 +1409,12 @@ static inline void tf32_to_s64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tbf16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512_bf16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_)) {
-    lookup_tbf16_to_s8[0](src, dst, status);
-    return;
-  }
-  lookup_tbf16_to_s8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tbf16_to_s8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tbf16_to_s8[1](src, dst, status);
+  lookup_tbf16_to_s8[0].fn(src, dst, status);
 #endif
 }
 
@@ -1481,7 +1428,7 @@ static inline void tbf16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tbf16_to_s16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tbf16_to_s16[0](src, dst, status);
+  lookup_tbf16_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -1495,13 +1442,12 @@ static inline void tbf16_to_s16(const Tensor *restrict src,
 static inline void tbf16_to_s32(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512_bf16_) && (SIMD->avx512f_)) {
-    lookup_tbf16_to_s32[0](src, dst, status);
-    return;
-  }
-  lookup_tbf16_to_s32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tbf16_to_s32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tbf16_to_s32[1](src, dst, status);
+  lookup_tbf16_to_s32[0].fn(src, dst, status);
 #endif
 }
 
@@ -1516,14 +1462,12 @@ static inline void tbf16_to_s32(const Tensor *restrict src,
 static inline void tbf16_to_s64(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_) &&
-      (SIMD->avx512_dq_)) {
-    lookup_tbf16_to_s64[0](src, dst, status);
-    return;
-  }
-  lookup_tbf16_to_s64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tbf16_to_s64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tbf16_to_s64[1](src, dst, status);
+  lookup_tbf16_to_s64[0].fn(src, dst, status);
 #endif
 }
 
@@ -1538,13 +1482,12 @@ static inline void tbf16_to_s64(const Tensor *restrict src,
 static inline void tf64_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tf64_to_s8[0](src, dst, status);
-    return;
-  }
-  lookup_tf64_to_s8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf64_to_s8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf64_to_s8[1](src, dst, status);
+  lookup_tf64_to_s8[0].fn(src, dst, status);
 #endif
 }
 
@@ -1558,7 +1501,7 @@ static inline void tf64_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tf64_to_s16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tf64_to_s16[0](src, dst, status);
+  lookup_tf64_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -1572,21 +1515,12 @@ static inline void tf64_to_s16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tf64_to_s32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tf64_to_s32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_tf64_to_s32[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tf64_to_s32[2](src, dst, status);
-    return;
-  }
-  lookup_tf64_to_s32[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf64_to_s32, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf64_to_s32[3](src, dst, status);
+  lookup_tf64_to_s32[0].fn(src, dst, status);
 #endif
 }
 
@@ -1601,13 +1535,12 @@ static inline void tf64_to_s32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tf64_to_s64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_tf64_to_s64[0](src, dst, status);
-    return;
-  }
-  lookup_tf64_to_s64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf64_to_s64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf64_to_s64[1](src, dst, status);
+  lookup_tf64_to_s64[0].fn(src, dst, status);
 #endif
 }
 
@@ -1623,7 +1556,7 @@ static inline void tf64_to_s64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tfp4e2m1_to_u8(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp4e2m1_to_u8[0](src, dst, status);
+  lookup_tfp4e2m1_to_u8[0].fn(src, dst, status);
 }
 
 /**
@@ -1636,7 +1569,7 @@ static inline void tfp4e2m1_to_u8(const Tensor *restrict src,
  */
 static inline void tfp4e2m1_to_u16(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp4e2m1_to_u16[0](src, dst, status);
+  lookup_tfp4e2m1_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -1649,7 +1582,7 @@ static inline void tfp4e2m1_to_u16(const Tensor *restrict src,
  */
 static inline void tfp4e2m1_to_u32(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp4e2m1_to_u32[0](src, dst, status);
+  lookup_tfp4e2m1_to_u32[0].fn(src, dst, status);
 }
 
 /**
@@ -1662,7 +1595,7 @@ static inline void tfp4e2m1_to_u32(const Tensor *restrict src,
  */
 static inline void tfp4e2m1_to_u64(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp4e2m1_to_u64[0](src, dst, status);
+  lookup_tfp4e2m1_to_u64[0].fn(src, dst, status);
 }
 
 /**
@@ -1675,7 +1608,7 @@ static inline void tfp4e2m1_to_u64(const Tensor *restrict src,
  */
 static inline void tfp8e4m3_to_u8(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e4m3_to_u8[0](src, dst, status);
+  lookup_tfp8e4m3_to_u8[0].fn(src, dst, status);
 }
 
 /**
@@ -1688,7 +1621,7 @@ static inline void tfp8e4m3_to_u8(const Tensor *restrict src,
  */
 static inline void tfp8e4m3_to_u16(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e4m3_to_u16[0](src, dst, status);
+  lookup_tfp8e4m3_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -1701,7 +1634,7 @@ static inline void tfp8e4m3_to_u16(const Tensor *restrict src,
  */
 static inline void tfp8e4m3_to_u32(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e4m3_to_u32[0](src, dst, status);
+  lookup_tfp8e4m3_to_u32[0].fn(src, dst, status);
 }
 
 /**
@@ -1714,7 +1647,7 @@ static inline void tfp8e4m3_to_u32(const Tensor *restrict src,
  */
 static inline void tfp8e4m3_to_u64(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e4m3_to_u64[0](src, dst, status);
+  lookup_tfp8e4m3_to_u64[0].fn(src, dst, status);
 }
 
 /**
@@ -1727,7 +1660,7 @@ static inline void tfp8e4m3_to_u64(const Tensor *restrict src,
  */
 static inline void tfp8e5m2_to_u8(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e5m2_to_u8[0](src, dst, status);
+  lookup_tfp8e5m2_to_u8[0].fn(src, dst, status);
 }
 
 /**
@@ -1740,7 +1673,7 @@ static inline void tfp8e5m2_to_u8(const Tensor *restrict src,
  */
 static inline void tfp8e5m2_to_u16(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e5m2_to_u16[0](src, dst, status);
+  lookup_tfp8e5m2_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -1753,7 +1686,7 @@ static inline void tfp8e5m2_to_u16(const Tensor *restrict src,
  */
 static inline void tfp8e5m2_to_u32(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e5m2_to_u32[0](src, dst, status);
+  lookup_tfp8e5m2_to_u32[0].fn(src, dst, status);
 }
 
 /**
@@ -1766,7 +1699,7 @@ static inline void tfp8e5m2_to_u32(const Tensor *restrict src,
  */
 static inline void tfp8e5m2_to_u64(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp8e5m2_to_u64[0](src, dst, status);
+  lookup_tfp8e5m2_to_u64[0].fn(src, dst, status);
 }
 
 /**
@@ -1780,14 +1713,12 @@ static inline void tfp8e5m2_to_u64(const Tensor *restrict src,
 static inline void tfp16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_bw_) &&
-      (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_u8[0](src, dst, status);
-    return;
-  }
-  lookup_tfp16_to_u8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tfp16_to_u8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tfp16_to_u8[1](src, dst, status);
+  lookup_tfp16_to_u8[0].fn(src, dst, status);
 #endif
 }
 
@@ -1801,7 +1732,7 @@ static inline void tfp16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tfp16_to_u16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tfp16_to_u16[0](src, dst, status);
+  lookup_tfp16_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -1815,13 +1746,12 @@ static inline void tfp16_to_u16(const Tensor *restrict src,
 static inline void tfp16_to_u32(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_u32[0](src, dst, status);
-    return;
-  }
-  lookup_tfp16_to_u32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tfp16_to_u32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tfp16_to_u32[1](src, dst, status);
+  lookup_tfp16_to_u32[0].fn(src, dst, status);
 #endif
 }
 
@@ -1836,13 +1766,12 @@ static inline void tfp16_to_u32(const Tensor *restrict src,
 static inline void tfp16_to_u64(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_) && (SIMD->avx512_vl_)) {
-    lookup_tfp16_to_u64[0](src, dst, status);
-    return;
-  }
-  lookup_tfp16_to_u64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tfp16_to_u64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tfp16_to_u64[1](src, dst, status);
+  lookup_tfp16_to_u64[0].fn(src, dst, status);
 #endif
 }
 
@@ -1857,17 +1786,12 @@ static inline void tfp16_to_u64(const Tensor *restrict src,
 static inline void tf32_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bw_) && (SIMD->avx512_vl_)) {
-    lookup_tf32_to_u8[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tf32_to_u8[1](src, dst, status);
-    return;
-  }
-  lookup_tf32_to_u8[2](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf32_to_u8, 3, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf32_to_u8[2](src, dst, status);
+  lookup_tf32_to_u8[0].fn(src, dst, status);
 #endif
 }
 
@@ -1881,7 +1805,7 @@ static inline void tf32_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tf32_to_u16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tf32_to_u16[0](src, dst, status);
+  lookup_tf32_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -1895,13 +1819,12 @@ static inline void tf32_to_u16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tf32_to_u32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tf32_to_u32[0](src, dst, status);
-    return;
-  }
-  lookup_tf32_to_u32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf32_to_u32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf32_to_u32[1](src, dst, status);
+  lookup_tf32_to_u32[0].fn(src, dst, status);
 #endif
 }
 
@@ -1916,13 +1839,12 @@ static inline void tf32_to_u32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tf32_to_u64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_vl_)) {
-    lookup_tf32_to_u64[0](src, dst, status);
-    return;
-  }
-  lookup_tf32_to_u64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf32_to_u64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf32_to_u64[1](src, dst, status);
+  lookup_tf32_to_u64[0].fn(src, dst, status);
 #endif
 }
 
@@ -1937,13 +1859,12 @@ static inline void tf32_to_u64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tbf16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512_bf16_) && (SIMD->avx512_bw_) && (SIMD->avx512f_)) {
-    lookup_tbf16_to_u8[0](src, dst, status);
-    return;
-  }
-  lookup_tbf16_to_u8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tbf16_to_u8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tbf16_to_u8[1](src, dst, status);
+  lookup_tbf16_to_u8[0].fn(src, dst, status);
 #endif
 }
 
@@ -1957,7 +1878,7 @@ static inline void tbf16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tbf16_to_u16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tbf16_to_u16[0](src, dst, status);
+  lookup_tbf16_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -1971,13 +1892,12 @@ static inline void tbf16_to_u16(const Tensor *restrict src,
 static inline void tbf16_to_u32(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512_bf16_) && (SIMD->avx512f_)) {
-    lookup_tbf16_to_u32[0](src, dst, status);
-    return;
-  }
-  lookup_tbf16_to_u32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tbf16_to_u32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tbf16_to_u32[1](src, dst, status);
+  lookup_tbf16_to_u32[0].fn(src, dst, status);
 #endif
 }
 
@@ -1992,14 +1912,12 @@ static inline void tbf16_to_u32(const Tensor *restrict src,
 static inline void tbf16_to_u64(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_) && (SIMD->avx512_vl_) &&
-      (SIMD->avx512_dq_)) {
-    lookup_tbf16_to_u64[0](src, dst, status);
-    return;
-  }
-  lookup_tbf16_to_u64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tbf16_to_u64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tbf16_to_u64[1](src, dst, status);
+  lookup_tbf16_to_u64[0].fn(src, dst, status);
 #endif
 }
 
@@ -2014,13 +1932,12 @@ static inline void tbf16_to_u64(const Tensor *restrict src,
 static inline void tf64_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tf64_to_u8[0](src, dst, status);
-    return;
-  }
-  lookup_tf64_to_u8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf64_to_u8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf64_to_u8[1](src, dst, status);
+  lookup_tf64_to_u8[0].fn(src, dst, status);
 #endif
 }
 
@@ -2034,7 +1951,7 @@ static inline void tf64_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tf64_to_u16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tf64_to_u16[0](src, dst, status);
+  lookup_tf64_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -2048,13 +1965,12 @@ static inline void tf64_to_u16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tf64_to_u32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tf64_to_u32[0](src, dst, status);
-    return;
-  }
-  lookup_tf64_to_u32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf64_to_u32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf64_to_u32[1](src, dst, status);
+  lookup_tf64_to_u32[0].fn(src, dst, status);
 #endif
 }
 
@@ -2069,13 +1985,12 @@ static inline void tf64_to_u32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tf64_to_u64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_tf64_to_u64[0](src, dst, status);
-    return;
-  }
-  lookup_tf64_to_u64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tf64_to_u64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tf64_to_u64[1](src, dst, status);
+  lookup_tf64_to_u64[0].fn(src, dst, status);
 #endif
 }
 
@@ -2091,7 +2006,7 @@ static inline void tf64_to_u64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts8_to_fp4e2m1(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts8_to_fp4e2m1[0](src, dst, status);
+  lookup_ts8_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -2104,7 +2019,7 @@ static inline void ts8_to_fp4e2m1(const Tensor *restrict src,
  */
 static inline void ts8_to_fp8e4m3(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts8_to_fp8e4m3[0](src, dst, status);
+  lookup_ts8_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -2117,7 +2032,7 @@ static inline void ts8_to_fp8e4m3(const Tensor *restrict src,
  */
 static inline void ts8_to_fp8e5m2(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts8_to_fp8e5m2[0](src, dst, status);
+  lookup_ts8_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -2131,13 +2046,12 @@ static inline void ts8_to_fp8e5m2(const Tensor *restrict src,
 static inline void ts8_to_fp16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_ts8_to_fp16[0](src, dst, status);
-    return;
-  }
-  lookup_ts8_to_fp16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts8_to_fp16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts8_to_fp16[1](src, dst, status);
+  lookup_ts8_to_fp16[0].fn(src, dst, status);
 #endif
 }
 
@@ -2152,13 +2066,12 @@ static inline void ts8_to_fp16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts8_to_bf16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_)) {
-    lookup_ts8_to_bf16[0](src, dst, status);
-    return;
-  }
-  lookup_ts8_to_bf16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts8_to_bf16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts8_to_bf16[1](src, dst, status);
+  lookup_ts8_to_bf16[0].fn(src, dst, status);
 #endif
 }
 
@@ -2173,17 +2086,12 @@ static inline void ts8_to_bf16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts8_to_f32(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts8_to_f32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_ts8_to_f32[1](src, dst, status);
-    return;
-  }
-  lookup_ts8_to_f32[2](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts8_to_f32, 3, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts8_to_f32[2](src, dst, status);
+  lookup_ts8_to_f32[0].fn(src, dst, status);
 #endif
 }
 
@@ -2198,13 +2106,12 @@ static inline void ts8_to_f32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts8_to_f64(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts8_to_f64[0](src, dst, status);
-    return;
-  }
-  lookup_ts8_to_f64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts8_to_f64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts8_to_f64[1](src, dst, status);
+  lookup_ts8_to_f64[0].fn(src, dst, status);
 #endif
 }
 
@@ -2218,7 +2125,7 @@ static inline void ts8_to_f64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts16_to_fp4e2m1(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts16_to_fp4e2m1[0](src, dst, status);
+  lookup_ts16_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -2231,7 +2138,7 @@ static inline void ts16_to_fp4e2m1(const Tensor *restrict src,
  */
 static inline void ts16_to_fp8e4m3(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts16_to_fp8e4m3[0](src, dst, status);
+  lookup_ts16_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -2244,7 +2151,7 @@ static inline void ts16_to_fp8e4m3(const Tensor *restrict src,
  */
 static inline void ts16_to_fp8e5m2(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts16_to_fp8e5m2[0](src, dst, status);
+  lookup_ts16_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -2257,7 +2164,7 @@ static inline void ts16_to_fp8e5m2(const Tensor *restrict src,
  */
 static inline void ts16_to_fp16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts16_to_fp16[0](src, dst, status);
+  lookup_ts16_to_fp16[0].fn(src, dst, status);
 }
 
 /**
@@ -2270,7 +2177,7 @@ static inline void ts16_to_fp16(const Tensor *restrict src,
  */
 static inline void ts16_to_bf16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts16_to_bf16[0](src, dst, status);
+  lookup_ts16_to_bf16[0].fn(src, dst, status);
 }
 
 /**
@@ -2283,7 +2190,7 @@ static inline void ts16_to_bf16(const Tensor *restrict src,
  */
 static inline void ts16_to_f32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts16_to_f32[0](src, dst, status);
+  lookup_ts16_to_f32[0].fn(src, dst, status);
 }
 
 /**
@@ -2296,7 +2203,7 @@ static inline void ts16_to_f32(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts16_to_f64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts16_to_f64[0](src, dst, status);
+  lookup_ts16_to_f64[0].fn(src, dst, status);
 }
 
 /**
@@ -2309,7 +2216,7 @@ static inline void ts16_to_f64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts32_to_fp4e2m1(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts32_to_fp4e2m1[0](src, dst, status);
+  lookup_ts32_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -2322,7 +2229,7 @@ static inline void ts32_to_fp4e2m1(const Tensor *restrict src,
  */
 static inline void ts32_to_fp8e4m3(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts32_to_fp8e4m3[0](src, dst, status);
+  lookup_ts32_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -2335,7 +2242,7 @@ static inline void ts32_to_fp8e4m3(const Tensor *restrict src,
  */
 static inline void ts32_to_fp8e5m2(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts32_to_fp8e5m2[0](src, dst, status);
+  lookup_ts32_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -2349,13 +2256,12 @@ static inline void ts32_to_fp8e5m2(const Tensor *restrict src,
 static inline void ts32_to_fp16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_ts32_to_fp16[0](src, dst, status);
-    return;
-  }
-  lookup_ts32_to_fp16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts32_to_fp16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts32_to_fp16[1](src, dst, status);
+  lookup_ts32_to_fp16[0].fn(src, dst, status);
 #endif
 }
 
@@ -2370,13 +2276,12 @@ static inline void ts32_to_fp16(const Tensor *restrict src,
 static inline void ts32_to_bf16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_)) {
-    lookup_ts32_to_bf16[0](src, dst, status);
-    return;
-  }
-  lookup_ts32_to_bf16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts32_to_bf16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts32_to_bf16[1](src, dst, status);
+  lookup_ts32_to_bf16[0].fn(src, dst, status);
 #endif
 }
 
@@ -2391,21 +2296,12 @@ static inline void ts32_to_bf16(const Tensor *restrict src,
 static inline void ts32_to_f32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts32_to_f32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_ts32_to_f32[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_f32[2](src, dst, status);
-    return;
-  }
-  lookup_ts32_to_f32[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts32_to_f32, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts32_to_f32[3](src, dst, status);
+  lookup_ts32_to_f32[0].fn(src, dst, status);
 #endif
 }
 
@@ -2420,21 +2316,12 @@ static inline void ts32_to_f32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts32_to_f64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts32_to_f64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_ts32_to_f64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_f64[2](src, dst, status);
-    return;
-  }
-  lookup_ts32_to_f64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts32_to_f64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts32_to_f64[3](src, dst, status);
+  lookup_ts32_to_f64[0].fn(src, dst, status);
 #endif
 }
 
@@ -2448,7 +2335,7 @@ static inline void ts32_to_f64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts64_to_fp4e2m1(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts64_to_fp4e2m1[0](src, dst, status);
+  lookup_ts64_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -2461,7 +2348,7 @@ static inline void ts64_to_fp4e2m1(const Tensor *restrict src,
  */
 static inline void ts64_to_fp8e4m3(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts64_to_fp8e4m3[0](src, dst, status);
+  lookup_ts64_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -2474,7 +2361,7 @@ static inline void ts64_to_fp8e4m3(const Tensor *restrict src,
  */
 static inline void ts64_to_fp8e5m2(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_ts64_to_fp8e5m2[0](src, dst, status);
+  lookup_ts64_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -2488,13 +2375,12 @@ static inline void ts64_to_fp8e5m2(const Tensor *restrict src,
 static inline void ts64_to_fp16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_ts64_to_fp16[0](src, dst, status);
-    return;
-  }
-  lookup_ts64_to_fp16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts64_to_fp16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts64_to_fp16[1](src, dst, status);
+  lookup_ts64_to_fp16[0].fn(src, dst, status);
 #endif
 }
 
@@ -2509,14 +2395,12 @@ static inline void ts64_to_fp16(const Tensor *restrict src,
 static inline void ts64_to_bf16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_bf16_) &&
-      (SIMD->avx512_vl_)) {
-    lookup_ts64_to_bf16[0](src, dst, status);
-    return;
-  }
-  lookup_ts64_to_bf16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts64_to_bf16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts64_to_bf16[1](src, dst, status);
+  lookup_ts64_to_bf16[0].fn(src, dst, status);
 #endif
 }
 
@@ -2531,13 +2415,12 @@ static inline void ts64_to_bf16(const Tensor *restrict src,
 static inline void ts64_to_f32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_ts64_to_f32[0](src, dst, status);
-    return;
-  }
-  lookup_ts64_to_f32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts64_to_f32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts64_to_f32[1](src, dst, status);
+  lookup_ts64_to_f32[0].fn(src, dst, status);
 #endif
 }
 
@@ -2552,13 +2435,12 @@ static inline void ts64_to_f32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts64_to_f64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_ts64_to_f64[0](src, dst, status);
-    return;
-  }
-  lookup_ts64_to_f64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts64_to_f64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts64_to_f64[1](src, dst, status);
+  lookup_ts64_to_f64[0].fn(src, dst, status);
 #endif
 }
 
@@ -2574,7 +2456,7 @@ static inline void ts64_to_f64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts8_to_s16(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
-  lookup_ts8_to_s16[0](src, dst, status);
+  lookup_ts8_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -2588,21 +2470,12 @@ static inline void ts8_to_s16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts8_to_s32(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts8_to_s32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_ts8_to_s32[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts8_to_s32[2](src, dst, status);
-    return;
-  }
-  lookup_ts8_to_s32[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts8_to_s32, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts8_to_s32[3](src, dst, status);
+  lookup_ts8_to_s32[0].fn(src, dst, status);
 #endif
 }
 
@@ -2617,21 +2490,12 @@ static inline void ts8_to_s32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts8_to_s64(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts8_to_s64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_ts8_to_s64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts8_to_s64[2](src, dst, status);
-    return;
-  }
-  lookup_ts8_to_s64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts8_to_s64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts8_to_s64[3](src, dst, status);
+  lookup_ts8_to_s64[0].fn(src, dst, status);
 #endif
 }
 
@@ -2645,7 +2509,7 @@ static inline void ts8_to_s64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
-  lookup_ts16_to_s8[0](src, dst, status);
+  lookup_ts16_to_s8[0].fn(src, dst, status);
 }
 
 /**
@@ -2658,7 +2522,7 @@ static inline void ts16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts16_to_s32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts16_to_s32[0](src, dst, status);
+  lookup_ts16_to_s32[0].fn(src, dst, status);
 }
 
 /**
@@ -2671,7 +2535,7 @@ static inline void ts16_to_s32(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts16_to_s64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts16_to_s64[0](src, dst, status);
+  lookup_ts16_to_s64[0].fn(src, dst, status);
 }
 
 /**
@@ -2685,13 +2549,12 @@ static inline void ts16_to_s64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts32_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts32_to_s8[0](src, dst, status);
-    return;
-  }
-  lookup_ts32_to_s8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts32_to_s8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts32_to_s8[1](src, dst, status);
+  lookup_ts32_to_s8[0].fn(src, dst, status);
 #endif
 }
 
@@ -2705,7 +2568,7 @@ static inline void ts32_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts32_to_s16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts32_to_s16[0](src, dst, status);
+  lookup_ts32_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -2719,21 +2582,12 @@ static inline void ts32_to_s16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts32_to_s64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts32_to_s64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_ts32_to_s64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_s64[2](src, dst, status);
-    return;
-  }
-  lookup_ts32_to_s64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts32_to_s64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts32_to_s64[3](src, dst, status);
+  lookup_ts32_to_s64[0].fn(src, dst, status);
 #endif
 }
 
@@ -2748,13 +2602,12 @@ static inline void ts32_to_s64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts64_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_ts64_to_s8[0](src, dst, status);
-    return;
-  }
-  lookup_ts64_to_s8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts64_to_s8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts64_to_s8[1](src, dst, status);
+  lookup_ts64_to_s8[0].fn(src, dst, status);
 #endif
 }
 
@@ -2768,7 +2621,7 @@ static inline void ts64_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts64_to_s16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts64_to_s16[0](src, dst, status);
+  lookup_ts64_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -2782,13 +2635,12 @@ static inline void ts64_to_s16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts64_to_s32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts64_to_s32[0](src, dst, status);
-    return;
-  }
-  lookup_ts64_to_s32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts64_to_s32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts64_to_s32[1](src, dst, status);
+  lookup_ts64_to_s32[0].fn(src, dst, status);
 #endif
 }
 
@@ -2805,21 +2657,12 @@ static inline void ts64_to_s32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts8_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts8_to_u8[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_ts8_to_u8[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts8_to_u8[2](src, dst, status);
-    return;
-  }
-  lookup_ts8_to_u8[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts8_to_u8, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts8_to_u8[3](src, dst, status);
+  lookup_ts8_to_u8[0].fn(src, dst, status);
 #endif
 }
 
@@ -2833,7 +2676,7 @@ static inline void ts8_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts8_to_u16(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
-  lookup_ts8_to_u16[0](src, dst, status);
+  lookup_ts8_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -2847,21 +2690,12 @@ static inline void ts8_to_u16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts8_to_u32(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts8_to_u32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_ts8_to_u32[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts8_to_u32[2](src, dst, status);
-    return;
-  }
-  lookup_ts8_to_u32[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts8_to_u32, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts8_to_u32[3](src, dst, status);
+  lookup_ts8_to_u32[0].fn(src, dst, status);
 #endif
 }
 
@@ -2876,13 +2710,12 @@ static inline void ts8_to_u32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts8_to_u64(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts8_to_u64[0](src, dst, status);
-    return;
-  }
-  lookup_ts8_to_u64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts8_to_u64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts8_to_u64[1](src, dst, status);
+  lookup_ts8_to_u64[0].fn(src, dst, status);
 #endif
 }
 
@@ -2896,7 +2729,7 @@ static inline void ts8_to_u64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
-  lookup_ts16_to_u8[0](src, dst, status);
+  lookup_ts16_to_u8[0].fn(src, dst, status);
 }
 
 /**
@@ -2909,7 +2742,7 @@ static inline void ts16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts16_to_u16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts16_to_u16[0](src, dst, status);
+  lookup_ts16_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -2922,7 +2755,7 @@ static inline void ts16_to_u16(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts16_to_u32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts16_to_u32[0](src, dst, status);
+  lookup_ts16_to_u32[0].fn(src, dst, status);
 }
 
 /**
@@ -2935,7 +2768,7 @@ static inline void ts16_to_u32(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts16_to_u64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts16_to_u64[0](src, dst, status);
+  lookup_ts16_to_u64[0].fn(src, dst, status);
 }
 
 /**
@@ -2949,21 +2782,12 @@ static inline void ts16_to_u64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts32_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_ts32_to_u8[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_ts32_to_u8[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_u8[2](src, dst, status);
-    return;
-  }
-  lookup_ts32_to_u8[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts32_to_u8, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts32_to_u8[3](src, dst, status);
+  lookup_ts32_to_u8[0].fn(src, dst, status);
 #endif
 }
 
@@ -2977,7 +2801,7 @@ static inline void ts32_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts32_to_u16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts32_to_u16[0](src, dst, status);
+  lookup_ts32_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -2991,21 +2815,12 @@ static inline void ts32_to_u16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts32_to_u32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts32_to_u32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_ts32_to_u32[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_u32[2](src, dst, status);
-    return;
-  }
-  lookup_ts32_to_u32[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts32_to_u32, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts32_to_u32[3](src, dst, status);
+  lookup_ts32_to_u32[0].fn(src, dst, status);
 #endif
 }
 
@@ -3020,21 +2835,12 @@ static inline void ts32_to_u32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts32_to_u64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts32_to_u64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_ts32_to_u64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts32_to_u64[2](src, dst, status);
-    return;
-  }
-  lookup_ts32_to_u64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts32_to_u64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts32_to_u64[3](src, dst, status);
+  lookup_ts32_to_u64[0].fn(src, dst, status);
 #endif
 }
 
@@ -3049,13 +2855,12 @@ static inline void ts32_to_u64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts64_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts64_to_u8[0](src, dst, status);
-    return;
-  }
-  lookup_ts64_to_u8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts64_to_u8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts64_to_u8[1](src, dst, status);
+  lookup_ts64_to_u8[0].fn(src, dst, status);
 #endif
 }
 
@@ -3069,7 +2874,7 @@ static inline void ts64_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void ts64_to_u16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_ts64_to_u16[0](src, dst, status);
+  lookup_ts64_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -3083,13 +2888,12 @@ static inline void ts64_to_u16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts64_to_u32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts64_to_u32[0](src, dst, status);
-    return;
-  }
-  lookup_ts64_to_u32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts64_to_u32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts64_to_u32[1](src, dst, status);
+  lookup_ts64_to_u32[0].fn(src, dst, status);
 #endif
 }
 
@@ -3104,21 +2908,12 @@ static inline void ts64_to_u32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void ts64_to_u64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_ts64_to_u64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_ts64_to_u64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_ts64_to_u64[2](src, dst, status);
-    return;
-  }
-  lookup_ts64_to_u64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_ts64_to_u64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_ts64_to_u64[3](src, dst, status);
+  lookup_ts64_to_u64[0].fn(src, dst, status);
 #endif
 }
 
@@ -3134,7 +2929,7 @@ static inline void ts64_to_u64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu8_to_fp4e2m1(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu8_to_fp4e2m1[0](src, dst, status);
+  lookup_tu8_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -3147,7 +2942,7 @@ static inline void tu8_to_fp4e2m1(const Tensor *restrict src,
  */
 static inline void tu8_to_fp8e4m3(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu8_to_fp8e4m3[0](src, dst, status);
+  lookup_tu8_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -3160,7 +2955,7 @@ static inline void tu8_to_fp8e4m3(const Tensor *restrict src,
  */
 static inline void tu8_to_fp8e5m2(const Tensor *restrict src,
                                   Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu8_to_fp8e5m2[0](src, dst, status);
+  lookup_tu8_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -3174,13 +2969,12 @@ static inline void tu8_to_fp8e5m2(const Tensor *restrict src,
 static inline void tu8_to_fp16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tu8_to_fp16[0](src, dst, status);
-    return;
-  }
-  lookup_tu8_to_fp16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu8_to_fp16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu8_to_fp16[1](src, dst, status);
+  lookup_tu8_to_fp16[0].fn(src, dst, status);
 #endif
 }
 
@@ -3195,13 +2989,12 @@ static inline void tu8_to_fp16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu8_to_bf16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_)) {
-    lookup_tu8_to_bf16[0](src, dst, status);
-    return;
-  }
-  lookup_tu8_to_bf16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu8_to_bf16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu8_to_bf16[1](src, dst, status);
+  lookup_tu8_to_bf16[0].fn(src, dst, status);
 #endif
 }
 
@@ -3216,17 +3009,12 @@ static inline void tu8_to_bf16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu8_to_f32(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu8_to_f32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tu8_to_f32[1](src, dst, status);
-    return;
-  }
-  lookup_tu8_to_f32[2](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu8_to_f32, 3, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu8_to_f32[2](src, dst, status);
+  lookup_tu8_to_f32[0].fn(src, dst, status);
 #endif
 }
 
@@ -3241,13 +3029,12 @@ static inline void tu8_to_f32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu8_to_f64(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu8_to_f64[0](src, dst, status);
-    return;
-  }
-  lookup_tu8_to_f64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu8_to_f64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu8_to_f64[1](src, dst, status);
+  lookup_tu8_to_f64[0].fn(src, dst, status);
 #endif
 }
 
@@ -3261,7 +3048,7 @@ static inline void tu8_to_f64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu16_to_fp4e2m1(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu16_to_fp4e2m1[0](src, dst, status);
+  lookup_tu16_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -3274,7 +3061,7 @@ static inline void tu16_to_fp4e2m1(const Tensor *restrict src,
  */
 static inline void tu16_to_fp8e4m3(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu16_to_fp8e4m3[0](src, dst, status);
+  lookup_tu16_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -3287,7 +3074,7 @@ static inline void tu16_to_fp8e4m3(const Tensor *restrict src,
  */
 static inline void tu16_to_fp8e5m2(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu16_to_fp8e5m2[0](src, dst, status);
+  lookup_tu16_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -3300,7 +3087,7 @@ static inline void tu16_to_fp8e5m2(const Tensor *restrict src,
  */
 static inline void tu16_to_fp16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu16_to_fp16[0](src, dst, status);
+  lookup_tu16_to_fp16[0].fn(src, dst, status);
 }
 
 /**
@@ -3313,7 +3100,7 @@ static inline void tu16_to_fp16(const Tensor *restrict src,
  */
 static inline void tu16_to_bf16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu16_to_bf16[0](src, dst, status);
+  lookup_tu16_to_bf16[0].fn(src, dst, status);
 }
 
 /**
@@ -3326,7 +3113,7 @@ static inline void tu16_to_bf16(const Tensor *restrict src,
  */
 static inline void tu16_to_f32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu16_to_f32[0](src, dst, status);
+  lookup_tu16_to_f32[0].fn(src, dst, status);
 }
 
 /**
@@ -3339,7 +3126,7 @@ static inline void tu16_to_f32(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu16_to_f64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu16_to_f64[0](src, dst, status);
+  lookup_tu16_to_f64[0].fn(src, dst, status);
 }
 
 /**
@@ -3352,7 +3139,7 @@ static inline void tu16_to_f64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu32_to_fp4e2m1(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu32_to_fp4e2m1[0](src, dst, status);
+  lookup_tu32_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -3365,7 +3152,7 @@ static inline void tu32_to_fp4e2m1(const Tensor *restrict src,
  */
 static inline void tu32_to_fp8e4m3(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu32_to_fp8e4m3[0](src, dst, status);
+  lookup_tu32_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -3378,7 +3165,7 @@ static inline void tu32_to_fp8e4m3(const Tensor *restrict src,
  */
 static inline void tu32_to_fp8e5m2(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu32_to_fp8e5m2[0](src, dst, status);
+  lookup_tu32_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -3392,13 +3179,12 @@ static inline void tu32_to_fp8e5m2(const Tensor *restrict src,
 static inline void tu32_to_fp16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tu32_to_fp16[0](src, dst, status);
-    return;
-  }
-  lookup_tu32_to_fp16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu32_to_fp16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu32_to_fp16[1](src, dst, status);
+  lookup_tu32_to_fp16[0].fn(src, dst, status);
 #endif
 }
 
@@ -3413,13 +3199,12 @@ static inline void tu32_to_fp16(const Tensor *restrict src,
 static inline void tu32_to_bf16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bf16_)) {
-    lookup_tu32_to_bf16[0](src, dst, status);
-    return;
-  }
-  lookup_tu32_to_bf16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu32_to_bf16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu32_to_bf16[1](src, dst, status);
+  lookup_tu32_to_bf16[0].fn(src, dst, status);
 #endif
 }
 
@@ -3434,13 +3219,12 @@ static inline void tu32_to_bf16(const Tensor *restrict src,
 static inline void tu32_to_f32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu32_to_f32[0](src, dst, status);
-    return;
-  }
-  lookup_tu32_to_f32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu32_to_f32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu32_to_f32[1](src, dst, status);
+  lookup_tu32_to_f32[0].fn(src, dst, status);
 #endif
 }
 
@@ -3455,13 +3239,12 @@ static inline void tu32_to_f32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu32_to_f64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu32_to_f64[0](src, dst, status);
-    return;
-  }
-  lookup_tu32_to_f64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu32_to_f64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu32_to_f64[1](src, dst, status);
+  lookup_tu32_to_f64[0].fn(src, dst, status);
 #endif
 }
 
@@ -3475,7 +3258,7 @@ static inline void tu32_to_f64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu64_to_fp4e2m1(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu64_to_fp4e2m1[0](src, dst, status);
+  lookup_tu64_to_fp4e2m1[0].fn(src, dst, status);
 }
 
 /**
@@ -3488,7 +3271,7 @@ static inline void tu64_to_fp4e2m1(const Tensor *restrict src,
  */
 static inline void tu64_to_fp8e4m3(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu64_to_fp8e4m3[0](src, dst, status);
+  lookup_tu64_to_fp8e4m3[0].fn(src, dst, status);
 }
 
 /**
@@ -3501,7 +3284,7 @@ static inline void tu64_to_fp8e4m3(const Tensor *restrict src,
  */
 static inline void tu64_to_fp8e5m2(const Tensor *restrict src,
                                    Tensor *restrict dst, novaStatus_t *status) {
-  lookup_tu64_to_fp8e5m2[0](src, dst, status);
+  lookup_tu64_to_fp8e5m2[0].fn(src, dst, status);
 }
 
 /**
@@ -3515,13 +3298,12 @@ static inline void tu64_to_fp8e5m2(const Tensor *restrict src,
 static inline void tu64_to_fp16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_fp16_)) {
-    lookup_tu64_to_fp16[0](src, dst, status);
-    return;
-  }
-  lookup_tu64_to_fp16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu64_to_fp16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu64_to_fp16[1](src, dst, status);
+  lookup_tu64_to_fp16[0].fn(src, dst, status);
 #endif
 }
 
@@ -3536,14 +3318,12 @@ static inline void tu64_to_fp16(const Tensor *restrict src,
 static inline void tu64_to_bf16(const Tensor *restrict src,
                                 Tensor *restrict dst, novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_dq_) && (SIMD->avx512_bf16_) &&
-      (SIMD->avx512_vl_)) {
-    lookup_tu64_to_bf16[0](src, dst, status);
-    return;
-  }
-  lookup_tu64_to_bf16[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu64_to_bf16, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu64_to_bf16[1](src, dst, status);
+  lookup_tu64_to_bf16[0].fn(src, dst, status);
 #endif
 }
 
@@ -3558,13 +3338,12 @@ static inline void tu64_to_bf16(const Tensor *restrict src,
 static inline void tu64_to_f32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_tu64_to_f32[0](src, dst, status);
-    return;
-  }
-  lookup_tu64_to_f32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu64_to_f32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu64_to_f32[1](src, dst, status);
+  lookup_tu64_to_f32[0].fn(src, dst, status);
 #endif
 }
 
@@ -3579,13 +3358,12 @@ static inline void tu64_to_f32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu64_to_f64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_dq_)) {
-    lookup_tu64_to_f64[0](src, dst, status);
-    return;
-  }
-  lookup_tu64_to_f64[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu64_to_f64, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu64_to_f64[1](src, dst, status);
+  lookup_tu64_to_f64[0].fn(src, dst, status);
 #endif
 }
 
@@ -3602,21 +3380,12 @@ static inline void tu64_to_f64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu8_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                              novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_tu8_to_s8[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tu8_to_s8[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tu8_to_s8[2](src, dst, status);
-    return;
-  }
-  lookup_tu8_to_s8[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu8_to_s8, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu8_to_s8[3](src, dst, status);
+  lookup_tu8_to_s8[0].fn(src, dst, status);
 #endif
 }
 
@@ -3630,7 +3399,7 @@ static inline void tu8_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu8_to_s16(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
-  lookup_tu8_to_s16[0](src, dst, status);
+  lookup_tu8_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -3644,21 +3413,12 @@ static inline void tu8_to_s16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu8_to_s32(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu8_to_s32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tu8_to_s32[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tu8_to_s32[2](src, dst, status);
-    return;
-  }
-  lookup_tu8_to_s32[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu8_to_s32, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu8_to_s32[3](src, dst, status);
+  lookup_tu8_to_s32[0].fn(src, dst, status);
 #endif
 }
 
@@ -3673,21 +3433,12 @@ static inline void tu8_to_s32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu8_to_s64(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu8_to_s64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tu8_to_s64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tu8_to_s64[2](src, dst, status);
-    return;
-  }
-  lookup_tu8_to_s64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu8_to_s64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu8_to_s64[3](src, dst, status);
+  lookup_tu8_to_s64[0].fn(src, dst, status);
 #endif
 }
 
@@ -3701,7 +3452,7 @@ static inline void tu8_to_s64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
-  lookup_tu16_to_s8[0](src, dst, status);
+  lookup_tu16_to_s8[0].fn(src, dst, status);
 }
 
 /**
@@ -3714,7 +3465,7 @@ static inline void tu16_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu16_to_s16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu16_to_s16[0](src, dst, status);
+  lookup_tu16_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -3727,7 +3478,7 @@ static inline void tu16_to_s16(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu16_to_s32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu16_to_s32[0](src, dst, status);
+  lookup_tu16_to_s32[0].fn(src, dst, status);
 }
 
 /**
@@ -3740,7 +3491,7 @@ static inline void tu16_to_s32(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu16_to_s64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu16_to_s64[0](src, dst, status);
+  lookup_tu16_to_s64[0].fn(src, dst, status);
 }
 
 /**
@@ -3754,13 +3505,12 @@ static inline void tu16_to_s64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu32_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_tu32_to_s8[0](src, dst, status);
-    return;
-  }
-  lookup_tu32_to_s8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu32_to_s8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu32_to_s8[1](src, dst, status);
+  lookup_tu32_to_s8[0].fn(src, dst, status);
 #endif
 }
 
@@ -3774,7 +3524,7 @@ static inline void tu32_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu32_to_s16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu32_to_s16[0](src, dst, status);
+  lookup_tu32_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -3788,21 +3538,12 @@ static inline void tu32_to_s16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu32_to_s32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu32_to_s32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_tu32_to_s32[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tu32_to_s32[2](src, dst, status);
-    return;
-  }
-  lookup_tu32_to_s32[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu32_to_s32, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu32_to_s32[3](src, dst, status);
+  lookup_tu32_to_s32[0].fn(src, dst, status);
 #endif
 }
 
@@ -3817,21 +3558,12 @@ static inline void tu32_to_s32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu32_to_s64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu32_to_s64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tu32_to_s64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tu32_to_s64[2](src, dst, status);
-    return;
-  }
-  lookup_tu32_to_s64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu32_to_s64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu32_to_s64[3](src, dst, status);
+  lookup_tu32_to_s64[0].fn(src, dst, status);
 #endif
 }
 
@@ -3846,13 +3578,12 @@ static inline void tu32_to_s64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu64_to_s8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu64_to_s8[0](src, dst, status);
-    return;
-  }
-  lookup_tu64_to_s8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu64_to_s8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu64_to_s8[1](src, dst, status);
+  lookup_tu64_to_s8[0].fn(src, dst, status);
 #endif
 }
 
@@ -3866,7 +3597,7 @@ static inline void tu64_to_s8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu64_to_s16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu64_to_s16[0](src, dst, status);
+  lookup_tu64_to_s16[0].fn(src, dst, status);
 }
 
 /**
@@ -3880,13 +3611,12 @@ static inline void tu64_to_s16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu64_to_s32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu64_to_s32[0](src, dst, status);
-    return;
-  }
-  lookup_tu64_to_s32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu64_to_s32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu64_to_s32[1](src, dst, status);
+  lookup_tu64_to_s32[0].fn(src, dst, status);
 #endif
 }
 
@@ -3901,21 +3631,12 @@ static inline void tu64_to_s32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu64_to_s64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu64_to_s64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx_ || SIMD->avx2_)) {
-    lookup_tu64_to_s64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tu64_to_s64[2](src, dst, status);
-    return;
-  }
-  lookup_tu64_to_s64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu64_to_s64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu64_to_s64[3](src, dst, status);
+  lookup_tu64_to_s64[0].fn(src, dst, status);
 #endif
 }
 
@@ -3931,7 +3652,7 @@ static inline void tu64_to_s64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu8_to_u16(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
-  lookup_tu8_to_u16[0](src, dst, status);
+  lookup_tu8_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -3945,17 +3666,12 @@ static inline void tu8_to_u16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu8_to_u32(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu8_to_u32[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tu8_to_u32[1](src, dst, status);
-    return;
-  }
-  lookup_tu8_to_u32[2](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu8_to_u32, 3, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu8_to_u32[2](src, dst, status);
+  lookup_tu8_to_u32[0].fn(src, dst, status);
 #endif
 }
 
@@ -3970,21 +3686,12 @@ static inline void tu8_to_u32(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu8_to_u64(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu8_to_u64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tu8_to_u64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tu8_to_u64[2](src, dst, status);
-    return;
-  }
-  lookup_tu8_to_u64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu8_to_u64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu8_to_u64[3](src, dst, status);
+  lookup_tu8_to_u64[0].fn(src, dst, status);
 #endif
 }
 
@@ -3998,7 +3705,7 @@ static inline void tu8_to_u64(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
-  lookup_tu16_to_u8[0](src, dst, status);
+  lookup_tu16_to_u8[0].fn(src, dst, status);
 }
 
 /**
@@ -4011,7 +3718,7 @@ static inline void tu16_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu16_to_u32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu16_to_u32[0](src, dst, status);
+  lookup_tu16_to_u32[0].fn(src, dst, status);
 }
 
 /**
@@ -4024,7 +3731,7 @@ static inline void tu16_to_u32(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu16_to_u64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu16_to_u64[0](src, dst, status);
+  lookup_tu16_to_u64[0].fn(src, dst, status);
 }
 
 /**
@@ -4038,13 +3745,12 @@ static inline void tu16_to_u64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu32_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu32_to_u8[0](src, dst, status);
-    return;
-  }
-  lookup_tu32_to_u8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu32_to_u8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu32_to_u8[1](src, dst, status);
+  lookup_tu32_to_u8[0].fn(src, dst, status);
 #endif
 }
 
@@ -4058,7 +3764,7 @@ static inline void tu32_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu32_to_u16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu32_to_u16[0](src, dst, status);
+  lookup_tu32_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -4072,21 +3778,12 @@ static inline void tu32_to_u16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu32_to_u64(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu32_to_u64[0](src, dst, status);
-    return;
-  }
-  if ((SIMD->avx2_)) {
-    lookup_tu32_to_u64[1](src, dst, status);
-    return;
-  }
-  if ((SIMD->sse4_2_)) {
-    lookup_tu32_to_u64[2](src, dst, status);
-    return;
-  }
-  lookup_tu32_to_u64[3](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu32_to_u64, 4, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu32_to_u64[3](src, dst, status);
+  lookup_tu32_to_u64[0].fn(src, dst, status);
 #endif
 }
 
@@ -4101,13 +3798,12 @@ static inline void tu32_to_u64(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu64_to_u8(const Tensor *restrict src, Tensor *restrict dst,
                               novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_) && (SIMD->avx512_bw_)) {
-    lookup_tu64_to_u8[0](src, dst, status);
-    return;
-  }
-  lookup_tu64_to_u8[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu64_to_u8, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu64_to_u8[1](src, dst, status);
+  lookup_tu64_to_u8[0].fn(src, dst, status);
 #endif
 }
 
@@ -4121,7 +3817,7 @@ static inline void tu64_to_u8(const Tensor *restrict src, Tensor *restrict dst,
  */
 static inline void tu64_to_u16(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
-  lookup_tu64_to_u16[0](src, dst, status);
+  lookup_tu64_to_u16[0].fn(src, dst, status);
 }
 
 /**
@@ -4135,12 +3831,11 @@ static inline void tu64_to_u16(const Tensor *restrict src, Tensor *restrict dst,
 static inline void tu64_to_u32(const Tensor *restrict src, Tensor *restrict dst,
                                novaStatus_t *status) {
 #ifdef _GNUC_CLANG_
-  if ((SIMD->avx512f_)) {
-    lookup_tu64_to_u32[0](src, dst, status);
-    return;
-  }
-  lookup_tu64_to_u32[1](src, dst, status);
+  const CastVariant *variant = REINTERPRET_CAST(
+      const CastVariant *, SIMD_SELECT(lookup_tu64_to_u32, 2, SIMD));
+  assert(variant != nullptr);
+  variant->fn(src, dst, status);
 #else
-  lookup_tu64_to_u32[1](src, dst, status);
+  lookup_tu64_to_u32[0].fn(src, dst, status);
 #endif
 }
