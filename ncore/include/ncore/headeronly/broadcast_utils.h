@@ -87,9 +87,7 @@ static inline bool broadcast_merge_(BroadcastAccum *acc, const shape_t shape,
                                     size_t ndims, size_t element,
                                     size_t *conflict_pos,
                                     size_t *conflict_element) {
-  if (ndims > acc->ndims) {
-    acc->ndims = ndims;
-  }
+  acc->ndims = ndims > acc->ndims ? ndims : acc->ndims;
   for (size_t pos = 0; pos < ndims; ++pos) {
     const size_t current = shape[ndims - 1 - pos];
     const size_t left = (acc->sources[pos] == 0) ? 1 : acc->sizes[pos];
