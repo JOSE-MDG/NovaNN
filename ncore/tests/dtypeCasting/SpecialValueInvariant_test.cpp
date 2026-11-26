@@ -57,6 +57,11 @@ struct SviParam {
 std::vector<SviParam> buildParams() {
   std::vector<SviParam> params;
   for (const auto &p : allPairs()) {
+    // E8M0 has no FormatSpec; its specials are pinned with an independent
+    // frexp-based reference in bitPatternIdentity/Float8_e8m0fnu_test.cpp.
+    if (p.src == DType_::Float8E8M0fnu || p.dst == DType_::Float8E8M0fnu) {
+      continue;
+    }
     if (isFloatDtype(p.src)) {
       params.push_back(SviParam{.src = p.src, .dst = p.dst, .label = p.label});
     }

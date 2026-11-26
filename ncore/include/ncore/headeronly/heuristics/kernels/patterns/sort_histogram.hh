@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>
+#include <bit>
 
 #include "common.hh"
 
@@ -67,15 +68,25 @@ namespace detail {
 /// Fixed Fast radix width.
 constexpr uint8_t sortFastBitsPerPass() noexcept { return 8; }
 
-/// Pass count from key width at the fixed radix width.
+/// Pass count from the proven value range and the chosen radix width.
 inline uint64_t sortPassCount(const SortHistogramParams &p) noexcept {
-  const uint8_t bpp =
-      p.bitsPerPass != 0 ? p.bitsPerPass : sortFastBitsPerPass();
+  if (p.mode == SortHistMode::Histogram) {
+    return 1U;
+  }
+  uint8_t bpp = p.bitsPerPass != 0 ? p.bitsPerPass : sortFastBitsPerPass();
   if (bpp == 0 || bpp > 8) {
-    return 4ULL * (p.keyItemSize != 0 ? p.keyItemSize : 4U);
+    bpp = sortFastBitsPerPass();
   }
   const uint64_t keyBits =
-      static_cast<uint64_t>(p.keyItemSize != 0 ? p.keyItemSize : 4U) * 8U;
+      p.valueMax > p.valueMin
+          ? static_cast<uint64_t>(
+                std::bit_width(static_cast<uint64_t>(p.valueMax) -
+                               static_cast<uint64_t>(p.valueMin)))
+          : static_cast<uint64_t>(p.keyItemSize != 0 ? p.keyItemSize : 4U) * 8U;
+  if (p.distribution.numDistinct != 0 &&
+      p.distribution.numDistinct <= (1ULL << bpp)) {
+    return 1U;
+  }
   return ceilDiv(keyBits, bpp);
 }
 
@@ -88,9 +99,10 @@ inline uint64_t fastParallelWork(const SortHistogramParams &p) noexcept {
 
 /// Bytes moved counting keys plus payloads per pass.
 inline uint64_t fastTrafficBytes(const SortHistogramParams &p) noexcept {
+  const uint64_t payload = p.mode == SortHistMode::Sort ? p.valueItemSize : 0U;
   return detail::satMul(
       detail::satMul(p.numElements,
-                     static_cast<uint64_t>(p.keyItemSize) + p.valueItemSize),
+                     static_cast<uint64_t>(p.keyItemSize) + payload),
       detail::sortPassCount(p));
 }
 
@@ -139,11 +151,10 @@ resolveSortHistogramFast(const SortHistogramParams &p) noexcept {
  *
  * @details
  * Oversized bin counts fall back to a narrower thread budget with a
- * saturating grid. The radix width is the caller's: a narrower pass
- * would change how many times the kernel reads its input, which the
- * kernel decides from its own digit budget. Finer privatization levels
- * and skew-driven choices belong to kernel selection downstream:
- * geometry here only sizes the launch.
+ * saturating grid. Privatization multiplies the bin storage, so it is part
+ * of the same budget. A concentrated distribution promotes Auto to warp
+ * privatization. Narrower radix passes reread the input more often and
+ * therefore coarsen each thread proportionally.
  */
 inline LaunchConfig
 resolveSortHistogram(const SortHistogramParams &p) noexcept {
@@ -151,15 +162,32 @@ resolveSortHistogram(const SortHistogramParams &p) noexcept {
     return LaunchConfig{};
   }
   uint32_t threads = detail::fastThreads(p.device, p.kernel);
+  const uint32_t warp = detail::effectiveWarp(p.device);
+  Privatization priv = p.privatization;
+  if (priv == Privatization::Auto && p.distribution.concentration01 > 0.8F) {
+    priv = Privatization::PerWarp;
+  }
   if (p.mode == SortHistMode::Histogram && p.numBins > 0 &&
       p.device.smemPerBlock != 0) {
-    const uint64_t need = static_cast<uint64_t>(p.numBins) * 4U;
+    uint64_t copies = 1U;
+    if (priv == Privatization::PerWarp) {
+      copies = threads / warp != 0 ? threads / warp : 1U;
+    } else if (priv == Privatization::PerThread) {
+      copies = threads;
+    }
+    const uint64_t need =
+        detail::satMul(static_cast<uint64_t>(p.numBins) * 4U, copies);
     if (need > p.device.smemPerBlock) {
       threads = threads > 128 ? 128 : threads;
     }
   }
-  const uint64_t perThread =
-      static_cast<uint64_t>(threads) * FAST_ELEMS_PER_THREAD;
+  uint64_t width = 8U;
+  if (p.mode == SortHistMode::Sort && p.bitsPerPass >= 1U &&
+      p.bitsPerPass < 8U) {
+    width = p.bitsPerPass;
+  }
+  const uint64_t perThread = detail::satMul(
+      static_cast<uint64_t>(threads) * FAST_ELEMS_PER_THREAD, 8U / width);
   uint64_t blocks = detail::ceilDiv(p.numElements, perThread);
   const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
   if (cap != 0 && blocks > cap) {

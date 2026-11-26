@@ -104,7 +104,9 @@ inline uint64_t fastParallelWork(const ElementWiseParams &p) noexcept {
 
 /// Bytes moved counting every input plus every output.
 inline uint64_t fastTrafficBytes(const ElementWiseParams &p) noexcept {
-  return detail::satMul(p.numElements, static_cast<uint64_t>(p.inputItemSize) +
+  const uint64_t inputs =
+      p.numInputs != 0 ? static_cast<uint64_t>(p.numInputs) : 1U;
+  return detail::satMul(p.numElements, detail::satMul(inputs, p.inputItemSize) +
                                            p.outputItemSize);
 }
 
@@ -181,8 +183,11 @@ resolveElementWiseFullPlan(const ElementWiseParams &p) noexcept {
   }
   const uint64_t blocksNeeded = detail::ceilDiv(
       p.numElements, static_cast<uint64_t>(threads) * plan.elementsPerThread);
-  const uint64_t cap = residentGridCap(p.device, p.kernel, threads,
-                                       /*waves=*/1U, /*legacyPerSM=*/4U);
+  // A consumer that rereads this output keeps it near the SMs, so a second
+  // resident wave still has useful work instead of evicting the first one.
+  const uint64_t cap =
+      residentGridCap(p.device, p.kernel, threads, p.reuseAfter ? 2U : 1U,
+                      /*legacyPerSM=*/4U);
   uint64_t blocks =
       cap != 0 ? std::min<uint64_t>(blocksNeeded, cap) : blocksNeeded;
   if (blocks == 0) {

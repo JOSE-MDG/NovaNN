@@ -134,14 +134,17 @@ novaStatus_t HipDevicePool::initialize(std::int32_t device_id) {
   error = hipMemPoolSetAttribute(nativePool, hipMemPoolAttrReleaseThreshold,
                                  &threshold);
   if (error != hipSuccess) {
-    (void)hipMemPoolDestroy(nativePool);
-    return statusFor(error);
+    goto fail_destroy_pool;
   }
 
   native_pool_ = nativePool;
   native_pool_supported_ = true;
   state_ = State::Ready;
   return HIP_OK;
+
+fail_destroy_pool:
+  (void)hipMemPoolDestroy(nativePool);
+  return statusFor(error);
 }
 
 /**
@@ -314,9 +317,6 @@ novaStatus_t HipDevicePool::releaseBuffer(hipBuffer_t *buf,
     if (error != hipSuccess) {
       return statusFor(error);
     }
-    *buf = hipBuffer_t{};
-
-    return HIP_OK;
   } else {
     const hipError_t error = hipFree(buf->ptr);
     if (error != hipSuccess) {
@@ -357,6 +357,9 @@ novaStatus_t HipDevicePool::resize(std::int32_t device_id, hipBuffer_t *buf,
  *                          device engine stream.
  *
  * @return Status; @c novaSuccess on success, or a mapped HIP error.
+ *         When the rollback free of the replacement buffer also fails,
+ *         the original error is reported with a message recording both
+ *         failures.
  *
  * @warning On failure the original buffer may already be freed; do not
  *          reuse its pointer after a failed resize.
@@ -367,6 +370,7 @@ novaStatus_t HipDevicePool::resizeBuffer(hipBuffer_t *buf,
   const std::size_t copyBytes = std::min(buf->bytes, new_bytes);
   void *newPointer = nullptr;
   hipStream_t work = stream;
+  hipError_t error = hipSuccess;
 
   if (work == nullptr) {
     const novaStatus_t engineStatus = HipEngineStream::current(&work);
@@ -379,22 +383,18 @@ novaStatus_t HipDevicePool::resizeBuffer(hipBuffer_t *buf,
   }
 
   if (buf->isPinned) {
-    hipError_t error =
-        hipHostMalloc(&newPointer, new_bytes, hipHostMallocDefault);
+    error = hipHostMalloc(&newPointer, new_bytes, hipHostMallocDefault);
     if (error != hipSuccess) {
       return statusFor(error);
     }
     std::memcpy(newPointer, buf->ptr, copyBytes);
     error = hipFreeHost(buf->ptr);
     if (error != hipSuccess) {
-      (void)hipFreeHost(newPointer);
-      return statusFor(error);
+      goto fail_free_new;
     }
   } else if (native_pool_supported_) {
-    hipMemPool_t nativePool = static_cast<hipMemPool_t>(native_pool_);
-
-    hipError_t error =
-        hipMallocFromPoolAsync(&newPointer, new_bytes, nativePool, work);
+    error = hipMallocFromPoolAsync(
+        &newPointer, new_bytes, static_cast<hipMemPool_t>(native_pool_), work);
     if (error != hipSuccess) {
       return statusFor(error);
     }
@@ -402,47 +402,48 @@ novaStatus_t HipDevicePool::resizeBuffer(hipBuffer_t *buf,
     error = hipMemcpyAsync(newPointer, buf->ptr, copyBytes,
                            hipMemcpyDeviceToDevice, work);
     if (error != hipSuccess) {
-      const hipError_t freeAsyncErr = hipFreeAsync(newPointer, work);
-      if (freeAsyncErr != hipSuccess) {
-        return statusFor(freeAsyncErr);
-      }
-      return statusFor(error);
+      goto fail_free_new;
     }
 
     error = hipFreeAsync(buf->ptr, work);
     if (error != hipSuccess) {
-      const hipError_t freeAsyncErr = hipFreeAsync(newPointer, work);
-
-      if (freeAsyncErr != hipSuccess) {
-        return statusFor(freeAsyncErr);
-      }
-      return statusFor(error);
+      goto fail_free_new;
     }
-
-    buf->ptr = newPointer;
-    buf->bytes = new_bytes;
-    buf->streamOrigin = work;
-    return HIP_OK;
   } else {
-    hipError_t error = hipMalloc(&newPointer, new_bytes);
+    error = hipMalloc(&newPointer, new_bytes);
     if (error != hipSuccess) {
       return statusFor(error);
     }
     error = hipMemcpy(newPointer, buf->ptr, copyBytes, hipMemcpyDeviceToDevice);
     if (error != hipSuccess) {
-      (void)hipFree(newPointer);
-      return statusFor(error);
+      goto fail_free_new;
     }
     error = hipFree(buf->ptr);
     if (error != hipSuccess) {
-      (void)hipFree(newPointer);
-      return statusFor(error);
+      goto fail_free_new;
     }
   }
 
   buf->ptr = newPointer;
   buf->bytes = new_bytes;
+  buf->streamOrigin = work;
   return HIP_OK;
+
+fail_free_new:
+  novaStatus_t status = statusFor(error);
+  hipError_t rollbackError = hipSuccess;
+  if (buf->isPinned) {
+    rollbackError = hipFreeHost(newPointer);
+  } else if (native_pool_supported_) {
+    rollbackError = hipFreeAsync(newPointer, work);
+  } else {
+    rollbackError = hipFree(newPointer);
+  }
+  if (rollbackError != hipSuccess) {
+    status = statusWithRollbackFailure(status, mapError(rollbackError),
+                                       "the replacement buffer");
+  }
+  return status;
 }
 
 /**
@@ -510,24 +511,28 @@ novaStatus_t HipDevicePool::stats(std::int32_t device_id,
     std::uint64_t releaseThreshold = 0;
     hipError_t error = hipMemPoolGetAttribute(
         nativePool, hipMemPoolAttrReservedMemCurrent, &reservedCurrent);
-    if (error == hipSuccess) {
-      error = hipMemPoolGetAttribute(nativePool, hipMemPoolAttrReservedMemHigh,
-                                     &reservedHigh);
-    }
-    if (error == hipSuccess) {
-      error = hipMemPoolGetAttribute(nativePool, hipMemPoolAttrUsedMemCurrent,
-                                     &usedCurrent);
-    }
-    if (error == hipSuccess) {
-      error = hipMemPoolGetAttribute(nativePool, hipMemPoolAttrUsedMemHigh,
-                                     &usedHigh);
-    }
-    if (error == hipSuccess) {
-      error = hipMemPoolGetAttribute(nativePool, hipMemPoolAttrReleaseThreshold,
-                                     &releaseThreshold);
-    }
     if (error != hipSuccess) {
-      return statusFor(error);
+      goto fail;
+    }
+    error = hipMemPoolGetAttribute(nativePool, hipMemPoolAttrReservedMemHigh,
+                                   &reservedHigh);
+    if (error != hipSuccess) {
+      goto fail;
+    }
+    error = hipMemPoolGetAttribute(nativePool, hipMemPoolAttrUsedMemCurrent,
+                                   &usedCurrent);
+    if (error != hipSuccess) {
+      goto fail;
+    }
+    error = hipMemPoolGetAttribute(nativePool, hipMemPoolAttrUsedMemHigh,
+                                   &usedHigh);
+    if (error != hipSuccess) {
+      goto fail;
+    }
+    error = hipMemPoolGetAttribute(nativePool, hipMemPoolAttrReleaseThreshold,
+                                   &releaseThreshold);
+    if (error != hipSuccess) {
+      goto fail;
     }
 
     out->reserved_current = reservedCurrent;
@@ -536,6 +541,9 @@ novaStatus_t HipDevicePool::stats(std::int32_t device_id,
     out->used_high = usedHigh;
     out->release_threshold = releaseThreshold;
     return HIP_OK;
+
+  fail:
+    return statusFor(error);
   });
 }
 

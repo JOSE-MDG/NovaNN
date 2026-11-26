@@ -38,6 +38,17 @@ enum class ScanCrossBlock : uint8_t { Auto, ChainedSinglePass, MultiPass };
 inline constexpr uint64_t SCAN_FAST_MAX_EXTENT = 2048;
 
 /**
+ * @struct ScanPlan
+ * @brief Geometry plus the scan mode the kernel must implement.
+ */
+struct ScanPlan {
+  LaunchConfig config;         ///< Grid/block pair.
+  bool chained = false;        ///< Ordered cross-block atomics are allowed.
+  bool exclusive = false;      ///< Exclusive output needs one extra tile slot.
+  bool doubleBuffered = false; ///< Two shared tiles are staged.
+};
+
+/**
  * @struct ParallelScanParams
  * @brief Facts for one scan launch.
  */
@@ -80,14 +91,23 @@ inline uint64_t scanElemsPerThread(const ParallelScanParams &p,
   const uint64_t fixed =
       detail::satAdd(static_cast<uint64_t>(p.kernel.staticSmemBytes),
                      static_cast<uint64_t>(p.kernel.dynSmemPerBlock));
+  const uint64_t buffers = p.buffering == BufferStrategy::Double ? 2U : 1U;
+  const uint64_t extra = p.inclusive ? 0U : p.itemSize;
+  uint64_t limit = p.device.smemPerBlock;
+  if (p.kernel.smemOptIn && p.device.smemPerBlockOptin > limit) {
+    limit = p.device.smemPerBlockOptin;
+  }
   for (;;) {
     for (uint64_t ept = 7; ept >= 3; ept -= 2) {
-      if (p.device.smemPerBlock == 0) {
+      if (limit == 0) {
         return ept;
       }
-      const uint64_t bytes = detail::satAdd(
-          detail::satMul(t, detail::satMul(ept, p.itemSize)), fixed);
-      if (bytes <= p.device.smemPerBlock) {
+      const uint64_t bytes =
+          detail::satAdd(detail::satAdd(detail::satMul(detail::satMul(t, ept),
+                                                       p.itemSize * buffers),
+                                        fixed),
+                         extra);
+      if (bytes <= limit) {
         return ept;
       }
     }
@@ -156,9 +176,11 @@ resolveParallelScanFast(const ParallelScanParams &p) noexcept {
  * (block sums, scanned, add-back) selected by the caller as follow-up
  * launches.
  */
-inline LaunchConfig resolveParallelScan(const ParallelScanParams &p) noexcept {
+inline ScanPlan
+resolveParallelScanFullPlan(const ParallelScanParams &p) noexcept {
+  ScanPlan plan{};
   if (p.scanExtent == 0 || p.numScans == 0 || p.itemSize == 0) {
-    return LaunchConfig{};
+    return plan;
   }
   const uint32_t warp = detail::effectiveWarp(p.device);
   uint32_t threads = pickBlockThreads(p.device, p.kernel);
@@ -183,17 +205,30 @@ inline LaunchConfig resolveParallelScan(const ParallelScanParams &p) noexcept {
   if (threads == 0) {
     threads = warp;
   }
-  LaunchConfig cfg{};
-  cfg.threads.x = threads;
-  cfg.blocks.x = static_cast<uint32_t>(p.numScans > ~0U ? ~0U : p.numScans);
-  cfg.blocks.y = static_cast<uint32_t>(pieces > ~0U ? ~0U : pieces);
-  if (cfg.blocks.x == 0) {
-    cfg.blocks.x = 1;
+  plan.config.threads.x = threads;
+  plan.config.blocks.x =
+      static_cast<uint32_t>(p.numScans > ~0U ? ~0U : p.numScans);
+  plan.config.blocks.y = static_cast<uint32_t>(pieces > ~0U ? ~0U : pieces);
+  if (plan.config.blocks.x == 0) {
+    plan.config.blocks.x = 1;
   }
-  if (cfg.blocks.y == 0) {
-    cfg.blocks.y = 1;
+  if (plan.config.blocks.y == 0) {
+    plan.config.blocks.y = 1;
   }
-  return detail::clampConfig(cfg, p.device, p.kernel);
+  plan.config = detail::clampConfig(plan.config, p.device, p.kernel);
+  plan.chained = !p.deterministic &&
+                 p.crossBlock != ScanCrossBlock::MultiPass &&
+                 detail::scanOpSimple(p.op);
+  plan.exclusive = !p.inclusive;
+  plan.doubleBuffered = p.buffering == BufferStrategy::Double;
+  return plan;
+}
+
+/**
+ * @brief Scan geometry reduced to its grid/block pair.
+ */
+inline LaunchConfig resolveParallelScan(const ParallelScanParams &p) noexcept {
+  return resolveParallelScanFullPlan(p).config;
 }
 
 } // namespace ncore::heuristics::kernels

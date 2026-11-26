@@ -53,6 +53,11 @@ using tests::rng::kDefaultSeed;
 inline std::vector<PairInfo> floatSourcePairs() {
   std::vector<PairInfo> out;
   for (const auto &p : allPairs()) {
+    // E8M0 specials are pinned by the dedicated CPU bitPatternIdentity suite;
+    // its one-byte scale encoding has no FormatSpec pattern set here.
+    if (p.src == DType_::Float8E8M0fnu || p.dst == DType_::Float8E8M0fnu) {
+      continue;
+    }
     if (isFloatDtype(p.src)) {
       out.push_back(p);
     }

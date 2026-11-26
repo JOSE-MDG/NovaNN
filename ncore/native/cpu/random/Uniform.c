@@ -842,23 +842,23 @@ static void uniform_run_u32(void *out, size_t units, const UniformPlanU32 *plan,
                             float base, float span, Generator_ *generator,
                             novaStatus_t *st) {
   UniformGenerator held = {};
-  const novaStatus_t acquired = uniform_generator_acquire(generator, &held);
-  if (acquired.err != novaSuccess) {
-    *st = acquired;
+  *st = uniform_generator_acquire(generator, &held);
+  if (st->err != novaSuccess) {
     return;
   }
   uint32 threads = 1U;
 #ifdef NOVA_OPENMP
   threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    (void)uniform_generator_release(&held);
-    return;
-  }
 #endif
-  const novaStatus_t drawn =
-      uniform_draw_map_u32(held.gen, plan, out, units, base, span, threads);
+  // Single release point: the draw runs only while the status is
+  // success, and a release error surfaces only when the draw succeeded.
+  if (st->err == novaSuccess) {
+    *st = uniform_draw_map_u32(held.gen, plan, out, units, base, span, threads);
+  }
   const novaStatus_t released = uniform_generator_release(&held);
-  *st = drawn.err != novaSuccess ? drawn : released;
+  if (st->err == novaSuccess) {
+    *st = released;
+  }
 }
 
 /**
@@ -878,23 +878,23 @@ static void uniform_run_u64(void *out, size_t units, const UniformPlanU64 *plan,
                             double base, double span, Generator_ *generator,
                             novaStatus_t *st) {
   UniformGenerator held = {};
-  const novaStatus_t acquired = uniform_generator_acquire(generator, &held);
-  if (acquired.err != novaSuccess) {
-    *st = acquired;
+  *st = uniform_generator_acquire(generator, &held);
+  if (st->err != novaSuccess) {
     return;
   }
   uint32 threads = 1U;
 #ifdef NOVA_OPENMP
   threads = get_num_threads_from(ParallelComputeGroup, st);
-  if (st->err != novaSuccess) {
-    (void)uniform_generator_release(&held);
-    return;
-  }
 #endif
-  const novaStatus_t drawn =
-      uniform_draw_map_u64(held.gen, plan, out, units, base, span, threads);
+  // Single release point: the draw runs only while the status is
+  // success, and a release error surfaces only when the draw succeeded.
+  if (st->err == novaSuccess) {
+    *st = uniform_draw_map_u64(held.gen, plan, out, units, base, span, threads);
+  }
   const novaStatus_t released = uniform_generator_release(&held);
-  *st = drawn.err != novaSuccess ? drawn : released;
+  if (st->err == novaSuccess) {
+    *st = released;
+  }
 }
 
 /* =========================================================================
@@ -1791,88 +1791,95 @@ uniform_cpu_impl_bf16_avx_avx2_fma(Tensor *ten, float low, float high,
 #ifdef _GNUC_CLANG_
 
 static const UniformVariant uniform_variants_f32[] = {
-    {.fn = uniform_cpu_impl_f32_avx512, .isa = UniformISAAVX512F},
-    {.fn = uniform_cpu_impl_f32_avx_avx2_fma, .isa = UniformISAAVX2FMA},
-    {.fn = uniform_cpu_impl_f32_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaAVX512F}, .fn = uniform_cpu_impl_f32_avx512},
+    {.base = {.isa = SimdIsaAVX2FMA}, .fn = uniform_cpu_impl_f32_avx_avx2_fma},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_f32_scalar},
 };
 
 static const UniformVariant uniform_variants_f64[] = {
-    {.fn = uniform_cpu_impl_f64_avx512dq, .isa = UniformISAAVX512DQ},
-    {.fn = uniform_cpu_impl_f64_avx_avx2_fma, .isa = UniformISAAVX2FMA},
-    {.fn = uniform_cpu_impl_f64_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaAVX512FDQ}, .fn = uniform_cpu_impl_f64_avx512dq},
+    {.base = {.isa = SimdIsaAVX2FMA}, .fn = uniform_cpu_impl_f64_avx_avx2_fma},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_f64_scalar},
 };
 
 static const UniformVariant uniform_variants_fp16[] = {
-    {.fn = uniform_cpu_impl_fp16_avx512, .isa = UniformISAAVX512F},
-    {.fn = uniform_cpu_impl_fp16_avx_avx2_fma_f16c,
-     .isa = UniformISAAVX2FMAF16C},
-    {.fn = uniform_cpu_impl_fp16_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaAVX512F}, .fn = uniform_cpu_impl_fp16_avx512},
+    {.base = {.isa = SimdIsaAVX2FMAF16C},
+     .fn = uniform_cpu_impl_fp16_avx_avx2_fma_f16c},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_fp16_scalar},
 };
 
 static const UniformVariant uniform_variants_bf16[] = {
-    {.fn = uniform_cpu_impl_bf16_avx512bf16, .isa = UniformISAAVX512BF16},
-    {.fn = uniform_cpu_impl_bf16_avx_avx2_fma, .isa = UniformISAAVX2FMA},
-    {.fn = uniform_cpu_impl_bf16_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaAVX512FBF16},
+     .fn = uniform_cpu_impl_bf16_avx512bf16},
+    {.base = {.isa = SimdIsaAVX2FMA}, .fn = uniform_cpu_impl_bf16_avx_avx2_fma},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_bf16_scalar},
 };
 
 #else
 
 static const UniformVariant uniform_variants_f32[] = {
-    {.fn = uniform_cpu_impl_f32_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_f32_scalar},
 };
 
 static const UniformVariant uniform_variants_f64[] = {
-    {.fn = uniform_cpu_impl_f64_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_f64_scalar},
 };
 
 static const UniformVariant uniform_variants_fp16[] = {
-    {.fn = uniform_cpu_impl_fp16_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_fp16_scalar},
 };
 
 static const UniformVariant uniform_variants_bf16[] = {
-    {.fn = uniform_cpu_impl_bf16_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_bf16_scalar},
 };
 
 #endif
 
 static const UniformVariant uniform_variants_fp8e4m3[] = {
-    {.fn = uniform_cpu_impl_fp8e4m3_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_fp8e4m3_scalar},
 };
 
 static const UniformVariant uniform_variants_fp8e5m2[] = {
-    {.fn = uniform_cpu_impl_fp8e5m2_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_fp8e5m2_scalar},
 };
 
 static const UniformVariant uniform_variants_fp4e2m1[] = {
-    {.fn = uniform_cpu_impl_fp4e2m1_scalar, .isa = UniformISANone},
-    {.fn = nullptr, .isa = UniformISANone},
+    {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_fp4e2m1_scalar},
 };
+
+/**
+ * @struct UniformVariantTable
+ * @brief One variant table with its entry count.
+ */
+typedef struct {
+  const UniformVariant *variants; ///< Entries, fastest first.
+  size_t count;                   ///< Number of entries.
+} UniformVariantTable;
 
 /**
  * @brief Variant tables indexed by the tensor data type.
  *
  * @details
  * The table spans every data type, so a type without a variant reads
- * as a null entry instead of stepping past the end of the table.
+ * as a null entry instead of stepping past the end of the table. Every
+ * table ends with a portable fallback that requires no instruction set.
  */
-static const UniformVariant *const uniform_variant_tables[NUM_DTYPES] = {
-    [Float32] = uniform_variants_f32,
-    [Float64] = uniform_variants_f64,
-    [Float16] = uniform_variants_fp16,
-    [BFloat16] = uniform_variants_bf16,
-    [Float8E4M3fn] = uniform_variants_fp8e4m3,
-    [Float8E5M2] = uniform_variants_fp8e5m2,
-    [Float4E2M1fn] = uniform_variants_fp4e2m1,
+static const UniformVariantTable uniform_variant_tables[NUM_DTYPES] = {
+    [Float32] = {.variants = uniform_variants_f32,
+                 .count = SIMD_VARIANT_COUNT(uniform_variants_f32)},
+    [Float64] = {.variants = uniform_variants_f64,
+                 .count = SIMD_VARIANT_COUNT(uniform_variants_f64)},
+    [Float16] = {.variants = uniform_variants_fp16,
+                 .count = SIMD_VARIANT_COUNT(uniform_variants_fp16)},
+    [BFloat16] = {.variants = uniform_variants_bf16,
+                  .count = SIMD_VARIANT_COUNT(uniform_variants_bf16)},
+    [Float8E4M3fn] = {.variants = uniform_variants_fp8e4m3,
+                      .count = SIMD_VARIANT_COUNT(uniform_variants_fp8e4m3)},
+    [Float8E5M2] = {.variants = uniform_variants_fp8e5m2,
+                    .count = SIMD_VARIANT_COUNT(uniform_variants_fp8e5m2)},
+    [Float4E2M1fn] = {.variants = uniform_variants_fp4e2m1,
+                      .count = SIMD_VARIANT_COUNT(uniform_variants_fp4e2m1)},
 };
 
 /**
@@ -1886,17 +1893,13 @@ static const UniformVariant *uniform_pick_variant(DType_ dtype) {
   if (dtype >= NUM_DTYPES) {
     return nullptr;
   }
-  const UniformVariant *table = uniform_variant_tables[dtype];
-  if (table == nullptr) {
+  const UniformVariantTable *table = &uniform_variant_tables[dtype];
+  if (table->variants == nullptr) {
     return nullptr;
   }
-  for (const UniformVariant *variant = table; variant->fn != nullptr;
-       ++variant) {
-    if (uniform_isa_supported(variant->isa)) {
-      return variant;
-    }
-  }
-  return nullptr;
+  return REINTERPRET_CAST(
+      const UniformVariant *,
+      SIMD_SELECT(table->variants, table->count, get_simd_capabilities()));
 }
 
 /**

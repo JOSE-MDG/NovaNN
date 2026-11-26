@@ -102,7 +102,6 @@ struct DeviceCaps {
   uint64_t memBandwidthBytesPerSec = 0; ///< Theoretical bandwidth.
   uint64_t peakFlops = 0;               ///< Theoretical throughput.
   size_t l2Size = 0;                    ///< L2 capacity, bytes.
-  size_t l2PersistentReservable = 0;    ///< Reservable persistent share.
   size_t l2MaxWindow = 0;               ///< Max persistent policy window.
   bool asyncCopyEngines = false;        ///< HW global/shared async copy.
 };
@@ -117,6 +116,7 @@ struct KernelAttrs {
   size_t dynSmemPerBlock = 0;  ///< Dynamic shared memory per block, bytes.
   size_t dynSmemPerThread = 0; ///< Dynamic shared memory per thread, bytes.
   uint32_t maxThreadsPerBlockKernel = 0; ///< Kernel block-size limit.
+  bool smemOptIn = false; ///< Kernel opted into the extended shared-memory cap.
 };
 
 /**
@@ -253,6 +253,24 @@ inline uint32_t fastThreads(const DeviceCaps &d,
     const uint64_t perWarp =
         ceilDiv(static_cast<uint64_t>(k.regsPerThread), gran) * gran * warp;
     while (warps > 1 && static_cast<uint64_t>(warps) * perWarp > d.regsPerSM) {
+      --warps;
+    }
+  }
+  // A block that cannot stage its shared memory cannot run at all. Step down
+  // whole warps while the per-thread part of the allocation overflows the
+  // proven per-block budget; unknown budgets skip the walk.
+  uint64_t smemLimit = d.smemPerBlock;
+  if (k.smemOptIn && d.smemPerBlockOptin > smemLimit) {
+    smemLimit = d.smemPerBlockOptin;
+  }
+  if (smemLimit != 0) {
+    while (warps > 1) {
+      const uint64_t need = satAdd(
+          satAdd(k.staticSmemBytes, k.dynSmemPerBlock),
+          satMul(k.dynSmemPerThread, static_cast<uint64_t>(warps) * warp));
+      if (need <= smemLimit) {
+        break;
+      }
       --warps;
     }
   }
@@ -578,9 +596,10 @@ inline Occupancy computeOccupancy(const DeviceCaps &d, const KernelAttrs &k,
   const uint64_t smemUse =
       detail::satAdd(detail::satAdd(k.staticSmemBytes, k.dynSmemPerBlock),
                      detail::satMul(k.dynSmemPerThread, threadsPerBlock));
-  const uint64_t smemBlockLimit = d.smemPerBlock > d.smemPerBlockOptin
-                                      ? d.smemPerBlock
-                                      : d.smemPerBlockOptin;
+  uint64_t smemBlockLimit = d.smemPerBlock;
+  if (k.smemOptIn && d.smemPerBlockOptin > smemBlockLimit) {
+    smemBlockLimit = d.smemPerBlockOptin;
+  }
   if (smemBlockLimit != 0 && smemUse > smemBlockLimit) {
     o.limiter = OccupancyLimiter::CannotLaunch;
     return o;
@@ -707,8 +726,9 @@ inline uint32_t pickBlockThreads(const DeviceCaps &d, const KernelAttrs &k,
   if (sawKnown && bestT != 0) {
     return bestT;
   }
-  // Nothing passed: largest warp multiple within the cap.
-  return (cap / warp) * warp;
+  // No candidate passed the modeled limits. A warp-sized block is the
+  // smallest legal geometry left to try.
+  return warp;
 }
 
 /**

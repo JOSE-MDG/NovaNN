@@ -2,8 +2,8 @@
 GPU DType Casting Tests
 -----------------------
 
-GoogleTest suite for the on-device dtype casting path: the same 210
-dtype pairs as the CPU ``dtypeCasting`` suite, converted on the active
+GoogleTest suite for the on-device dtype casting path: the same full set
+of dtype pairs as the CPU ``dtypeCasting`` suite, converted on the active
 GPU backend (CUDA or HIP) and compared bitwise against the CPU
 reference after a device-to-host transfer.
 
