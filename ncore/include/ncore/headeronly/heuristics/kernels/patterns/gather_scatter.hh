@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cmath>
+
 #include "common.hh"
 
 namespace ncore::heuristics::kernels {
@@ -65,12 +67,22 @@ inline uint64_t fastParallelWork(const GatherScatterParams &p) noexcept {
   return detail::satMul(p.numIndices, p.segmentSize);
 }
 
-/// Bytes moved counting index stream plus data both ways.
+/// Bytes moved counting the index stream and the directed data traffic.
 inline uint64_t fastTrafficBytes(const GatherScatterParams &p) noexcept {
   const uint64_t elems = detail::satMul(p.numIndices, p.segmentSize);
+  float ratio = p.readWriteRatio;
+  if (!std::isfinite(ratio) || ratio < 0.0F) {
+    ratio = 1.0F;
+  } else if (ratio > 254.0F) {
+    ratio = 254.0F;
+  }
+  const uint64_t dataMoves =
+      detail::satMul(p.dataItemSize, 1U + static_cast<uint64_t>(ratio));
+  const uint64_t duplicateCost =
+      !p.indicesUnique && p.expectIntraWarpDup ? 2U : 1U;
   return detail::satAdd(
       detail::satMul(p.numIndices, p.indexItemSize),
-      detail::satMul(elems, detail::satMul(p.dataItemSize, 2U)));
+      detail::satMul(elems, detail::satMul(dataMoves, duplicateCost)));
 }
 
 /**
@@ -122,16 +134,16 @@ resolveGatherScatterFast(const GatherScatterParams &p) noexcept {
  * @details
  * Medium segments promote to warp-per-segment so lanes stay coalesced;
  * segments past efficient warp reuse promote to block-per-segment.
- * Dedup, presort, and mix tuning belong to kernel selection downstream:
- * geometry here only sizes the launch.
+ * Explicit dedup and presort coarsen the assignment because their extra
+ * pass pays for more elements per lane.
  *
  * Phase 3.6 re-packed the warp-per-segment branch (keeping the warp
  * count and folding several warps into one block) only for kernels that
  * derive their warp id from `(blockIdx.x * blockDim.x + threadIdx.x) /
- * warpSize` and never from `blockIdx.x` alone. No indirect gather or
- * scatter kernel exists in the tree yet, so the contract is unverified
- * and the branch keeps one warp per block: a kernel that reads
- * `blockIdx.x` as its segment id would lose segments under any packing.
+ * warpSize` and never from `blockIdx.x` alone. The branch keeps one warp
+ * per block because a kernel that reads `blockIdx.x` as its segment id
+ * would lose segments under any packing. Clustered indices and explicit
+ * dedup or presort allow more elements per warp before that limit binds.
  */
 inline LaunchConfig
 resolveGatherScatter(const GatherScatterParams &p) noexcept {
@@ -144,6 +156,14 @@ resolveGatherScatter(const GatherScatterParams &p) noexcept {
   const uint64_t totalElems =
       detail::satMul(p.numIndices, p.segmentSize != 0 ? p.segmentSize : 1U);
   const uint64_t cap = fastGridCap(p.device, p.kernel, threads);
+  uint64_t grain = 1U;
+  if (p.distribution.spread == IndexSpread::Clustered ||
+      p.distribution.locality01 > 0.7F) {
+    grain *= 2U;
+  }
+  if (p.dedup == WarpDedup::On || p.presort == IndexPresort::On) {
+    grain *= 2U;
+  }
   uint64_t blocks;
   uint32_t blockThreads;
   if (segBytes > detail::satMul(detail::satMul(static_cast<uint64_t>(warp),
@@ -155,12 +175,12 @@ resolveGatherScatter(const GatherScatterParams &p) noexcept {
   } else if (segBytes > GATHER_FAST_MAX_SEGMENT_BYTES) {
     blockThreads = warp;
     const uint64_t groups =
-        detail::ceilDiv(totalElems, static_cast<uint64_t>(warp) * 4U);
+        detail::ceilDiv(totalElems, static_cast<uint64_t>(warp) * 4U * grain);
     blocks = groups;
   } else {
     blockThreads = threads;
     blocks = detail::ceilDiv(totalElems, static_cast<uint64_t>(threads) *
-                                             FAST_ELEMS_PER_THREAD);
+                                             FAST_ELEMS_PER_THREAD * grain);
   }
   if (cap != 0 && blocks > cap) {
     blocks = cap;

@@ -235,6 +235,7 @@ inline HeuristicTier resolveTier(const LaunchParamsBase &params) noexcept {
     flops = fastComputeFlops(p);
     tiles = fastOutputTiles(p);
     coalesced = fastProvenCoalesced(p);
+    bytes = fastTrafficBytes(p);
     break;
   }
   case ExecutionPattern::GatherScatter: {
@@ -247,6 +248,8 @@ inline HeuristicTier resolveTier(const LaunchParamsBase &params) noexcept {
   case ExecutionPattern::FusedOperator: {
     const auto &p = static_cast<const FusedOperatorParams &>(params);
     covered = coversFusedOperatorFast(p);
+    work = fastParallelWork(p);
+    bytes = fastTrafficBytes(p);
     break;
   }
   }
@@ -266,31 +269,44 @@ inline HeuristicTier resolveTier(const LaunchParamsBase &params) noexcept {
     return HeuristicTier::Full;
   }
   const uint64_t ovh = detail::routeOverhead(params);
-  // A kernel known to be shorter than the analysis is worth skips it.
-  // expectedDivergence stays reserved: no consumer yet.
+  // A kernel known to be shorter than the analysis is worth skipping.
   if (ovh != 0 && params.context.expectedDurationNs != 0 &&
       params.context.expectedDurationNs < ROUTE_LAUNCH_FACTOR * ovh) {
     return HeuristicTier::Fast;
   }
   if (ovh != 0) {
+    double estimate = 0.0;
     if (flops != 0 && d.peakFlops != 0) {
-      const double tEst =
+      estimate =
           static_cast<double>(flops) / (0.7 * static_cast<double>(d.peakFlops));
-      if (tEst < static_cast<double>(ROUTE_LAUNCH_FACTOR * ovh) / 1e9) {
-        return HeuristicTier::Fast;
-      }
-      return HeuristicTier::Full;
     }
     if (bytes != 0 && d.memBandwidthBytesPerSec != 0) {
-      const double eta = coalesced ? static_cast<double>(ROUTE_ETA_ALIGNED)
-                                   : static_cast<double>(ROUTE_ETA_SCALAR);
-      const double tEst =
+      double eta = coalesced ? static_cast<double>(ROUTE_ETA_ALIGNED)
+                             : static_cast<double>(ROUTE_ETA_SCALAR);
+      eta *= 1.0 - static_cast<double>(params.context.expectedDivergence);
+      if (d.l2Size != 0 && bytes <= d.l2Size) {
+        eta *= 1.2;
+      }
+      if (d.l2MaxWindow != 0 && bytes <= d.l2MaxWindow) {
+        eta *= 1.1;
+      }
+      if (d.asyncCopyEngines) {
+        eta *= 1.1;
+      }
+      if (eta > 1.0) {
+        eta = 1.0;
+      } else if (eta < 0.05) {
+        eta = 0.05;
+      }
+      const double memoryTime =
           static_cast<double>(bytes) /
           (eta * static_cast<double>(d.memBandwidthBytesPerSec));
-      if (tEst < static_cast<double>(ROUTE_LAUNCH_FACTOR * ovh) / 1e9) {
-        return HeuristicTier::Fast;
-      }
-      return HeuristicTier::Full;
+      estimate = estimate > memoryTime ? estimate : memoryTime;
+    }
+    if (estimate > 0.0) {
+      return estimate < static_cast<double>(ROUTE_LAUNCH_FACTOR * ovh) / 1e9
+                 ? HeuristicTier::Fast
+                 : HeuristicTier::Full;
     }
   }
   return HeuristicTier::Fast;

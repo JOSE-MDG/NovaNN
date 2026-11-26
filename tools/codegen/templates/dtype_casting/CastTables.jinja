@@ -38,21 +38,38 @@
  */
 {%- endmacro -%}
 
+{%- macro isa_expr(variant) -%}
+{%- if variant.isa -%}SimdIsa{{ variant.isa | join(' | SimdIsa') }}{%- else -%}SimdIsaNone{%- endif -%}
+{%- endmacro -%}
+
+{%- macro emit_entries(variants) -%}
+{%- for variant in variants %}
+    {.base = {.isa = {{ isa_expr(variant) }}},
+     .fn = {{ variant.name }}},
+{%- endfor %}
+{%- endmacro -%}
+
 {%- for table in rules.tables %}
 
 {%- if table.guard_required %}
 
 #ifdef _GNUC_CLANG_
 {{ emit_comment(table, table.variants) }}
-const CastFn {{ table.signature }}[] = { {{ table.variants | map(attribute='name') | join(', ') }} };
+const CastVariant {{ table.signature }}[] = {
+{{- emit_entries(table.variants) }}
+};
 #else
-{{ emit_comment(table, [table.variants | last]) }}
-const CastFn {{ table.signature }}[] = { {{ (table.variants | last).name }} };
+{{ emit_comment(table, table.variants[-1:]) }}
+const CastVariant {{ table.signature }}[] = {
+{{- emit_entries(table.variants[-1:]) }}
+};
 #endif
 {%- else %}
 
 {{ emit_comment(table, table.variants) }}
-const CastFn {{ table.signature }}[] = { {{ (table.variants | first).name }} };
+const CastVariant {{ table.signature }}[] = {
+{{- emit_entries(table.variants[:1]) }}
+};
 {%- endif %}
 
 {%- endfor %}

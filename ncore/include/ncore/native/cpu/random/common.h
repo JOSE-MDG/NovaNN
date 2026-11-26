@@ -18,24 +18,6 @@ extern "C" {
 #endif
 
 /**
- * @enum UniformISA_
- * @brief Instruction set a CPU random operation variant requires.
- *
- * @details
- * Each value names one capability set the host must provide before the
- * matching variant may run. The sets mirror the ones the dtype-cast
- * operations dispatch on, so both families read the same hardware facts.
- */
-typedef enum UniformISA_ : uint8_t {
-  UniformISANone = 0,    ///< Portable fallback, no instruction set needed.
-  UniformISAAVX2FMA,     ///< AVX/AVX2 with FMA3 (256-bit vectors).
-  UniformISAAVX2FMAF16C, ///< AVX/AVX2 with FMA3 and F16C.
-  UniformISAAVX512F,     ///< AVX-512 Foundation (512-bit vectors).
-  UniformISAAVX512DQ,    ///< AVX-512 Foundation with Doubleword/Quadword.
-  UniformISAAVX512BF16,  ///< AVX-512 Foundation with BF16.
-} UniformISA_;
-
-/**
  * @typedef UniformFunc
  * @brief Signature of a CPU uniform operation.
  *
@@ -57,39 +39,16 @@ typedef void (*UniformFunc)(Tensor *, float, float, Generator_ *,
 
 /**
  * @struct UniformVariant
- * @brief Variant paired with the instruction set it needs.
+ * @brief Operation entry point paired with the instruction set it needs.
+ *
+ * @remarks
+ * @ref base must stay the first member: @ref SIMD_SELECT scans arrays of
+ * this type through the embedded descriptor.
  */
 typedef struct {
-  UniformFunc fn;  ///< Operation entry point.
-  UniformISA_ isa; ///< Instruction set the operation requires.
+  SimdVariant base; ///< Instruction-set requirement.
+  UniformFunc fn;   ///< Operation entry point.
 } UniformVariant;
-
-/**
- * @brief Report whether the host CPU provides @p isa.
- *
- * @param[in] isa  Capability set the caller needs.
- *
- * @return @c true when every capability in @p isa is present.
- */
-static inline bool uniform_isa_supported(UniformISA_ isa) {
-  const SIMDCapabilities *caps = get_simd_capabilities();
-  switch (isa) {
-  case UniformISAAVX2FMA:
-    return caps->avx_ && caps->avx2_ && caps->fma3_;
-  case UniformISAAVX2FMAF16C:
-    return caps->avx_ && caps->avx2_ && caps->fma3_ && caps->f16c_;
-  case UniformISAAVX512F:
-    return caps->avx512f_;
-  case UniformISAAVX512DQ:
-    return caps->avx512f_ && caps->avx512_dq_;
-  case UniformISAAVX512BF16:
-    return caps->avx512f_ && caps->avx512_bf16_;
-  case UniformISANone:
-  default:
-    break;
-  }
-  return true;
-}
 
 #ifdef __cplusplus
 }

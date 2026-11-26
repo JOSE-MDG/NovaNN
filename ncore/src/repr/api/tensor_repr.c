@@ -60,7 +60,9 @@ static inline novaStatus_t repr_status(novaError_t err) {
  * GPU tensors to host, builds the context, renders the layout, and
  * appends metadata. The shadow copy is released on every exit after
  * a successful allocation, including transfer failure (which the
- * triplicated predecessors handled inconsistently).
+ * triplicated predecessors handled inconsistently). The shadow aliases
+ * the source's gradient through the bitwise copy, so every release path
+ * drops that alias first and never frees the source's gradient chain.
  *
  * @param[in]  ten  Pointer to the tensor to render. Allocated, or
  *                  META.
@@ -81,6 +83,9 @@ static inline novaStatus_t render_owned(const Tensor *ten,
   *out = nullptr;
   Tensor rten = {};
   bool swapped = false;
+  novaStatus_t st = repr_status(novaSuccess);
+  ReprContext ctx = {};
+  StringBuilder sb;
   memcpy(&rten, ten, sizeof(Tensor));
 
   if (ten->device == DEVICE_GPU) {
@@ -93,8 +98,8 @@ static inline novaStatus_t render_owned(const Tensor *ten,
     rten.is_allocated_ = false;
 
     // Create a storage for rten (in-place)
-    auto st = safe_allocator(ten->size * ten->item_size, DEVICE_CPU, false,
-                             nullptr, &rten, true);
+    st = safe_allocator(ten->size * ten->item_size, DEVICE_CPU, false, nullptr,
+                        &rten, true);
     if (st.err != novaSuccess) {
       return st;
     }
@@ -108,21 +113,17 @@ static inline novaStatus_t render_owned(const Tensor *ten,
     rten.device = DEVICE_CPU;
     st = transf_tensor_from_device(ten, &rten);
     if (st.err != novaSuccess) {
-      (void)collect(&rten);
-      return st;
+      goto fail_shadow;
     }
     rten.device = DEVICE_GPU;
   }
 
-  auto ctx = build_repr_context(&rten, opts);
+  ctx = build_repr_context(&rten, opts);
 
-  StringBuilder sb;
   sb_init(&sb, 256);
   if (sb_get_status(&sb) != SbOk) {
-    if (swapped) {
-      (void)collect(&rten);
-    }
-    return repr_status(novaOutOfMemory);
+    st = repr_status(novaOutOfMemory);
+    goto fail_shadow;
   }
 
   sb_append(&sb, "tensor(");
@@ -156,25 +157,38 @@ static inline novaStatus_t render_owned(const Tensor *ten,
   metadata_fmt_append(&ctx, &sb);
 
   if (swapped) {
-    if (ten->requires_grad_) {
+    if (rten.grad != nullptr) {
       /* rten aliases ten's grad through memcpy; keep collect() from freeing it */
       rten.grad = nullptr;
     }
-    novaStatus_t collect_status = collect(&rten);
-    if (collect_status.err != novaSuccess) {
-      sb_free(&sb);
-      return collect_status;
+    st = collect(&rten);
+    if (st.err != novaSuccess) {
+      goto fail_sb;
     }
+    swapped = false;
   }
   if (sb_get_status(&sb) != SbOk) {
-    sb_free(&sb);
-    return repr_status(novaOutOfMemory);
+    st = repr_status(novaOutOfMemory);
+    goto fail_sb;
   }
   *out = sb_build(&sb);
   if (*out == nullptr) {
-    return repr_status(novaOutOfMemory);
+    st = repr_status(novaOutOfMemory);
+    goto fail;
   }
   return repr_status(novaSuccess);
+
+fail_sb:
+  sb_free(&sb);
+fail_shadow:
+  if (swapped) {
+    if (rten.grad != nullptr) {
+      rten.grad = nullptr;
+    }
+    (void)collect(&rten);
+  }
+fail:
+  return st;
 }
 
 /**
@@ -266,11 +280,10 @@ novaStatus_t tensor_print(const Tensor *ten) {
     return st;
   }
   if (printf("%s\n", s) < 0) {
-    free(s);
-    return repr_status(novaRuntimeError);
+    st = repr_status(novaRuntimeError);
   }
   free(s);
-  return repr_status(novaSuccess);
+  return st;
 }
 
 /**
@@ -288,9 +301,8 @@ novaStatus_t tensor_print_debug(const Tensor *ten) {
     return st;
   }
   if (printf("%s\n", s) < 0) {
-    free(s);
-    return repr_status(novaRuntimeError);
+    st = repr_status(novaRuntimeError);
   }
   free(s);
-  return repr_status(novaSuccess);
+  return st;
 }

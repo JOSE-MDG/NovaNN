@@ -2,7 +2,7 @@
  * @file GpuDispatch_test.cpp
  * @brief Device dispatch coverage for the GPU dtype casting path.
  *
- * Verifies the 210-pair registry resolves in GPU test binaries,
+ * Verifies the full pair registry resolves in GPU test binaries,
  * converts absolute-value smoke cases on the active backend, covers
  * a large multi-block tensor, and pins the status edges that need no
  * device launch (shape mismatch and empty tensors through the
@@ -32,6 +32,7 @@ namespace {
 using ncore::wrappers::TensorCXX;
 using tests::casting::allPairs;
 using tests::casting::findPairFor;
+using tests::casting::kExpectedCastPairCount;
 using tests::casting::readRaw;
 using tests::casting::writeRaw;
 using tests::gpu::callBackendLauncher;
@@ -91,11 +92,11 @@ constexpr std::array<GpuFamilySample, 7> kGpuFamilySamples{{
 } // namespace
 
 /**
- * @brief Verifies the 210-pair registry resolves in GPU test binaries.
+ * @brief Verifies the full pair registry resolves in GPU test binaries.
  */
 TEST(GpuDispatch, AllSupportedPairsResolve) {
   const auto &pairs = allPairs();
-  ASSERT_EQ(pairs.size(), size_t{210});
+  ASSERT_EQ(pairs.size(), kExpectedCastPairCount);
   for (const auto &p : pairs) {
     EXPECT_NE(get_dispatched_cast_func(p.src, p.dst), nullptr) << p.label;
   }

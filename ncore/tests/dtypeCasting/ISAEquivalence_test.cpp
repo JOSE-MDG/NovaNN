@@ -7,9 +7,10 @@
  * is therefore established two ways:
  *
  * @li Wrapper-vs-scalar: the live dispatch wrapper must agree bitwise with
- *     the portable scalar kernel for every one of the 210 pairs, exercising
- *     whichever SIMD variant the host ladder selects, across sizes that
- *     straddle every vector step (tail loops included).
+ *     the portable scalar kernel for every one of the
+ *     @c kExpectedCastPairCount pairs, exercising whichever SIMD variant
+ *     the host ladder selects, across sizes that straddle every vector
+ *     step (tail loops included).
  * @li Direct variant invocation: for a curated set of pairs whose SIMD
  *     symbols have stable names, each variant is invoked directly (gated on
  *     real host support via isaSupported()) and compared against both the
@@ -89,7 +90,7 @@ void expectWrapperMatchesScalar(DType_ src, DType_ dst, size_t count,
                             wrapperPair.dst.getCTensor(), count, label);
 }
 
-/// Parameterized fixture over the full 210-pair registry.
+/// Parameterized fixture over the full @c kExpectedCastPairCount registry.
 class ISAEquivalence : public ::testing::TestWithParam<IseParam> {};
 
 } // namespace
@@ -135,14 +136,16 @@ TEST(ISAEquivalence, TailRemainderHandledByAllVariants) {
 /**
  * @brief Verifies pairs whose tables hold only the portable fallback:
  *        the wrapper must behave exactly like the scalar kernel. All FP4-
- *        and FP8-involving pairs are single-entry today.
+ *        and FP8-involving pairs (E4M3, E5M2 and the E8M0 scale factor)
+ *        are single-entry today.
  */
 TEST(ISAEquivalence, SingleEntryPairsDelegateToScalar) {
   for (const auto &p : allPairs()) {
     const bool reduced =
         p.src == DType_::Float4E2M1fn || p.dst == DType_::Float4E2M1fn ||
         p.src == DType_::Float8E4M3fn || p.dst == DType_::Float8E4M3fn ||
-        p.src == DType_::Float8E5M2 || p.dst == DType_::Float8E5M2;
+        p.src == DType_::Float8E5M2 || p.dst == DType_::Float8E5M2 ||
+        p.src == DType_::Float8E8M0fnu || p.dst == DType_::Float8E8M0fnu;
     if (!reduced) {
       continue;
     }

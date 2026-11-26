@@ -78,6 +78,13 @@ Family familyOf(const tests::casting::PairInfo &p) {
   return Family::IntToInt;
 }
 
+/// True when a pair uses the exponent-only E8M0 scale factor. The shared
+/// FormatSpec model deliberately cannot encode it; the dedicated
+/// bitPatternIdentity/Float8_e8m0fnu_test.cpp pins those pairs instead.
+bool usesE8M0(const tests::casting::PairInfo &p) {
+  return p.src == DType_::Float8E8M0fnu || p.dst == DType_::Float8E8M0fnu;
+}
+
 /// Expected raw destination pattern for a floating destination.
 uint64_t expectedFloatPattern(DType_ dst, double decoded) {
   switch (dst) {
@@ -302,7 +309,7 @@ TEST(ScalarOracle, OracleSelfCheckFlagContract) {
  */
 TEST(ScalarOracle, FpToFpMatchesOracle) {
   for (const auto &pair : allPairs()) {
-    if (familyOf(pair) != Family::FpToFp) {
+    if (familyOf(pair) != Family::FpToFp || usesE8M0(pair)) {
       continue;
     }
 #if defined(__clang__)
@@ -476,7 +483,7 @@ TEST(ScalarOracle, IntToIntMatchesOracle) {
  */
 TEST(ScalarOracle, RandomPatternsMatchOracleForFpToFp) {
   for (const auto &pair : allPairs()) {
-    if (familyOf(pair) != Family::FpToFp) {
+    if (familyOf(pair) != Family::FpToFp || usesE8M0(pair)) {
       continue;
     }
     if (pair.src == DType_::Float32 || pair.src == DType_::Float64) {

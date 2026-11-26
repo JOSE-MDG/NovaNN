@@ -21,6 +21,7 @@
  * @see alloc.h      Storage allocation.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include <ncore/core/alloc.h>
@@ -237,8 +238,10 @@ static const CopyFn *lookup_copy[2] = {
  * @param[out] dst     Destination tensor.  Must not be @c nullptr.
  *                     Must have @c is_allocated_ == false (i.e.,
  *                     created by @c create_unallocated_tensor()).
- * @param[out] status  Receives the result.  On failure @p dst is
- *                     collected (freed) and must not be used.
+ * @param[out] status  Receives the result.  On failure @p dst is left
+ *                     partially populated and must not be used; the
+ *                     caller keeps ownership and releases it with
+ *                     @c collect().
  *
  * @pre  If @p src has a non-nullptr @c storage, its @c requested_bytes
  *       must be > 0.
@@ -338,14 +341,16 @@ void deepcopy(const Tensor *restrict src, Tensor *restrict dst,
                               src->grad->is_pinned_, src->grad->ndims, status);
 
     if (status->err != novaSuccess) {
-      (void)collect(dst);
+      // dst belongs to the caller: attached resources stay for the
+      // caller's collect(). The grad shell failed before attachment,
+      // so it is dropped here instead of leaking.
+      free(new_grad);
       return;
     }
 
     dst->grad = new_grad;
     deepcopy(src->grad, dst->grad, status);
     if (status->err != novaSuccess) {
-      (void)collect(dst);
       return;
     }
   } else {

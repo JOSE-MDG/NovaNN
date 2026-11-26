@@ -16,12 +16,13 @@
  * Declares lookup tables for tensor type conversions. Each table lists
  * implementations in descending capability order (index 0 = fastest SIMD,
  * last index = scalar fallback). The caller selects the first entry whose
- * required ISA is present at runtime.
+ * required ISA is present at runtime through @ref simd_select_stride().
  *
  */
 
 #pragma once
 
+#include <ncore/simd/simd.h>
 #include <ncore/tensor.h>
 
 #ifdef __cplusplus
@@ -38,6 +39,18 @@ extern "C" {
  */
 typedef void (*CastFn)(const Tensor *restrict, Tensor *restrict,
                          novaStatus_t *status);
+
+/**
+ * @brief One cast variant: its ISA requirement plus the kernel to call.
+ *
+ * @remarks
+ * @ref base must stay the first member so @ref SIMD_SELECT can scan the
+ * table through the embedded descriptor.
+ */
+typedef struct {
+  SimdVariant base; ///< Instruction-set requirement.
+  CastFn fn;        ///< Cast kernel entry point.
+} CastVariant;
 
 {%- from "utils/DTypes.jinja" import c_type, ptr_member %}
 
@@ -57,15 +70,15 @@ typedef void (*CastFn)(const Tensor *restrict, Tensor *restrict,
 
 #ifdef _GNUC_CLANG_
 {{ emit_comment(table, table.variants) }}
-extern const CastFn {{ table.signature }}[];
+extern const CastVariant {{ table.signature }}[];
 #else
 {{ emit_comment(table, [table.variants | last]) }}
-extern const CastFn {{ table.signature }}[];
+extern const CastVariant {{ table.signature }}[];
 #endif
 {%- else %}
 
 {{ emit_comment(table, table.variants) }}
-extern const CastFn {{ table.signature }}[];
+extern const CastVariant {{ table.signature }}[];
 {%- endif %}
 {% endfor %}
 

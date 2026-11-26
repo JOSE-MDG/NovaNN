@@ -9,6 +9,7 @@
         {
           "name": "tfp4e2m1_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -22,6 +23,7 @@
         {
           "name": "tfp4e2m1_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -35,6 +37,7 @@
         {
           "name": "tfp4e2m1_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -48,6 +51,7 @@
         {
           "name": "tfp4e2m1_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -61,6 +65,7 @@
         {
           "name": "tfp4e2m1_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -74,6 +79,7 @@
         {
           "name": "tfp4e2m1_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -87,6 +93,7 @@
         {
           "name": "tfp8e4m3_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -100,6 +107,7 @@
         {
           "name": "tfp8e4m3_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -113,6 +121,7 @@
         {
           "name": "tfp8e4m3_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -126,6 +135,7 @@
         {
           "name": "tfp8e4m3_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -139,6 +149,7 @@
         {
           "name": "tfp8e4m3_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -152,6 +163,7 @@
         {
           "name": "tfp8e4m3_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -165,6 +177,7 @@
         {
           "name": "tfp8e5m2_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -178,6 +191,7 @@
         {
           "name": "tfp8e5m2_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -191,6 +205,7 @@
         {
           "name": "tfp8e5m2_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -204,6 +219,7 @@
         {
           "name": "tfp8e5m2_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -217,6 +233,7 @@
         {
           "name": "tfp8e5m2_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -230,6 +247,7 @@
         {
           "name": "tfp8e5m2_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -243,6 +261,7 @@
         {
           "name": "tfp16_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -256,6 +275,7 @@
         {
           "name": "tfp16_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -269,6 +289,7 @@
         {
           "name": "tfp16_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -284,6 +305,9 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
@@ -292,11 +316,17 @@
             "AVX/AVX2",
             "F16C"
           ],
+          "isa": [
+            "AVX",
+            "AVX2",
+            "F16C"
+          ],
           "is_scalar": false
         },
         {
           "name": "tfp16_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -313,6 +343,10 @@
             "AVX512F",
             "AVX512FP16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
@@ -320,11 +354,16 @@
           "requires": [
             "F16C"
           ],
+          "isa": [
+            "AVX",
+            "F16C"
+          ],
           "is_scalar": false
         },
         {
           "name": "tfp16_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -341,11 +380,16 @@
             "AVX512F",
             "AVX512BF16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tfp16_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -359,6 +403,7 @@
         {
           "name": "tf32_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -372,6 +417,7 @@
         {
           "name": "tf32_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -385,6 +431,7 @@
         {
           "name": "tf32_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -401,6 +448,10 @@
             "AVX512F",
             "AVX512FP16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
@@ -408,11 +459,16 @@
           "requires": [
             "F16C"
           ],
+          "isa": [
+            "AVX",
+            "F16C"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -428,12 +484,19 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_f64_avx_avx2",
           "requires": [
             "AVX/AVX2"
+          ],
+          "isa": [
+            "AVX",
+            "AVX2"
           ],
           "is_scalar": false
         },
@@ -442,11 +505,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -465,11 +532,18 @@
             "AVX512BW",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -483,6 +557,7 @@
         {
           "name": "tbf16_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -496,6 +571,7 @@
         {
           "name": "tbf16_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -509,6 +585,7 @@
         {
           "name": "tbf16_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -526,11 +603,17 @@
             "AVX512BF16",
             "AVX512FP16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512FP16",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tbf16_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -547,11 +630,16 @@
             "AVX512BF16",
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tbf16_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -569,11 +657,17 @@
             "AVX512BF16",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512VL",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tbf16_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -587,6 +681,7 @@
         {
           "name": "tf64_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -600,6 +695,7 @@
         {
           "name": "tf64_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -613,6 +709,7 @@
         {
           "name": "tf64_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -629,11 +726,16 @@
             "AVX512F",
             "AVX512FP16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -649,12 +751,19 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_f32_avx_avx2",
           "requires": [
             "AVX/AVX2"
+          ],
+          "isa": [
+            "AVX",
+            "AVX2"
           ],
           "is_scalar": false
         },
@@ -663,11 +772,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -685,11 +798,17 @@
             "AVX512BF16",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512VL",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -703,6 +822,7 @@
         {
           "name": "tf32_to_fp8e8m0_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -716,6 +836,7 @@
         {
           "name": "tfp8e8m0_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -729,6 +850,7 @@
         {
           "name": "tfp4e2m1_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -742,6 +864,7 @@
         {
           "name": "tfp4e2m1_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -755,6 +878,7 @@
         {
           "name": "tfp4e2m1_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -768,6 +892,7 @@
         {
           "name": "tfp4e2m1_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -781,6 +906,7 @@
         {
           "name": "tfp8e4m3_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -794,6 +920,7 @@
         {
           "name": "tfp8e4m3_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -807,6 +934,7 @@
         {
           "name": "tfp8e4m3_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -820,6 +948,7 @@
         {
           "name": "tfp8e4m3_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -833,6 +962,7 @@
         {
           "name": "tfp8e5m2_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -846,6 +976,7 @@
         {
           "name": "tfp8e5m2_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -859,6 +990,7 @@
         {
           "name": "tfp8e5m2_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -872,6 +1004,7 @@
         {
           "name": "tfp8e5m2_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -890,11 +1023,18 @@
             "AVX512F",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tfp16_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -908,6 +1048,7 @@
         {
           "name": "tfp16_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -925,11 +1066,17 @@
             "AVX512F",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512VL",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tfp16_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -947,11 +1094,17 @@
             "AVX512FP16",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512VL",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tfp16_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -968,6 +1121,10 @@
             "AVX512F",
             "AVX512BW"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW"
+          ],
           "is_scalar": false
         },
         {
@@ -975,11 +1132,16 @@
           "requires": [
             "AVX2"
           ],
+          "isa": [
+            "AVX",
+            "AVX2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -993,6 +1155,7 @@
         {
           "name": "tf32_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1008,11 +1171,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_s32_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -1022,11 +1192,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1044,11 +1218,17 @@
             "AVX512DQ",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ",
+            "AVX512VL"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1066,11 +1246,17 @@
             "AVX512BW",
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tbf16_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1084,6 +1270,7 @@
         {
           "name": "tbf16_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1100,11 +1287,16 @@
             "AVX512BF16",
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tbf16_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1123,11 +1315,18 @@
             "AVX512VL",
             "AVX512DQ"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ",
+            "AVX512VL",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tbf16_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1143,11 +1342,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1161,6 +1364,7 @@
         {
           "name": "tf64_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1176,12 +1380,19 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_s32_avx_avx2",
           "requires": [
             "AVX/AVX2"
+          ],
+          "isa": [
+            "AVX",
+            "AVX2"
           ],
           "is_scalar": false
         },
@@ -1190,11 +1401,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1211,11 +1426,16 @@
             "AVX512F",
             "AVX512DQ"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1229,6 +1449,7 @@
         {
           "name": "tfp4e2m1_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1242,6 +1463,7 @@
         {
           "name": "tfp4e2m1_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1255,6 +1477,7 @@
         {
           "name": "tfp4e2m1_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1268,6 +1491,7 @@
         {
           "name": "tfp4e2m1_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1281,6 +1505,7 @@
         {
           "name": "tfp8e4m3_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1294,6 +1519,7 @@
         {
           "name": "tfp8e4m3_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1307,6 +1533,7 @@
         {
           "name": "tfp8e4m3_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1320,6 +1547,7 @@
         {
           "name": "tfp8e4m3_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1333,6 +1561,7 @@
         {
           "name": "tfp8e5m2_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1346,6 +1575,7 @@
         {
           "name": "tfp8e5m2_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1359,6 +1589,7 @@
         {
           "name": "tfp8e5m2_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1372,6 +1603,7 @@
         {
           "name": "tfp8e5m2_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1390,11 +1622,18 @@
             "AVX512BW",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tfp16_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1408,6 +1647,7 @@
         {
           "name": "tfp16_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1425,11 +1665,17 @@
             "AVX512FP16",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512VL",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tfp16_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1447,11 +1693,17 @@
             "AVX512FP16",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512VL",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tfp16_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1469,6 +1721,11 @@
             "AVX512BW",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW",
+            "AVX512VL"
+          ],
           "is_scalar": false
         },
         {
@@ -1476,11 +1733,16 @@
           "requires": [
             "AVX2"
           ],
+          "isa": [
+            "AVX",
+            "AVX2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1494,6 +1756,7 @@
         {
           "name": "tf32_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1509,11 +1772,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1531,11 +1798,17 @@
             "AVX512DQ",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ",
+            "AVX512VL"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf32_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1553,11 +1826,17 @@
             "AVX512BW",
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tbf16_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1571,6 +1850,7 @@
         {
           "name": "tbf16_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1587,11 +1867,16 @@
             "AVX512BF16",
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tbf16_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1610,11 +1895,18 @@
             "AVX512VL",
             "AVX512DQ"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ",
+            "AVX512VL",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tbf16_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1630,11 +1922,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1648,6 +1944,7 @@
         {
           "name": "tf64_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1663,11 +1960,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1684,11 +1985,16 @@
             "AVX512F",
             "AVX512DQ"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
           "is_scalar": false
         },
         {
           "name": "tf64_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1702,6 +2008,7 @@
         {
           "name": "ts8_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1715,6 +2022,7 @@
         {
           "name": "ts8_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1728,6 +2036,7 @@
         {
           "name": "ts8_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1744,11 +2053,16 @@
             "AVX512F",
             "AVX512FP16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1765,11 +2079,16 @@
             "AVX512F",
             "AVX512BF16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1785,6 +2104,9 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
@@ -1792,11 +2114,16 @@
           "requires": [
             "AVX2"
           ],
+          "isa": [
+            "AVX",
+            "AVX2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1812,11 +2139,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1830,6 +2161,7 @@
         {
           "name": "ts16_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1843,6 +2175,7 @@
         {
           "name": "ts16_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1856,6 +2189,7 @@
         {
           "name": "ts16_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1869,6 +2203,7 @@
         {
           "name": "ts16_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1882,6 +2217,7 @@
         {
           "name": "ts16_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1895,6 +2231,7 @@
         {
           "name": "ts16_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1908,6 +2245,7 @@
         {
           "name": "ts16_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1921,6 +2259,7 @@
         {
           "name": "ts32_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1934,6 +2273,7 @@
         {
           "name": "ts32_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1947,6 +2287,7 @@
         {
           "name": "ts32_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1963,11 +2304,16 @@
             "AVX512F",
             "AVX512FP16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -1984,11 +2330,16 @@
             "AVX512F",
             "AVX512BF16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2004,12 +2355,19 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_f32_avx_avx2",
           "requires": [
             "AVX/AVX2"
+          ],
+          "isa": [
+            "AVX",
+            "AVX2"
           ],
           "is_scalar": false
         },
@@ -2018,11 +2376,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2038,12 +2400,19 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_f64_avx_avx2",
           "requires": [
             "AVX/AVX2"
+          ],
+          "isa": [
+            "AVX",
+            "AVX2"
           ],
           "is_scalar": false
         },
@@ -2052,11 +2421,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2070,6 +2443,7 @@
         {
           "name": "ts64_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2083,6 +2457,7 @@
         {
           "name": "ts64_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2096,6 +2471,7 @@
         {
           "name": "ts64_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2112,11 +2488,16 @@
             "AVX512F",
             "AVX512FP16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts64_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2135,11 +2516,18 @@
             "AVX512BF16",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ",
+            "AVX512VL",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts64_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2156,11 +2544,16 @@
             "AVX512F",
             "AVX512DQ"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts64_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2177,11 +2570,16 @@
             "AVX512F",
             "AVX512DQ"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts64_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2195,6 +2593,7 @@
         {
           "name": "ts8_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2210,11 +2609,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_s32_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -2224,11 +2630,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2244,11 +2654,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_s64_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -2258,11 +2675,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2276,6 +2697,7 @@
         {
           "name": "ts16_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2289,6 +2711,7 @@
         {
           "name": "ts16_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2302,6 +2725,7 @@
         {
           "name": "ts16_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2317,11 +2741,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2335,6 +2763,7 @@
         {
           "name": "ts32_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2350,11 +2779,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_s64_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -2364,11 +2800,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2385,11 +2825,16 @@
             "AVX512F",
             "AVX512BW"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts64_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2403,6 +2848,7 @@
         {
           "name": "ts64_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2418,11 +2864,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts64_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2438,12 +2888,19 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_u8_avx_avx2",
           "requires": [
             "AVX/AVX2"
+          ],
+          "isa": [
+            "AVX",
+            "AVX2"
           ],
           "is_scalar": false
         },
@@ -2452,11 +2909,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2470,6 +2931,7 @@
         {
           "name": "ts8_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2485,11 +2947,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_u32_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -2499,11 +2968,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2519,11 +2992,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts8_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2537,6 +3014,7 @@
         {
           "name": "ts16_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2550,6 +3028,7 @@
         {
           "name": "ts16_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2563,6 +3042,7 @@
         {
           "name": "ts16_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2576,6 +3056,7 @@
         {
           "name": "ts16_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2592,11 +3073,19 @@
             "AVX512F",
             "AVX512BW"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_u8_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -2606,11 +3095,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2624,6 +3117,7 @@
         {
           "name": "ts32_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2639,12 +3133,19 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_u32_avx_avx2",
           "requires": [
             "AVX/AVX2"
+          ],
+          "isa": [
+            "AVX",
+            "AVX2"
           ],
           "is_scalar": false
         },
@@ -2653,11 +3154,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2673,11 +3178,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_u64_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -2687,11 +3199,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts32_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2707,11 +3223,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts64_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2725,6 +3245,7 @@
         {
           "name": "ts64_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2740,11 +3261,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts64_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2760,12 +3285,19 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts64_to_u64_avx_avx2",
           "requires": [
             "AVX/AVX2"
+          ],
+          "isa": [
+            "AVX",
+            "AVX2"
           ],
           "is_scalar": false
         },
@@ -2774,11 +3306,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "ts64_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2792,6 +3328,7 @@
         {
           "name": "tu8_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2805,6 +3342,7 @@
         {
           "name": "tu8_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2818,6 +3356,7 @@
         {
           "name": "tu8_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2834,11 +3373,16 @@
             "AVX512F",
             "AVX512FP16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2855,11 +3399,16 @@
             "AVX512F",
             "AVX512BF16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2875,6 +3424,9 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
@@ -2882,11 +3434,16 @@
           "requires": [
             "AVX2"
           ],
+          "isa": [
+            "AVX",
+            "AVX2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2902,11 +3459,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2920,6 +3481,7 @@
         {
           "name": "tu16_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2933,6 +3495,7 @@
         {
           "name": "tu16_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2946,6 +3509,7 @@
         {
           "name": "tu16_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2959,6 +3523,7 @@
         {
           "name": "tu16_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2972,6 +3537,7 @@
         {
           "name": "tu16_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2985,6 +3551,7 @@
         {
           "name": "tu16_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -2998,6 +3565,7 @@
         {
           "name": "tu16_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3011,6 +3579,7 @@
         {
           "name": "tu32_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3024,6 +3593,7 @@
         {
           "name": "tu32_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3037,6 +3607,7 @@
         {
           "name": "tu32_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3053,11 +3624,16 @@
             "AVX512F",
             "AVX512FP16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3074,11 +3650,16 @@
             "AVX512F",
             "AVX512BF16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3094,11 +3675,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3114,11 +3699,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3132,6 +3721,7 @@
         {
           "name": "tu64_to_fp4e2m1_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3145,6 +3735,7 @@
         {
           "name": "tu64_to_fp8e4m3_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3158,6 +3749,7 @@
         {
           "name": "tu64_to_fp8e5m2_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3174,11 +3766,16 @@
             "AVX512F",
             "AVX512FP16"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512FP16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu64_to_fp16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3197,11 +3794,18 @@
             "AVX512BF16",
             "AVX512VL"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ",
+            "AVX512VL",
+            "AVX512BF16"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu64_to_bf16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3218,11 +3822,16 @@
             "AVX512F",
             "AVX512DQ"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu64_to_f32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3239,11 +3848,16 @@
             "AVX512F",
             "AVX512DQ"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512DQ"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu64_to_f64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3260,11 +3874,19 @@
             "AVX512F",
             "AVX512BW"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_s8_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -3274,11 +3896,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3292,6 +3918,7 @@
         {
           "name": "tu8_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3307,11 +3934,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_s32_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -3321,11 +3955,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3341,11 +3979,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_s64_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -3355,11 +4000,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3373,6 +4022,7 @@
         {
           "name": "tu16_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3386,6 +4036,7 @@
         {
           "name": "tu16_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3399,6 +4050,7 @@
         {
           "name": "tu16_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3412,6 +4064,7 @@
         {
           "name": "tu16_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3428,11 +4081,16 @@
             "AVX512F",
             "AVX512BW"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3446,6 +4104,7 @@
         {
           "name": "tu32_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3461,12 +4120,19 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_s32_avx_avx2",
           "requires": [
             "AVX/AVX2"
+          ],
+          "isa": [
+            "AVX",
+            "AVX2"
           ],
           "is_scalar": false
         },
@@ -3475,11 +4141,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3495,11 +4165,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_s64_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -3509,11 +4186,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3529,11 +4210,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu64_to_s8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3547,6 +4232,7 @@
         {
           "name": "tu64_to_s16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3562,11 +4248,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu64_to_s32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3582,12 +4272,19 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu64_to_s64_avx_avx2",
           "requires": [
             "AVX/AVX2"
+          ],
+          "isa": [
+            "AVX",
+            "AVX2"
           ],
           "is_scalar": false
         },
@@ -3596,11 +4293,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu64_to_s64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3614,6 +4315,7 @@
         {
           "name": "tu8_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3629,6 +4331,9 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
@@ -3636,11 +4341,16 @@
           "requires": [
             "AVX2"
           ],
+          "isa": [
+            "AVX",
+            "AVX2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3656,11 +4366,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_u64_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -3670,11 +4387,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu8_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3688,6 +4409,7 @@
         {
           "name": "tu16_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3701,6 +4423,7 @@
         {
           "name": "tu16_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3714,6 +4437,7 @@
         {
           "name": "tu16_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3729,11 +4453,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3747,6 +4475,7 @@
         {
           "name": "tu32_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3762,11 +4491,18 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_u64_avx2",
           "requires": [
+            "AVX2"
+          ],
+          "isa": [
+            "AVX",
             "AVX2"
           ],
           "is_scalar": false
@@ -3776,11 +4512,15 @@
           "requires": [
             "SSE4.2"
           ],
+          "isa": [
+            "SSE4_2"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu32_to_u64_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3797,11 +4537,16 @@
             "AVX512F",
             "AVX512BW"
           ],
+          "isa": [
+            "AVX512F",
+            "AVX512BW"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu64_to_u8_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3815,6 +4560,7 @@
         {
           "name": "tu64_to_u16_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]
@@ -3830,11 +4576,15 @@
           "requires": [
             "AVX512F"
           ],
+          "isa": [
+            "AVX512F"
+          ],
           "is_scalar": false
         },
         {
           "name": "tu64_to_u32_scalar",
           "requires": [],
+          "isa": [],
           "is_scalar": true
         }
       ]

@@ -1,7 +1,6 @@
 /**
  * @file simd.c
- * @brief CPU SIMD capability detection and runtime feature detection
- * implementation.
+ * @brief CPU SIMD capability detection and instruction-set dispatch.
  *
  * @details
  * Runtime detection of CPU SIMD features through CPUID: SSE, AVX,
@@ -18,8 +17,13 @@
  *     registers into a @ref SIMDCapabilities structure. No hardware access;
  *     unit-testable against synthetic snapshots.
  * @li @ref detect_simd_capabilities() — platform-specific reader that fills
- *     a @ref SIMDCpuidSnapshot through the CPUID intrinsics and delegates
- *     the decoding to the pure layer.
+ *     a @ref SIMDCpuidSnapshot through the CPUID intrinsics, reads XCR0 and
+ *     delegates the decoding to the pure layer.
+ *
+ * Dispatch builds on that detection: @ref simd_isa_supported() combines the
+ * feature bits with the XCR0 state the operating system enabled, and
+ * @ref simd_select_stride() returns the first variant of a typed table whose
+ * requirement the host satisfies.
  *
  * @see simd.h                     Public interface and @ref SIMDCapabilities structure.
  * @see get_simd_capabilities()    Thread-safe singleton accessor.
@@ -32,10 +36,14 @@
 #endif
 
 #ifdef _WIN64
+#include <immintrin.h>
 #include <intrin.h>
 #else
 #include <cpuid.h>
+#include <immintrin.h>
 #endif
+
+#include <string.h>
 
 #include <ncore/core/dtype.h>
 #include <ncore/simd/simd.h>
@@ -123,10 +131,15 @@ void get_simd_capabilities_from_cpuid(const SIMDCpuidSnapshot *snapshot,
   /* CPUID leaf 1: SSE4.2, FMA3, AVX, F16C detection */
   const uint32 ecx1 = snapshot->leaf1[2];
 
-  caps->sse4_2_ = ((ecx1 & (1 << 20)) != 0); ///< SSE4.2
-  caps->fma3_ = ((ecx1 & (1 << 12)) != 0);   ///< FMA3
-  caps->avx_ = ((ecx1 & (1 << 28)) != 0);    ///< AVX
-  caps->f16c_ = ((ecx1 & (1 << 29)) != 0);   ///< F16C
+  caps->sse4_2_ = ((ecx1 & (1 << 20)) != 0);   ///< SSE4.2
+  caps->fma3_ = ((ecx1 & (1 << 12)) != 0);     ///< FMA3
+  caps->avx_ = ((ecx1 & (1 << 28)) != 0);      ///< AVX
+  caps->f16c_ = ((ecx1 & (1 << 29)) != 0);     ///< F16C
+  caps->os_xsave_ = ((ecx1 & (1 << 27)) != 0); ///< OSXSAVE
+
+  /* XGETBV is only legal after the OS reported OSXSAVE, so a snapshot
+   * taken without it carries no state mask. */
+  caps->xcr0_ = caps->os_xsave_ ? snapshot->xcr0 : 0;
 
   /* CPUID leaf 7, subleaf 0: AVX2, AVX-512, AMX */
   const uint32 ebx70 = snapshot->leaf7_0[1];
@@ -182,19 +195,42 @@ void get_simd_capabilities_from_cpuid(const SIMDCpuidSnapshot *snapshot,
 }
 
 /**
+ * @brief Read XCR0 through XGETBV(0).
+ *
+ * @details
+ * The caller must have checked CPUID.1:ECX.OSXSAVE[27] first: XGETBV
+ * raises #UD when the operating system has not enabled XSAVE. GCC and
+ * Clang on Linux accept the intrinsic only inside a function carrying the
+ * @c xsave target attribute, which keeps the rest of the translation unit
+ * free of the instruction set. Under @c _MSC_VER, @c immintrin.h declares
+ * @c _xgetbv as an intrinsic and Clang lowers it directly, so no attribute
+ * is needed there.
+ *
+ * @return XCR0 state mask enabled by the operating system.
+ */
+#ifdef _WIN64
+static inline uint64_t read_xcr0(void) { return (uint64_t)_xgetbv(0); }
+#else
+[[gnu::target("xsave")]] static inline uint64_t read_xcr0(void) {
+  return (uint64_t)_xgetbv(0);
+}
+#endif
+
+/**
  * @brief Detect CPU SIMD capabilities via the CPUID instruction.
  *
  * @details
  * Thin hardware-reading layer: queries the relevant CPUID leaves through
- * the platform intrinsics, stores the raw registers into a
- * @ref SIMDCpuidSnapshot and delegates all decoding to
+ * the platform intrinsics, reads XCR0 when OSXSAVE allows it, stores the
+ * raw values into a @ref SIMDCpuidSnapshot and delegates all decoding to
  * @ref get_simd_capabilities_from_cpuid().
  *
  * Query order: leaf 1, leaf 7 subleaf 0, leaf 7 subleaf 1, then — only
  * when the AVX10 presence flag (leaf 7 subleaf 1 EDX bit 19) is set —
  * leaf 24H subleaf 0. The guard mirrors the one applied by the decoder:
  * leaf 24H is architecturally undefined on parts without AVX10 and must
- * not be queried there.
+ * not be queried there. XCR0 is read right after leaf 1, because OSXSAVE
+ * lives there.
  *
  * @param[in,out] caps Pointer to the SIMDCapabilities structure to populate.
  *                  Must be zero-initialized by the caller, since fields
@@ -228,6 +264,12 @@ static inline void detect_simd_capabilities(SIMDCapabilities *restrict caps) {
   snapshot.leaf1[1] = ebx;
   snapshot.leaf1[2] = ecx;
   snapshot.leaf1[3] = edx;
+
+  /* XCR0 tells which vector state the OS enabled. XGETBV raises #UD
+   * without OSXSAVE, so it is only executed when CPUID.1:ECX[27] is set. */
+  if ((ecx & (1 << 27)) != 0) {
+    snapshot.xcr0 = read_xcr0();
+  }
 
   /* CPUID leaf 7, subleaf 0 */
 #ifdef _WIN64
@@ -337,4 +379,296 @@ const SIMDCapabilities *get_simd_capabilities() {
   InitOnceExecuteOnce(&init_flag, init_once_win, nullptr, nullptr);
 #endif
   return &simd;
+}
+
+/**
+ * @brief Check that every feature bit in @p isa is present in @p caps.
+ *
+ * @details
+ * Feature bits are independent; no bit implies another.
+ *
+ * @param[in] isa  Instruction-set mask to test.
+ * @param[in] caps Capabilities to test against.
+ *
+ * @return @c true when every named feature flag is set.
+ */
+static bool simd_features_present(SimdIsa isa, const SIMDCapabilities *caps) {
+  if ((isa & SimdIsaSSE4_2) != 0 && !caps->sse4_2_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX) != 0 && !caps->avx_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX2) != 0 && !caps->avx2_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX2Int8) != 0 && !caps->avx2_int8_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX2VNNI) != 0 && !caps->avx2_vnni_) {
+    return false;
+  }
+  if ((isa & SimdIsaF16C) != 0 && !caps->f16c_) {
+    return false;
+  }
+  if ((isa & SimdIsaVNNI) != 0 && !caps->vnni_) {
+    return false;
+  }
+  if ((isa & SimdIsaFMA3) != 0 && !caps->fma3_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX512F) != 0 && !caps->avx512f_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX512BW) != 0 && !caps->avx512_bw_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX512DQ) != 0 && !caps->avx512_dq_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX512VL) != 0 && !caps->avx512_vl_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX512VNNI) != 0 && !caps->avx512_vnni_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX512FP16) != 0 && !caps->avx512_fp16_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX512BF16) != 0 && !caps->avx512_bf16_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX10_1) != 0 && !caps->avx10_1_) {
+    return false;
+  }
+  if ((isa & SimdIsaAVX10_2) != 0 && !caps->avx10_2_) {
+    return false;
+  }
+  if ((isa & SimdIsaAMX) != 0 && !caps->amx_) {
+    return false;
+  }
+  if ((isa & SimdIsaAMXFP16) != 0 && !caps->amx_fp16_) {
+    return false;
+  }
+  if ((isa & SimdIsaAMXBF16) != 0 && !caps->amx_bf16_) {
+    return false;
+  }
+  if ((isa & SimdIsaAMXINT8) != 0 && !caps->amx_int8_) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @brief Check the XCR0 state @p isa needs to execute without #UD.
+ *
+ * @details
+ * CPUID reports what the silicon can do; XCR0 reports what the operating
+ * system enabled. The families and their XCR0 requirements are:
+ *
+ * @li AVX family (AVX, AVX2, AVX2 VNNI, FMA3, F16C): XCR0[2:1] = 11b
+ *     enables the SSE and AVX state (Intel SDM Vol. 1, 13.3).
+ * @li AVX-512 and AVX10: XCR0[7:5] = 111b enables opmask, ZMM_Hi256 and
+ *     Hi16_ZMM (Intel SDM Vol. 1, 15.2; AVX10.2 specification, 3.1.3).
+ * @li AMX: XCR0[18:17] = 11b enables tile configuration and tile data
+ *     (Linux x86 FPU state definitions: XFEATURE_XTILE_CFG = 17,
+ *     XFEATURE_XTILE_DATA = 18). The AVX state check also runs for AMX
+ *     masks as a conservative precondition.
+ *
+ * @param[in] isa  Instruction-set mask to test.
+ * @param[in] caps Capabilities carrying OSXSAVE and XCR0.
+ *
+ * @return @c true when the required state is enabled, or when @p isa
+ *         names only instructions that need no extended state.
+ */
+static bool simd_os_state_present(SimdIsa isa, const SIMDCapabilities *caps) {
+  const SimdIsa avx_family = SimdIsaAVX | SimdIsaAVX2 | SimdIsaAVX2Int8 |
+                             SimdIsaAVX2VNNI | SimdIsaF16C | SimdIsaFMA3 |
+                             SimdIsaVNNI;
+  const SimdIsa avx512_family =
+      SimdIsaAVX512F | SimdIsaAVX512BW | SimdIsaAVX512DQ | SimdIsaAVX512VL |
+      SimdIsaAVX512VNNI | SimdIsaAVX512FP16 | SimdIsaAVX512BF16 |
+      SimdIsaAVX10_1 | SimdIsaAVX10_2;
+  const SimdIsa amx_family =
+      SimdIsaAMX | SimdIsaAMXFP16 | SimdIsaAMXBF16 | SimdIsaAMXINT8;
+
+  const bool needs_avx = (isa & (avx_family | avx512_family | amx_family)) != 0;
+  const bool needs_avx512 = (isa & avx512_family) != 0;
+  const bool needs_amx = (isa & amx_family) != 0;
+
+  if (!needs_avx) {
+    return true;
+  }
+  if (!caps->os_xsave_) {
+    return false;
+  }
+
+  const uint64_t avx_state = (1ULL << 1) | (1ULL << 2);
+  const uint64_t avx512_state =
+      avx_state | (1ULL << 5) | (1ULL << 6) | (1ULL << 7);
+  const uint64_t amx_state = (1ULL << 17) | (1ULL << 18);
+
+  if (needs_avx && (caps->xcr0_ & avx_state) != avx_state) {
+    return false;
+  }
+  if (needs_avx512 && (caps->xcr0_ & avx512_state) != avx512_state) {
+    return false;
+  }
+  if (needs_amx && (caps->xcr0_ & amx_state) != amx_state) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @brief Report whether the host can execute every instruction set in @p isa.
+ *
+ * @details
+ * Combines the feature bits with the operating-system state gate:
+ * detection reports raw CPUID facts, while dispatch refuses a kernel whose
+ * state the OS never enabled. Unknown bits fail closed.
+ *
+ * @param[in] isa  Instruction-set mask to test.
+ * @param[in] caps Capabilities to test against.
+ *
+ * @return @c true when the mask is known, every feature is present and the
+ *         required XCR0 state is enabled.
+ */
+bool simd_isa_supported(SimdIsa isa, const SIMDCapabilities *caps) {
+  if (caps == nullptr) {
+    return false;
+  }
+  if ((isa & ~(SimdIsa)SimdIsaAll) != 0) {
+    return false;
+  }
+  if (isa == SimdIsaNone) {
+    return true;
+  }
+  return simd_features_present(isa, caps) && simd_os_state_present(isa, caps);
+}
+
+/**
+ * @brief Select the first variant whose requirement @p caps satisfies.
+ *
+ * @details
+ * Entries are addressed by explicit stride so typed tables that embed
+ * @ref SimdVariant as their first member can be scanned without a
+ * projection array. The base pointer of each entry is aligned at least as
+ * strictly as @ref SimdVariant, because the embedded descriptor is the
+ * first member of the typed structure.
+ *
+ * @param[in] variants First entry of the table.
+ * @param[in] stride   Size in bytes of one typed entry.
+ * @param[in] count    Number of entries.
+ * @param[in] caps     Capabilities to test against.
+ *
+ * @return The selected descriptor, or null when none is supported.
+ */
+const SimdVariant *simd_select_stride(const SimdVariant variants[],
+                                      size_t stride, size_t count,
+                                      const SIMDCapabilities *caps) {
+  if (variants == nullptr || caps == nullptr || count == 0) {
+    return nullptr;
+  }
+
+  const unsigned char *first = (const unsigned char *)variants;
+  for (size_t i = 0; i < count; ++i) {
+    const SimdVariant *variant = (const SimdVariant *)(first + (i * stride));
+    if (simd_isa_supported(variant->isa, caps)) {
+      return variant;
+    }
+  }
+  return nullptr;
+}
+
+/**
+ * @brief Select the first supported entry of a @ref SimdVariant table.
+ *
+ * @param[in] variants Table entries.
+ * @param[in] count    Number of entries.
+ * @param[in] caps     Capabilities to test against.
+ *
+ * @return The selected entry, or null when none is supported.
+ */
+const SimdVariant *simd_select(const SimdVariant variants[], size_t count,
+                               const SIMDCapabilities *caps) {
+  return simd_select_stride(variants, sizeof(SimdVariant), count, caps);
+}
+
+/**
+ * @struct SimdIsaName
+ * @brief One instruction-set bit paired with its diagnostic spelling.
+ */
+typedef struct {
+  SimdIsa isa;      ///< Instruction-set bit.
+  const char *name; ///< Lowercase name used by @ref simd_isa_name().
+} SimdIsaName;
+
+/**
+ * @var static const SimdIsaName isa_names[]
+ * @brief Names of every instruction-set bit, in mask order.
+ */
+static const SimdIsaName isa_names[] = {
+    {.isa = SimdIsaSSE4_2, .name = "sse4.2"},
+    {.isa = SimdIsaAVX, .name = "avx"},
+    {.isa = SimdIsaAVX2, .name = "avx2"},
+    {.isa = SimdIsaAVX2Int8, .name = "avx2_int8"},
+    {.isa = SimdIsaAVX2VNNI, .name = "avx2_vnni"},
+    {.isa = SimdIsaF16C, .name = "f16c"},
+    {.isa = SimdIsaVNNI, .name = "vnni"},
+    {.isa = SimdIsaFMA3, .name = "fma3"},
+    {.isa = SimdIsaAVX512F, .name = "avx512f"},
+    {.isa = SimdIsaAVX512BW, .name = "avx512bw"},
+    {.isa = SimdIsaAVX512DQ, .name = "avx512dq"},
+    {.isa = SimdIsaAVX512VL, .name = "avx512vl"},
+    {.isa = SimdIsaAVX512VNNI, .name = "avx512vnni"},
+    {.isa = SimdIsaAVX512FP16, .name = "avx512fp16"},
+    {.isa = SimdIsaAVX512BF16, .name = "avx512bf16"},
+    {.isa = SimdIsaAVX10_1, .name = "avx10.1"},
+    {.isa = SimdIsaAVX10_2, .name = "avx10.2"},
+    {.isa = SimdIsaAMX, .name = "amx"},
+    {.isa = SimdIsaAMXFP16, .name = "amx_fp16"},
+    {.isa = SimdIsaAMXBF16, .name = "amx_bf16"},
+    {.isa = SimdIsaAMXINT8, .name = "amx_int8"},
+};
+
+/**
+ * @brief Render @p isa as a readable, thread-local string.
+ *
+ * @param[in] isa  Instruction-set mask to render.
+ *
+ * @return @c "none" for an empty mask, @c "unknown" when the mask carries
+ *         bits outside @ref SimdIsaAll, or the composed name in a
+ *         per-thread buffer.
+ */
+const char *simd_isa_name(SimdIsa isa) {
+  if (isa == SimdIsaNone) {
+    return "none";
+  }
+  if ((isa & ~(SimdIsa)SimdIsaAll) != 0) {
+    return "unknown";
+  }
+
+  static thread_local char buffer[256];
+  size_t used = 0;
+  buffer[0] = '\0';
+
+  for (size_t i = 0; i < SIMD_VARIANT_COUNT(isa_names); ++i) {
+    if ((isa & isa_names[i].isa) == 0) {
+      continue;
+    }
+    const size_t name_len = strlen(isa_names[i].name);
+    const size_t separator_len = (used != 0) ? 3 : 0;
+    if (used + separator_len + name_len + 1 > sizeof(buffer)) {
+      break;
+    }
+    if (separator_len != 0) {
+      memcpy(buffer + used, " | ", separator_len);
+      used += separator_len;
+    }
+    memcpy(buffer + used, isa_names[i].name, name_len);
+    used += name_len;
+    buffer[used] = '\0';
+  }
+  return buffer;
 }

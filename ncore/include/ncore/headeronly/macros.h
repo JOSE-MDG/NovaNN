@@ -65,6 +65,24 @@
 #endif
 
 /**
+ * @def REINTERPRET_CAST(T, ...)
+ * @brief Portable pointer reinterpretation for shared C/C++ headers.
+ *
+ * @details
+ * @c static_cast cannot convert between a structure and its first member,
+ * which is the pattern typed dispatch tables use. C++ requires
+ * @c reinterpret_cast there; C spells the same conversion with a C cast.
+ *
+ * @param T    Target type (may contain commas, e.g. @c const T *).
+ * @param ...  Expression to convert (single argument).
+ */
+#ifdef __cplusplus
+#define REINTERPRET_CAST(T, ...) reinterpret_cast<T>(__VA_ARGS__)
+#else
+#define REINTERPRET_CAST(T, ...) ((T)(__VA_ARGS__))
+#endif
+
+/**
  * @def ALIGN(N)
  * @brief Align a member or variable to N bytes (standard alignas).
  *
