@@ -112,6 +112,21 @@ struct GemmParams : LaunchParamsBase {
   }
 };
 
+/**
+ * @struct GemmPlan
+ * @brief Geometry and the tiling facts the GEMM kernel must honour.
+ */
+struct GemmPlan {
+  LaunchConfig config; ///< Grid/block pair.
+  uint32_t tileM = 0;  ///< Output rows per tile.
+  uint32_t tileN = 0;  ///< Output columns per tile.
+  uint32_t tileK = 0;  ///< Reduction strip per stage.
+  uint32_t stages = 0; ///< Pipeline depth.
+  uint32_t splits = 1; ///< K partitions.
+  TraversalOrder traversal = TraversalOrder::Auto; ///< Output walk order.
+  WarpRole warpRole = WarpRole::Auto;              ///< Warp roles in the tile.
+};
+
 namespace detail {
 
 /// Saturating FLOP count 2*M*N*K.
@@ -176,8 +191,22 @@ inline uint64_t fastComputeFlops(const GemmParams &p) noexcept {
   return detail::gemmFlops(p);
 }
 
-/// GEMM tiles stream coalesced by construction.
-inline bool fastProvenCoalesced(const GemmParams &) noexcept { return true; }
+/// Bytes moved for both operands and the output tile.
+inline uint64_t fastTrafficBytes(const GemmParams &p) noexcept {
+  const uint64_t bytes = p.inputDtype == Float64 || p.inputDtype == Signed64 ||
+                                 p.inputDtype == UnSigned64
+                             ? 8U
+                             : 4U;
+  const uint64_t elems = detail::satAdd(
+      detail::satAdd(detail::satMul(p.M, p.K), detail::satMul(p.K, p.N)),
+      detail::satMul(p.M, p.N));
+  return detail::satMul(elems, bytes);
+}
+
+/// Proven coalescing follows the row-major contract on both operands.
+inline bool fastProvenCoalesced(const GemmParams &p) noexcept {
+  return p.aRowMajor && p.bRowMajor;
+}
 
 /**
  * @brief True for tiny shapes with a trivial epilogue.
@@ -244,38 +273,68 @@ inline double gemmWaveEfficiency(uint64_t n, uint64_t waveSize) noexcept {
  * when occupancy is known. A forced StreamK schedule takes the same
  * fixed grid with fractional K assignment left to the kernel. A
  * tuning-table hit overrides tiles and splits and takes the persistent
- * schedule. Pipeline stages, traversal order, and warp roles belong to
- * kernel selection downstream: geometry here only sizes the launch.
+ * schedule. Pipeline stages consume shared memory, warp roles cap the
+ * thread budget, and the matrix layouts orient the output tile. Traversal
+ * and the selected tiles travel with the plan for kernel selection.
  */
-inline LaunchConfig resolveGemm(const GemmParams &p) noexcept {
+inline GemmPlan resolveGemmFullPlan(const GemmParams &p) noexcept {
+  GemmPlan plan{};
   if (p.M == 0 || p.N == 0 || p.K == 0) {
-    return LaunchConfig{};
+    return plan;
   }
   const uint32_t warp = detail::effectiveWarp(p.device);
   uint32_t threads = detail::fastThreads(p.device, p.kernel);
-  threads = std::min<uint32_t>(threads, 256);
+  uint32_t threadCap = 256U;
+  if (p.warpRole == WarpRole::Specialized || p.warpRole == WarpRole::PingPong) {
+    threadCap = 128U;
+  }
+  threads = std::min<uint32_t>(threads, threadCap);
   threads = (threads / warp) * warp;
   if (threads == 0) {
     threads = warp;
   }
-  const Occupancy resident = computeOccupancy(p.device, p.kernel, threads);
+
+  const GemmTuningEntry *hit = detail::gemmTableHit(p);
+  uint32_t tileM = 128, tileN = 128;
+  uint32_t tileK = 32U;
+  uint32_t stages = p.numStages;
+  uint32_t splits = 1;
+  bool persistent = false;
+  if (hit != nullptr && hit->tileM != 0 && hit->tileN != 0) {
+    tileM = hit->tileM;
+    tileN = hit->tileN;
+    tileK = hit->tileK != 0 ? hit->tileK : tileK;
+    stages = hit->stages != 0 ? hit->stages : stages;
+    splits = hit->numSplits != 0 ? hit->numSplits : splits;
+    persistent = true;
+  }
+  if (!p.aRowMajor) {
+    std::swap(tileM, tileN);
+  }
+  const uint64_t tiles =
+      detail::satMul(detail::ceilDiv(p.M, tileM), detail::ceilDiv(p.N, tileN));
+
+  KernelAttrs staged = p.kernel;
+  // A measured row already carries the footprint that produced it, so only
+  // the analytic path needs a pipeline budget added to the kernel facts.
+  if (hit == nullptr && stages != 0U) {
+    const uint64_t bytes = p.inputDtype == Float64 ||
+                                   p.inputDtype == Signed64 ||
+                                   p.inputDtype == UnSigned64
+                               ? 8U
+                               : 4U;
+    staged.dynSmemPerBlock = detail::satAdd(
+        staged.dynSmemPerBlock,
+        detail::satMul(static_cast<uint64_t>(stages) * tileK * bytes,
+                       static_cast<uint64_t>(tileM) + tileN));
+  }
+  const Occupancy resident = computeOccupancy(p.device, staged, threads);
   const uint64_t sm = p.device.smCount;
   const uint64_t waveSize = resident.known() && sm != 0
                                 ? detail::satMul(resident.blocksPerSM, sm)
                                 : sm;
 
-  const GemmTuningEntry *hit = detail::gemmTableHit(p);
-  uint32_t tileM = 128, tileN = 128;
-  uint32_t splits = 1;
-  bool persistent = false;
-  const uint64_t tiles =
-      detail::satMul(detail::ceilDiv(p.M, tileM), detail::ceilDiv(p.N, tileN));
-  if (hit != nullptr && hit->tileM != 0 && hit->tileN != 0) {
-    tileM = hit->tileM;
-    tileN = hit->tileN;
-    splits = hit->numSplits != 0 ? hit->numSplits : splits;
-    persistent = true;
-  } else {
+  if (hit == nullptr) {
     if (p.splitK != SplitK::NoSplit && waveSize != 0) {
       const double base = detail::gemmWaveEfficiency(tiles, waveSize);
       if (base < 0.75) {
@@ -304,8 +363,6 @@ inline LaunchConfig resolveGemm(const GemmParams &p) noexcept {
       persistent = true;
     }
   }
-  // Forced StreamK sizes the same SM-proportional fixed grid as
-  // persistent; fractional K assignment lives in the kernel.
   const bool fixedGrid = persistent || p.schedule == CtaSchedule::StreamK;
   const uint64_t fixedBlocks =
       resident.known() && waveSize != 0 ? waveSize : sm;
@@ -318,13 +375,27 @@ inline LaunchConfig resolveGemm(const GemmParams &p) noexcept {
   if (cap != 0 && blocks > cap) {
     blocks = cap;
   }
-  LaunchConfig cfg{};
-  cfg.threads.x = threads;
-  cfg.blocks.x = static_cast<uint32_t>(blocks > ~0U ? ~0U : blocks);
-  if (cfg.blocks.x == 0) {
-    cfg.blocks.x = 1;
+  plan.config.threads.x = threads;
+  plan.config.blocks.x = static_cast<uint32_t>(blocks > ~0U ? ~0U : blocks);
+  if (plan.config.blocks.x == 0) {
+    plan.config.blocks.x = 1;
   }
-  return detail::clampConfig(cfg, p.device, p.kernel);
+  plan.config = detail::clampConfig(plan.config, p.device, p.kernel);
+  plan.tileM = tileM;
+  plan.tileN = tileN;
+  plan.tileK = tileK;
+  plan.stages = stages;
+  plan.splits = splits;
+  plan.traversal = p.traversal;
+  plan.warpRole = p.warpRole;
+  return plan;
+}
+
+/**
+ * @brief GEMM geometry reduced to its grid/block pair.
+ */
+inline LaunchConfig resolveGemm(const GemmParams &p) noexcept {
+  return resolveGemmFullPlan(p).config;
 }
 
 } // namespace ncore::heuristics::kernels

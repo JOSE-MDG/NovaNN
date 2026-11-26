@@ -103,6 +103,11 @@ constexpr bool reductionSimpleCombine(ReductionOp op) noexcept {
   }
 }
 
+/// Whether the combine may use global atomics instead of a second pass.
+constexpr bool reductionUsesAtomics(const ReductionParams &p) noexcept {
+  return !p.deterministic && p.crossBlock != CrossBlockStrategy::TwoPass;
+}
+
 /// Single-block capacity in input elements under the smem budget.
 inline uint64_t reductionSingleBlockCap(const ReductionParams &p) noexcept {
   const uint32_t warp = detail::effectiveWarp(p.device);
@@ -116,11 +121,18 @@ inline uint64_t reductionSingleBlockCap(const ReductionParams &p) noexcept {
   }
   const uint64_t perThread = 4;
   uint64_t cap = static_cast<uint64_t>(maxT) * perThread;
-  if (p.device.smemPerBlock != 0 && p.accumItemSize != 0) {
+  uint64_t limit = p.device.smemPerBlock;
+  if (p.kernel.smemOptIn && p.device.smemPerBlockOptin > limit) {
+    limit = p.device.smemPerBlockOptin;
+  }
+  if (limit != 0 && p.accumItemSize != 0) {
+    const uint64_t ownSmem =
+        satAdd(satAdd(p.kernel.staticSmemBytes, p.kernel.dynSmemPerBlock),
+               satMul(p.kernel.dynSmemPerThread, static_cast<uint64_t>(maxT)));
+    const uint64_t usable = ownSmem < limit ? limit - ownSmem : 0U;
     const uint64_t partials = reductionPartials(p.op);
     const uint64_t smemCap = satMul(
-        satMul(p.device.smemPerBlock / satMul(p.accumItemSize, partials), warp),
-        perThread);
+        satMul(usable / satMul(p.accumItemSize, partials), warp), perThread);
     cap = std::min(smemCap, cap);
   }
   return cap;
@@ -203,9 +215,24 @@ inline LaunchConfig resolveReduction(const ReductionParams &p) noexcept {
     elemsPerThread = width * 2;
   }
   const uint64_t singleCap = detail::reductionSingleBlockCap(p);
+  if (singleCap == 0) {
+    return LaunchConfig{};
+  }
   uint64_t splits = detail::ceilDiv(p.reduceExtent, singleCap);
   if (splits == 0) {
     splits = 1;
+  }
+  // Single-pass atomics pay for every extra writer per destination. When the
+  // caller knows the writer count, keep the split count inside that budget;
+  // two-pass combines are free to split further.
+  if (detail::reductionUsesAtomics(p) && p.blocksPerOutput != 0 &&
+      p.device.smCount != 0) {
+    const uint64_t budget =
+        detail::satMul(detail::satMul(p.device.smCount, p.blocksPerOutput), 4U);
+    const uint64_t total = detail::satMul(splits, p.numReductions);
+    if (total > budget && p.numReductions != 0) {
+      splits = std::max<uint64_t>(1U, budget / p.numReductions);
+    }
   }
   uint32_t threads = pickBlockThreads(p.device, p.kernel);
   if (splits == 1 && p.intraBlock != IntraBlockStrategy::SharedMem &&

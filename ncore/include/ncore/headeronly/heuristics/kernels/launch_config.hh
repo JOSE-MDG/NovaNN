@@ -10,12 +10,20 @@
 #pragma once
 
 #include <bit>
+#include <cmath>
 
 #include "patterns/routing.hh"
 
 namespace ncore::heuristics::kernels {
 
 namespace detail {
+
+inline uint64_t quantizedHint(float v) noexcept {
+  if (!std::isfinite(v) || v <= 0.0F) {
+    return 0U;
+  }
+  return static_cast<uint64_t>(v > 1000.0F ? 1000000U : v * 1000.0F);
+}
 
 // Per-stage shape/dtype fold; defined after every fullKeyFor overload.
 inline uint64_t fusedStageKey(const FusedStage &s, uint32_t arch,
@@ -40,6 +48,7 @@ inline FullCacheKey fullKeyFor(const ElementWiseParams &p,
   h = foldU64(h, static_cast<uint64_t>(elementWiseBandwidthBound(p) ? 1U : 0U));
   h = foldU64(h, static_cast<uint64_t>(p.ilpPreference));
   h = foldU64(h, static_cast<uint64_t>(p.tailStrategy));
+  h = foldU64(h, p.reuseAfter ? 1U : 0U);
   key.shapeBucket = h;
   key.dtypeTag = foldDtypeTag(p.inputItemSize, p.outputItemSize);
   key.archTag = arch;
@@ -57,6 +66,9 @@ inline FullCacheKey fullKeyFor(const ReductionParams &p,
   h = foldU64(h, p.inputItemSize);
   h = foldU64(h, p.accumItemSize);
   h = foldU64(h, static_cast<uint64_t>(p.intraBlock));
+  h = foldU64(h, p.deterministic ? 1U : 0U);
+  h = foldU64(h, static_cast<uint64_t>(p.crossBlock));
+  h = foldU64(h, p.blocksPerOutput);
   key.shapeBucket = h;
   key.dtypeTag = foldDtypeTag(p.inputItemSize, p.accumItemSize);
   key.archTag = arch;
@@ -87,7 +99,13 @@ inline FullCacheKey fullKeyFor(const ParallelScanParams &p,
                                uint32_t arch) noexcept {
   FullCacheKey key{};
   key.pattern = ExecutionPattern::ParallelScan;
-  key.shapeBucket = foldU64(foldU64(0x5CA9U, p.scanExtent), p.numScans);
+  uint64_t h = foldU64(foldU64(0x5CA9U, p.scanExtent), p.numScans);
+  h = foldU64(h, p.inclusive ? 1U : 0U);
+  h = foldU64(h, static_cast<uint64_t>(p.op));
+  h = foldU64(h, p.deterministic ? 1U : 0U);
+  h = foldU64(h, static_cast<uint64_t>(p.buffering));
+  h = foldU64(h, static_cast<uint64_t>(p.crossBlock));
+  key.shapeBucket = h;
   key.dtypeTag = p.itemSize;
   key.archTag = arch;
   return key;
@@ -102,6 +120,11 @@ inline FullCacheKey fullKeyFor(const SortHistogramParams &p,
   h = foldU64(h, static_cast<uint64_t>(p.mode));
   // The resolver narrows the radix width, so the requested width is keyed.
   h = foldU64(h, p.bitsPerPass);
+  h = foldU64(h, static_cast<uint64_t>(p.valueMin));
+  h = foldU64(h, static_cast<uint64_t>(p.valueMax));
+  h = foldU64(h, p.distribution.numDistinct);
+  h = foldU64(h, quantizedHint(p.distribution.concentration01));
+  h = foldU64(h, static_cast<uint64_t>(p.privatization));
   key.shapeBucket = h;
   key.dtypeTag = foldDtypeTag(p.keyItemSize, p.valueItemSize);
   key.archTag = arch;
@@ -131,6 +154,9 @@ inline FullCacheKey fullKeyFor(const SpatialNeighborhoodParams &p,
   h = foldU64(h, p.outChannels);
   h = foldU64(h, p.itemSize);
   h = foldU64(h, p.channelsPerThread);
+  h = foldU64(h, p.filterConstEligible ? 1U : 0U);
+  h = foldU64(h, static_cast<uint64_t>(p.border));
+  h = foldU64(h, p.allowTensorReformulation ? 1U : 0U);
   key.shapeBucket = h;
   key.dtypeTag = p.itemSize;
   key.archTag = arch;
@@ -147,6 +173,11 @@ inline FullCacheKey fullKeyFor(const GemmParams &p, uint32_t arch) noexcept {
   h = foldU64(h, static_cast<uint64_t>(p.schedule));
   h = foldU64(h, static_cast<uint64_t>(p.inputDtype));
   h = foldU64(h, static_cast<uint64_t>(p.accumDtype));
+  h = foldU64(h, p.aRowMajor ? 1U : 0U);
+  h = foldU64(h, p.bRowMajor ? 1U : 0U);
+  h = foldU64(h, p.numStages);
+  h = foldU64(h, static_cast<uint64_t>(p.traversal));
+  h = foldU64(h, static_cast<uint64_t>(p.warpRole));
   // The tuning table is an input of the resolver; fold its identity so a
   // swapped table cannot serve a stale winner.
   h = foldU64(h, reinterpret_cast<uintptr_t>(p.tuningTable));
@@ -167,6 +198,13 @@ inline FullCacheKey fullKeyFor(const GatherScatterParams &p,
   key.pattern = ExecutionPattern::GatherScatter;
   uint64_t h = foldU64(0x6A75U, p.numIndices);
   h = foldU64(h, p.segmentSize);
+  h = foldU64(h, p.indicesUnique ? 1U : 0U);
+  h = foldU64(h, static_cast<uint64_t>(p.distribution.spread));
+  h = foldU64(h, quantizedHint(p.distribution.locality01));
+  h = foldU64(h, p.expectIntraWarpDup ? 1U : 0U);
+  h = foldU64(h, quantizedHint(p.readWriteRatio));
+  h = foldU64(h, static_cast<uint64_t>(p.dedup));
+  h = foldU64(h, static_cast<uint64_t>(p.presort));
   key.shapeBucket = h;
   key.dtypeTag = foldDtypeTag(p.dataItemSize, p.indexItemSize);
   key.archTag = arch;
@@ -188,6 +226,12 @@ inline FullCacheKey fullKeyFor(const FusedOperatorParams &p, uint32_t arch,
       h = foldU64(h, fusedStageKey(s, arch, depth));
     }
   }
+  h = foldU64(h, static_cast<uint64_t>(p.recompute));
+  h = foldU64(h, static_cast<uint64_t>(p.placement));
+  h = foldU64(h, static_cast<uint64_t>(p.sync));
+  h = foldU64(h, p.smemReusable ? 1U : 0U);
+  h = foldU64(h, p.maxLiveValues);
+  h = foldU64(h, p.incrementalBlocks ? 1U : 0U);
   key.shapeBucket = h;
   key.archTag = arch;
   return key;
@@ -252,6 +296,7 @@ inline uint32_t kernelTagFor(const KernelAttrs &k) noexcept {
   h = foldU64(h, k.staticSmemBytes);
   h = foldU64(h, k.dynSmemPerBlock);
   h = foldU64(h, k.dynSmemPerThread);
+  h = foldU64(h, k.smemOptIn ? 1U : 0U);
   return static_cast<uint32_t>(h ^ (h >> 32U));
 }
 
@@ -272,6 +317,11 @@ inline uint64_t deviceTagFor(const DeviceCaps &d) noexcept {
   h = detail::foldU64(h, d.maxGridX);
   h = detail::foldU64(h, d.maxGridY);
   h = detail::foldU64(h, d.maxGridZ);
+  h = detail::foldU64(h, d.memBandwidthBytesPerSec);
+  h = detail::foldU64(h, d.peakFlops);
+  h = detail::foldU64(h, d.l2Size);
+  h = detail::foldU64(h, d.l2MaxWindow);
+  h = detail::foldU64(h, d.asyncCopyEngines ? 1U : 0U);
   return h;
 }
 
