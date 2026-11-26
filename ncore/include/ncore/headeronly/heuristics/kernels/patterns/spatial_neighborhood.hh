@@ -84,8 +84,9 @@ inline uint64_t fastParallelWork(const SpatialNeighborhoodParams &p) noexcept {
 /// Bytes moved counting tile reads plus output writes.
 inline uint64_t fastTrafficBytes(const SpatialNeighborhoodParams &p) noexcept {
   const uint64_t span =
-      detail::satMul(detail::filterSpan(p.filterH, p.dilationH),
-                     detail::filterSpan(p.filterW, p.dilationW));
+      detail::satMul(detail::satMul(detail::filterSpan(p.filterH, p.dilationH),
+                                    detail::filterSpan(p.filterW, p.dilationW)),
+                     detail::filterSpan(p.filterD, p.dilationD));
   return detail::satMul(detail::spatialOutputs(p),
                         detail::satMul(p.itemSize, detail::satAdd(span, 1U)));
 }
@@ -117,7 +118,8 @@ coversSpatialNeighborhoodFast(const SpatialNeighborhoodParams &p) noexcept {
  */
 inline LaunchConfig
 resolveSpatialNeighborhoodFast(const SpatialNeighborhoodParams &p) noexcept {
-  if (p.inH == 0 || p.inW == 0 || p.inD == 0 || p.outChannels == 0) {
+  if (p.inH == 0 || p.inW == 0 || p.inD == 0 || p.outChannels == 0 ||
+      p.itemSize == 0) {
     return LaunchConfig{};
   }
   const uint32_t threads = detail::fastThreads(p.device, p.kernel);
@@ -150,8 +152,8 @@ resolveSpatialNeighborhoodFast(const SpatialNeighborhoodParams &p) noexcept {
  * every tile is skipped, tile 8 is returned and the kernel must split
  * channels to stage, since no tile fits as a whole. Channels pack per
  * thread while registers allow. Borders clamp once at load unless most
- * blocks touch them. A dense small-filter many-channel convolution on
- * tensor hardware defers to GEMM.
+ * blocks touch them. A small filter with many channels takes a wide
+ * channel-packed tile when tensor reformulation is permitted.
  */
 inline LaunchConfig
 resolveSpatialNeighborhood(const SpatialNeighborhoodParams &p) noexcept {
@@ -165,11 +167,14 @@ resolveSpatialNeighborhood(const SpatialNeighborhoodParams &p) noexcept {
   uint32_t cpt = p.channelsPerThread;
   if (cpt == 0) {
     cpt = (p.inChannels >= 4 && p.kernel.regsPerThread <= 32) ? 4 : 1;
+    if (p.filterConstEligible && p.inChannels >= 2) {
+      cpt *= 2U;
+    }
   }
   const uint64_t outH = detail::spatialOutExtent(p.inH, p.strideH, p.outH);
   const uint64_t outW = detail::spatialOutExtent(p.inW, p.strideW, p.outW);
   const uint64_t outD = detail::spatialOutExtent(p.inD, p.strideD, p.outD);
-  const uint64_t channelGroups = detail::ceilDiv(p.outChannels, cpt);
+  uint64_t channelGroups = detail::ceilDiv(p.outChannels, cpt);
   // Warp-rounded threads for a tile at the chosen channels per thread.
   const auto tileThreads = [&](uint32_t tile) noexcept -> uint32_t {
     const uint64_t raw = static_cast<uint64_t>(tile) * tile / cpt;
@@ -182,14 +187,50 @@ resolveSpatialNeighborhood(const SpatialNeighborhoodParams &p) noexcept {
   uint32_t bestTile = 8;
   uint32_t bestThreads = 0;
   double bestScore = 0.0;
-  for (uint32_t tile = 8; tile <= 32; tile *= 2) {
+  const uint64_t spanD = detail::filterSpan(p.filterD, p.dilationD);
+  const bool stageHalo = p.border != BorderStrategy::InLoop;
+  const uint64_t filterArea =
+      detail::satMul(detail::satMul(spanH, spanW), spanD);
+  uint64_t tensorStaged = detail::satMul(
+      detail::satMul(detail::satMul((32U + spanH) * (32U + spanW), 32U + spanD),
+                     p.itemSize),
+      p.inChannels);
+  uint64_t smemLimit = p.device.smemPerBlock;
+  if (p.kernel.smemOptIn && p.device.smemPerBlockOptin > smemLimit) {
+    smemLimit = p.device.smemPerBlockOptin;
+  }
+  const uint64_t ownSmem =
+      detail::satAdd(p.kernel.staticSmemBytes, p.kernel.dynSmemPerBlock);
+  if (p.device.smemPerBlock != 0 || p.kernel.smemOptIn) {
+    if (ownSmem >= smemLimit) {
+      return LaunchConfig{};
+    }
+    smemLimit -= ownSmem;
+  }
+  const uint64_t tensorNeed = detail::satAdd(
+      tensorStaged, detail::satMul(p.kernel.dynSmemPerThread, 256U));
+  const bool tensorForm = p.allowTensorReformulation && filterArea <= 16U &&
+                          p.inChannels >= 16U &&
+                          (smemLimit == 0 || tensorNeed <= smemLimit);
+  if (tensorForm) {
+    cpt = 4U;
+    channelGroups = detail::ceilDiv(p.outChannels, cpt);
+    bestTile = 32U;
+    bestThreads = 256U;
+  }
+  for (uint32_t tile = 8; tile <= 32 && !tensorForm; tile *= 2) {
+    const uint64_t dimH = stageHalo ? tile + spanH : tile;
+    const uint64_t dimW = stageHalo ? tile + spanW : tile;
+    const uint64_t dimD = stageHalo ? tile + spanD : tile;
     const uint64_t staged = detail::satMul(
-        detail::satMul(detail::satMul(tile + spanH, tile + spanW), p.itemSize),
+        detail::satMul(detail::satMul(dimH, dimW), dimD * p.itemSize),
         p.inChannels);
-    if (p.device.smemPerBlock != 0 && staged > p.device.smemPerBlock) {
+    const uint32_t tt = tileThreads(tile);
+    const uint64_t need =
+        detail::satAdd(staged, detail::satMul(p.kernel.dynSmemPerThread, tt));
+    if (smemLimit != 0 && need > smemLimit) {
       continue;
     }
-    const uint32_t tt = tileThreads(tile);
     KernelAttrs kk = p.kernel;
     kk.dynSmemPerBlock = detail::satAdd(kk.dynSmemPerBlock, staged);
     const Occupancy occ = computeOccupancy(p.device, kk, tt);
