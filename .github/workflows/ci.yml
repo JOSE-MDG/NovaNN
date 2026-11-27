@@ -32,6 +32,10 @@ jobs:
           submodules: true
           persist-credentials: false
 
+      # NovaNNRuntime.cmake calls uv run at configure time to list codegen outputs.
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
       - name: Configure
         run: scripts/build-presets.sh cpu-test-release-linux
 
@@ -60,6 +64,9 @@ jobs:
         with:
           submodules: true
           persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
 
       - name: Configure
         run: scripts/build-presets.sh cpu-asan-test-release-linux
@@ -90,6 +97,9 @@ jobs:
           submodules: true
           persist-credentials: false
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
       - name: Configure
         run: scripts/build-presets.sh cpu-ubsan-test-release-linux
 
@@ -118,6 +128,9 @@ jobs:
         with:
           submodules: true
           persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
 
       - name: Check toolchain
         shell: pwsh
