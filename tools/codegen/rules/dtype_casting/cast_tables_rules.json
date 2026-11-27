@@ -1092,10 +1092,12 @@
           "requires": [
             "AVX512F",
             "AVX512FP16",
-            "AVX512VL"
+            "AVX512VL",
+            "AVX512DQ"
           ],
           "isa": [
             "AVX512F",
+            "AVX512DQ",
             "AVX512VL",
             "AVX512FP16"
           ],
@@ -1691,10 +1693,12 @@
           "requires": [
             "AVX512F",
             "AVX512FP16",
-            "AVX512VL"
+            "AVX512VL",
+            "AVX512DQ"
           ],
           "isa": [
             "AVX512F",
+            "AVX512DQ",
             "AVX512VL",
             "AVX512FP16"
           ],

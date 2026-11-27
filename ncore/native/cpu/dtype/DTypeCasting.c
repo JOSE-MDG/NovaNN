@@ -8445,9 +8445,9 @@ tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
   size_t size = src->size;
   const float16 *s = src->data.half;
   int32 *d = dst->data.s32;
-  const __m256h vmax = _mm256_set1_ph((float16)65504.0f);
-  const __m256h vmin = _mm256_set1_ph((float16)-65504.0f);
-  const __m512i vzero = _mm512_setzero_si512();
+  const __m512 vmax = _mm512_set1_ps(2147483520.0f);
+  const __m512 vmin = _mm512_set1_ps(-2147483648.0f);
+  const __m512 vzerof = _mm512_setzero_ps();
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8459,25 +8459,20 @@ tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     schedule(static) if (decision.go)
 #endif
   for (i = 0; i < n; i += step) {
-    __m256h v = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i]);
-#pragma GCC diagnostic push
-#ifndef __clang__
-#pragma GCC diagnostic ignored "-Wuseless-cast"
-#endif
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-    __mmask16 nan_mask = _mm256_cmp_ph_mask(v, v, _CMP_UNORD_Q);
-#pragma GCC diagnostic pop
-    v = _mm256_min_ph(_mm256_max_ph(v, vmin), vmax);
-    __m512i r = _mm512_cvttph_epi32(v);
-    r = _mm512_mask_blend_epi32(nan_mask, r, vzero);
+    __m256i raw = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m512 v = _mm512_cvtph_ps(raw);
+    __mmask16 nan_mask = _mm512_cmp_ps_mask(v, v, _CMP_UNORD_Q);
+    v = _mm512_min_ps(_mm512_max_ps(v, vmin), vmax);
+    v = _mm512_mask_blend_ps(nan_mask, v, vzerof);
+    __m512i r = _mm512_cvttps_epi32(v);
     _mm512_storeu_si512(&d[i], r);
   }
 #ifdef NOVA_OPENMP
   i = n;
 #endif
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, int32, -65504,
-                                    65504, 0)
+    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, int32,
+                                    -2147483648, 2147483520, 0)
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8487,7 +8482,7 @@ tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from float16 to int64 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16, AVX512VL
+ * Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type int64.
@@ -8495,7 +8490,7 @@ tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16,avx512vl")]] void
+[[gnu::target("avx512f,avx512fp16,avx512vl,avx512dq")]] void
 tfp16_to_s64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
                         novaStatus_t *status) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
@@ -8505,9 +8500,9 @@ tfp16_to_s64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
   size_t size = src->size;
   const float16 *s = src->data.half;
   int64 *d = dst->data.s64;
-  const __m128h vmax = _mm_set1_ph((float16)65504.0f);
-  const __m128h vmin = _mm_set1_ph((float16)-65504.0f);
-  const __m512i vzero = _mm512_setzero_si512();
+  const __m256 vmax = _mm256_set1_ps(9223371487098961920.0f);
+  const __m256 vmin = _mm256_set1_ps(-9223372036854775808.0f);
+  const __m256 vzerof = _mm256_setzero_ps();
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8519,25 +8514,22 @@ tfp16_to_s64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     schedule(static) if (decision.go)
 #endif
   for (i = 0; i < n; i += step) {
-    __m128h v = (__m128h)_mm_loadu_si128((const __m128i_u *)&s[i]);
-#pragma GCC diagnostic push
-#ifndef __clang__
-#pragma GCC diagnostic ignored "-Wuseless-cast"
-#endif
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-    __mmask8 nan_mask = _mm_cmp_ph_mask(v, v, _CMP_UNORD_Q);
-#pragma GCC diagnostic pop
-    v = _mm_min_ph(_mm_max_ph(v, vmin), vmax);
-    __m512i r = _mm512_cvttph_epi64(v);
-    r = _mm512_mask_blend_epi64(nan_mask, r, vzero);
+    __m128i raw = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m512 wide = _mm512_cvtph_ps(_mm256_zextsi128_si256(raw));
+    __m256 v = _mm512_castps512_ps256(wide);
+    __mmask8 nan_mask = _mm256_cmp_ps_mask(v, v, _CMP_UNORD_Q);
+    v = _mm256_min_ps(_mm256_max_ps(v, vmin), vmax);
+    v = _mm256_mask_blend_ps(nan_mask, v, vzerof);
+    __m512i r = _mm512_cvttps_epi64(v);
     _mm512_storeu_si512(&d[i], r);
   }
 #ifdef NOVA_OPENMP
   i = n;
 #endif
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, int64, -65504,
-                                    65504, 0)
+    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, int64,
+                                    (-__INT64_C(9223372036854775807) - 1),
+                                    __INT64_C(9223371487098961920), 0)
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8643,9 +8635,9 @@ tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
   size_t size = src->size;
   const float16 *s = src->data.half;
   uint32 *d = dst->data.u32;
-  const __m256h vmax = _mm256_set1_ph((float16)65504.0f);
-  const __m256h vmin = _mm256_setzero_ph();
-  const __m512i vzero = _mm512_setzero_si512();
+  const __m512 vmax = _mm512_set1_ps(4294967040.0f);
+  const __m512 vmin = _mm512_setzero_ps();
+  const __m512 vzerof = _mm512_setzero_ps();
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8657,17 +8649,12 @@ tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     schedule(static) if (decision.go)
 #endif
   for (i = 0; i < n; i += step) {
-    __m256h v = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i]);
-#pragma GCC diagnostic push
-#ifndef __clang__
-#pragma GCC diagnostic ignored "-Wuseless-cast"
-#endif
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-    __mmask16 nan_mask = _mm256_cmp_ph_mask(v, v, _CMP_UNORD_Q);
-#pragma GCC diagnostic pop
-    v = _mm256_min_ph(_mm256_max_ph(v, vmin), vmax);
-    __m512i r = _mm512_cvttph_epu32(v);
-    r = _mm512_mask_blend_epi32(nan_mask, r, vzero);
+    __m256i raw = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m512 v = _mm512_cvtph_ps(raw);
+    __mmask16 nan_mask = _mm512_cmp_ps_mask(v, v, _CMP_UNORD_Q);
+    v = _mm512_min_ps(_mm512_max_ps(v, vmin), vmax);
+    v = _mm512_mask_blend_ps(nan_mask, v, vzerof);
+    __m512i r = _mm512_cvttps_epu32(v);
     _mm512_storeu_si512(&d[i], r);
   }
 #ifdef NOVA_OPENMP
@@ -8675,7 +8662,7 @@ tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 #endif
   if (rem > 0) {
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, uint32, 0,
-                                    65504, 0)
+                                    __UINT32_C(4294967040), 0)
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8685,7 +8672,7 @@ tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from float16 to uint64 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16, AVX512VL
+ * Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type uint64.
@@ -8693,7 +8680,7 @@ tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16,avx512vl")]] void
+[[gnu::target("avx512f,avx512fp16,avx512vl,avx512dq")]] void
 tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
                         novaStatus_t *status) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
@@ -8703,9 +8690,9 @@ tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
   size_t size = src->size;
   const float16 *s = src->data.half;
   uint64 *d = dst->data.u64;
-  const __m128h vmax = _mm_set1_ph((float16)65504.0f);
-  const __m128h vmin = _mm_setzero_ph();
-  const __m512i vzero = _mm512_setzero_si512();
+  const __m256 vmax = _mm256_set1_ps(18446742974197923840.0f);
+  const __m256 vmin = _mm256_setzero_ps();
+  const __m256 vzerof = _mm256_setzero_ps();
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8717,17 +8704,13 @@ tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     schedule(static) if (decision.go)
 #endif
   for (i = 0; i < n; i += step) {
-    __m128h v = (__m128h)_mm_loadu_si128((const __m128i_u *)&s[i]);
-#pragma GCC diagnostic push
-#ifndef __clang__
-#pragma GCC diagnostic ignored "-Wuseless-cast"
-#endif
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-    __mmask8 nan_mask = _mm_cmp_ph_mask(v, v, _CMP_UNORD_Q);
-#pragma GCC diagnostic pop
-    v = _mm_min_ph(_mm_max_ph(v, vmin), vmax);
-    __m512i r = _mm512_cvttph_epu64(v);
-    r = _mm512_mask_blend_epi64(nan_mask, r, vzero);
+    __m128i raw = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m512 wide = _mm512_cvtph_ps(_mm256_zextsi128_si256(raw));
+    __m256 v = _mm512_castps512_ps256(wide);
+    __mmask8 nan_mask = _mm256_cmp_ps_mask(v, v, _CMP_UNORD_Q);
+    v = _mm256_min_ps(_mm256_max_ps(v, vmin), vmax);
+    v = _mm256_mask_blend_ps(nan_mask, v, vzerof);
+    __m512i r = _mm512_cvttps_epu64(v);
     _mm512_storeu_si512(&d[i], r);
   }
 #ifdef NOVA_OPENMP
@@ -8735,7 +8718,7 @@ tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 #endif
   if (rem > 0) {
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, uint64, 0,
-                                    65504, 0)
+                                    __UINT64_C(18446742974197923840), 0)
   }
 
   *status = (novaStatus_t){.err = novaSuccess,

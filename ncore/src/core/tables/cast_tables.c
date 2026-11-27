@@ -846,11 +846,12 @@ const CastVariant lookup_tfp16_to_s32[] = {
  * @brief Dispatch table for float16 to int64 conversions.
  *
  * Variants:
- * @li Index 0: tfp16_to_s64_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL
+ * @li Index 0: tfp16_to_s64_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ
  * @li Index 1: tfp16_to_s64_scalar() — Portable fallback
  */
 const CastVariant lookup_tfp16_to_s64[] = {
-    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512VL | SimdIsaAVX512FP16},
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ | SimdIsaAVX512VL |
+                     SimdIsaAVX512FP16},
      .fn = tfp16_to_s64_avx512fp16},
     {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_s64_scalar},
 };
@@ -1315,11 +1316,12 @@ const CastVariant lookup_tfp16_to_u32[] = {
  * @brief Dispatch table for float16 to uint64 conversions.
  *
  * Variants:
- * @li Index 0: tfp16_to_u64_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL
+ * @li Index 0: tfp16_to_u64_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ
  * @li Index 1: tfp16_to_u64_scalar() — Portable fallback
  */
 const CastVariant lookup_tfp16_to_u64[] = {
-    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512VL | SimdIsaAVX512FP16},
+    {.base = {.isa = SimdIsaAVX512F | SimdIsaAVX512DQ | SimdIsaAVX512VL |
+                     SimdIsaAVX512FP16},
      .fn = tfp16_to_u64_avx512fp16},
     {.base = {.isa = SimdIsaNone}, .fn = tfp16_to_u64_scalar},
 };
