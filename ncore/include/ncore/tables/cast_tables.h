@@ -690,7 +690,7 @@ extern const CastVariant lookup_tfp16_to_s32[];
  * @brief Dispatch table for float16 to int64 conversions.
  *
  * Variants:
- * @li Index 0: tfp16_to_s64_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL
+ * @li Index 0: tfp16_to_s64_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ
  * @li Index 1: tfp16_to_s64_scalar() — Portable fallback
  */
 extern const CastVariant lookup_tfp16_to_s64[];
@@ -1051,7 +1051,7 @@ extern const CastVariant lookup_tfp16_to_u32[];
  * @brief Dispatch table for float16 to uint64 conversions.
  *
  * Variants:
- * @li Index 0: tfp16_to_u64_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL
+ * @li Index 0: tfp16_to_u64_avx512fp16() — Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ
  * @li Index 1: tfp16_to_u64_scalar() — Portable fallback
  */
 extern const CastVariant lookup_tfp16_to_u64[];
