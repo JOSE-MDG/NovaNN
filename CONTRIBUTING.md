@@ -284,8 +284,10 @@ changes a template or rule must include the regenerated files.
 
 The `ci` check is an aggregate job over CPU Linux, ASan, UBSan, Windows, Python
 and codegen. The same gate applies to pull requests into `dev` and into `main`.
-The GPU simulator workflow is informational: hosted runners have no GPU and a
-simulator cannot cover timing or hardware-specific behavior.
+Every job that configures a preset installs uv first, because the CMake runtime
+module lists codegen outputs through `uv run` during configure. The GPU
+simulator workflow is informational: hosted runners have no GPU and a simulator
+cannot cover timing or hardware-specific behavior.
 
 The CPU jobs pin `ubuntu-26.04` because it provides GCC 15, CMake 4.5,
 clang-format 20.1.8, Rust and Python 3.14.4 without extra installs. The GPU
