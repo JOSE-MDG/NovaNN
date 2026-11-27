@@ -301,6 +301,10 @@ scripts/run-tests.sh cuda -- -R 'MemoryAllocator.*'  # run a filtered test set
 - Both scripts abort on the first failure unless `--continue` is given. Exit status: `0` success · `1` failure · `2` usage error.
 - On Windows, configuring `cuda-*` presets requires the `CUDA_HOST_COMPILER` environment variable (e.g., pointing to MSVC's `cl.exe`); otherwise those presets are skipped.
 - Typical verification loop: `scripts/build-presets.sh <preset>` → `scripts/compile-presets.sh <preset>` → `scripts/run-tests.sh <preset>`.
+- CI uses the same scripts and presets. `ci.yml` pins `ubuntu-26.04` and `windows-2025`; `gpu-sim.yml` stays on `ubuntu-24.04` because setup-pantheonsim supports only the 24.04 and 22.04 images.
+- Required checks are the single aggregate job `ci` and `branch-origin`. Keep job names unique across workflows: GitHub requires that for required checks.
+- The Python job runs `uv run --frozen pytest -q tests`. Do not collect from the repository root, which also picks up the vcpkg submodule tests.
+- Logs are uploaded as artifacts on failure. A cache of `build/` is deliberately not used because logs accumulate and can hide the origin of a failure.
 
 ---
 
@@ -309,7 +313,7 @@ scripts/run-tests.sh cuda -- -R 'MemoryAllocator.*'  # run a filtered test set
 - **v5.0.0** in active development: complete core rewrite with C23/C++23/Rust.
 - **v4.0.4**: stable legacy version (Python + NumPy) published on PyPI. The current Python code in `nova/` belongs to this version and will be replaced by Cython bindings to the native core.
 - Core runtime (tensor, storage, device, dtype, repr) is advanced. CPU backends with complete SIMD for dtype casting. GPU backends with base infrastructure plus tiered launch heuristics. Threading runs stratified worker pools with manual/auto modes; repr reports through `novaStatus_t`.
-- No CI/CD yet.
+- CI is active in `.github/workflows/`. `ci.yml` is the required gate for every PR into `dev` or `main`; `branch-policy.yml` requires PRs into `main` to come from `dev`; `gpu-sim.yml` adds optional CUDA/HIP coverage on simulated GPUs; `nightly.yml` sweeps all CPU presets. CD is not implemented yet.
 
 ### Roadmap (overview)
 
