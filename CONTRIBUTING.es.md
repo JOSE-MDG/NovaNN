@@ -290,8 +290,10 @@ cambie un template o una regla debe incluir los archivos regenerados.
 | `.github/workflows/nightly.yml` | semanal, manual | no |
 
 El check `ci` es un job agregado sobre CPU Linux, ASan, UBSan, Windows, Python
-y codegen. El mismo gate aplica a los pull requests a `dev` y a `main`. El
-workflow de GPU simulada es informativo: los runners no tienen GPU y un
+y codegen. El mismo gate aplica a los pull requests a `dev` y a `main`. Todos los
+jobs que configuran un preset instalan `uv` antes, porque el módulo CMake de
+runtime lista las salidas de codegen mediante `uv run` durante la configuración.
+El workflow de GPU simulada es informativo: los runners no tienen GPU y un
 simulador no cubre tiempos ni comportamientos específicos de hardware.
 
 Los jobs de CPU fijan `ubuntu-26.04` porque aporta GCC 15, CMake 4.5,
