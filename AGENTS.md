@@ -302,6 +302,7 @@ scripts/run-tests.sh cuda -- -R 'MemoryAllocator.*'  # run a filtered test set
 - On Windows, configuring `cuda-*` presets requires the `CUDA_HOST_COMPILER` environment variable (e.g., pointing to MSVC's `cl.exe`); otherwise those presets are skipped.
 - Typical verification loop: `scripts/build-presets.sh <preset>` → `scripts/compile-presets.sh <preset>` → `scripts/run-tests.sh <preset>`.
 - CI uses the same scripts and presets. `ci.yml` pins `ubuntu-26.04` and `windows-2025`; `gpu-sim.yml` stays on `ubuntu-24.04` because setup-pantheonsim supports only the 24.04 and 22.04 images.
+- The Windows job runs `scripts/ci/install-llvm-windows.ps1` before configure: the VS 2026 STL requires Clang 22+, while `windows-2025` ships LLVM 20.1.8. The installer is pinned to an official LLVM release and checked against its published SHA256.
 - Every job that configures a preset installs uv first: `NovaNNRuntime.cmake` calls `uv run` at configure time to list codegen outputs.
 - Required checks are the single aggregate job `ci` and `branch-origin`. Keep job names unique across workflows: GitHub requires that for required checks.
 - The Python job runs `uv run --frozen pytest -q tests`. Do not collect from the repository root, which also picks up the vcpkg submodule tests.
