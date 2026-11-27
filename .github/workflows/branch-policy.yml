@@ -1,0 +1,29 @@
+name: Branch policy
+
+# Every change reaches main through dev. This check makes that rule explicit
+# instead of leaving it to the reviewer. The job always reports a result so it
+# can be required in branch protection.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  branch-origin:
+    name: branch-origin
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check the source branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ "$HEAD_REF" != "dev" ]; then
+            echo "Pull requests into main must come from dev, got: $HEAD_REF"
+            exit 1
+          fi
+          echo "Source branch is dev"
