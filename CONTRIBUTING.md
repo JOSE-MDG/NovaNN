@@ -292,7 +292,9 @@ cannot cover timing or hardware-specific behavior.
 The CPU jobs pin `ubuntu-26.04` because it provides GCC 15, CMake 4.5,
 clang-format 20.1.8, Rust and Python 3.14.4 without extra installs. The GPU
 simulator stays on `ubuntu-24.04` because that is what its setup action
-supports. Windows pins `windows-2025`.
+supports. Windows uses `windows-2025` and installs a pinned LLVM release through
+`scripts/ci/install-llvm-windows.ps1`: the VS 2026 STL requires Clang 22+, while
+the runner image ships LLVM 20.1.8.
 
 ## Pull Request Process
 
