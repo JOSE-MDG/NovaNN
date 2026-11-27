@@ -119,6 +119,9 @@ jobs:
 
   cpu-windows:
     name: cpu-windows
+    # The VS 2026 STL on windows-2025 requires Clang 22, but the image ships
+    # LLVM 20.1.8. The install script provides a pinned newer clang-cl and
+    # lld-link before configure.
     runs-on: windows-2025
     timeout-minutes: 60
 
@@ -128,6 +131,16 @@ jobs:
         with:
           submodules: true
           persist-credentials: false
+
+      - name: Cache LLVM installer
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}\llvm-msi
+          key: llvm-msi-23.1.6
+
+      - name: Install LLVM
+        shell: pwsh
+        run: .\scripts\ci\install-llvm-windows.ps1
 
       - name: Install uv
         uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
