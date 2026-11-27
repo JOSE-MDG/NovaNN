@@ -299,7 +299,9 @@ simulador no cubre tiempos ni comportamientos específicos de hardware.
 Los jobs de CPU fijan `ubuntu-26.04` porque aporta GCC 15, CMake 4.5,
 clang-format 20.1.8, Rust y Python 3.14.4 sin instalaciones adicionales. El
 simulador de GPU se queda en `ubuntu-24.04`, que es lo que soporta su action de
-setup. Windows fija `windows-2025`.
+setup. Windows usa `windows-2025` e instala una versión fijada de LLVM mediante
+`scripts/ci/install-llvm-windows.ps1`: el STL de VS 2026 exige Clang 22 o
+superior, pero la imagen del runner trae LLVM 20.1.8.
 
 ## Proceso de Pull Request
 
