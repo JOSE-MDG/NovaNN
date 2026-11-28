@@ -50,6 +50,9 @@ typedef struct {
   UniformFunc fn;   ///< Operation entry point.
 } UniformVariant;
 
+static_assert(alignof(UniformVariant) == alignof(SimdVariant),
+              "UniformVariant must match SimdVariant alignment");
+
 #ifdef __cplusplus
 }
 #endif

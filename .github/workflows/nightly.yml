@@ -1,0 +1,62 @@
+name: Nightly CPU sweep
+
+# Extra coverage outside the pull request gate: every CPU test preset, including
+# Debug and the sanitizer builds. Scheduled workflows use the default branch for
+# the workflow file, so the checkout below pins dev explicitly.
+
+on:
+  schedule:
+    - cron: '0 3 * * 2'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cpu-all:
+    name: cpu-all
+    runs-on: ubuntu-26.04
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: dev
+          submodules: true
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Install clang-format 23.1.5
+        run: |
+          uv tool install clang-format==23.1.5
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run every CPU test preset
+        run: |
+          for preset in \
+            cpu-test-release-linux \
+            cpu-test-debug-linux \
+            cpu-asan-test-release-linux \
+            cpu-asan-test-debug-linux \
+            cpu-ubsan-test-release-linux \
+            cpu-ubsan-test-debug-linux
+          do
+            scripts/build-presets.sh "$preset"
+            scripts/compile-presets.sh -j 4 "$preset"
+            scripts/run-tests.sh --force-stop-on-failure "$preset"
+          done
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-nightly-cpu
+          path: build/logs/
+          if-no-files-found: ignore

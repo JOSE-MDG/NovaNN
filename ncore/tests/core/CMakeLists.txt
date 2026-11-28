@@ -60,6 +60,7 @@ endif()
             DISCOVERY_TIMEOUT 60
             DISCOVERY_MODE PRE_TEST
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            PROPERTIES ENVIRONMENT "${NOVA_SANITIZER_ENV}"
         )
     endif()
 endif()

@@ -21,7 +21,8 @@ Targets created:
 ``ncore_memory`` — alias ``ncore::memory``
   Imported static library wrapping the Cargo output.  Links against
   ``ncore::memory::csrc`` (alias of ``memorycsrc``), ``Threads::Threads``,
-  ``dl``, and ``m``.
+  ``dl``, and ``m`` on POSIX, and against ``ws2_32``, ``ntdll``, ``userenv``,
+  ``bcrypt``, and ``synchronization`` on Windows.
 
 #]=======================================================================]
 
@@ -78,5 +79,5 @@ set_target_properties(ncore_memory PROPERTIES
 add_dependencies(ncore_memory memory_cargo)
 
 if(WIN32)
-  target_link_libraries(ncore_memory INTERFACE ws2_32 ntdll userenv bcrypt)
+  target_link_libraries(ncore_memory INTERFACE ws2_32 ntdll userenv bcrypt synchronization)
 endif()

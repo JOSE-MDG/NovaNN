@@ -285,8 +285,14 @@ if(USE_UBSAN)
         "undefined __ubsan_handle_* references."
       )
     endif()
+    # UBSAN_OPTIONS=print_stacktrace=1 needs frame pointers and debug info to
+    # render the frames that make a report useful in a Release test run.
     target_compile_options(nova_sanitizers INTERFACE
-      -fsanitize=undefined -fno-sanitize-recover=all)
+      -fsanitize=undefined -fno-sanitize-recover=all
+      -g -fno-omit-frame-pointer)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      target_compile_options(nova_sanitizers INTERFACE -fno-sanitize-merge)
+    endif()
     target_link_options(nova_sanitizers INTERFACE
       -fsanitize=undefined
       ${_nova_san_rpath}

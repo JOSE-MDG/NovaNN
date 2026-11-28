@@ -314,7 +314,9 @@
           "name": "tfp16_to_f32_avx_avx2_fp16c",
           "requires": [
             "AVX/AVX2",
-            "F16C"
+            "F16C",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",
@@ -341,10 +343,14 @@
           "name": "tfp16_to_f64_avx512",
           "requires": [
             "AVX512F",
-            "AVX512FP16"
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512FP16"
           ],
           "is_scalar": false
@@ -378,10 +384,14 @@
           "name": "tfp16_to_bf16_avx512bf16",
           "requires": [
             "AVX512F",
-            "AVX512BF16"
+            "AVX512BF16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512BF16"
           ],
           "is_scalar": false
@@ -446,10 +456,16 @@
           "name": "tf32_to_fp16_avx512fp16",
           "requires": [
             "AVX512F",
-            "AVX512FP16"
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512DQ",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512DQ",
+            "AVX512VL",
             "AVX512FP16"
           ],
           "is_scalar": false
@@ -492,7 +508,9 @@
         {
           "name": "tf32_to_f64_avx_avx2",
           "requires": [
-            "AVX/AVX2"
+            "AVX/AVX2",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",
@@ -601,10 +619,14 @@
           "requires": [
             "AVX512F",
             "AVX512BF16",
-            "AVX512FP16"
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512FP16",
             "AVX512BF16"
           ],
@@ -628,10 +650,14 @@
           "name": "tbf16_to_f32_avx512bf16",
           "requires": [
             "AVX512BF16",
-            "AVX512F"
+            "AVX512F",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512BF16"
           ],
           "is_scalar": false
@@ -655,10 +681,12 @@
           "requires": [
             "AVX512F",
             "AVX512BF16",
-            "AVX512VL"
+            "AVX512VL",
+            "AVX512BW"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
             "AVX512VL",
             "AVX512BF16"
           ],
@@ -724,10 +752,14 @@
           "name": "tf64_to_fp16_avx512fp16",
           "requires": [
             "AVX512F",
-            "AVX512FP16"
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512FP16"
           ],
           "is_scalar": false
@@ -759,7 +791,9 @@
         {
           "name": "tf64_to_f32_avx_avx2",
           "requires": [
-            "AVX/AVX2"
+            "AVX/AVX2",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",
@@ -796,10 +830,12 @@
           "requires": [
             "AVX512F",
             "AVX512BF16",
-            "AVX512VL"
+            "AVX512VL",
+            "AVX512BW"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
             "AVX512VL",
             "AVX512BF16"
           ],
@@ -1064,10 +1100,12 @@
           "requires": [
             "AVX512FP16",
             "AVX512F",
-            "AVX512VL"
+            "AVX512VL",
+            "AVX512BW"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
             "AVX512VL",
             "AVX512FP16"
           ],
@@ -1092,10 +1130,14 @@
           "requires": [
             "AVX512F",
             "AVX512FP16",
-            "AVX512VL"
+            "AVX512VL",
+            "AVX512DQ",
+            "AVX512BW"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512DQ",
             "AVX512VL",
             "AVX512FP16"
           ],
@@ -1244,11 +1286,13 @@
           "requires": [
             "AVX512BF16",
             "AVX512BW",
-            "AVX512F"
+            "AVX512F",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
             "AVX512BW",
+            "AVX512VL",
             "AVX512BF16"
           ],
           "is_scalar": false
@@ -1285,10 +1329,14 @@
           "name": "tbf16_to_s32_avx512bf16",
           "requires": [
             "AVX512BF16",
-            "AVX512F"
+            "AVX512F",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512BF16"
           ],
           "is_scalar": false
@@ -1313,10 +1361,12 @@
             "AVX512F",
             "AVX512BF16",
             "AVX512VL",
-            "AVX512DQ"
+            "AVX512DQ",
+            "AVX512BW"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
             "AVX512DQ",
             "AVX512VL",
             "AVX512BF16"
@@ -1388,7 +1438,9 @@
         {
           "name": "tf64_to_s32_avx_avx2",
           "requires": [
-            "AVX/AVX2"
+            "AVX/AVX2",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",
@@ -1663,10 +1715,12 @@
           "requires": [
             "AVX512F",
             "AVX512FP16",
-            "AVX512VL"
+            "AVX512VL",
+            "AVX512BW"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
             "AVX512VL",
             "AVX512FP16"
           ],
@@ -1691,10 +1745,14 @@
           "requires": [
             "AVX512F",
             "AVX512FP16",
-            "AVX512VL"
+            "AVX512VL",
+            "AVX512DQ",
+            "AVX512BW"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512DQ",
             "AVX512VL",
             "AVX512FP16"
           ],
@@ -1824,11 +1882,13 @@
           "requires": [
             "AVX512BF16",
             "AVX512BW",
-            "AVX512F"
+            "AVX512F",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
             "AVX512BW",
+            "AVX512VL",
             "AVX512BF16"
           ],
           "is_scalar": false
@@ -1865,10 +1925,14 @@
           "name": "tbf16_to_u32_avx512bf16",
           "requires": [
             "AVX512BF16",
-            "AVX512F"
+            "AVX512F",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512BF16"
           ],
           "is_scalar": false
@@ -1893,10 +1957,12 @@
             "AVX512F",
             "AVX512BF16",
             "AVX512VL",
-            "AVX512DQ"
+            "AVX512DQ",
+            "AVX512BW"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
             "AVX512DQ",
             "AVX512VL",
             "AVX512BF16"
@@ -2051,10 +2117,14 @@
           "name": "ts8_to_fp16_avx512",
           "requires": [
             "AVX512F",
-            "AVX512FP16"
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512FP16"
           ],
           "is_scalar": false
@@ -2077,10 +2147,14 @@
           "name": "ts8_to_bf16_avx512bf16",
           "requires": [
             "AVX512F",
-            "AVX512BF16"
+            "AVX512BF16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512BF16"
           ],
           "is_scalar": false
@@ -2302,10 +2376,14 @@
           "name": "ts32_to_fp16_avx512fp16",
           "requires": [
             "AVX512F",
-            "AVX512FP16"
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512FP16"
           ],
           "is_scalar": false
@@ -2328,10 +2406,14 @@
           "name": "ts32_to_bf16_avx512bf16",
           "requires": [
             "AVX512F",
-            "AVX512BF16"
+            "AVX512BF16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512BF16"
           ],
           "is_scalar": false
@@ -2363,7 +2445,9 @@
         {
           "name": "ts32_to_f32_avx_avx2",
           "requires": [
-            "AVX/AVX2"
+            "AVX/AVX2",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",
@@ -2408,7 +2492,9 @@
         {
           "name": "ts32_to_f64_avx_avx2",
           "requires": [
-            "AVX/AVX2"
+            "AVX/AVX2",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",
@@ -2486,10 +2572,14 @@
           "name": "ts64_to_fp16_avx512fp16",
           "requires": [
             "AVX512F",
-            "AVX512FP16"
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512FP16"
           ],
           "is_scalar": false
@@ -2514,10 +2604,12 @@
             "AVX512F",
             "AVX512DQ",
             "AVX512BF16",
-            "AVX512VL"
+            "AVX512VL",
+            "AVX512BW"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
             "AVX512DQ",
             "AVX512VL",
             "AVX512BF16"
@@ -2896,7 +2988,9 @@
         {
           "name": "ts8_to_u8_avx_avx2",
           "requires": [
-            "AVX/AVX2"
+            "AVX/AVX2",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",
@@ -3141,7 +3235,9 @@
         {
           "name": "ts32_to_u32_avx_avx2",
           "requires": [
-            "AVX/AVX2"
+            "AVX/AVX2",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",
@@ -3293,7 +3389,9 @@
         {
           "name": "ts64_to_u64_avx_avx2",
           "requires": [
-            "AVX/AVX2"
+            "AVX/AVX2",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",
@@ -3371,10 +3469,14 @@
           "name": "tu8_to_fp16_avx512fp16",
           "requires": [
             "AVX512F",
-            "AVX512FP16"
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512FP16"
           ],
           "is_scalar": false
@@ -3397,10 +3499,14 @@
           "name": "tu8_to_bf16_avx512bf16",
           "requires": [
             "AVX512F",
-            "AVX512BF16"
+            "AVX512BF16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512BF16"
           ],
           "is_scalar": false
@@ -3622,10 +3728,14 @@
           "name": "tu32_to_fp16_avx512fp16",
           "requires": [
             "AVX512F",
-            "AVX512FP16"
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512FP16"
           ],
           "is_scalar": false
@@ -3648,10 +3758,14 @@
           "name": "tu32_to_bf16_avx512bf16",
           "requires": [
             "AVX512F",
-            "AVX512BF16"
+            "AVX512BF16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512BF16"
           ],
           "is_scalar": false
@@ -3764,10 +3878,14 @@
           "name": "tu64_to_fp16_avx512fp16",
           "requires": [
             "AVX512F",
-            "AVX512FP16"
+            "AVX512FP16",
+            "AVX512BW",
+            "AVX512VL"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
+            "AVX512VL",
             "AVX512FP16"
           ],
           "is_scalar": false
@@ -3792,10 +3910,12 @@
             "AVX512F",
             "AVX512DQ",
             "AVX512BF16",
-            "AVX512VL"
+            "AVX512VL",
+            "AVX512BW"
           ],
           "isa": [
             "AVX512F",
+            "AVX512BW",
             "AVX512DQ",
             "AVX512VL",
             "AVX512BF16"
@@ -4128,7 +4248,9 @@
         {
           "name": "tu32_to_s32_avx_avx2",
           "requires": [
-            "AVX/AVX2"
+            "AVX/AVX2",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",
@@ -4280,7 +4402,9 @@
         {
           "name": "tu64_to_s64_avx_avx2",
           "requires": [
-            "AVX/AVX2"
+            "AVX/AVX2",
+            "AVX",
+            "AVX2"
           ],
           "isa": [
             "AVX",

@@ -4,15 +4,7 @@
   "description": "High Performance Deep Learning Framework",
   "license": "MIT",
   "dependencies": [
-    "gtest",
-    "onednn",
-    {
-      "name": "openblas",
-      "features": [
-        "openmp",
-        "threads"
-      ]
-    }
+    "gtest"
   ],
   "features": {
     "cuda": {

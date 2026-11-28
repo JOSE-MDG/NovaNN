@@ -1,0 +1,241 @@
+name: CI
+
+# Single required gate. The same checks run for pull requests into dev and into
+# main, and for pushes to both branches. There are no path filters here: when a
+# workflow is skipped by a filter its check stays pending forever and the pull
+# request can never merge.
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cpu-linux:
+    name: cpu-linux
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          submodules: true
+          persist-credentials: false
+
+      # NovaNNRuntime.cmake calls uv run at configure time to list codegen outputs.
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Install clang-format 23.1.5
+        run: |
+          uv tool install clang-format==23.1.5
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure
+        run: scripts/build-presets.sh cpu-test-release-linux
+
+      - name: Build
+        run: scripts/compile-presets.sh -j 4 cpu-test-release-linux
+
+      - name: Test
+        run: scripts/run-tests.sh --force-stop-on-failure cpu-test-release-linux
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-cpu-linux
+          path: build/logs/
+          if-no-files-found: ignore
+
+  cpu-linux-asan:
+    name: cpu-linux-asan
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Install clang-format 23.1.5
+        run: |
+          uv tool install clang-format==23.1.5
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure
+        run: scripts/build-presets.sh cpu-asan-test-release-linux
+
+      - name: Build
+        run: scripts/compile-presets.sh -j 4 cpu-asan-test-release-linux
+
+      - name: Test
+        run: scripts/run-tests.sh --force-stop-on-failure cpu-asan-test-release-linux
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-cpu-linux-asan
+          path: build/logs/
+          if-no-files-found: ignore
+
+  cpu-linux-ubsan:
+    name: cpu-linux-ubsan
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Install clang-format 23.1.5
+        run: |
+          uv tool install clang-format==23.1.5
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure
+        run: scripts/build-presets.sh cpu-ubsan-test-release-linux
+
+      - name: Build
+        run: scripts/compile-presets.sh -j 4 cpu-ubsan-test-release-linux
+
+      - name: Test
+        run: scripts/run-tests.sh --force-stop-on-failure cpu-ubsan-test-release-linux
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-cpu-linux-ubsan
+          path: build/logs/
+          if-no-files-found: ignore
+
+  cpu-windows:
+    name: cpu-windows
+    # The VS 2026 STL on windows-2025 requires Clang 22, but the image ships
+    # LLVM 20.1.8. The install script provides a pinned newer clang-cl and
+    # lld-link before configure.
+    runs-on: windows-2025
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Cache LLVM installer
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}\llvm-msi
+          key: llvm-msi-23.1.5
+
+      - name: Install LLVM
+        shell: pwsh
+        run: .\scripts\ci\install-llvm-windows.ps1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Check toolchain
+        shell: pwsh
+        run: |
+          if (-not (Get-Command clang-cl -ErrorAction SilentlyContinue)) {
+            throw 'clang-cl is not on PATH; the Windows preset needs clang-cl and lld-link.'
+          }
+          if (-not (Get-Command lld-link -ErrorAction SilentlyContinue)) {
+            throw 'lld-link is not on PATH; the Windows preset needs clang-cl and lld-link.'
+          }
+
+      - name: Configure
+        shell: pwsh
+        run: .\scripts\build-presets.ps1 cpu-test-release-windows
+
+      - name: Build
+        shell: pwsh
+        run: .\scripts\compile-presets.ps1 -j 4 cpu-test-release-windows
+
+      - name: Test
+        shell: pwsh
+        run: .\scripts\run-tests.ps1 --force-stop-on-failure cpu-test-release-windows
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-cpu-windows
+          path: build\logs\
+          if-no-files-found: ignore
+
+  codegen:
+    name: codegen
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Install clang-format 23.1.5
+        run: |
+          uv tool install clang-format==23.1.5
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # clang-format 23.1.5 is pinned above; ruff comes from uv's dev group.
+      - name: Regenerate
+        run: uv run --frozen tools/codegen/generate.py gen --all --keep-going --run-formatters
+
+      - name: Check generated files
+        run: git diff --exit-code
+
+  ci:
+    name: ci
+    if: always()
+    needs:
+      - cpu-linux
+      - cpu-linux-asan
+      - cpu-linux-ubsan
+      - cpu-windows
+      - codegen
+    runs-on: ubuntu-26.04
+
+    steps:
+      - name: Check required jobs
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
+              echo "A required job finished with result: $result"
+              exit 1
+            fi
+          done
+          echo "All required jobs passed"

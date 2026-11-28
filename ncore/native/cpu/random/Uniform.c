@@ -850,8 +850,6 @@ static void uniform_run_u32(void *out, size_t units, const UniformPlanU32 *plan,
 #ifdef NOVA_OPENMP
   threads = get_num_threads_from(ParallelComputeGroup, st);
 #endif
-  // Single release point: the draw runs only while the status is
-  // success, and a release error surfaces only when the draw succeeded.
   if (st->err == novaSuccess) {
     *st = uniform_draw_map_u32(held.gen, plan, out, units, base, span, threads);
   }
@@ -886,8 +884,6 @@ static void uniform_run_u64(void *out, size_t units, const UniformPlanU64 *plan,
 #ifdef NOVA_OPENMP
   threads = get_num_threads_from(ParallelComputeGroup, st);
 #endif
-  // Single release point: the draw runs only while the status is
-  // success, and a release error surfaces only when the draw succeeded.
   if (st->err == novaSuccess) {
     *st = uniform_draw_map_u64(held.gen, plan, out, units, base, span, threads);
   }
@@ -1451,11 +1447,11 @@ uniform_map_fp16_avx_avx2_fma_f16c(const uint32_t *raw, void *out, size_t units,
 /**
  * @brief Map raw words into bfloat16 samples using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
  *
  * @return The destination pointer advanced past @p units samples.
  */
-[[gnu::target("avx512f,avx512bf16")]] static void *
+[[gnu::target("avx512f,avx512bw,avx512vl,avx512bf16")]] static void *
 uniform_map_bf16_avx512bf16(const uint32_t *raw, void *out, size_t units,
                             float base, float span) {
   bfloat16 *dst = out;
@@ -1719,9 +1715,9 @@ uniform_cpu_impl_fp16_avx_avx2_fma_f16c(Tensor *ten, float low, float high,
 /**
  * @brief Fill @p ten with uniform bfloat16 samples using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
  */
-[[gnu::target("avx512f,avx512bf16")]] void
+[[gnu::target("avx512f,avx512bw,avx512vl,avx512bf16")]] void
 uniform_cpu_impl_bf16_avx512bf16(Tensor *ten, float low, float high,
                                  Generator_ *generator, novaStatus_t *st) {
   const size_t n = ten->size;
@@ -1810,7 +1806,7 @@ static const UniformVariant uniform_variants_fp16[] = {
 };
 
 static const UniformVariant uniform_variants_bf16[] = {
-    {.base = {.isa = SimdIsaAVX512FBF16},
+    {.base = {.isa = SimdIsaAVX512FBF16 | SimdIsaAVX512BW | SimdIsaAVX512VL},
      .fn = uniform_cpu_impl_bf16_avx512bf16},
     {.base = {.isa = SimdIsaAVX2FMA}, .fn = uniform_cpu_impl_bf16_avx_avx2_fma},
     {.base = {.isa = SimdIsaNone}, .fn = uniform_cpu_impl_bf16_scalar},

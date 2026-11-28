@@ -35,7 +35,7 @@ install_deps() {
     sudo apt-get update
     sudo apt-get install -y gcc-15 g++-15 ninja-build libgtest-dev
     python3 -m venv "$RUNNER_TEMP/venv"
-    "$RUNNER_TEMP/venv/bin/pip" install uv clang-format
+    "$RUNNER_TEMP/venv/bin/pip" install uv clang-format==23.1.5
     echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
 }
 
