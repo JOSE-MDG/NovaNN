@@ -39,12 +39,13 @@ INT_TYPES = {
 }
 
 FUNC_RE = re.compile(
-    r"(?P<comment>/\*\*(?:.|\n)*?\*/)\s*"
-    r"(?P<attribute>\[\[gnu::target\([^\n]*\)\]\]\s*)?"
-    r"void\s+(?P<name>[A-Za-z0-9_]+)\s*\(",
+    r"(?P<comment>/\*\*.*?\*/)\s*"
+    r"(?P<attribute>\[\[gnu::target\([^)]*\)\]\]\s*)?"
+    r"(?:\[\[gnu::noinline\]\]\s*)?"
+    r"(?:static\s+)?void\s+(?P<name>[A-Za-z0-9_]+)\s*\(",
     re.DOTALL,
 )
-TARGET_RE = re.compile(r'\[\[gnu::target\("([^"]*)"\)\]\]')
+TARGET_RE = re.compile(r'\[\[gnu::target\(\s*"([^"]*)"\s*\)\]\]', re.DOTALL)
 
 # Requires token -> SimdIsa bit names.
 REQUIRES_TO_BITS = {
@@ -200,10 +201,19 @@ def _parse_tables(source_text: str) -> list[dict[str, Any]]:
     entries: dict[str, dict[str, Any]] = {}
     order: list[str] = []
 
+    attributes = {
+        match.group("name"): match.group("attribute")
+        for match in FUNC_RE.finditer(source_text)
+    }
+
     for match in FUNC_RE.finditer(source_text):
         name = match.group("name")
+        if name.endswith("_range") or name.endswith("_tail"):
+            continue
         comment = match.group("comment")
         attribute = match.group("attribute")
+        if attribute is None:
+            attribute = attributes.get(f"{name}_range")
 
         if name.endswith("_scalar"):
             if attribute is not None:

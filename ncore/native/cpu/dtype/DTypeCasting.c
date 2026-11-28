@@ -61,6 +61,24 @@
 
 #ifdef _GNUC_CLANG_
 /**
+ * @def DEFINE_CAST_TAIL(name, isa, src_type, dst_type, src_ptr, dst_ptr, ...)
+ * @brief Emit the scalar tail helper shared by the SIMD cast kernels.
+ *
+ * The last argument is the REMAINING_* invocation and is variadic because those
+ * macros take comma-separated arguments.
+ */
+#define DEFINE_CAST_TAIL(name, isa, src_type, dst_type, src_ptr, dst_ptr, ...) \
+  __attribute__((target(isa), noinline)) static void name##_tail(              \
+      const Tensor *restrict src, Tensor *restrict dst, size_t begin,          \
+      size_t end) {                                                            \
+    const src_type *s = src->data.src_ptr;                                     \
+    dst_type *d = dst->data.dst_ptr;                                           \
+    size_t i = begin;                                                          \
+    size_t size = end;                                                         \
+    __VA_ARGS__                                                                \
+  }
+
+/**
  * @def REMAINING(i, size, d, s, cvtype)
  * @brief Scalar tail-loop for SIMD functions.
  *
@@ -7435,16 +7453,39 @@ void tu64_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tfp16_to_f32_avx512(const Tensor *restrict src,
-                                                    Tensor *restrict dst,
-                                                    novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tfp16_to_f32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                          size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F32_WITH_AVX512F;
-  size_t i = 0;
+  const float16 *s = src->data.half;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v_src = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m512 v_dst = _mm512_cvtph_ps(v_src);
+    _mm512_storeu_ps(&d[i], v_dst);
+  }
+}
+
+DEFINE_CAST_TAIL(tfp16_to_f32_avx512, "avx512f", float16, float, half, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from float16 to float using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F32_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float16 *s = src->data.half;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -7452,19 +7493,24 @@ void tu64_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_f32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v_src = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    __m512 v_dst = _mm512_cvtph_ps(v_src);
-    _mm512_storeu_ps(&d[i], v_dst);
+  {
+    tfp16_to_f32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    tfp16_to_f32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7482,16 +7528,40 @@ void tu64_to_u32_scalar(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2,f16c")]] void
-tfp16_to_f32_avx_avx2_fp16c(const Tensor *restrict src, Tensor *restrict dst,
-                            novaStatus_t *status) {
+[[gnu::target("avx,avx2,f16c")]] [[gnu::noinline]] static void
+tfp16_to_f32_avx_avx2_fp16c_range(const Tensor *restrict src,
+                                  Tensor *restrict dst, size_t begin,
+                                  size_t end) {
   const size_t step = NOVA_SIMD_F32_WITH_AVX_AVX2;
-  size_t i = 0;
+  const float16 *s = src->data.half;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v_src = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m256 v_dst = _mm256_cvtph_ps(v_src);
+    _mm256_storeu_ps(&d[i], v_dst);
+  }
+}
+
+DEFINE_CAST_TAIL(tfp16_to_f32_avx_avx2_fp16c, "avx,avx2,f16c", float16, float,
+                 half, f32, REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from float16 to float using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, F16C, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_f32_avx_avx2_fp16c(const Tensor *restrict src,
+                                 Tensor *restrict dst, novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F32_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float16 *s = src->data.half;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -7499,19 +7569,24 @@ tfp16_to_f32_avx_avx2_fp16c(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_f32_avx_avx2_fp16c_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v_src = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m256 v_dst = _mm256_cvtph_ps(v_src);
-    _mm256_storeu_ps(&d[i], v_dst);
+  {
+    tfp16_to_f32_avx_avx2_fp16c_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    tfp16_to_f32_avx_avx2_fp16c_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7521,7 +7596,7 @@ tfp16_to_f32_avx_avx2_fp16c(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from float16 to double using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type double.
@@ -7529,16 +7604,40 @@ tfp16_to_f32_avx_avx2_fp16c(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16")]] void
-tfp16_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                    novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512fp16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tfp16_to_f64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                          size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const float16 *s = src->data.half;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128h v_src = (__m128h)_mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m512d v_dst = _mm512_cvtph_pd(v_src);
+    _mm512_storeu_pd(&d[i], v_dst);
+  }
+}
+
+DEFINE_CAST_TAIL(tfp16_to_f64_avx512, "avx512f,avx512fp16,avx512bw,avx512vl",
+                 float16, double, half, f64, REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from float16 to double using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                         novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float16 *s = src->data.half;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -7546,19 +7645,24 @@ tfp16_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_f64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128h v_src = (__m128h)_mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m512d v_dst = _mm512_cvtph_pd(v_src);
-    _mm512_storeu_pd(&d[i], v_dst);
+  {
+    tfp16_to_f64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    tfp16_to_f64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7576,16 +7680,41 @@ tfp16_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("f16c")]] void
-tfp16_to_f64_avx_avx2_fp16c(const Tensor *restrict src, Tensor *restrict dst,
-                            novaStatus_t *status) {
+[[gnu::target("f16c")]] [[gnu::noinline]] static void
+tfp16_to_f64_avx_avx2_fp16c_range(const Tensor *restrict src,
+                                  Tensor *restrict dst, size_t begin,
+                                  size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const float16 *s = src->data.half;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m128 f32 = _mm_cvtph_ps(v);
+    __m256d r = _mm256_cvtps_pd(f32);
+    _mm256_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tfp16_to_f64_avx_avx2_fp16c, "f16c", float16, double, half,
+                 f64, REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from float16 to double using AVX/AVX2.
+ *
+ * Requires: F16C
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_f64_avx_avx2_fp16c(const Tensor *restrict src,
+                                 Tensor *restrict dst, novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float16 *s = src->data.half;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -7593,20 +7722,24 @@ tfp16_to_f64_avx_avx2_fp16c(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_f64_avx_avx2_fp16c_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadl_epi64((const __m128i_u *)&s[i]);
-    __m128 f32 = _mm_cvtph_ps(v);
-    __m256d r = _mm256_cvtps_pd(f32);
-    _mm256_storeu_pd(&d[i], r);
+  {
+    tfp16_to_f64_avx_avx2_fp16c_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    tfp16_to_f64_avx_avx2_fp16c_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7616,7 +7749,7 @@ tfp16_to_f64_avx_avx2_fp16c(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from float16 to bfloat16 using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type bfloat16.
@@ -7624,16 +7757,42 @@ tfp16_to_f64_avx_avx2_fp16c(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16")]] void
-tfp16_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                         novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512bf16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tfp16_to_bf16_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                               size_t begin, size_t end) {
   const size_t step = 16;
-  size_t i = 0;
+  const float16 *s = src->data.half;
+  bfloat16 *d = dst->data.bf16;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v_src = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m512 v_inter = _mm512_cvtph_ps(v_src);
+    __m256bh v_dst = _mm512_cvtneps_pbh(v_inter);
+    memcpy(&d[i], &v_dst, sizeof(v_dst));
+  }
+}
+
+DEFINE_CAST_TAIL(tfp16_to_bf16_avx512bf16,
+                 "avx512f,avx512bf16,avx512bw,avx512vl", float16, bfloat16,
+                 half, bf16, REMAINING(i, size, d, s, bfloat16))
+
+/**
+ * @brief Cast every element from float16 to bfloat16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                              novaStatus_t *status) {
+  const size_t step = 16;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float16 *s = src->data.half;
-  bfloat16 *d = dst->data.bf16;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -7641,20 +7800,24 @@ tfp16_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_bf16_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v_src = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    __m512 v_inter = _mm512_cvtph_ps(v_src);
-    __m256bh v_dst = _mm512_cvtneps_pbh(v_inter);
-    memcpy(&d[i], &v_dst, sizeof(v_dst));
+  {
+    tfp16_to_bf16_avx512bf16_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, bfloat16)
+    tfp16_to_bf16_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7664,7 +7827,7 @@ tfp16_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from float to float16 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512DQ, AVX512VL
  *
  * @param[in]  src  Source tensor with element type float.
  * @param[out] dst  Destination tensor with element type float16.
@@ -7672,27 +7835,14 @@ tfp16_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16")]] void
-tf32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bw,avx512dq,avx512vl,avx512fp16")]]
+[[gnu::noinline]] static void
+tf32_to_fp16_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   float16 *d = dst->data.half;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512 v0 = _mm512_loadu_ps(&s[i]);
     __m512 v1 = _mm512_loadu_ps(&s[i + 16]);
 #pragma GCC diagnostic push
@@ -7705,11 +7855,54 @@ tf32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_si256((__m256i_u *)&d[i], r0);
     _mm256_storeu_si256((__m256i_u *)&d[i + 16], r1);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_fp16_avx512fp16,
+                 "avx512f,avx512bw,avx512dq,avx512vl,avx512fp16", float,
+                 float16, f32, half, REMAINING(i, size, d, s, float16))
+
+/**
+ * @brief Cast every element from float to float16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512DQ, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_fp16_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_fp16_avx512fp16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float16)
+    tf32_to_fp16_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7727,27 +7920,14 @@ tf32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("f16c")]] void
-tf32_to_fp16_avx_avx2_f16c(const Tensor *restrict src, Tensor *restrict dst,
-                           novaStatus_t *status) {
+[[gnu::target("f16c")]] [[gnu::noinline]] static void
+tf32_to_fp16_avx_avx2_f16c_range(const Tensor *restrict src,
+                                 Tensor *restrict dst, size_t begin,
+                                 size_t end) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   float16 *d = dst->data.half;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256 v0 = _mm256_loadu_ps(&s[i]);
     __m256 v1 = _mm256_loadu_ps(&s[i + 8]);
     __m128i r0 =
@@ -7757,11 +7937,53 @@ tf32_to_fp16_avx_avx2_f16c(const Tensor *restrict src, Tensor *restrict dst,
     _mm_storeu_si128((__m128i_u *)&d[i], r0);
     _mm_storeu_si128((__m128i_u *)&d[i + 8], r1);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_fp16_avx_avx2_f16c, "f16c", float, float16, f32, half,
+                 REMAINING(i, size, d, s, float16))
+
+/**
+ * @brief Cast every element from float to float16 using AVX/AVX2.
+ *
+ * Requires: F16C
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_fp16_avx_avx2_f16c(const Tensor *restrict src,
+                                Tensor *restrict dst, novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_FP16_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_fp16_avx_avx2_f16c_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_fp16_avx_avx2_f16c_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float16)
+    tf32_to_fp16_avx_avx2_f16c_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7779,16 +8001,39 @@ tf32_to_fp16_avx_avx2_f16c(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tf32_to_f64_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tf32_to_f64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const float *s = src->data.f32;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m256 v = _mm256_loadu_ps(&s[i]);
+    __m512d r = _mm512_cvtps_pd(v);
+    _mm512_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tf32_to_f64_avx512, "avx512f", float, double, f32, f64,
+                 REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from float to double using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = src->data.f32;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -7796,19 +8041,24 @@ tf32_to_fp16_avx_avx2_f16c(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_f64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256 v = _mm256_loadu_ps(&s[i]);
-    __m512d r = _mm512_cvtps_pd(v);
-    _mm512_storeu_pd(&d[i], r);
+  {
+    tf32_to_f64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    tf32_to_f64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7825,16 +8075,39 @@ tf32_to_fp16_avx_avx2_f16c(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2")]] void
-tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
-                     novaStatus_t *status) {
+[[gnu::target("avx,avx2")]] [[gnu::noinline]] static void
+tf32_to_f64_avx_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                           size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const float *s = src->data.f32;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128 v = _mm_loadu_ps(&s[i]);
+    __m256d r = _mm256_cvtps_pd(v);
+    _mm256_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tf32_to_f64_avx_avx2, "avx,avx2", float, double, f32, f64,
+                 REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from float to double using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = src->data.f32;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -7842,19 +8115,24 @@ tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_f64_avx_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128 v = _mm_loadu_ps(&s[i]);
-    __m256d r = _mm256_cvtps_pd(v);
-    _mm256_storeu_pd(&d[i], r);
+  {
+    tf32_to_f64_avx_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    tf32_to_f64_avx_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7871,16 +8149,39 @@ tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tf32_to_f64_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tf32_to_f64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F32_WITH_SSE;
-  size_t i = 0;
+  const float *s = src->data.f32;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128 v = _mm_loadu_ps(&s[i]);
+    _mm_storeu_pd(&d[i], _mm_cvtps_pd(v));
+    _mm_storeu_pd(&d[i + 2], _mm_cvtps_pd(_mm_movehl_ps(v, v)));
+  }
+}
+
+DEFINE_CAST_TAIL(tf32_to_f64_sse4_2, "sse4.2", float, double, f32, f64,
+                 REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from float to double using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_f64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F32_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const float *s = src->data.f32;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -7888,19 +8189,24 @@ tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_f64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128 v = _mm_loadu_ps(&s[i]);
-    _mm_storeu_pd(&d[i], _mm_cvtps_pd(v));
-    _mm_storeu_pd(&d[i + 2], _mm_cvtps_pd(_mm_movehl_ps(v, v)));
+  {
+    tf32_to_f64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    tf32_to_f64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7918,27 +8224,14 @@ tf32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16,avx512bw,avx512vl")]] void
-tf32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512bf16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tf32_to_bf16_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   bfloat16 *d = dst->data.bf16;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512 v0 = _mm512_loadu_ps(&s[i]);
     __m512 v1 = _mm512_loadu_ps(&s[i + 16]);
     __m256bh r0 = _mm512_cvtneps_pbh(v0);
@@ -7946,11 +8239,54 @@ tf32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_epi16(&d[i], (__m256i)r0);
     _mm256_storeu_epi16(&d[i + 16], (__m256i)r1);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_bf16_avx512bf16,
+                 "avx512f,avx512bf16,avx512bw,avx512vl", float, bfloat16, f32,
+                 bf16, REMAINING(i, size, d, s, bfloat16))
+
+/**
+ * @brief Cast every element from float to bfloat16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_bf16_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_bf16_avx512bf16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, bfloat16)
+    tf32_to_bf16_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -7960,7 +8296,7 @@ tf32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from bfloat16 to float16 using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16, AVX512FP16
+ * Requires: AVX512F, AVX512BF16, AVX512FP16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type float16.
@@ -7968,27 +8304,15 @@ tf32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16,avx512fp16")]] void
-tbf16_to_fp16_avx512bf16_fp16(const Tensor *restrict src, Tensor *restrict dst,
-                              novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bf16,avx512fp16,avx512bw,avx512vl")]]
+[[gnu::noinline]] static void
+tbf16_to_fp16_avx512bf16_fp16_range(const Tensor *restrict src,
+                                    Tensor *restrict dst, size_t begin,
+                                    size_t end) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const bfloat16 *s = src->data.bf16;
   float16 *d = dst->data.half;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256bh v0, v1;
     memcpy(&v0, &s[i], sizeof(v0));
     memcpy(&v1, &s[i + 16], sizeof(v1));
@@ -8004,11 +8328,54 @@ tbf16_to_fp16_avx512bf16_fp16(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_si256((__m256i_u *)&d[i], r0);
     _mm256_storeu_si256((__m256i_u *)&d[i + 16], r1);
   }
+}
+
+DEFINE_CAST_TAIL(tbf16_to_fp16_avx512bf16_fp16,
+                 "avx512f,avx512bf16,avx512fp16,avx512bw,avx512vl", bfloat16,
+                 float16, bf16, half, REMAINING(i, size, d, s, float16))
+
+/**
+ * @brief Cast every element from bfloat16 to float16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512FP16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type bfloat16.
+ * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tbf16_to_fp16_avx512bf16_fp16(const Tensor *restrict src,
+                                   Tensor *restrict dst, novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tbf16_to_fp16_avx512bf16_fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tbf16_to_fp16_avx512bf16_fp16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float16)
+    tbf16_to_fp16_avx512bf16_fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8018,7 +8385,7 @@ tbf16_to_fp16_avx512bf16_fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from bfloat16 to float using AVX-512.
  *
- * Requires: AVX512BF16, AVX512F
+ * Requires: AVX512BF16, AVX512F, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type float.
@@ -8026,16 +8393,42 @@ tbf16_to_fp16_avx512bf16_fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16")]] void
-tbf16_to_f32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512bf16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tbf16_to_f32_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F32_WITH_AVX512F;
-  size_t i = 0;
+  const bfloat16 *s = src->data.bf16;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m256bh v;
+    memcpy(&v, &s[i], sizeof(v));
+    __m512 r = _mm512_cvtpbh_ps(v);
+    _mm512_storeu_ps(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tbf16_to_f32_avx512bf16,
+                 "avx512f,avx512bf16,avx512bw,avx512vl", bfloat16, float, bf16,
+                 f32, REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from bfloat16 to float using AVX-512.
+ *
+ * Requires: AVX512BF16, AVX512F, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type bfloat16.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tbf16_to_f32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F32_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const bfloat16 *s = src->data.bf16;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8043,20 +8436,24 @@ tbf16_to_f32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tbf16_to_f32_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256bh v;
-    memcpy(&v, &s[i], sizeof(v));
-    __m512 r = _mm512_cvtpbh_ps(v);
-    _mm512_storeu_ps(&d[i], r);
+  {
+    tbf16_to_f32_avx512bf16_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    tbf16_to_f32_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8066,7 +8463,7 @@ tbf16_to_f32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from bfloat16 to double using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16, AVX512VL
+ * Requires: AVX512F, AVX512BF16, AVX512VL, AVX512BW
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type double.
@@ -8074,16 +8471,43 @@ tbf16_to_f32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16,avx512vl")]] void
-tbf16_to_f64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512bf16,avx512vl,avx512bw")]] [[gnu::noinline]] static void
+tbf16_to_f64_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const bfloat16 *s = src->data.bf16;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128bh v;
+    memcpy(&v, &s[i], sizeof(v));
+    __m256 f32 = _mm256_cvtpbh_ps(v);
+    __m512d r = _mm512_cvtps_pd(f32);
+    _mm512_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tbf16_to_f64_avx512bf16,
+                 "avx512f,avx512bf16,avx512vl,avx512bw", bfloat16, double, bf16,
+                 f64, REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from bfloat16 to double using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512VL, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type bfloat16.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tbf16_to_f64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const bfloat16 *s = src->data.bf16;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8091,21 +8515,24 @@ tbf16_to_f64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tbf16_to_f64_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128bh v;
-    memcpy(&v, &s[i], sizeof(v));
-    __m256 f32 = _mm256_cvtpbh_ps(v);
-    __m512d r = _mm512_cvtps_pd(f32);
-    _mm512_storeu_pd(&d[i], r);
+  {
+    tbf16_to_f64_avx512bf16_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    tbf16_to_f64_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8115,7 +8542,7 @@ tbf16_to_f64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from double to float16 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type float16.
@@ -8123,16 +8550,41 @@ tbf16_to_f64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16")]] void
-tf64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512fp16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tf64_to_fp16_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const double *s = src->data.f64;
+  float16 *d = dst->data.half;
+  for (size_t i = begin; i < end; i += step) {
+    __m512d v = _mm512_loadu_pd(&s[i]);
+    __m128h r = _mm512_cvtpd_ph(v);
+    _mm_storeu_si128((__m128i_u *)&d[i], (__m128i)r);
+  }
+}
+
+DEFINE_CAST_TAIL(tf64_to_fp16_avx512fp16,
+                 "avx512f,avx512fp16,avx512bw,avx512vl", double, float16, f64,
+                 half, REMAINING(i, size, d, s, float16))
+
+/**
+ * @brief Cast every element from double to float16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = src->data.f64;
-  float16 *d = dst->data.half;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8140,19 +8592,24 @@ tf64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_fp16_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512d v = _mm512_loadu_pd(&s[i]);
-    __m128h r = _mm512_cvtpd_ph(v);
-    _mm_storeu_si128((__m128i_u *)&d[i], (__m128i)r);
+  {
+    tf64_to_fp16_avx512fp16_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float16)
+    tf64_to_fp16_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8170,16 +8627,39 @@ tf64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tf64_to_f32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tf64_to_f32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const double *s = src->data.f64;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512d v = _mm512_loadu_pd(&s[i]);
+    __m256 r = _mm512_cvtpd_ps(v);
+    _mm256_storeu_ps(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tf64_to_f32_avx512, "avx512f", double, float, f64, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from double to float using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = src->data.f64;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8187,19 +8667,24 @@ tf64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_f32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512d v = _mm512_loadu_pd(&s[i]);
-    __m256 r = _mm512_cvtpd_ps(v);
-    _mm256_storeu_ps(&d[i], r);
+  {
+    tf64_to_f32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    tf64_to_f32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8216,16 +8701,39 @@ tf64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2")]] void
-tf64_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
-                     novaStatus_t *status) {
+[[gnu::target("avx,avx2")]] [[gnu::noinline]] static void
+tf64_to_f32_avx_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                           size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const double *s = src->data.f64;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m256d v = _mm256_loadu_pd(&s[i]);
+    __m128 r = _mm256_cvtpd_ps(v);
+    _mm_storeu_ps(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tf64_to_f32_avx_avx2, "avx,avx2", double, float, f64, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from double to float using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = src->data.f64;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8233,19 +8741,24 @@ tf64_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_f32_avx_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256d v = _mm256_loadu_pd(&s[i]);
-    __m128 r = _mm256_cvtpd_ps(v);
-    _mm_storeu_ps(&d[i], r);
+  {
+    tf64_to_f32_avx_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    tf64_to_f32_avx_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8262,16 +8775,39 @@ tf64_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tf64_to_f32_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tf64_to_f32_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_SSE;
-  size_t i = 0;
+  const double *s = src->data.f64;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m128d v = _mm_loadu_pd(&s[i]);
+    __m128 r = _mm_cvtpd_ps(v);
+    _mm_storel_epi64((__m128i_u *)&d[i], _mm_castps_si128(r));
+  }
+}
+
+DEFINE_CAST_TAIL(tf64_to_f32_sse4_2, "sse4.2", double, float, f64, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from double to float using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_f32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = src->data.f64;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8279,19 +8815,24 @@ tf64_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_f32_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128d v = _mm_loadu_pd(&s[i]);
-    __m128 r = _mm_cvtpd_ps(v);
-    _mm_storel_epi64((__m128i_u *)&d[i], _mm_castps_si128(r));
+  {
+    tf64_to_f32_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    tf64_to_f32_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8301,7 +8842,7 @@ tf64_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from double to bfloat16 using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16, AVX512VL
+ * Requires: AVX512F, AVX512BF16, AVX512VL, AVX512BW
  *
  * @param[in]  src  Source tensor with element type double.
  * @param[out] dst  Destination tensor with element type bfloat16.
@@ -8309,16 +8850,42 @@ tf64_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16,avx512vl")]] void
-tf64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512bf16,avx512vl,avx512bw")]] [[gnu::noinline]] static void
+tf64_to_bf16_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const double *s = src->data.f64;
+  bfloat16 *d = dst->data.bf16;
+  for (size_t i = begin; i < end; i += step) {
+    __m512d v = _mm512_loadu_pd(&s[i]);
+    __m256 f32 = _mm512_cvtpd_ps(v);
+    __m128bh r = _mm256_cvtneps_pbh(f32);
+    memcpy(&d[i], &r, sizeof(r));
+  }
+}
+
+DEFINE_CAST_TAIL(tf64_to_bf16_avx512bf16,
+                 "avx512f,avx512bf16,avx512vl,avx512bw", double, bfloat16, f64,
+                 bf16, REMAINING(i, size, d, s, bfloat16))
+
+/**
+ * @brief Cast every element from double to bfloat16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512VL, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const double *s = src->data.f64;
-  bfloat16 *d = dst->data.bf16;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -8326,20 +8893,24 @@ tf64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_bf16_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512d v = _mm512_loadu_pd(&s[i]);
-    __m256 f32 = _mm512_cvtpd_ps(v);
-    __m128bh r = _mm256_cvtneps_pbh(f32);
-    memcpy(&d[i], &r, sizeof(r));
+  {
+    tf64_to_bf16_avx512bf16_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, bfloat16)
+    tf64_to_bf16_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8357,30 +8928,17 @@ tf64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512fp16,avx512bw,avx512f,avx512vl")]] void
-tfp16_to_s8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                       novaStatus_t *status) {
+[[gnu::target(
+    "avx512fp16,avx512bw,avx512f,avx512vl")]] [[gnu::noinline]] static void
+tfp16_to_s8_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                             size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float16 *s = src->data.half;
   int8 *d = dst->data.s8;
   const __m256h vmax = _mm256_set1_ph((float16)INT8_MAX);
   const __m256h vmin = _mm256_set1_ph((float16)INT8_MIN);
   const __m512i vzero = _mm512_setzero_si512();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256h v0 = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m256h v1 = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i + 16]);
     __m256h v2 = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i + 32]);
@@ -8412,12 +8970,55 @@ tfp16_to_s8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_packs_epi16(p0, p1);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tfp16_to_s8_avx512fp16, "avx512fp16,avx512bw,avx512f,avx512vl",
+                 float16, int8, half, s8,
+                 REMAINING_SATURATE_CVT(i, size, d, s, fp16_to_float, int8,
+                                        INT8_MIN, INT8_MAX, 0))
+
+/**
+ * @brief Cast every element from float16 to int8 using AVX-512.
+ *
+ * Requires: AVX512FP16, AVX512BW, AVX512F, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_s8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_s8_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tfp16_to_s8_avx512fp16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT(i, size, d, s, fp16_to_float, int8, INT8_MIN,
-                           INT8_MAX, 0)
+    tfp16_to_s8_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8427,7 +9028,7 @@ tfp16_to_s8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from float16 to int32 using AVX-512.
  *
- * Requires: AVX512FP16, AVX512F, AVX512VL
+ * Requires: AVX512FP16, AVX512F, AVX512VL, AVX512BW
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type int32.
@@ -8435,30 +9036,17 @@ tfp16_to_s8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512fp16,avx512f,avx512vl")]] void
-tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512fp16,avx512f,avx512vl,avx512bw")]] [[gnu::noinline]] static void
+tfp16_to_s32_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float16 *s = src->data.half;
   int32 *d = dst->data.s32;
   const __m512 vmax = _mm512_set1_ps(2147483520.0f);
   const __m512 vmin = _mm512_set1_ps(-2147483648.0f);
   const __m512 vzerof = _mm512_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256i raw = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512 v = _mm512_cvtph_ps(raw);
     __mmask16 nan_mask = _mm512_cmp_ps_mask(v, v, _CMP_UNORD_Q);
@@ -8467,12 +9055,57 @@ tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epi32(v);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tfp16_to_s32_avx512fp16,
+                 "avx512fp16,avx512f,avx512vl,avx512bw", float16, int32, half,
+                 s32,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float,
+                                                 int32, -2147483648, 2147483520,
+                                                 0))
+
+/**
+ * @brief Cast every element from float16 to int32 using AVX-512.
+ *
+ * Requires: AVX512FP16, AVX512F, AVX512VL, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_s32_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tfp16_to_s32_avx512fp16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, int32,
-                                    -2147483648, 2147483520, 0)
+    tfp16_to_s32_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8482,7 +9115,7 @@ tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from float16 to int64 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ
+ * Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ, AVX512BW
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type int64.
@@ -8490,30 +9123,17 @@ tfp16_to_s32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16,avx512vl,avx512dq")]] void
-tfp16_to_s64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target("avx512f,avx512fp16,avx512vl,avx512dq,avx512bw")]]
+[[gnu::noinline]] static void
+tfp16_to_s64_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float16 *s = src->data.half;
   int64 *d = dst->data.s64;
   const __m256 vmax = _mm256_set1_ps(9223371487098961920.0f);
   const __m256 vmin = _mm256_set1_ps(-9223372036854775808.0f);
   const __m256 vzerof = _mm256_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i raw = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m512 wide = _mm512_cvtph_ps(_mm256_zextsi128_si256(raw));
     __m256 v = _mm512_castps512_ps256(wide);
@@ -8523,13 +9143,57 @@ tfp16_to_s64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epi64(v);
     _mm512_storeu_si512(&d[i], r);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
-  if (rem > 0) {
+}
+
+DEFINE_CAST_TAIL(
+    tfp16_to_s64_avx512fp16, "avx512f,avx512fp16,avx512vl,avx512dq,avx512bw",
+    float16, int64, half, s64,
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, int64,
                                     (-__INT64_C(9223372036854775807) - 1),
-                                    __INT64_C(9223371487098961920), 0)
+                                    __INT64_C(9223371487098961920), 0))
+
+/**
+ * @brief Cast every element from float16 to int64 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_s64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
+#ifdef NOVA_OPENMP
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_s64_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
+#endif
+  {
+    tfp16_to_s64_avx512fp16_range(src, dst, 0, n);
+  }
+  if (rem > 0) {
+    tfp16_to_s64_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8547,30 +9211,17 @@ tfp16_to_s64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16,avx512bw,avx512vl")]] void
-tfp16_to_u8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                       novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512fp16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tfp16_to_u8_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                             size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float16 *s = src->data.half;
   uint8 *d = dst->data.u8;
   const __m256h vmax = _mm256_set1_ph((float16)UINT8_MAX);
   const __m256h vmin = _mm256_setzero_ph();
   const __m512i vzero = _mm512_setzero_si512();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256h v0 = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m256h v1 = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i + 16]);
     __m256h v2 = (__m256h)_mm256_loadu_si256((const __m256i_u *)&s[i + 32]);
@@ -8602,12 +9253,55 @@ tfp16_to_u8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_packus_epi16(p0, p1);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tfp16_to_u8_avx512fp16, "avx512f,avx512fp16,avx512bw,avx512vl",
+                 float16, uint8, half, u8,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float,
+                                                 uint8, 0, UINT8_MAX, 0))
+
+/**
+ * @brief Cast every element from float16 to uint8 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_u8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_u8_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tfp16_to_u8_avx512fp16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, uint8, 0,
-                                    UINT8_MAX, 0)
+    tfp16_to_u8_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8617,7 +9311,7 @@ tfp16_to_u8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from float16 to uint32 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16, AVX512VL
+ * Requires: AVX512F, AVX512FP16, AVX512VL, AVX512BW
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type uint32.
@@ -8625,30 +9319,17 @@ tfp16_to_u8_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16,avx512vl")]] void
-tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512fp16,avx512vl,avx512bw")]] [[gnu::noinline]] static void
+tfp16_to_u32_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float16 *s = src->data.half;
   uint32 *d = dst->data.u32;
   const __m512 vmax = _mm512_set1_ps(4294967040.0f);
   const __m512 vmin = _mm512_setzero_ps();
   const __m512 vzerof = _mm512_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256i raw = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m512 v = _mm512_cvtph_ps(raw);
     __mmask16 nan_mask = _mm512_cmp_ps_mask(v, v, _CMP_UNORD_Q);
@@ -8657,12 +9338,57 @@ tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epu32(v);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tfp16_to_u32_avx512fp16,
+                 "avx512f,avx512fp16,avx512vl,avx512bw", float16, uint32, half,
+                 u32,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float,
+                                                 uint32, 0,
+                                                 __UINT32_C(4294967040), 0))
+
+/**
+ * @brief Cast every element from float16 to uint32 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512VL, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_u32_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tfp16_to_u32_avx512fp16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, uint32, 0,
-                                    __UINT32_C(4294967040), 0)
+    tfp16_to_u32_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8672,7 +9398,7 @@ tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from float16 to uint64 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ
+ * Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ, AVX512BW
  *
  * @param[in]  src  Source tensor with element type float16.
  * @param[out] dst  Destination tensor with element type uint64.
@@ -8680,30 +9406,17 @@ tfp16_to_u32_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16,avx512vl,avx512dq")]] void
-tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target("avx512f,avx512fp16,avx512vl,avx512dq,avx512bw")]]
+[[gnu::noinline]] static void
+tfp16_to_u64_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float16 *s = src->data.half;
   uint64 *d = dst->data.u64;
   const __m256 vmax = _mm256_set1_ps(18446742974197923840.0f);
   const __m256 vmin = _mm256_setzero_ps();
   const __m256 vzerof = _mm256_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i raw = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m512 wide = _mm512_cvtph_ps(_mm256_zextsi128_si256(raw));
     __m256 v = _mm512_castps512_ps256(wide);
@@ -8713,12 +9426,56 @@ tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epu64(v);
     _mm512_storeu_si512(&d[i], r);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
-  if (rem > 0) {
+}
+
+DEFINE_CAST_TAIL(
+    tfp16_to_u64_avx512fp16, "avx512f,avx512fp16,avx512vl,avx512dq,avx512bw",
+    float16, uint64, half, u64,
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, fp16_to_float, uint64, 0,
-                                    __UINT64_C(18446742974197923840), 0)
+                                    __UINT64_C(18446742974197923840), 0))
+
+/**
+ * @brief Cast every element from float16 to uint64 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512VL, AVX512DQ, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type float16.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
+#ifdef NOVA_OPENMP
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tfp16_to_u64_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
+#endif
+  {
+    tfp16_to_u64_avx512fp16_range(src, dst, 0, n);
+  }
+  if (rem > 0) {
+    tfp16_to_u64_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8728,7 +9485,7 @@ tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from bfloat16 to int8 using AVX-512.
  *
- * Requires: AVX512BF16, AVX512BW, AVX512F
+ * Requires: AVX512BF16, AVX512BW, AVX512F, AVX512VL
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int8.
@@ -8736,30 +9493,17 @@ tfp16_to_u64_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512bf16,avx512bw,avx512f")]] void
-tbf16_to_s8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                       novaStatus_t *status) {
+[[gnu::target(
+    "avx512bf16,avx512bw,avx512f,avx512vl")]] [[gnu::noinline]] static void
+tbf16_to_s8_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                             size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const bfloat16 *s = src->data.bf16;
   int8 *d = dst->data.s8;
   const __m512 vmin = _mm512_set1_ps(-128.0f);
   const __m512 vmax = _mm512_set1_ps(127.0f);
   const __m512 vzerof = _mm512_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256bh v0_raw, v1_raw, v2_raw, v3_raw;
     memcpy(&v0_raw, &s[i], sizeof(v0_raw));
     memcpy(&v1_raw, &s[i + 16], sizeof(v1_raw));
@@ -8790,12 +9534,55 @@ tbf16_to_s8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_packs_epi16(s01, s23);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tbf16_to_s8_avx512bf16, "avx512bf16,avx512bw,avx512f,avx512vl",
+                 bfloat16, int8, bf16, s8,
+                 REMAINING_SATURATE_CVT(i, size, d, s, bf16_to_float, int8,
+                                        INT8_MIN, INT8_MAX, 0))
+
+/**
+ * @brief Cast every element from bfloat16 to int8 using AVX-512.
+ *
+ * Requires: AVX512BF16, AVX512BW, AVX512F, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type bfloat16.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tbf16_to_s8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tbf16_to_s8_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tbf16_to_s8_avx512bf16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT(i, size, d, s, bf16_to_float, int8, INT8_MIN,
-                           INT8_MAX, 0)
+    tbf16_to_s8_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8805,7 +9592,7 @@ tbf16_to_s8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from bfloat16 to int32 using AVX-512.
  *
- * Requires: AVX512BF16, AVX512F
+ * Requires: AVX512BF16, AVX512F, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int32.
@@ -8813,30 +9600,17 @@ tbf16_to_s8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512bf16,avx512f")]] void
-tbf16_to_s32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512bf16,avx512f,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tbf16_to_s32_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const bfloat16 *s = src->data.bf16;
   int32 *d = dst->data.s32;
   const __m512 vmin = _mm512_set1_ps(-2147483648.0f);
   const __m512 vmax = _mm512_set1_ps(2147483520.0f);
   const __m512 vzerof = _mm512_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256bh v_raw;
     memcpy(&v_raw, &s[i], sizeof(v_raw));
     __m512 v = _mm512_cvtpbh_ps(v_raw);
@@ -8846,12 +9620,57 @@ tbf16_to_s32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epi32(v);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tbf16_to_s32_avx512bf16,
+                 "avx512bf16,avx512f,avx512bw,avx512vl", bfloat16, int32, bf16,
+                 s32,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float,
+                                                 int32, -2147483648, 2147483520,
+                                                 0))
+
+/**
+ * @brief Cast every element from bfloat16 to int32 using AVX-512.
+ *
+ * Requires: AVX512BF16, AVX512F, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type bfloat16.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tbf16_to_s32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tbf16_to_s32_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tbf16_to_s32_avx512bf16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float, int32,
-                                    -2147483648, 2147483520, 0)
+    tbf16_to_s32_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8861,7 +9680,7 @@ tbf16_to_s32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from bfloat16 to int64 using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16, AVX512VL, AVX512DQ
+ * Requires: AVX512F, AVX512BF16, AVX512VL, AVX512DQ, AVX512BW
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type int64.
@@ -8869,30 +9688,17 @@ tbf16_to_s32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16,avx512vl,avx512dq")]] void
-tbf16_to_s64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bf16,avx512vl,avx512dq,avx512bw")]]
+[[gnu::noinline]] static void
+tbf16_to_s64_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const bfloat16 *s = src->data.bf16;
   int64 *d = dst->data.s64;
   const __m256 vmin = _mm256_set1_ps(-9223372036854775808.0f);
   const __m256 vmax = _mm256_set1_ps(9223371487098961920.0f);
   const __m256 vzerof = _mm256_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128bh v_raw;
     memcpy(&v_raw, &s[i], sizeof(v_raw));
     __m256 v = _mm256_cvtpbh_ps(v_raw);
@@ -8902,13 +9708,57 @@ tbf16_to_s64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epi64(v);
     _mm512_storeu_si512(&d[i], r);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
-  if (rem > 0) {
+}
+
+DEFINE_CAST_TAIL(
+    tbf16_to_s64_avx512bf16, "avx512f,avx512bf16,avx512vl,avx512dq,avx512bw",
+    bfloat16, int64, bf16, s64,
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float, int64,
                                     (-__INT64_C(9223372036854775807) - 1),
-                                    __INT64_C(9223371487098961920), 0)
+                                    __INT64_C(9223371487098961920), 0))
+
+/**
+ * @brief Cast every element from bfloat16 to int64 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512VL, AVX512DQ, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type bfloat16.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tbf16_to_s64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
+#ifdef NOVA_OPENMP
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tbf16_to_s64_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
+#endif
+  {
+    tbf16_to_s64_avx512bf16_range(src, dst, 0, n);
+  }
+  if (rem > 0) {
+    tbf16_to_s64_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8918,7 +9768,7 @@ tbf16_to_s64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from bfloat16 to uint8 using AVX-512.
  *
- * Requires: AVX512BF16, AVX512BW, AVX512F
+ * Requires: AVX512BF16, AVX512BW, AVX512F, AVX512VL
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint8.
@@ -8926,30 +9776,17 @@ tbf16_to_s64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512bf16,avx512bw,avx512f")]] void
-tbf16_to_u8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                       novaStatus_t *status) {
+[[gnu::target(
+    "avx512bf16,avx512bw,avx512f,avx512vl")]] [[gnu::noinline]] static void
+tbf16_to_u8_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                             size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const bfloat16 *s = src->data.bf16;
   uint8 *d = dst->data.u8;
   const __m512 vmin = _mm512_setzero_ps();
   const __m512 vmax = _mm512_set1_ps(255.0f);
   const __m512 vzerof = _mm512_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256bh v0_raw, v1_raw, v2_raw, v3_raw;
     memcpy(&v0_raw, &s[i], sizeof(v0_raw));
     memcpy(&v1_raw, &s[i + 16], sizeof(v1_raw));
@@ -8980,12 +9817,55 @@ tbf16_to_u8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_packus_epi16(s01, s23);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tbf16_to_u8_avx512bf16, "avx512bf16,avx512bw,avx512f,avx512vl",
+                 bfloat16, uint8, bf16, u8,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float,
+                                                 uint8, 0, UINT8_MAX, 0))
+
+/**
+ * @brief Cast every element from bfloat16 to uint8 using AVX-512.
+ *
+ * Requires: AVX512BF16, AVX512BW, AVX512F, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type bfloat16.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tbf16_to_u8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tbf16_to_u8_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tbf16_to_u8_avx512bf16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float, uint8, 0,
-                                    UINT8_MAX, 0)
+    tbf16_to_u8_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -8995,7 +9875,7 @@ tbf16_to_u8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from bfloat16 to uint32 using AVX-512.
  *
- * Requires: AVX512BF16, AVX512F
+ * Requires: AVX512BF16, AVX512F, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint32.
@@ -9003,30 +9883,17 @@ tbf16_to_u8_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512bf16,avx512f")]] void
-tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512bf16,avx512f,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tbf16_to_u32_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const bfloat16 *s = src->data.bf16;
   uint32 *d = dst->data.u32;
   const __m512 vmin = _mm512_setzero_ps();
   const __m512 vmax = _mm512_set1_ps(4294967040.0f);
   const __m512 vzerof = _mm512_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256bh v_raw;
     memcpy(&v_raw, &s[i], sizeof(v_raw));
     __m512 v = _mm512_cvtpbh_ps(v_raw);
@@ -9036,12 +9903,57 @@ tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epu32(v);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tbf16_to_u32_avx512bf16,
+                 "avx512bf16,avx512f,avx512bw,avx512vl", bfloat16, uint32, bf16,
+                 u32,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float,
+                                                 uint32, 0,
+                                                 __UINT32_C(4294967040), 0))
+
+/**
+ * @brief Cast every element from bfloat16 to uint32 using AVX-512.
+ *
+ * Requires: AVX512BF16, AVX512F, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type bfloat16.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tbf16_to_u32_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tbf16_to_u32_avx512bf16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float, uint32, 0,
-                                    __UINT32_C(4294967040), 0)
+    tbf16_to_u32_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9051,7 +9963,7 @@ tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from bfloat16 to uint64 using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16, AVX512VL, AVX512DQ
+ * Requires: AVX512F, AVX512BF16, AVX512VL, AVX512DQ, AVX512BW
  *
  * @param[in]  src  Source tensor with element type bfloat16.
  * @param[out] dst  Destination tensor with element type uint64.
@@ -9059,30 +9971,17 @@ tbf16_to_u32_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16,avx512vl,avx512dq")]] void
-tbf16_to_u64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bf16,avx512vl,avx512dq,avx512bw")]]
+[[gnu::noinline]] static void
+tbf16_to_u64_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const bfloat16 *s = src->data.bf16;
   uint64 *d = dst->data.u64;
   const __m256 vmax = _mm256_set1_ps(18446742974197923840.0f);
   const __m256 vmin = _mm256_setzero_ps();
   const __m256 vzerof = _mm256_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128bh v_raw;
     memcpy(&v_raw, &s[i], sizeof(v_raw));
     __m256 v = _mm256_cvtpbh_ps(v_raw);
@@ -9092,12 +9991,56 @@ tbf16_to_u64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epu64(v);
     _mm512_storeu_si512(&d[i], r);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
-  if (rem > 0) {
+}
+
+DEFINE_CAST_TAIL(
+    tbf16_to_u64_avx512bf16, "avx512f,avx512bf16,avx512vl,avx512dq,avx512bw",
+    bfloat16, uint64, bf16, u64,
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, bf16_to_float, uint64, 0,
-                                    __UINT64_C(18446742974197923840), 0)
+                                    __UINT64_C(18446742974197923840), 0))
+
+/**
+ * @brief Cast every element from bfloat16 to uint64 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512VL, AVX512DQ, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type bfloat16.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tbf16_to_u64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
+#ifdef NOVA_OPENMP
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tbf16_to_u64_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
+#endif
+  {
+    tbf16_to_u64_avx512bf16_range(src, dst, 0, n);
+  }
+  if (rem > 0) {
+    tbf16_to_u64_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9115,30 +10058,16 @@ tbf16_to_u64_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bw")]] void
-tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                  novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bw")]] [[gnu::noinline]] static void
+tf32_to_s8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   int8 *d = dst->data.s8;
   const __m512 vmin = _mm512_set1_ps((float)INT8_MIN);
   const __m512 vmax = _mm512_set1_ps((float)INT8_MAX);
   const __m512 vzerof = _mm512_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512 v0 = _mm512_loadu_ps(&s[i]);
     __m512 v1 = _mm512_loadu_ps(&s[i + 16]);
     __m512 v2 = _mm512_loadu_ps(&s[i + 32]);
@@ -9164,12 +10093,54 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_packs_epi16(s01, s23);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_s8_avx512, "avx512f,avx512bw", float, int8, f32, s8,
+                 REMAINING_SATURATE_CVT(i, size, d, s, f32_identity, int8,
+                                        INT8_MIN, INT8_MAX, 0))
+
+/**
+ * @brief Cast every element from float to int8 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_s8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_s8_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT(i, size, d, s, f32_identity, int8, INT8_MIN,
-                           INT8_MAX, 0)
+    tf32_to_s8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9187,30 +10158,16 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tf32_to_s8_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tf32_to_s8_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   int8 *d = dst->data.s8;
   const __m256 vmin = _mm256_set1_ps((float)INT8_MIN);
   const __m256 vmax = _mm256_set1_ps((float)INT8_MAX);
   const __m256 vzerof = _mm256_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256 v0 = _mm256_loadu_ps(&s[i]);
     __m256 v1 = _mm256_loadu_ps(&s[i + 8]);
     __m256 v2 = _mm256_loadu_ps(&s[i + 16]);
@@ -9238,12 +10195,54 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     r = _mm256_permutevar8x32_epi32(r, perm);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_s8_avx2, "avx2", float, int8, f32, s8,
+                 REMAINING_SATURATE_CVT(i, size, d, s, f32_identity, int8,
+                                        INT8_MIN, INT8_MAX, 0))
+
+/**
+ * @brief Cast every element from float to int8 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_s8_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_s8_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_s8_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT(i, size, d, s, f32_identity, int8, INT8_MIN,
-                           INT8_MAX, 0)
+    tf32_to_s8_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9261,30 +10260,16 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tf32_to_s32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tf32_to_s32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   int32 *d = dst->data.s32;
   const __m512 vmin = _mm512_set1_ps(-2147483648.0f);
   const __m512 vmax = _mm512_set1_ps(2147483520.0f);
   const __m512 vzerof = _mm512_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512 v = _mm512_loadu_ps(&s[i]);
     __mmask16 nan_mask = _mm512_cmp_ps_mask(v, v, _CMP_UNORD_Q);
     v = _mm512_min_ps(_mm512_max_ps(v, vmin), vmax);
@@ -9292,12 +10277,55 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epi32(v);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_s32_avx512, "avx512f", float, int32, f32, s32,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity,
+                                                 int32, -2147483648, 2147483520,
+                                                 0))
+
+/**
+ * @brief Cast every element from float to int32 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_s32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_s32_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity, int32,
-                                    -2147483648, 2147483520, 0)
+    tf32_to_s32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9315,30 +10343,16 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tf32_to_s32_avx2(const Tensor *restrict src,
-                                              Tensor *restrict dst,
-                                              novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tf32_to_s32_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                       size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   int32 *d = dst->data.s32;
   const __m256 vmin = _mm256_set1_ps(-2147483648.0f);
   const __m256 vmax = _mm256_set1_ps(2147483520.0f);
   const __m256 vzerof = _mm256_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256 v = _mm256_loadu_ps(&s[i]);
     __m256 nan_mask = _mm256_cmp_ps(v, v, _CMP_UNORD_Q);
     v = _mm256_min_ps(_mm256_max_ps(v, vmin), vmax);
@@ -9346,12 +10360,55 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m256i r = _mm256_cvttps_epi32(v);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_s32_avx2, "avx2", float, int32, f32, s32,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity,
+                                                 int32, -2147483648, 2147483520,
+                                                 0))
+
+/**
+ * @brief Cast every element from float to int32 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_s32_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_s32_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity, int32,
-                                    -2147483648, 2147483520, 0)
+    tf32_to_s32_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9368,30 +10425,16 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tf32_to_s32_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tf32_to_s32_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_SSE;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   int32 *d = dst->data.s32;
   const __m128 vmin = _mm_set1_ps(-2147483648.0f);
   const __m128 vmax = _mm_set1_ps(2147483520.0f);
   const __m128 vzerof = _mm_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128 v = _mm_loadu_ps(&s[i]);
     __m128 nan_mask = _mm_cmpunord_ps(v, v);
     v = _mm_min_ps(_mm_max_ps(v, vmin), vmax);
@@ -9399,12 +10442,55 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m128i r = _mm_cvttps_epi32(v);
     _mm_storeu_si128((__m128i_u *)&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_s32_sse4_2, "sse4.2", float, int32, f32, s32,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity,
+                                                 int32, -2147483648, 2147483520,
+                                                 0))
+
+/**
+ * @brief Cast every element from float to int32 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_SSE;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_s32_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_s32_sse4_2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity, int32,
-                                    -2147483648, 2147483520, 0)
+    tf32_to_s32_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9422,30 +10508,16 @@ tf32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512dq,avx512vl")]] void
-tf32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                   novaStatus_t *status) {
+[[gnu::target("avx512f,avx512dq,avx512vl")]] [[gnu::noinline]] static void
+tf32_to_s64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   int64 *d = dst->data.s64;
   const __m256 vmin = _mm256_set1_ps(-9223372036854775808.0f);
   const __m256 vmax = _mm256_set1_ps(9223371487098961920.0f);
   const __m256 vzerof = _mm256_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256 v = _mm256_loadu_ps(&s[i]);
     __mmask8 nan_mask = _mm256_cmp_ps_mask(v, v, _CMP_UNORD_Q);
     v = _mm256_min_ps(_mm256_max_ps(v, vmin), vmax);
@@ -9453,13 +10525,56 @@ tf32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epi64(v);
     _mm512_storeu_si512(&d[i], r);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
-  if (rem > 0) {
+}
+
+DEFINE_CAST_TAIL(
+    tf32_to_s64_avx512, "avx512f,avx512dq,avx512vl", float, int64, f32, s64,
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity, int64,
                                     (-__INT64_C(9223372036854775807) - 1),
-                                    __INT64_C(9223371487098961920), 0)
+                                    __INT64_C(9223371487098961920), 0))
+
+/**
+ * @brief Cast every element from float to int64 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512DQ, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
+#ifdef NOVA_OPENMP
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_s64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
+#endif
+  {
+    tf32_to_s64_avx512_range(src, dst, 0, n);
+  }
+  if (rem > 0) {
+    tf32_to_s64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9477,30 +10592,16 @@ tf32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bw,avx512vl")]] void
-tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                  novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tf32_to_u8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   uint8 *d = dst->data.u8;
   const __m512 vmin = _mm512_setzero_ps();
   const __m512 vmax = _mm512_set1_ps((float)UINT8_MAX);
   const __m512 vzerof = _mm512_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512 v0 = _mm512_loadu_ps(&s[i]);
     __m512 v1 = _mm512_loadu_ps(&s[i + 16]);
     __m512 v2 = _mm512_loadu_ps(&s[i + 32]);
@@ -9526,12 +10627,55 @@ tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_packus_epi16(s01, s23);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_u8_avx512, "avx512f,avx512bw,avx512vl", float, uint8,
+                 f32, u8,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity,
+                                                 uint8, 0, UINT8_MAX, 0))
+
+/**
+ * @brief Cast every element from float to uint8 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_u8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_u8_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity, uint8, 0,
-                                    UINT8_MAX, 0)
+    tf32_to_u8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9549,30 +10693,16 @@ tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tf32_to_u8_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tf32_to_u8_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   uint8 *d = dst->data.u8;
   const __m256 vmin = _mm256_setzero_ps();
   const __m256 vmax = _mm256_set1_ps((float)UINT8_MAX);
   const __m256 vzerof = _mm256_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256 v0 = _mm256_loadu_ps(&s[i]);
     __m256 v1 = _mm256_loadu_ps(&s[i + 8]);
     __m256 v2 = _mm256_loadu_ps(&s[i + 16]);
@@ -9600,12 +10730,54 @@ tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     r = _mm256_permutevar8x32_epi32(r, perm);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_u8_avx2, "avx2", float, uint8, f32, u8,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity,
+                                                 uint8, 0, UINT8_MAX, 0))
+
+/**
+ * @brief Cast every element from float to uint8 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_u8_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_u8_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_u8_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity, uint8, 0,
-                                    UINT8_MAX, 0)
+    tf32_to_u8_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9623,30 +10795,16 @@ tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tf32_to_u32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tf32_to_u32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   uint32 *d = dst->data.u32;
   const __m512 vmin = _mm512_setzero_ps();
   const __m512 vmax = _mm512_set1_ps(4294967040.0f);
   const __m512 vzerof = _mm512_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512 v = _mm512_loadu_ps(&s[i]);
     __mmask16 nan_mask = _mm512_cmp_ps_mask(v, v, _CMP_UNORD_Q);
     v = _mm512_min_ps(_mm512_max_ps(v, vmin), vmax);
@@ -9654,12 +10812,55 @@ tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epu32(v);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf32_to_u32_avx512, "avx512f", float, uint32, f32, u32,
+                 REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity,
+                                                 uint32, 0,
+                                                 __UINT32_C(4294967040), 0))
+
+/**
+ * @brief Cast every element from float to uint32 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_u32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf32_to_u32_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity, uint32, 0,
-                                    __UINT32_C(4294967040), 0)
+    tf32_to_u32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9677,30 +10878,16 @@ tf32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512dq,avx512vl")]] void
-tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                   novaStatus_t *status) {
+[[gnu::target("avx512f,avx512dq,avx512vl")]] [[gnu::noinline]] static void
+tf32_to_u64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const float *s = src->data.f32;
   uint64 *d = dst->data.u64;
   const __m256 vmin = _mm256_setzero_ps();
   const __m256 vmax = _mm256_set1_ps(18446742974197923840.0f);
   const __m256 vzerof = _mm256_setzero_ps();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256 v = _mm256_loadu_ps(&s[i]);
     __mmask8 nan_mask = _mm256_cmp_ps_mask(v, v, _CMP_UNORD_Q);
     v = _mm256_min_ps(_mm256_max_ps(v, vmin), vmax);
@@ -9708,12 +10895,55 @@ tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttps_epu64(v);
     _mm512_storeu_si512(&d[i], r);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
-  if (rem > 0) {
+}
+
+DEFINE_CAST_TAIL(
+    tf32_to_u64_avx512, "avx512f,avx512dq,avx512vl", float, uint64, f32, u64,
     REMAINING_SATURATE_CVT_INT_DNAN(i, size, d, s, f32_identity, uint64, 0,
-                                    __UINT64_C(18446742974197923840), 0)
+                                    __UINT64_C(18446742974197923840), 0))
+
+/**
+ * @brief Cast every element from float to uint64 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512DQ, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type float.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
+#ifdef NOVA_OPENMP
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf32_to_u64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
+#endif
+  {
+    tf32_to_u64_avx512_range(src, dst, 0, n);
+  }
+  if (rem > 0) {
+    tf32_to_u64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9731,30 +10961,16 @@ tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tf64_to_s8_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tf64_to_s8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const double *s = src->data.f64;
   int8 *d = dst->data.s8;
   const __m512d vmin = _mm512_set1_pd(-128.0);
   const __m512d vmax = _mm512_set1_pd(127.0);
   const __m512d vzerod = _mm512_setzero_pd();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __mmask8 nan_mask = _mm512_cmp_pd_mask(v, v, _CMP_UNORD_Q);
     v = _mm512_min_pd(_mm512_max_pd(v, vmin), vmax);
@@ -9766,11 +10982,54 @@ tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m128i s8 = _mm_packs_epi16(s16, _mm_setzero_si128());
     _mm_storeu_si64(&d[i], s8);
   }
+}
+
+DEFINE_CAST_TAIL(tf64_to_s8_avx512, "avx512f", double, int8, f64, s8,
+                 REMAINING_SATURATE_CVT_F64(i, size, d, s, f64_identity, int8,
+                                            -128, 127, 0))
+
+/**
+ * @brief Cast every element from double to int8 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_s8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf64_to_s8_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_F64(i, size, d, s, f64_identity, int8, -128, 127, 0)
+    tf64_to_s8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9788,30 +11047,16 @@ tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tf64_to_s32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tf64_to_s32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const double *s = src->data.f64;
   int32 *d = dst->data.s32;
   const __m512d vmin = _mm512_set1_pd(-2147483648.0);
   const __m512d vmax = _mm512_set1_pd(2147483647.0);
   const __m512d vzerod = _mm512_setzero_pd();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __mmask8 nan_mask = _mm512_cmp_pd_mask(v, v, _CMP_UNORD_Q);
     v = _mm512_min_pd(_mm512_max_pd(v, vmin), vmax);
@@ -9819,12 +11064,56 @@ tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m256i r = _mm512_cvttpd_epi32(v);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf64_to_s32_avx512, "avx512f", double, int32, f64, s32,
+                 REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s,
+                                                     f64_identity, int32,
+                                                     -2147483648, 2147483647,
+                                                     0))
+
+/**
+ * @brief Cast every element from double to int32 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_s32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf64_to_s32_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s, f64_identity, int32,
-                                        -2147483648, 2147483647, 0)
+    tf64_to_s32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9842,30 +11131,16 @@ tf32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2")]] void
-tf64_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
-                     novaStatus_t *status) {
+[[gnu::target("avx,avx2")]] [[gnu::noinline]] static void
+tf64_to_s32_avx_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                           size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const double *s = src->data.f64;
   int32 *d = dst->data.s32;
   const __m256d vmin = _mm256_set1_pd(-2147483648.0);
   const __m256d vmax = _mm256_set1_pd(2147483647.0);
   const __m256d vzerod = _mm256_setzero_pd();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256d v = _mm256_loadu_pd(&s[i]);
     __m256d nan_mask = _mm256_cmp_pd(v, v, _CMP_UNORD_Q);
     v = _mm256_min_pd(_mm256_max_pd(v, vmin), vmax);
@@ -9873,12 +11148,56 @@ tf64_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
     __m128i r = _mm256_cvttpd_epi32(v);
     _mm_storeu_si128((__m128i_u *)&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf64_to_s32_avx_avx2, "avx,avx2", double, int32, f64, s32,
+                 REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s,
+                                                     f64_identity, int32,
+                                                     -2147483648, 2147483647,
+                                                     0))
+
+/**
+ * @brief Cast every element from double to int32 using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_s32_avx_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf64_to_s32_avx_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s, f64_identity, int32,
-                                        -2147483648, 2147483647, 0)
+    tf64_to_s32_avx_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9896,30 +11215,16 @@ tf64_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tf64_to_s32_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tf64_to_s32_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_SSE;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const double *s = src->data.f64;
   int32 *d = dst->data.s32;
   const __m128d vmin = _mm_set1_pd(-2147483648.0);
   const __m128d vmax = _mm_set1_pd(2147483647.0);
   const __m128d vzerod = _mm_setzero_pd();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128d v = _mm_loadu_pd(&s[i]);
     __m128d nan_mask = _mm_cmpunord_pd(v, v);
     v = _mm_min_pd(_mm_max_pd(v, vmin), vmax);
@@ -9927,12 +11232,56 @@ tf64_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
     __m128i r = _mm_cvttpd_epi32(v);
     _mm_storeu_si64(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf64_to_s32_sse4_2, "sse4.2", double, int32, f64, s32,
+                 REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s,
+                                                     f64_identity, int32,
+                                                     -2147483648, 2147483647,
+                                                     0))
+
+/**
+ * @brief Cast every element from double to int32 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_SSE;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_s32_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf64_to_s32_sse4_2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s, f64_identity, int32,
-                                        -2147483648, 2147483647, 0)
+    tf64_to_s32_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -9950,30 +11299,16 @@ tf64_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512dq")]] void
-tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                   novaStatus_t *status) {
+[[gnu::target("avx512f,avx512dq")]] [[gnu::noinline]] static void
+tf64_to_s64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const double *s = src->data.f64;
   int64 *d = dst->data.s64;
   const __m512d vmin = _mm512_set1_pd(-9223372036854775808.0);
   const __m512d vmax = _mm512_set1_pd(9223372036854774784.0);
   const __m512d vzerod = _mm512_setzero_pd();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __mmask8 nan_mask = _mm512_cmp_pd_mask(v, v, _CMP_UNORD_Q);
     v = _mm512_min_pd(_mm512_max_pd(v, vmin), vmax);
@@ -9981,13 +11316,56 @@ tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttpd_epi64(v);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf64_to_s64_avx512, "avx512f,avx512dq", double, int64, f64,
+                 s64,
+                 REMAINING_SATURATE_CVT_F64_INT_DNAN(
+                     i, size, d, s, f64_identity, int64, INT64_MIN,
+                     __INT64_C(9223372036854774784), 0))
+
+/**
+ * @brief Cast every element from double to int64 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512DQ
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_s64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf64_to_s64_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s, f64_identity, int64,
-                                        INT64_MIN,
-                                        __INT64_C(9223372036854774784), 0)
+    tf64_to_s64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10005,30 +11383,16 @@ tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tf64_to_u8_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tf64_to_u8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const double *s = src->data.f64;
   uint8 *d = dst->data.u8;
   const __m512d vmin = _mm512_setzero_pd();
   const __m512d vmax = _mm512_set1_pd(255.0);
   const __m512d vzerod = _mm512_setzero_pd();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __mmask8 nan_mask = _mm512_cmp_pd_mask(v, v, _CMP_UNORD_Q);
     v = _mm512_min_pd(_mm512_max_pd(v, vmin), vmax);
@@ -10040,12 +11404,55 @@ tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m128i u8 = _mm_packus_epi16(u16, _mm_setzero_si128());
     _mm_storeu_si64(&d[i], u8);
   }
+}
+
+DEFINE_CAST_TAIL(tf64_to_u8_avx512, "avx512f", double, uint8, f64, u8,
+                 REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s,
+                                                     f64_identity, uint8, 0,
+                                                     UINT8_MAX, 0))
+
+/**
+ * @brief Cast every element from double to uint8 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_u8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf64_to_u8_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s, f64_identity, uint8, 0,
-                                        UINT8_MAX, 0)
+    tf64_to_u8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10063,30 +11470,16 @@ tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tf64_to_u32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tf64_to_u32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const double *s = src->data.f64;
   uint32 *d = dst->data.u32;
   const __m512d vmin = _mm512_setzero_pd();
   const __m512d vmax = _mm512_set1_pd(4294967295.0);
   const __m512d vzerod = _mm512_setzero_pd();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __mmask8 nan_mask = _mm512_cmp_pd_mask(v, v, _CMP_UNORD_Q);
     v = _mm512_min_pd(_mm512_max_pd(v, vmin), vmax);
@@ -10094,12 +11487,55 @@ tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m256i r = _mm512_cvttpd_epu32(v);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tf64_to_u32_avx512, "avx512f", double, uint32, f64, u32,
+                 REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s,
+                                                     f64_identity, uint32, 0,
+                                                     __UINT32_C(4294967295), 0))
+
+/**
+ * @brief Cast every element from double to uint32 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_u32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tf64_to_u32_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s, f64_identity, uint32, 0,
-                                        __UINT32_C(4294967295), 0)
+    tf64_to_u32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10117,30 +11553,16 @@ tf64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512dq")]] void
-tf64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                   novaStatus_t *status) {
+[[gnu::target("avx512f,avx512dq")]] [[gnu::noinline]] static void
+tf64_to_u64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const double *s = src->data.f64;
   uint64 *d = dst->data.u64;
   const __m512d vmin = _mm512_set1_pd(0.0);
   const __m512d vmax = _mm512_set1_pd(18446744073709549568.0);
   const __m512d vzerod = _mm512_setzero_pd();
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512d v = _mm512_loadu_pd(&s[i]);
     __mmask8 nan_mask = _mm512_cmp_pd_mask(v, v, _CMP_UNORD_Q);
     v = _mm512_min_pd(_mm512_max_pd(v, vmin), vmax);
@@ -10148,12 +11570,55 @@ tf64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_cvttpd_epu64(v);
     _mm512_storeu_si512(&d[i], r);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
-  if (rem > 0) {
+}
+
+DEFINE_CAST_TAIL(
+    tf64_to_u64_avx512, "avx512f,avx512dq", double, uint64, f64, u64,
     REMAINING_SATURATE_CVT_F64_INT_DNAN(i, size, d, s, f64_identity, uint64, 0,
-                                        __UINT64_C(18446744073709549568), 0)
+                                        __UINT64_C(18446744073709549568), 0))
+
+/**
+ * @brief Cast every element from double to uint64 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512DQ
+ *
+ * @param[in]  src  Source tensor with element type double.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tf64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
+#ifdef NOVA_OPENMP
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tf64_to_u64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
+#endif
+  {
+    tf64_to_u64_avx512_range(src, dst, 0, n);
+  }
+  if (rem > 0) {
+    tf64_to_u64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10163,7 +11628,7 @@ tf64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from int8 to float16 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type float16.
@@ -10171,27 +11636,14 @@ tf64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16")]] void
-ts8_to_fp16_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                   novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512fp16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+ts8_to_fp16_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int8 *s = src->data.s8;
   float16 *d = dst->data.half;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
     __m128i b2 = _mm_loadu_si128((const __m128i_u *)&s[i + 32]);
@@ -10209,11 +11661,53 @@ ts8_to_fp16_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_si256((__m256i_u *)&d[i + 32], (__m256i)r2);
     _mm256_storeu_si256((__m256i_u *)&d[i + 48], (__m256i)r3);
   }
+}
+
+DEFINE_CAST_TAIL(ts8_to_fp16_avx512, "avx512f,avx512fp16,avx512bw,avx512vl",
+                 int8, float16, s8, half, REMAINING(i, size, d, s, float16))
+
+/**
+ * @brief Cast every element from int8 to float16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_fp16_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_fp16_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts8_to_fp16_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float16)
+    ts8_to_fp16_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10223,7 +11717,7 @@ ts8_to_fp16_avx512(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from int32 to float16 using AVX-512.
  *
- * Requires: AVX512F,  AVX512FP16
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type float16.
@@ -10231,27 +11725,14 @@ ts8_to_fp16_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16")]] void
-ts32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512fp16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+ts32_to_fp16_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int32 *s = src->data.s32;
   float16 *d = dst->data.half;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
     __m256h r0 = _mm512_cvtepi32_ph(v0);
@@ -10259,11 +11740,54 @@ ts32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_si256((__m256i_u *)&d[i], (__m256i)r0);
     _mm256_storeu_si256((__m256i_u *)&d[i + 16], (__m256i)r1);
   }
+}
+
+DEFINE_CAST_TAIL(ts32_to_fp16_avx512fp16,
+                 "avx512f,avx512fp16,avx512bw,avx512vl", int32, float16, s32,
+                 half, REMAINING(i, size, d, s, float16))
+
+/**
+ * @brief Cast every element from int32 to float16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_fp16_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts32_to_fp16_avx512fp16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float16)
+    ts32_to_fp16_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10273,7 +11797,7 @@ ts32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from int64 to float16 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type float16.
@@ -10281,16 +11805,41 @@ ts32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16")]] void
-ts64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512fp16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+ts64_to_fp16_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
+  const int64 *s = src->data.s64;
+  float16 *d = dst->data.half;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m128h r = _mm512_cvtepi64_ph(v);
+    _mm_storeu_si128((__m128i_u *)&d[i], (__m128i)r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_fp16_avx512fp16,
+                 "avx512f,avx512fp16,avx512bw,avx512vl", int64, float16, s64,
+                 half, REMAINING(i, size, d, s, float16))
+
+/**
+ * @brief Cast every element from int64 to float16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64 *s = src->data.s64;
-  float16 *d = dst->data.half;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -10298,19 +11847,24 @@ ts64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_fp16_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m128h r = _mm512_cvtepi64_ph(v);
-    _mm_storeu_si128((__m128i_u *)&d[i], (__m128i)r);
+  {
+    ts64_to_fp16_avx512fp16_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float16)
+    ts64_to_fp16_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10320,7 +11874,7 @@ ts64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from uint8 to float16 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type float16.
@@ -10328,27 +11882,14 @@ ts64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16")]] void
-tu8_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                       novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512fp16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tu8_to_fp16_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                             size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   float16 *d = dst->data.half;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
     __m128i b2 = _mm_loadu_si128((const __m128i_u *)&s[i + 32]);
@@ -10366,11 +11907,53 @@ tu8_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_si256((__m256i_u *)&d[i + 32], (__m256i)r2);
     _mm256_storeu_si256((__m256i_u *)&d[i + 48], (__m256i)r3);
   }
+}
+
+DEFINE_CAST_TAIL(tu8_to_fp16_avx512fp16, "avx512f,avx512fp16,avx512bw,avx512vl",
+                 uint8, float16, u8, half, REMAINING(i, size, d, s, float16))
+
+/**
+ * @brief Cast every element from uint8 to float16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_fp16_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu8_to_fp16_avx512fp16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float16)
+    tu8_to_fp16_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10380,7 +11963,7 @@ tu8_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from uint32 to float16 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type float16.
@@ -10388,27 +11971,14 @@ tu8_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16")]] void
-tu32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512fp16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tu32_to_fp16_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint32 *s = src->data.u32;
   float16 *d = dst->data.half;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
     __m256h r0 = _mm512_cvtepu32_ph(v0);
@@ -10416,11 +11986,54 @@ tu32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_si256((__m256i_u *)&d[i], (__m256i)r0);
     _mm256_storeu_si256((__m256i_u *)&d[i + 16], (__m256i)r1);
   }
+}
+
+DEFINE_CAST_TAIL(tu32_to_fp16_avx512fp16,
+                 "avx512f,avx512fp16,avx512bw,avx512vl", uint32, float16, u32,
+                 half, REMAINING(i, size, d, s, float16))
+
+/**
+ * @brief Cast every element from uint32 to float16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_FP16_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_fp16_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu32_to_fp16_avx512fp16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float16)
+    tu32_to_fp16_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10430,7 +12043,7 @@ tu32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from uint64 to float16 using AVX-512.
  *
- * Requires: AVX512F, AVX512FP16
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type float16.
@@ -10438,16 +12051,41 @@ tu32_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512fp16")]] void
-tu64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512fp16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tu64_to_fp16_avx512fp16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const uint64 *s = src->data.u64;
+  float16 *d = dst->data.half;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m128h r = _mm512_cvtepu64_ph(v);
+    _mm_storeu_si128((__m128i_u *)&d[i], (__m128i)r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_fp16_avx512fp16,
+                 "avx512f,avx512fp16,avx512bw,avx512vl", uint64, float16, u64,
+                 half, REMAINING(i, size, d, s, float16))
+
+/**
+ * @brief Cast every element from uint64 to float16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512FP16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type float16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64 *s = src->data.u64;
-  float16 *d = dst->data.half;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -10455,19 +12093,24 @@ tu64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_fp16_avx512fp16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m128h r = _mm512_cvtepu64_ph(v);
-    _mm_storeu_si128((__m128i_u *)&d[i], (__m128i)r);
+  {
+    tu64_to_fp16_avx512fp16_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float16)
+    tu64_to_fp16_avx512fp16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10477,7 +12120,7 @@ tu64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from int8 to bfloat16 using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type int8.
  * @param[out] dst  Destination tensor with element type bfloat16.
@@ -10485,27 +12128,14 @@ tu64_to_fp16_avx512fp16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16")]] void
-ts8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                       novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512bf16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+ts8_to_bf16_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                             size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int8 *s = src->data.s8;
   bfloat16 *d = dst->data.bf16;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
     __m128i b2 = _mm_loadu_si128((const __m128i_u *)&s[i + 32]);
@@ -10523,11 +12153,53 @@ ts8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     memcpy(&d[i + 32], &r2, sizeof(r2));
     memcpy(&d[i + 48], &r3, sizeof(r3));
   }
+}
+
+DEFINE_CAST_TAIL(ts8_to_bf16_avx512bf16, "avx512f,avx512bf16,avx512bw,avx512vl",
+                 int8, bfloat16, s8, bf16, REMAINING(i, size, d, s, bfloat16))
+
+/**
+ * @brief Cast every element from int8 to bfloat16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_bf16_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts8_to_bf16_avx512bf16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, bfloat16)
+    ts8_to_bf16_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10537,7 +12209,7 @@ ts8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from int32 to bfloat16 using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type int32.
  * @param[out] dst  Destination tensor with element type bfloat16.
@@ -10545,27 +12217,14 @@ ts8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16")]] void
-ts32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512bf16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+ts32_to_bf16_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int32 *s = src->data.s32;
   bfloat16 *d = dst->data.bf16;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
     __m256bh r0 = _mm512_cvtneps_pbh(_mm512_cvtepi32_ps(v0));
@@ -10573,11 +12232,54 @@ ts32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     memcpy(&d[i], &r0, sizeof(r0));
     memcpy(&d[i + 16], &r1, sizeof(r1));
   }
+}
+
+DEFINE_CAST_TAIL(ts32_to_bf16_avx512bf16,
+                 "avx512f,avx512bf16,avx512bw,avx512vl", int32, bfloat16, s32,
+                 bf16, REMAINING(i, size, d, s, bfloat16))
+
+/**
+ * @brief Cast every element from int32 to bfloat16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_bf16_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts32_to_bf16_avx512bf16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, bfloat16)
+    ts32_to_bf16_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10587,7 +12289,7 @@ ts32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from int64 to bfloat16 using AVX-512.
  *
- * Requires: AVX512F, AVX512DQ, AVX512BF16, AVX512VL
+ * Requires: AVX512F, AVX512DQ, AVX512BF16, AVX512VL, AVX512BW
  *
  * @param[in]  src  Source tensor with element type int64.
  * @param[out] dst  Destination tensor with element type bfloat16.
@@ -10595,16 +12297,42 @@ ts32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512dq,avx512bf16,avx512vl")]] void
-ts64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target("avx512f,avx512dq,avx512bf16,avx512vl,avx512bw")]]
+[[gnu::noinline]] static void
+ts64_to_bf16_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
+  const int64 *s = src->data.s64;
+  bfloat16 *d = dst->data.bf16;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m256 f32 = _mm512_cvtepi64_ps(v);
+    __m128bh r = _mm256_cvtneps_pbh(f32);
+    memcpy(&d[i], &r, sizeof(r));
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_bf16_avx512bf16,
+                 "avx512f,avx512dq,avx512bf16,avx512vl,avx512bw", int64,
+                 bfloat16, s64, bf16, REMAINING(i, size, d, s, bfloat16))
+
+/**
+ * @brief Cast every element from int64 to bfloat16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512DQ, AVX512BF16, AVX512VL, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64 *s = src->data.s64;
-  bfloat16 *d = dst->data.bf16;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -10612,20 +12340,24 @@ ts64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_bf16_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m256 f32 = _mm512_cvtepi64_ps(v);
-    __m128bh r = _mm256_cvtneps_pbh(f32);
-    memcpy(&d[i], &r, sizeof(r));
+  {
+    ts64_to_bf16_avx512bf16_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, bfloat16)
+    ts64_to_bf16_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10635,7 +12367,7 @@ ts64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from uint8 to bfloat16 using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type uint8.
  * @param[out] dst  Destination tensor with element type bfloat16.
@@ -10643,27 +12375,14 @@ ts64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16")]] void
-tu8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                       novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512bf16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tu8_to_bf16_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                             size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   bfloat16 *d = dst->data.bf16;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
     __m128i b2 = _mm_loadu_si128((const __m128i_u *)&s[i + 32]);
@@ -10681,11 +12400,53 @@ tu8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     memcpy(&d[i + 32], &r2, sizeof(r2));
     memcpy(&d[i + 48], &r3, sizeof(r3));
   }
+}
+
+DEFINE_CAST_TAIL(tu8_to_bf16_avx512bf16, "avx512f,avx512bf16,avx512bw,avx512vl",
+                 uint8, bfloat16, u8, bf16, REMAINING(i, size, d, s, bfloat16))
+
+/**
+ * @brief Cast every element from uint8 to bfloat16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                            novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_bf16_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu8_to_bf16_avx512bf16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, bfloat16)
+    tu8_to_bf16_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10695,7 +12456,7 @@ tu8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from uint32 to bfloat16 using AVX-512.
  *
- * Requires: AVX512F, AVX512BF16
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
  *
  * @param[in]  src  Source tensor with element type uint32.
  * @param[out] dst  Destination tensor with element type bfloat16.
@@ -10703,27 +12464,14 @@ tu8_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bf16")]] void
-tu32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target(
+    "avx512f,avx512bf16,avx512bw,avx512vl")]] [[gnu::noinline]] static void
+tu32_to_bf16_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint32 *s = src->data.u32;
   bfloat16 *d = dst->data.bf16;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
     __m256bh r0 = _mm512_cvtneps_pbh(_mm512_cvtepu32_ps(v0));
@@ -10731,11 +12479,54 @@ tu32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     memcpy(&d[i], &r0, sizeof(r0));
     memcpy(&d[i + 16], &r1, sizeof(r1));
   }
+}
+
+DEFINE_CAST_TAIL(tu32_to_bf16_avx512bf16,
+                 "avx512f,avx512bf16,avx512bw,avx512vl", uint32, bfloat16, u32,
+                 bf16, REMAINING(i, size, d, s, bfloat16))
+
+/**
+ * @brief Cast every element from uint32 to bfloat16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BF16, AVX512BW, AVX512VL
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_BF16_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_bf16_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu32_to_bf16_avx512bf16_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, bfloat16)
+    tu32_to_bf16_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10745,7 +12536,7 @@ tu32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
 /**
  * @brief Cast every element from uint64 to bfloat16 using AVX-512.
  *
- * Requires: AVX512F, AVX512DQ, AVX512BF16, AVX512VL
+ * Requires: AVX512F, AVX512DQ, AVX512BF16, AVX512VL, AVX512BW
  *
  * @param[in]  src  Source tensor with element type uint64.
  * @param[out] dst  Destination tensor with element type bfloat16.
@@ -10753,16 +12544,42 @@ tu32_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512dq,avx512bf16,avx512vl")]] void
-tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
-                        novaStatus_t *status) {
+[[gnu::target("avx512f,avx512dq,avx512bf16,avx512vl,avx512bw")]]
+[[gnu::noinline]] static void
+tu64_to_bf16_avx512bf16_range(const Tensor *restrict src, Tensor *restrict dst,
+                              size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const uint64 *s = src->data.u64;
+  bfloat16 *d = dst->data.bf16;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m256 f32 = _mm512_cvtepu64_ps(v);
+    __m128bh r = _mm256_cvtneps_pbh(f32);
+    memcpy(&d[i], &r, sizeof(r));
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_bf16_avx512bf16,
+                 "avx512f,avx512dq,avx512bf16,avx512vl,avx512bw", uint64,
+                 bfloat16, u64, bf16, REMAINING(i, size, d, s, bfloat16))
+
+/**
+ * @brief Cast every element from uint64 to bfloat16 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512DQ, AVX512BF16, AVX512VL, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type bfloat16.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
+                             novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64 *s = src->data.u64;
-  bfloat16 *d = dst->data.bf16;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -10770,20 +12587,24 @@ tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_bf16_avx512bf16_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m256 f32 = _mm512_cvtepu64_ps(v);
-    __m128bh r = _mm256_cvtneps_pbh(f32);
-    memcpy(&d[i], &r, sizeof(r));
+  {
+    tu64_to_bf16_avx512bf16_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, bfloat16)
+    tu64_to_bf16_avx512bf16_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10800,27 +12621,13 @@ tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts8_to_f32_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts8_to_f32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int8 *s = src->data.s8;
   float *d = dst->data.f32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
     __m128i b2 = _mm_loadu_si128((const __m128i_u *)&s[i + 32]);
@@ -10830,11 +12637,53 @@ tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     _mm512_storeu_ps(&d[i + 32], _mm512_cvtepi32_ps(_mm512_cvtepi8_epi32(b2)));
     _mm512_storeu_ps(&d[i + 48], _mm512_cvtepi32_ps(_mm512_cvtepi8_epi32(b3)));
   }
+}
+
+DEFINE_CAST_TAIL(ts8_to_f32_avx512, "avx512f", int8, float, s8, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from int8 to float using AVX-512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_f32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts8_to_f32_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    ts8_to_f32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10851,27 +12700,13 @@ tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void ts8_to_f32_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+ts8_to_f32_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int8 *s = src->data.s8;
   float *d = dst->data.f32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256i i0 =
         _mm256_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
     __m256i i1 =
@@ -10885,11 +12720,53 @@ tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_ps(&d[i + 16], _mm256_cvtepi32_ps(i2));
     _mm256_storeu_ps(&d[i + 24], _mm256_cvtepi32_ps(i3));
   }
+}
+
+DEFINE_CAST_TAIL(ts8_to_f32_avx2, "avx2", int8, float, s8, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from int8 to float using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_f32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_f32_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts8_to_f32_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    ts8_to_f32_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10906,16 +12783,39 @@ tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts32_to_f32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts32_to_f32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m512 r = _mm512_cvtepi32_ps(v);
+    _mm512_storeu_ps(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_f32_avx512, "avx512f", int32, float, s32, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from int32 to float using AVX-512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -10923,19 +12823,24 @@ tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_f32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m512 r = _mm512_cvtepi32_ps(v);
-    _mm512_storeu_ps(&d[i], r);
+  {
+    ts32_to_f32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    ts32_to_f32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10952,16 +12857,39 @@ tu64_to_bf16_avx512bf16(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2")]] void
-ts32_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
-                     novaStatus_t *status) {
+[[gnu::target("avx,avx2")]] [[gnu::noinline]] static void
+ts32_to_f32_avx_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                           size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX_AVX2;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m256 r = _mm256_cvtepi32_ps(v);
+    _mm256_storeu_ps(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_f32_avx_avx2, "avx,avx2", int32, float, s32, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from int32 to float using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -10969,19 +12897,24 @@ ts32_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_f32_avx_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    __m256 r = _mm256_cvtepi32_ps(v);
-    _mm256_storeu_ps(&d[i], r);
+  {
+    ts32_to_f32_avx_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    ts32_to_f32_avx_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -10998,16 +12931,39 @@ ts32_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts32_to_f32_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts32_to_f32_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_SSE;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m128 r = _mm_cvtepi32_ps(v);
+    _mm_storeu_ps(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_f32_sse4_2, "sse4.2", int32, float, s32, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from int32 to float using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_f32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11015,19 +12971,24 @@ ts32_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_f32_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m128 r = _mm_cvtepi32_ps(v);
-    _mm_storeu_ps(&d[i], r);
+  {
+    ts32_to_f32_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    ts32_to_f32_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11044,16 +13005,39 @@ ts32_to_f32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512dq")]] void
-ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                   novaStatus_t *status) {
+[[gnu::target("avx512f,avx512dq")]] [[gnu::noinline]] static void
+ts64_to_f32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
+  const int64 *s = src->data.s64;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m256 r = _mm512_cvtepi64_ps(v);
+    _mm256_storeu_ps(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_f32_avx512, "avx512f,avx512dq", int64, float, s64, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from int64 to float using AVX-512F.
+ *
+ * Requires: AVX512F, AVX512DQ
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64 *s = src->data.s64;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11061,19 +13045,24 @@ ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_f32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m256 r = _mm512_cvtepi64_ps(v);
-    _mm256_storeu_ps(&d[i], r);
+  {
+    ts64_to_f32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    ts64_to_f32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11090,27 +13079,13 @@ ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu8_to_f32_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu8_to_f32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   float *d = dst->data.f32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
     __m128i b2 = _mm_loadu_si128((const __m128i_u *)&s[i + 32]);
@@ -11120,11 +13095,53 @@ ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm512_storeu_ps(&d[i + 32], _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(b2)));
     _mm512_storeu_ps(&d[i + 48], _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(b3)));
   }
+}
+
+DEFINE_CAST_TAIL(tu8_to_f32_avx512, "avx512f", uint8, float, u8, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from uint8 to float using AVX-512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_f32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu8_to_f32_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    tu8_to_f32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11141,27 +13158,13 @@ ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tu8_to_f32_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tu8_to_f32_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   float *d = dst->data.f32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256i i0 =
         _mm256_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
     __m256i i1 =
@@ -11175,11 +13178,53 @@ ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_ps(&d[i + 16], _mm256_cvtepi32_ps(i2));
     _mm256_storeu_ps(&d[i + 24], _mm256_cvtepi32_ps(i3));
   }
+}
+
+DEFINE_CAST_TAIL(tu8_to_f32_avx2, "avx2", uint8, float, u8, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from uint8 to float using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_f32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_f32_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu8_to_f32_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    tu8_to_f32_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11196,16 +13241,39 @@ ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu32_to_f32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu32_to_f32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m512 r = _mm512_cvtepu32_ps(v);
+    _mm512_storeu_ps(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_f32_avx512, "avx512f", uint32, float, u32, f32,
+                 REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from uint32 to float using AVX-512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11213,19 +13281,24 @@ ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_f32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m512 r = _mm512_cvtepu32_ps(v);
-    _mm512_storeu_ps(&d[i], r);
+  {
+    tu32_to_f32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    tu32_to_f32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11242,16 +13315,39 @@ ts64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512dq")]] void
-tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                   novaStatus_t *status) {
+[[gnu::target("avx512f,avx512dq")]] [[gnu::noinline]] static void
+tu64_to_f32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const uint64 *s = src->data.u64;
+  float *d = dst->data.f32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m256 r = _mm512_cvtepu64_ps(v);
+    _mm256_storeu_ps(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_f32_avx512, "avx512f,avx512dq", uint64, float, u64,
+                 f32, REMAINING(i, size, d, s, float))
+
+/**
+ * @brief Cast every element from uint64 to float using AVX-512F.
+ *
+ * Requires: AVX512F, AVX512DQ
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type float.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64 *s = src->data.u64;
-  float *d = dst->data.f32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11259,19 +13355,24 @@ tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_f32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m256 r = _mm512_cvtepu64_ps(v);
-    _mm256_storeu_ps(&d[i], r);
+  {
+    tu64_to_f32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, float)
+    tu64_to_f32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11288,16 +13389,40 @@ tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts8_to_f64_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts8_to_f64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const int8 *s = src->data.s8;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m256i i32 = _mm256_cvtepi8_epi32(b);
+    __m512d r = _mm512_cvtepi32_pd(i32);
+    _mm512_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts8_to_f64_avx512, "avx512f", int8, double, s8, f64,
+                 REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from int8 to double using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8 *s = src->data.s8;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11305,20 +13430,24 @@ tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_f64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
-    __m256i i32 = _mm256_cvtepi8_epi32(b);
-    __m512d r = _mm512_cvtepi32_pd(i32);
-    _mm512_storeu_pd(&d[i], r);
+  {
+    ts8_to_f64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    ts8_to_f64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11335,16 +13464,39 @@ tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts32_to_f64_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts32_to_f64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m512d r = _mm512_cvtepi32_pd(v);
+    _mm512_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_f64_avx512, "avx512f", int32, double, s32, f64,
+                 REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from int32 to double using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11352,19 +13504,24 @@ tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_f64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    __m512d r = _mm512_cvtepi32_pd(v);
-    _mm512_storeu_pd(&d[i], r);
+  {
+    ts32_to_f64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    ts32_to_f64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11381,16 +13538,39 @@ tu64_to_f32_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2")]] void
-ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
-                     novaStatus_t *status) {
+[[gnu::target("avx,avx2")]] [[gnu::noinline]] static void
+ts32_to_f64_avx_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                           size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m256d r = _mm256_cvtepi32_pd(v);
+    _mm256_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_f64_avx_avx2, "avx,avx2", int32, double, s32, f64,
+                 REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from int32 to double using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11398,19 +13578,24 @@ ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_f64_avx_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m256d r = _mm256_cvtepi32_pd(v);
-    _mm256_storeu_pd(&d[i], r);
+  {
+    ts32_to_f64_avx_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    ts32_to_f64_avx_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11427,16 +13612,39 @@ ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts32_to_f64_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts32_to_f64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F32_WITH_SSE;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    _mm_storeu_pd(&d[i], _mm_cvtepi32_pd(v));
+    _mm_storeu_pd(&d[i + 2], _mm_cvtepi32_pd(_mm_unpackhi_epi64(v, v)));
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_f64_sse4_2, "sse4.2", int32, double, s32, f64,
+                 REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from int32 to double using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_f64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F32_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11444,19 +13652,24 @@ ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_f64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    _mm_storeu_pd(&d[i], _mm_cvtepi32_pd(v));
-    _mm_storeu_pd(&d[i + 2], _mm_cvtepi32_pd(_mm_unpackhi_epi64(v, v)));
+  {
+    ts32_to_f64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    ts32_to_f64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11473,16 +13686,39 @@ ts32_to_f64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512dq")]] void
-ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                   novaStatus_t *status) {
+[[gnu::target("avx512f,avx512dq")]] [[gnu::noinline]] static void
+ts64_to_f64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const int64 *s = src->data.s64;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m512d r = _mm512_cvtepi64_pd(v);
+    _mm512_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_f64_avx512, "avx512f,avx512dq", int64, double, s64,
+                 f64, REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from int64 to double using AVX-512.
+ *
+ * Requires: AVX512F, AVX512DQ
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64 *s = src->data.s64;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11490,19 +13726,24 @@ ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_f64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m512d r = _mm512_cvtepi64_pd(v);
-    _mm512_storeu_pd(&d[i], r);
+  {
+    ts64_to_f64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    ts64_to_f64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11519,16 +13760,40 @@ ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu8_to_f64_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu8_to_f64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const uint8 *s = src->data.u8;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m256i i32 = _mm256_cvtepu8_epi32(b);
+    __m512d r = _mm512_cvtepi32_pd(i32);
+    _mm512_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu8_to_f64_avx512, "avx512f", uint8, double, u8, f64,
+                 REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from uint8 to double using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8 *s = src->data.u8;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11536,20 +13801,24 @@ ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_f64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
-    __m256i i32 = _mm256_cvtepu8_epi32(b);
-    __m512d r = _mm512_cvtepi32_pd(i32);
-    _mm512_storeu_pd(&d[i], r);
+  {
+    tu8_to_f64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    tu8_to_f64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11566,16 +13835,39 @@ ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu32_to_f64_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu32_to_f64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m512d r = _mm512_cvtepu32_pd(v);
+    _mm512_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_f64_avx512, "avx512f", uint32, double, u32, f64,
+                 REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from uint32 to double using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_F64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11583,19 +13875,24 @@ ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_f64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    __m512d r = _mm512_cvtepu32_pd(v);
-    _mm512_storeu_pd(&d[i], r);
+  {
+    tu32_to_f64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    tu32_to_f64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11612,16 +13909,39 @@ ts64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512dq")]] void
-tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                   novaStatus_t *status) {
+[[gnu::target("avx512f,avx512dq")]] [[gnu::noinline]] static void
+tu64_to_f64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const uint64 *s = src->data.u64;
+  double *d = dst->data.f64;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m512d r = _mm512_cvtepu64_pd(v);
+    _mm512_storeu_pd(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_f64_avx512, "avx512f,avx512dq", uint64, double, u64,
+                 f64, REMAINING(i, size, d, s, double))
+
+/**
+ * @brief Cast every element from uint64 to double using AVX-512.
+ *
+ * Requires: AVX512F, AVX512DQ
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type double.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64 *s = src->data.u64;
-  double *d = dst->data.f64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11629,19 +13949,24 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_f64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m512d r = _mm512_cvtepu64_pd(v);
-    _mm512_storeu_pd(&d[i], r);
+  {
+    tu64_to_f64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, double)
+    tu64_to_f64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11658,27 +13983,13 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts8_to_s32_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts8_to_s32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int8 *s = src->data.s8;
   int32 *d = dst->data.s32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
     __m128i b2 = _mm_loadu_si128((const __m128i_u *)&s[i + 32]);
@@ -11688,11 +13999,53 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm512_storeu_si512(&d[i + 32], _mm512_cvtepi8_epi32(b2));
     _mm512_storeu_si512(&d[i + 48], _mm512_cvtepi8_epi32(b3));
   }
+}
+
+DEFINE_CAST_TAIL(ts8_to_s32_avx512, "avx512f", int8, int32, s8, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from int8 to int32 using AVX-512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_s32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts8_to_s32_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    ts8_to_s32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11709,27 +14062,13 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void ts8_to_s32_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+ts8_to_s32_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int8 *s = src->data.s8;
   int32 *d = dst->data.s32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256i r0 =
         _mm256_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
     __m256i r1 =
@@ -11743,11 +14082,53 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_si256((__m256i_u *)&d[i + 16], r2);
     _mm256_storeu_si256((__m256i_u *)&d[i + 24], r3);
   }
+}
+
+DEFINE_CAST_TAIL(ts8_to_s32_avx2, "avx2", int8, int32, s8, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from int8 to int32 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_s32_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts8_to_s32_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    ts8_to_s32_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11764,27 +14145,13 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts8_to_s32_sse4_2(const Tensor *restrict src,
-                                                 Tensor *restrict dst,
-                                                 novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts8_to_s32_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_SSE;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int8 *s = src->data.s8;
   int32 *d = dst->data.s32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i r0 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i]));
     __m128i r1 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i + 4]));
     __m128i r2 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i + 8]));
@@ -11794,11 +14161,53 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm_storeu_si128((__m128i_u *)&d[i + 8], r2);
     _mm_storeu_si128((__m128i_u *)&d[i + 12], r3);
   }
+}
+
+DEFINE_CAST_TAIL(ts8_to_s32_sse4_2, "sse4.2", int8, int32, s8, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from int8 to int32 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_SSE;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_s32_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts8_to_s32_sse4_2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    ts8_to_s32_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11815,16 +14224,39 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts8_to_s64_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts8_to_s64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
+  const int8 *s = src->data.s8;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m512i r = _mm512_cvtepi8_epi64(b);
+    _mm512_storeu_si512(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts8_to_s64_avx512, "avx512f", int8, int64, s8, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from int8 to int64 using AVX-512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8 *s = src->data.s8;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11832,19 +14264,24 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_s64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
-    __m512i r = _mm512_cvtepi8_epi64(b);
-    _mm512_storeu_si512(&d[i], r);
+  {
+    ts8_to_s64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    ts8_to_s64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11861,16 +14298,39 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void ts8_to_s64_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+ts8_to_s64_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const int8 *s = src->data.s8;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadu_si32((const void *)&s[i]);
+    __m256i r = _mm256_cvtepi8_epi64(b);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts8_to_s64_avx2, "avx2", int8, int64, s8, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from int8 to int64 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8 *s = src->data.s8;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11878,19 +14338,24 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_s64_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadu_si32((const void *)&s[i]);
-    __m256i r = _mm256_cvtepi8_epi64(b);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    ts8_to_s64_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    ts8_to_s64_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11907,16 +14372,39 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts8_to_s64_sse4_2(const Tensor *restrict src,
-                                                 Tensor *restrict dst,
-                                                 novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts8_to_s64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_SSE;
-  size_t i = 0;
+  const int8 *s = src->data.s8;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadu_si16((const void *)&s[i]);
+    __m128i r = _mm_cvtepi8_epi64(b);
+    _mm_storeu_si128((__m128i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts8_to_s64_sse4_2, "sse4.2", int8, int64, s8, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from int8 to int64 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8 *s = src->data.s8;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -11924,19 +14412,24 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_s64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadu_si16((const void *)&s[i]);
-    __m128i r = _mm_cvtepi8_epi64(b);
-    _mm_storeu_si128((__m128i_u *)&d[i], r);
+  {
+    ts8_to_s64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    ts8_to_s64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -11954,27 +14447,13 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts32_to_s8_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts32_to_s8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int32 *s = src->data.s32;
   int8 *d = dst->data.s8;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
     __m512i v2 = _mm512_loadu_si512(&s[i + 32]);
@@ -11988,11 +14467,54 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm_storeu_si128((__m128i_u *)&d[i + 32], r2);
     _mm_storeu_si128((__m128i_u *)&d[i + 48], r3);
   }
+}
+
+DEFINE_CAST_TAIL(ts32_to_s8_avx512, "avx512f", int32, int8, s32, s8,
+                 REMAINING_SATURATE(i, size, d, s, int32, int8, -128, 127))
+
+/**
+ * @brief Cast every element from int32 to int8 using AVX-512F and
+ * AVX-512BW.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_s8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts32_to_s8_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE(i, size, d, s, int32, int8, -128, 127)
+    ts32_to_s8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12009,16 +14531,39 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts32_to_s64_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts32_to_s64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m512i r = _mm512_cvtepi32_epi64(v);
+    _mm512_storeu_si512(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_s64_avx512, "avx512f", int32, int64, s32, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from int32 to int64 using AVX-512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12026,19 +14571,24 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_s64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    __m512i r = _mm512_cvtepi32_epi64(v);
-    _mm512_storeu_si512(&d[i], r);
+  {
+    ts32_to_s64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    ts32_to_s64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12055,16 +14605,39 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void ts32_to_s64_avx2(const Tensor *restrict src,
-                                              Tensor *restrict dst,
-                                              novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+ts32_to_s64_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                       size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m256i r = _mm256_cvtepi32_epi64(v);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_s64_avx2, "avx2", int32, int64, s32, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from int32 to int64 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12072,19 +14645,24 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_s64_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m256i r = _mm256_cvtepi32_epi64(v);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    ts32_to_s64_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    ts32_to_s64_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12101,16 +14679,40 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts32_to_s64_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts32_to_s64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_SSE;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    _mm_storeu_si128((__m128i_u *)&d[i], _mm_cvtepi32_epi64(v));
+    _mm_storeu_si128((__m128i_u *)&d[i + 2],
+                     _mm_cvtepi32_epi64(_mm_unpackhi_epi64(v, v)));
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_s64_sse4_2, "sse4.2", int32, int64, s32, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from int32 to int64 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12118,20 +14720,24 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_s64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    _mm_storeu_si128((__m128i_u *)&d[i], _mm_cvtepi32_epi64(v));
-    _mm_storeu_si128((__m128i_u *)&d[i + 2],
-                     _mm_cvtepi32_epi64(_mm_unpackhi_epi64(v, v)));
+  {
+    ts32_to_s64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    ts32_to_s64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12148,16 +14754,39 @@ tu64_to_f64_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bw")]] void
-ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                  novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bw")]] [[gnu::noinline]] static void
+ts64_to_s8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
+  const int64 *s = src->data.s64;
+  int8 *d = dst->data.s8;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m128i r = _mm512_cvtsepi64_epi8(v);
+    _mm_storeu_si64(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_s8_avx512, "avx512f,avx512bw", int64, int8, s64, s8,
+                 REMAINING_SATURATE_S64(i, size, d, s, int8, -128, 127))
+
+/**
+ * @brief Cast every element from int64 to int8 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64 *s = src->data.s64;
-  int8 *d = dst->data.s8;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12165,19 +14794,24 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_s8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m128i r = _mm512_cvtsepi64_epi8(v);
-    _mm_storeu_si64(&d[i], r);
+  {
+    ts64_to_s8_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING_SATURATE_S64(i, size, d, s, int8, -128, 127)
+    ts64_to_s8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12194,16 +14828,39 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts64_to_s32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts64_to_s32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
+  const int64 *s = src->data.s64;
+  int32 *d = dst->data.s32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m256i r = _mm512_cvtepi64_epi32(v);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_s32_avx512, "avx512f", int64, int32, s64, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from int64 to int32 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64 *s = src->data.s64;
-  int32 *d = dst->data.s32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12211,19 +14868,24 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_s32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m256i r = _mm512_cvtepi64_epi32(v);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    ts64_to_s32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    ts64_to_s32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12240,27 +14902,13 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu8_to_u32_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu8_to_u32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   uint32 *d = dst->data.u32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
     __m128i b2 = _mm_loadu_si128((const __m128i_u *)&s[i + 32]);
@@ -12270,11 +14918,53 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm512_storeu_si512(&d[i + 32], _mm512_cvtepu8_epi32(b2));
     _mm512_storeu_si512(&d[i + 48], _mm512_cvtepu8_epi32(b3));
   }
+}
+
+DEFINE_CAST_TAIL(tu8_to_u32_avx512, "avx512f", uint8, uint32, u8, u32,
+                 REMAINING(i, size, d, s, uint32))
+
+/**
+ * @brief Cast every element from uint8 to uint32 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_u32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu8_to_u32_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint32)
+    tu8_to_u32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12291,27 +14981,13 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tu8_to_u32_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tu8_to_u32_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   uint32 *d = dst->data.u32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256i r0 =
         _mm256_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
     __m256i r1 =
@@ -12325,11 +15001,53 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_si256((__m256i_u *)&d[i + 16], r2);
     _mm256_storeu_si256((__m256i_u *)&d[i + 24], r3);
   }
+}
+
+DEFINE_CAST_TAIL(tu8_to_u32_avx2, "avx2", uint8, uint32, u8, u32,
+                 REMAINING(i, size, d, s, uint32))
+
+/**
+ * @brief Cast every element from uint8 to uint32 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_u32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_u32_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu8_to_u32_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint32)
+    tu8_to_u32_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12346,16 +15064,39 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu8_to_u64_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu8_to_u64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const uint8 *s = src->data.u8;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m512i r = _mm512_cvtepu8_epi64(b);
+    _mm512_storeu_si512(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu8_to_u64_avx512, "avx512f", uint8, uint64, u8, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from uint8 to uint64 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8 *s = src->data.u8;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12363,19 +15104,24 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_u64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
-    __m512i r = _mm512_cvtepu8_epi64(b);
-    _mm512_storeu_si512(&d[i], r);
+  {
+    tu8_to_u64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    tu8_to_u64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12392,16 +15138,39 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tu8_to_u64_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tu8_to_u64_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const uint8 *s = src->data.u8;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadu_si32((const void *)&s[i]);
+    __m256i r = _mm256_cvtepu8_epi64(b);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu8_to_u64_avx2, "avx2", uint8, uint64, u8, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from uint8 to uint64 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8 *s = src->data.u8;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12409,19 +15178,24 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_u64_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadu_si32((const void *)&s[i]);
-    __m256i r = _mm256_cvtepu8_epi64(b);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    tu8_to_u64_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    tu8_to_u64_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12438,16 +15212,39 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tu8_to_u64_sse4_2(const Tensor *restrict src,
-                                                 Tensor *restrict dst,
-                                                 novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tu8_to_u64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_SSE;
-  size_t i = 0;
+  const uint8 *s = src->data.u8;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadu_si16((const void *)&s[i]);
+    __m128i r = _mm_cvtepu8_epi64(b);
+    _mm_storeu_si128((__m128i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu8_to_u64_sse4_2, "sse4.2", uint8, uint64, u8, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from uint8 to uint64 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8 *s = src->data.u8;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12455,19 +15252,24 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_u64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadu_si16((const void *)&s[i]);
-    __m128i r = _mm_cvtepu8_epi64(b);
-    _mm_storeu_si128((__m128i_u *)&d[i], r);
+  {
+    tu8_to_u64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    tu8_to_u64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12484,27 +15286,13 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu32_to_u8_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu32_to_u8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint32 *s = src->data.u32;
   uint8 *d = dst->data.u8;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
     __m512i v2 = _mm512_loadu_si512(&s[i + 32]);
@@ -12514,11 +15302,53 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm_storeu_si128((__m128i_u *)&d[i + 32], _mm512_cvtusepi32_epi8(v2));
     _mm_storeu_si128((__m128i_u *)&d[i + 48], _mm512_cvtusepi32_epi8(v3));
   }
+}
+
+DEFINE_CAST_TAIL(tu32_to_u8_avx512, "avx512f", uint32, uint8, u32, u8,
+                 REMAINING_SATURATE(i, size, d, s, uint32, uint8, 0, 255))
+
+/**
+ * @brief Cast every element from uint32 to uint8 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_u8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu32_to_u8_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE(i, size, d, s, uint32, uint8, 0, 255)
+    tu32_to_u8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12535,16 +15365,39 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu32_to_u64_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu32_to_u64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m512i r = _mm512_cvtepu32_epi64(v);
+    _mm512_storeu_si512(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_u64_avx512, "avx512f", uint32, uint64, u32, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from uint32 to uint64 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12552,19 +15405,24 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_u64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    __m512i r = _mm512_cvtepu32_epi64(v);
-    _mm512_storeu_si512(&d[i], r);
+  {
+    tu32_to_u64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    tu32_to_u64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12581,16 +15439,39 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tu32_to_u64_avx2(const Tensor *restrict src,
-                                              Tensor *restrict dst,
-                                              novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tu32_to_u64_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                       size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m256i r = _mm256_cvtepu32_epi64(v);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_u64_avx2, "avx2", uint32, uint64, u32, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from uint32 to uint64 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12598,19 +15479,24 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_u64_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m256i r = _mm256_cvtepu32_epi64(v);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    tu32_to_u64_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    tu32_to_u64_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12627,16 +15513,40 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tu32_to_u64_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tu32_to_u64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U32_WITH_SSE;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    _mm_storeu_si128((__m128i_u *)&d[i], _mm_cvtepu32_epi64(v));
+    _mm_storeu_si128((__m128i_u *)&d[i + 2],
+                     _mm_cvtepu32_epi64(_mm_unpackhi_epi64(v, v)));
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_u64_sse4_2, "sse4.2", uint32, uint64, u32, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from uint32 to uint64 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U32_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12644,20 +15554,24 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_u64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    _mm_storeu_si128((__m128i_u *)&d[i], _mm_cvtepu32_epi64(v));
-    _mm_storeu_si128((__m128i_u *)&d[i + 2],
-                     _mm_cvtepu32_epi64(_mm_unpackhi_epi64(v, v)));
+  {
+    tu32_to_u64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    tu32_to_u64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12674,16 +15588,39 @@ ts64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bw")]] void
-tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                  novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bw")]] [[gnu::noinline]] static void
+tu64_to_u8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const uint64 *s = src->data.u64;
+  uint8 *d = dst->data.u8;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m128i r = _mm512_cvtusepi64_epi8(v);
+    _mm_storeu_si64(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_u8_avx512, "avx512f,avx512bw", uint64, uint8, u64, u8,
+                 REMAINING_SATURATE_U64(i, size, d, s, uint8, 255))
+
+/**
+ * @brief Cast every element from uint64 to uint8 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64 *s = src->data.u64;
-  uint8 *d = dst->data.u8;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12691,19 +15628,24 @@ tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_u8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m128i r = _mm512_cvtusepi64_epi8(v);
-    _mm_storeu_si64(&d[i], r);
+  {
+    tu64_to_u8_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING_SATURATE_U64(i, size, d, s, uint8, 255)
+    tu64_to_u8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12720,16 +15662,39 @@ tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu64_to_u32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu64_to_u32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const uint64 *s = src->data.u64;
+  uint32 *d = dst->data.u32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m256i r = _mm512_cvtepi64_epi32(v);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_u32_avx512, "avx512f", uint64, uint32, u64, u32,
+                 REMAINING(i, size, d, s, uint32))
+
+/**
+ * @brief Cast every element from uint64 to uint32 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64 *s = src->data.u64;
-  uint32 *d = dst->data.u32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12737,19 +15702,24 @@ tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_u32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m256i r = _mm512_cvtepi64_epi32(v);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    tu64_to_u32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint32)
+    tu64_to_u32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12766,16 +15736,38 @@ tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts8_to_u8_avx512(const Tensor *restrict src,
-                                                 Tensor *restrict dst,
-                                                 novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts8_to_u8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                       size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
+  const int8 *s = src->data.s8;
+  uint8 *d = dst->data.u8;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    _mm512_storeu_si512(&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(ts8_to_u8_avx512, "avx512f", int8, uint8, s8, u8,
+                 REMAINING(i, size, d, s, uint8))
+
+/**
+ * @brief Cast every element from int8 to uint8 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8 *s = src->data.s8;
-  uint8 *d = dst->data.u8;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12783,18 +15775,24 @@ tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_u8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    _mm512_storeu_si512(&d[i], v);
+  {
+    ts8_to_u8_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint8)
+    ts8_to_u8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12811,16 +15809,38 @@ tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2")]] void ts8_to_u8_avx_avx2(const Tensor *restrict src,
-                                                    Tensor *restrict dst,
-                                                    novaStatus_t *status) {
+[[gnu::target("avx,avx2")]] [[gnu::noinline]] static void
+ts8_to_u8_avx_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
-  size_t i = 0;
+  const int8 *s = src->data.s8;
+  uint8 *d = dst->data.u8;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(ts8_to_u8_avx_avx2, "avx,avx2", int8, uint8, s8, u8,
+                 REMAINING(i, size, d, s, uint8))
+
+/**
+ * @brief Cast every element from int8 to uint8 using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_u8_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8 *s = src->data.s8;
-  uint8 *d = dst->data.u8;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12828,18 +15848,24 @@ tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_u8_avx_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  {
+    ts8_to_u8_avx_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint8)
+    ts8_to_u8_avx_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12856,16 +15882,38 @@ tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts8_to_u8_sse4_2(const Tensor *restrict src,
-                                                Tensor *restrict dst,
-                                                novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts8_to_u8_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                       size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_SSE;
-  size_t i = 0;
+  const int8 *s = src->data.s8;
+  uint8 *d = dst->data.u8;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(ts8_to_u8_sse4_2, "sse4.2", int8, uint8, s8, u8,
+                 REMAINING(i, size, d, s, uint8))
+
+/**
+ * @brief Cast every element from int8 to uint8 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_u8_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8 *s = src->data.s8;
-  uint8 *d = dst->data.u8;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12873,18 +15921,24 @@ tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_u8_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  {
+    ts8_to_u8_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint8)
+    ts8_to_u8_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12901,17 +15955,39 @@ tu64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bw")]] void
-tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                 novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bw")]] [[gnu::noinline]] static void
+tu8_to_s8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                       size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   int8 *d = dst->data.s8;
   const __m512i vmax = _mm512_set1_epi8(127);
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_min_epu8(_mm512_loadu_si512(&s[i]), vmax);
+    _mm512_storeu_si512(&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(tu8_to_s8_avx512, "avx512f,avx512bw", uint8, int8, u8, s8,
+                 REMAINING_SATURATE(i, size, d, s, uint8, int8, -128, 127))
+
+/**
+ * @brief Cast every element from uint8 to int8 using AVX-512.
+ *
+ * Requires: AVX512F, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12919,18 +15995,24 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_s8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_min_epu8(_mm512_loadu_si512(&s[i]), vmax);
-    _mm512_storeu_si512(&d[i], v);
+  {
+    tu8_to_s8_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING_SATURATE(i, size, d, s, uint8, int8, -128, 127)
+    tu8_to_s8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12947,17 +16029,40 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tu8_to_s8_avx2(const Tensor *restrict src,
-                                            Tensor *restrict dst,
-                                            novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tu8_to_s8_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                     size_t begin, size_t end) {
   const size_t step = 32;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   int8 *d = dst->data.s8;
   const __m256i vmax = _mm256_set1_epi8(127);
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v =
+        _mm256_min_epu8(_mm256_loadu_si256((const __m256i_u *)&s[i]), vmax);
+    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(tu8_to_s8_avx2, "avx2", uint8, int8, u8, s8,
+                 REMAINING_SATURATE(i, size, d, s, uint8, int8, -128, 127))
+
+/**
+ * @brief Cast every element from uint8 to int8 using AVX/AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_s8_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                    novaStatus_t *status) {
+  const size_t step = 32;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -12965,19 +16070,24 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_s8_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v =
-        _mm256_min_epu8(_mm256_loadu_si256((const __m256i_u *)&s[i]), vmax);
-    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  {
+    tu8_to_s8_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING_SATURATE(i, size, d, s, uint8, int8, -128, 127)
+    tu8_to_s8_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -12994,17 +16104,39 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tu8_to_s8_sse4_2(const Tensor *restrict src,
-                                                Tensor *restrict dst,
-                                                novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tu8_to_s8_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                       size_t begin, size_t end) {
   const size_t step = 16;
-  size_t i = 0;
+  const uint8 *s = src->data.u8;
+  int8 *d = dst->data.s8;
+  const __m128i vmax = _mm_set1_epi8(127);
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_min_epu8(_mm_loadu_si128((const __m128i_u *)&s[i]), vmax);
+    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(tu8_to_s8_sse4_2, "sse4.2", uint8, int8, u8, s8,
+                 REMAINING_SATURATE(i, size, d, s, uint8, int8, -128, 127))
+
+/**
+ * @brief Cast every element from uint8 to int8 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_s8_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status) {
+  const size_t step = 16;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8 *s = src->data.u8;
-  const __m128i vmax = _mm_set1_epi8(127);
-  int8 *d = dst->data.s8;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13012,18 +16144,24 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_s8_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_min_epu8(_mm_loadu_si128((const __m128i_u *)&s[i]), vmax);
-    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  {
+    tu8_to_s8_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING_SATURATE(i, size, d, s, uint8, int8, -128, 127)
+    tu8_to_s8_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13040,27 +16178,13 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts8_to_u32_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts8_to_u32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int8 *s = src->data.s8;
   uint32 *d = dst->data.u32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
     __m128i b2 = _mm_loadu_si128((const __m128i_u *)&s[i + 32]);
@@ -13070,11 +16194,53 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm512_storeu_si512(&d[i + 32], _mm512_cvtepi8_epi32(b2));
     _mm512_storeu_si512(&d[i + 48], _mm512_cvtepi8_epi32(b3));
   }
+}
+
+DEFINE_CAST_TAIL(ts8_to_u32_avx512, "avx512f", int8, uint32, s8, u32,
+                 REMAINING(i, size, d, s, uint32))
+
+/**
+ * @brief Cast every element from int8 to uint32 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_u32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts8_to_u32_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint32)
+    ts8_to_u32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13091,27 +16257,13 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void ts8_to_u32_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+ts8_to_u32_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int8 *s = src->data.s8;
   uint32 *d = dst->data.u32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256i r0 =
         _mm256_cvtepi8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
     __m256i r1 =
@@ -13125,11 +16277,53 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_si256((__m256i_u *)&d[i + 16], r2);
     _mm256_storeu_si256((__m256i_u *)&d[i + 24], r3);
   }
+}
+
+DEFINE_CAST_TAIL(ts8_to_u32_avx2, "avx2", int8, uint32, s8, u32,
+                 REMAINING(i, size, d, s, uint32))
+
+/**
+ * @brief Cast every element from int8 to uint32 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_u32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_u32_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts8_to_u32_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint32)
+    ts8_to_u32_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13146,27 +16340,13 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts8_to_u32_sse4_2(const Tensor *restrict src,
-                                                 Tensor *restrict dst,
-                                                 novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts8_to_u32_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S8_WITH_SSE;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int8 *s = src->data.s8;
   uint32 *d = dst->data.u32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i r0 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i]));
     __m128i r1 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i + 4]));
     __m128i r2 = _mm_cvtepi8_epi32(_mm_loadu_si32((const void *)&s[i + 8]));
@@ -13176,11 +16356,53 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     _mm_storeu_si128((__m128i_u *)&d[i + 8], r2);
     _mm_storeu_si128((__m128i_u *)&d[i + 12], r3);
   }
+}
+
+DEFINE_CAST_TAIL(ts8_to_u32_sse4_2, "sse4.2", int8, uint32, s8, u32,
+                 REMAINING(i, size, d, s, uint32))
+
+/**
+ * @brief Cast every element from int8 to uint32 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_u32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S8_WITH_SSE;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_u32_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts8_to_u32_sse4_2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint32)
+    ts8_to_u32_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13197,16 +16419,39 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts8_to_u64_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts8_to_u64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const int8 *s = src->data.s8;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m512i r = _mm512_cvtepi8_epi64(b);
+    _mm512_storeu_si512(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts8_to_u64_avx512, "avx512f", int8, uint64, s8, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from int8 to uint64 using AVX512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int8.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts8_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int8 *s = src->data.s8;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13214,19 +16459,24 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts8_to_u64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
-    __m512i r = _mm512_cvtepi8_epi64(b);
-    _mm512_storeu_si512(&d[i], r);
+  {
+    ts8_to_u64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    ts8_to_u64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13243,27 +16493,13 @@ tu8_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bw")]] void
-ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                  novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bw")]] [[gnu::noinline]] static void
+ts32_to_u8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int32 *s = src->data.s32;
   uint8 *d = dst->data.u8;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
     __m512i v2 = _mm512_loadu_si512(&s[i + 32]);
@@ -13273,11 +16509,53 @@ ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_packus_epi16(s01, s23);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(ts32_to_u8_avx512, "avx512f,avx512bw", int32, uint8, s32, u8,
+                 REMAINING_SATURATE(i, size, d, s, int32, uint8, 0, 255))
+
+/**
+ * @brief Cast every element from int32 to uint8 using AVX512BW.
+ *
+ * Requires: AVX512F, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_u8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts32_to_u8_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE(i, size, d, s, int32, uint8, 0, 255)
+    ts32_to_u8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13294,27 +16572,13 @@ ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void ts32_to_u8_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+ts32_to_u8_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int32 *s = src->data.s32;
   uint8 *d = dst->data.u8;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256i v0 = _mm256_loadu_si256((const __m256i_u *)&s[i]);
     __m256i v1 = _mm256_loadu_si256((const __m256i_u *)&s[i + 8]);
     __m256i v2 = _mm256_loadu_si256((const __m256i_u *)&s[i + 16]);
@@ -13326,11 +16590,53 @@ ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     r = _mm256_permutevar8x32_epi32(r, perm);
     _mm256_storeu_si256((__m256i_u *)&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(ts32_to_u8_avx2, "avx2", int32, uint8, s32, u8,
+                 REMAINING_SATURATE(i, size, d, s, int32, uint8, 0, 255))
+
+/**
+ * @brief Cast every element from int32 to uint8 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_u8_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_u8_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts32_to_u8_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE(i, size, d, s, int32, uint8, 0, 255)
+    ts32_to_u8_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13347,27 +16653,13 @@ ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts32_to_u8_sse4_2(const Tensor *restrict src,
-                                                 Tensor *restrict dst,
-                                                 novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts32_to_u8_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_SSE;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int32 *s = src->data.s32;
   uint8 *d = dst->data.u8;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i v0 = _mm_loadu_si128((__m128i_u *)&s[i]);
     __m128i v1 = _mm_loadu_si128((__m128i_u *)&s[i + 4]);
     __m128i v2 = _mm_loadu_si128((__m128i_u *)&s[i + 8]);
@@ -13377,11 +16669,53 @@ ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m128i r = _mm_packus_epi16(s01, s23);
     _mm_storeu_si128((__m128i_u *)&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(ts32_to_u8_sse4_2, "sse4.2", int32, uint8, s32, u8,
+                 REMAINING_SATURATE(i, size, d, s, int32, uint8, 0, 255))
+
+/**
+ * @brief Cast every element from int32 to uint8 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_u8_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_SSE;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_u8_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    ts32_to_u8_sse4_2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE(i, size, d, s, int32, uint8, 0, 255)
+    ts32_to_u8_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13398,16 +16732,38 @@ ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts32_to_u32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts32_to_u32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  uint32 *d = dst->data.u32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    _mm512_storeu_si512(&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_u32_avx512, "avx512f", int32, uint32, s32, u32,
+                 REMAINING(i, size, d, s, uint32))
+
+/**
+ * @brief Cast every element from int32 to uint32 using AVX512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U32_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  uint32 *d = dst->data.u32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13415,18 +16771,24 @@ ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_u32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    _mm512_storeu_si512(&d[i], v);
+  {
+    ts32_to_u32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint32)
+    ts32_to_u32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13443,16 +16805,38 @@ ts32_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2")]] void
-ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
-                     novaStatus_t *status) {
+[[gnu::target("avx,avx2")]] [[gnu::noinline]] static void
+ts32_to_u32_avx_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                           size_t begin, size_t end) {
   const size_t step = 8;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  uint32 *d = dst->data.u32;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_u32_avx_avx2, "avx,avx2", int32, uint32, s32, u32,
+                 REMAINING(i, size, d, s, uint32))
+
+/**
+ * @brief Cast every element from int32 to uint32 using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status) {
+  const size_t step = 8;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  uint32 *d = dst->data.u32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13460,18 +16844,24 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_u32_avx_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  {
+    ts32_to_u32_avx_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint32)
+    ts32_to_u32_avx_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13488,16 +16878,38 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts32_to_u32_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts32_to_u32_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = 4;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  uint32 *d = dst->data.u32;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_u32_sse4_2, "sse4.2", int32, uint32, s32, u32,
+                 REMAINING(i, size, d, s, uint32))
+
+/**
+ * @brief Cast every element from int32 to uint32 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_u32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = 4;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  uint32 *d = dst->data.u32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13505,18 +16917,24 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_u32_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  {
+    ts32_to_u32_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint32)
+    ts32_to_u32_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13533,16 +16951,39 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts32_to_u64_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts32_to_u64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m512i r = _mm512_cvtepi32_epi64(v);
+    _mm512_storeu_si512(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_u64_avx512, "avx512f", int32, uint64, s32, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from int32 to uint64 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13550,19 +16991,24 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_u64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    __m512i r = _mm512_cvtepi32_epi64(v);
-    _mm512_storeu_si512(&d[i], r);
+  {
+    ts32_to_u64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    ts32_to_u64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13579,16 +17025,39 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void ts32_to_u64_avx2(const Tensor *restrict src,
-                                              Tensor *restrict dst,
-                                              novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+ts32_to_u64_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                       size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m256i r = _mm256_cvtepi32_epi64(v);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_u64_avx2, "avx2", int32, uint64, s32, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from int32 to uint64 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_u64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13596,19 +17065,24 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_u64_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m256i r = _mm256_cvtepi32_epi64(v);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    ts32_to_u64_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    ts32_to_u64_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13625,16 +17099,39 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts32_to_u64_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts32_to_u64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_SSE;
-  size_t i = 0;
+  const int32 *s = src->data.s32;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m128i r = _mm_cvtepi32_epi64(v);
+    _mm_storeu_si128((__m128i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts32_to_u64_sse4_2, "sse4.2", int32, uint64, s32, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from int32 to uint64 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int32.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts32_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int32 *s = src->data.s32;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13642,19 +17139,24 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts32_to_u64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m128i r = _mm_cvtepi32_epi64(v);
-    _mm_storeu_si128((__m128i_u *)&d[i], r);
+  {
+    ts32_to_u64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    ts32_to_u64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13671,18 +17173,42 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts64_to_u8_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts64_to_u8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const int64 *s = src->data.s64;
   uint8 *d = dst->data.u8;
   const __m512i vmin = _mm512_setzero_si512();
   const __m512i vmax = _mm512_set1_epi64(255);
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    v = _mm512_min_epi64(_mm512_max_epi64(v, vmin), vmax);
+    __m128i r = _mm512_cvtusepi64_epi8(v);
+    _mm_storeu_si64(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_u8_avx512, "avx512f", int64, uint8, s64, u8,
+                 REMAINING_SATURATE_S64(i, size, d, s, uint8, 0, 255))
+
+/**
+ * @brief Cast every element from int64 to uint8 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type uint8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_u8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13690,20 +17216,24 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_u8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    v = _mm512_min_epi64(_mm512_max_epi64(v, vmin), vmax);
-    __m128i r = _mm512_cvtusepi64_epi8(v);
-    _mm_storeu_si64(&d[i], r);
+  {
+    ts64_to_u8_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING_SATURATE_S64(i, size, d, s, uint8, 0, 255)
+    ts64_to_u8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13720,16 +17250,39 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts64_to_u32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts64_to_u32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const int64 *s = src->data.s64;
+  uint32 *d = dst->data.u32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m256i r = _mm512_cvtepi64_epi32(v);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_u32_avx512, "avx512f", int64, uint32, s64, u32,
+                 REMAINING(i, size, d, s, uint32))
+
+/**
+ * @brief Cast every element from int64 to uint32 using AVX-512.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type uint32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_u32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64 *s = src->data.s64;
-  uint32 *d = dst->data.u32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13737,19 +17290,24 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_u32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m256i r = _mm512_cvtepi64_epi32(v);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    ts64_to_u32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint32)
+    ts64_to_u32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13766,16 +17324,38 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void ts64_to_u64_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+ts64_to_u64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const int64 *s = src->data.s64;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    _mm512_storeu_si512(&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_u64_avx512, "avx512f", int64, uint64, s64, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from int64 to uint64 using AVX512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_u64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64 *s = src->data.s64;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13783,18 +17363,24 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_u64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    _mm512_storeu_si512(&d[i], v);
+  {
+    ts64_to_u64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    ts64_to_u64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13811,16 +17397,38 @@ ts32_to_u32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2")]] void
-ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
-                     novaStatus_t *status) {
+[[gnu::target("avx,avx2")]] [[gnu::noinline]] static void
+ts64_to_u64_avx_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                           size_t begin, size_t end) {
   const size_t step = 4;
-  size_t i = 0;
+  const int64 *s = src->data.s64;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_u64_avx_avx2, "avx,avx2", int64, uint64, s64, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from int64 to uint64 using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status) {
+  const size_t step = 4;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64 *s = src->data.s64;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13828,18 +17436,24 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_u64_avx_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  {
+    ts64_to_u64_avx_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    ts64_to_u64_avx_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13856,16 +17470,38 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void ts64_to_u64_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+ts64_to_u64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = 2;
-  size_t i = 0;
+  const int64 *s = src->data.s64;
+  uint64 *d = dst->data.u64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(ts64_to_u64_sse4_2, "sse4.2", int64, uint64, s64, u64,
+                 REMAINING(i, size, d, s, uint64))
+
+/**
+ * @brief Cast every element from int64 to uint64 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type int64.
+ * @param[out] dst  Destination tensor with element type uint64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void ts64_to_u64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = 2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const int64 *s = src->data.s64;
-  uint64 *d = dst->data.u64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -13873,18 +17509,24 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      ts64_to_u64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  {
+    ts64_to_u64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, uint64)
+    ts64_to_u64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13901,27 +17543,13 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu8_to_s32_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu8_to_s32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   int32 *d = dst->data.s32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i b0 = _mm_loadu_si128((const __m128i_u *)&s[i]);
     __m128i b1 = _mm_loadu_si128((const __m128i_u *)&s[i + 16]);
     __m128i b2 = _mm_loadu_si128((const __m128i_u *)&s[i + 32]);
@@ -13931,11 +17559,53 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
     _mm512_storeu_si512(&d[i + 32], _mm512_cvtepu8_epi32(b2));
     _mm512_storeu_si512(&d[i + 48], _mm512_cvtepu8_epi32(b3));
   }
+}
+
+DEFINE_CAST_TAIL(tu8_to_s32_avx512, "avx512f", uint8, int32, u8, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from uint8 to int32 using AVX512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_s32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu8_to_s32_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    tu8_to_s32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -13952,27 +17622,13 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tu8_to_s32_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tu8_to_s32_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   int32 *d = dst->data.s32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m256i r0 =
         _mm256_cvtepu8_epi32(_mm_loadl_epi64((const __m128i_u *)&s[i]));
     __m256i r1 =
@@ -13986,11 +17642,53 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
     _mm256_storeu_si256((__m256i_u *)&d[i + 16], r2);
     _mm256_storeu_si256((__m256i_u *)&d[i + 24], r3);
   }
+}
+
+DEFINE_CAST_TAIL(tu8_to_s32_avx2, "avx2", uint8, int32, u8, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from uint8 to int32 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_s32_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX_AVX2;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_s32_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu8_to_s32_avx2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    tu8_to_s32_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14007,27 +17705,13 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tu8_to_s32_sse4_2(const Tensor *restrict src,
-                                                 Tensor *restrict dst,
-                                                 novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tu8_to_s32_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_SSE;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint8 *s = src->data.u8;
   int32 *d = dst->data.s32;
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m128i r0 = _mm_cvtepu8_epi32(_mm_loadu_si32((const void *)&s[i]));
     __m128i r1 = _mm_cvtepu8_epi32(_mm_loadu_si32((const void *)&s[i + 4]));
     __m128i r2 = _mm_cvtepu8_epi32(_mm_loadu_si32((const void *)&s[i + 8]));
@@ -14037,11 +17721,53 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
     _mm_storeu_si128((__m128i_u *)&d[i + 8], r2);
     _mm_storeu_si128((__m128i_u *)&d[i + 12], r3);
   }
+}
+
+DEFINE_CAST_TAIL(tu8_to_s32_sse4_2, "sse4.2", uint8, int32, u8, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from uint8 to int32 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_SSE;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_s32_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu8_to_s32_sse4_2_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    tu8_to_s32_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14058,16 +17784,39 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu8_to_s64_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu8_to_s64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
+  const uint8 *s = src->data.u8;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
+    __m512i r = _mm512_cvtepu8_epi64(b);
+    _mm512_storeu_si512(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu8_to_s64_avx512, "avx512f", uint8, int64, u8, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from uint8 to int64 using AVX512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8 *s = src->data.u8;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14075,19 +17824,24 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_s64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadl_epi64((const __m128i_u *)&s[i]);
-    __m512i r = _mm512_cvtepu8_epi64(b);
-    _mm512_storeu_si512(&d[i], r);
+  {
+    tu8_to_s64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    tu8_to_s64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14104,16 +17858,39 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tu8_to_s64_avx2(const Tensor *restrict src,
-                                             Tensor *restrict dst,
-                                             novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tu8_to_s64_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                      size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const uint8 *s = src->data.u8;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadu_si32((const void *)&s[i]);
+    __m256i r = _mm256_cvtepu8_epi64(b);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu8_to_s64_avx2, "avx2", uint8, int64, u8, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from uint8 to int64 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                     novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8 *s = src->data.u8;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14121,19 +17898,24 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_s64_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadu_si32((const void *)&s[i]);
-    __m256i r = _mm256_cvtepu8_epi64(b);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    tu8_to_s64_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    tu8_to_s64_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14150,16 +17932,39 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tu8_to_s64_sse4_2(const Tensor *restrict src,
-                                                 Tensor *restrict dst,
-                                                 novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tu8_to_s64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_SSE;
-  size_t i = 0;
+  const uint8 *s = src->data.u8;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i b = _mm_loadu_si16((const void *)&s[i]);
+    __m128i r = _mm_cvtepu8_epi64(b);
+    _mm_storeu_si128((__m128i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu8_to_s64_sse4_2, "sse4.2", uint8, int64, u8, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from uint8 to int64 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type uint8.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu8_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint8 *s = src->data.u8;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14167,19 +17972,24 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu8_to_s64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i b = _mm_loadu_si16((const void *)&s[i]);
-    __m128i r = _mm_cvtepu8_epi64(b);
-    _mm_storeu_si128((__m128i_u *)&d[i], r);
+  {
+    tu8_to_s64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    tu8_to_s64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14196,28 +18006,14 @@ ts64_to_u64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f,avx512bw")]] void
-tu32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
-                  novaStatus_t *status) {
+[[gnu::target("avx512f,avx512bw")]] [[gnu::noinline]] static void
+tu32_to_s8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint32 *s = src->data.u32;
   int8 *d = dst->data.s8;
   const __m512i vmax = _mm512_set1_epi32(127);
-#ifdef NOVA_OPENMP
-  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
-  if (status->err != novaSuccess) {
-    return;
-  }
-  const ElementwiseWork work = make_elementwise_work(src);
-  const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
-#endif
-  for (i = 0; i < n; i += step) {
+  for (size_t i = begin; i < end; i += step) {
     __m512i v0 = _mm512_loadu_si512(&s[i]);
     __m512i v1 = _mm512_loadu_si512(&s[i + 16]);
     __m512i v2 = _mm512_loadu_si512(&s[i + 32]);
@@ -14231,11 +18027,53 @@ tu32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
     __m512i r = _mm512_packs_epi16(s01, s23);
     _mm512_storeu_si512(&d[i], r);
   }
+}
+
+DEFINE_CAST_TAIL(tu32_to_s8_avx512, "avx512f,avx512bw", uint32, int8, u32, s8,
+                 REMAINING_SATURATE(i, size, d, s, uint32, int8, -128, 127))
+
+/**
+ * @brief Cast every element from uint32 to int8 using AVX512F/AVX512BW.
+ *
+ * Requires: AVX512F, AVX512BW
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U8_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
-  i = n;
+  const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
+  if (status->err != novaSuccess) {
+    return;
+  }
+  const ElementwiseWork work = make_elementwise_work(src);
+  const ParallelDecision decision = decide_elementwise(&work, threads);
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_s8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
+  {
+    tu32_to_s8_avx512_range(src, dst, 0, n);
+  }
   if (rem > 0) {
-    REMAINING_SATURATE(i, size, d, s, uint32, int8, -128, 127)
+    tu32_to_s8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14252,16 +18090,38 @@ tu32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu32_to_s32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu32_to_s32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  int32 *d = dst->data.s32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    _mm512_storeu_si512(&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_s32_avx512, "avx512f", uint32, int32, u32, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from uint32 to int32 using AVX512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  int32 *d = dst->data.s32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14269,18 +18129,24 @@ tu32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_s32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    _mm512_storeu_si512(&d[i], v);
+  {
+    tu32_to_s32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    tu32_to_s32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14297,16 +18163,38 @@ tu32_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2")]] void
-tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
-                     novaStatus_t *status) {
+[[gnu::target("avx,avx2")]] [[gnu::noinline]] static void
+tu32_to_s32_avx_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                           size_t begin, size_t end) {
   const size_t step = 8;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  int32 *d = dst->data.s32;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_s32_avx_avx2, "avx,avx2", uint32, int32, u32, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from uint32 to int32 using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status) {
+  const size_t step = 8;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  int32 *d = dst->data.s32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14314,18 +18202,24 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_s32_avx_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  {
+    tu32_to_s32_avx_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    tu32_to_s32_avx_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14342,16 +18236,38 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tu32_to_s32_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tu32_to_s32_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = 4;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  int32 *d = dst->data.s32;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_s32_sse4_2, "sse4.2", uint32, int32, u32, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from uint32 to int32 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_s32_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = 4;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  int32 *d = dst->data.s32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14359,18 +18275,24 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_s32_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  {
+    tu32_to_s32_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    tu32_to_s32_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14387,16 +18309,39 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu32_to_s64_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu32_to_s64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    __m512i r = _mm512_cvtepu32_epi64(v);
+    _mm512_storeu_si512(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_s64_avx512, "avx512f", uint32, int64, u32, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from uint32 to int64 using AVX512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14404,19 +18349,24 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_s64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    __m512i r = _mm512_cvtepu32_epi64(v);
-    _mm512_storeu_si512(&d[i], r);
+  {
+    tu32_to_s64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    tu32_to_s64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14433,16 +18383,39 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx2")]] void tu32_to_s64_avx2(const Tensor *restrict src,
-                                              Tensor *restrict dst,
-                                              novaStatus_t *status) {
+[[gnu::target("avx2")]] [[gnu::noinline]] static void
+tu32_to_s64_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                       size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    __m256i r = _mm256_cvtepu32_epi64(v);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_s64_avx2, "avx2", uint32, int64, u32, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from uint32 to int64 using AVX2.
+ *
+ * Requires: AVX2
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_s64_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                      novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX_AVX2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14450,19 +18423,24 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_s64_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    __m256i r = _mm256_cvtepu32_epi64(v);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    tu32_to_s64_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    tu32_to_s64_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14479,16 +18457,40 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tu32_to_s64_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tu32_to_s64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S32_WITH_SSE;
-  size_t i = 0;
+  const uint32 *s = src->data.u32;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    _mm_storeu_si128((__m128i_u *)&d[i], _mm_cvtepu32_epi64(v));
+    _mm_storeu_si128((__m128i_u *)&d[i + 2],
+                     _mm_cvtepu32_epi64(_mm_unpackhi_epi64(v, v)));
+  }
+}
+
+DEFINE_CAST_TAIL(tu32_to_s64_sse4_2, "sse4.2", uint32, int64, u32, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from uint32 to int64 using SSE4.2.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type uint32.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu32_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S32_WITH_SSE;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint32 *s = src->data.u32;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14496,20 +18498,24 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu32_to_s64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    _mm_storeu_si128((__m128i_u *)&d[i], _mm_cvtepu32_epi64(v));
-    _mm_storeu_si128((__m128i_u *)&d[i + 2],
-                     _mm_cvtepu32_epi64(_mm_unpackhi_epi64(v, v)));
+  {
+    tu32_to_s64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    tu32_to_s64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14526,17 +18532,40 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu64_to_s8_avx512(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu64_to_s8_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                        size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
-  size_t rem = src->size % step;
-  size_t n = src->size - rem;
-  size_t size = src->size;
   const uint64 *s = src->data.u64;
   int8 *d = dst->data.s8;
   const __m512i vmax = _mm512_set1_epi64(127);
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_min_epu64(_mm512_loadu_si512(&s[i]), vmax);
+    __m128i r = _mm512_cvtepi64_epi8(v);
+    _mm_storeu_si64(&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_s8_avx512, "avx512f", uint64, int8, u64, s8,
+                 REMAINING_SATURATE_U64(i, size, d, s, int8, 127))
+
+/**
+ * @brief Cast every element from uint64 to int8 using AVX512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type int8.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_s8_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                       novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
+  size_t rem = src->size % step;
+  size_t n = src->size - rem;
+  size_t size = src->size;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14544,19 +18573,24 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_s8_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_min_epu64(_mm512_loadu_si512(&s[i]), vmax);
-    __m128i r = _mm512_cvtepi64_epi8(v);
-    _mm_storeu_si64(&d[i], r);
+  {
+    tu64_to_s8_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING_SATURATE_U64(i, size, d, s, int8, 127)
+    tu64_to_s8_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14573,16 +18607,39 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu64_to_s32_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu64_to_s32_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
-  size_t i = 0;
+  const uint64 *s = src->data.u64;
+  int32 *d = dst->data.s32;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    __m256i r = _mm512_cvtepi64_epi32(v);
+    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_s32_avx512, "avx512f", uint64, int32, u64, s32,
+                 REMAINING(i, size, d, s, int32))
+
+/**
+ * @brief Cast every element from uint64 to int32 using AVX512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type int32.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_s32_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_U64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64 *s = src->data.u64;
-  int32 *d = dst->data.s32;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14590,19 +18647,24 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_s32_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    __m256i r = _mm512_cvtepi64_epi32(v);
-    _mm256_storeu_si256((__m256i_u *)&d[i], r);
+  {
+    tu64_to_s32_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int32)
+    tu64_to_s32_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14619,16 +18681,38 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx512f")]] void tu64_to_s64_avx512(const Tensor *restrict src,
-                                                   Tensor *restrict dst,
-                                                   novaStatus_t *status) {
+[[gnu::target("avx512f")]] [[gnu::noinline]] static void
+tu64_to_s64_avx512_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
-  size_t i = 0;
+  const uint64 *s = src->data.u64;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m512i v = _mm512_loadu_si512(&s[i]);
+    _mm512_storeu_si512(&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_s64_avx512, "avx512f", uint64, int64, u64, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from uint64 to int64 using AVX512F.
+ *
+ * Requires: AVX512F
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_s64_avx512(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = NOVA_SIMD_S64_WITH_AVX512F;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64 *s = src->data.u64;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14636,18 +18720,24 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_s64_avx512_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m512i v = _mm512_loadu_si512(&s[i]);
-    _mm512_storeu_si512(&d[i], v);
+  {
+    tu64_to_s64_avx512_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    tu64_to_s64_avx512_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14664,16 +18754,38 @@ tu32_to_s32_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("avx,avx2")]] void
-tu64_to_s64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
-                     novaStatus_t *status) {
+[[gnu::target("avx,avx2")]] [[gnu::noinline]] static void
+tu64_to_s64_avx_avx2_range(const Tensor *restrict src, Tensor *restrict dst,
+                           size_t begin, size_t end) {
   const size_t step = 4;
-  size_t i = 0;
+  const uint64 *s = src->data.u64;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
+    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_s64_avx_avx2, "avx,avx2", uint64, int64, u64, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from uint64 to int64 using AVX/AVX2.
+ *
+ * Requires: AVX/AVX2, AVX, AVX2
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_s64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
+                          novaStatus_t *status) {
+  const size_t step = 4;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64 *s = src->data.u64;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14681,18 +18793,24 @@ tu64_to_s64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_s64_avx_avx2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m256i v = _mm256_loadu_si256((const __m256i_u *)&s[i]);
-    _mm256_storeu_si256((__m256i_u *)&d[i], v);
+  {
+    tu64_to_s64_avx_avx2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    tu64_to_s64_avx_avx2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
@@ -14710,16 +18828,38 @@ tu64_to_s64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
  *
  * @pre @p status must not be @c nullptr.
  */
-[[gnu::target("sse4.2")]] void tu64_to_s64_sse4_2(const Tensor *restrict src,
-                                                  Tensor *restrict dst,
-                                                  novaStatus_t *status) {
+[[gnu::target("sse4.2")]] [[gnu::noinline]] static void
+tu64_to_s64_sse4_2_range(const Tensor *restrict src, Tensor *restrict dst,
+                         size_t begin, size_t end) {
   const size_t step = 2;
-  size_t i = 0;
+  const uint64 *s = src->data.u64;
+  int64 *d = dst->data.s64;
+  for (size_t i = begin; i < end; i += step) {
+    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
+    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  }
+}
+
+DEFINE_CAST_TAIL(tu64_to_s64_sse4_2, "sse4.2", uint64, int64, u64, s64,
+                 REMAINING(i, size, d, s, int64))
+
+/**
+ * @brief Cast every element from uint64 to int64 using SSE.
+ *
+ * Requires: SSE4.2
+ *
+ * @param[in]  src  Source tensor with element type uint64.
+ * @param[out] dst  Destination tensor with element type int64.
+ * @param[out] status Caller-owned status; set to success on completion.
+ *
+ * @pre @p status must not be @c nullptr.
+ */
+void tu64_to_s64_sse4_2(const Tensor *restrict src, Tensor *restrict dst,
+                        novaStatus_t *status) {
+  const size_t step = 2;
   size_t rem = src->size % step;
   size_t n = src->size - rem;
   size_t size = src->size;
-  const uint64 *s = src->data.u64;
-  int64 *d = dst->data.s64;
 #ifdef NOVA_OPENMP
   const uint32 threads = get_num_threads_from(ParallelComputeGroup, status);
   if (status->err != novaSuccess) {
@@ -14727,18 +18867,24 @@ tu64_to_s64_avx_avx2(const Tensor *restrict src, Tensor *restrict dst,
   }
   const ElementwiseWork work = make_elementwise_work(src);
   const ParallelDecision decision = decide_elementwise(&work, threads);
-#pragma omp parallel for num_threads(decision.num_threads)                     \
-    schedule(static) if (decision.go)
+  if (decision.go) {
+    const uint32 workers =
+        decision.num_threads > 0U ? decision.num_threads : 1U;
+    const size_t blocks = n / step;
+    const size_t chunk = (blocks + workers - 1U) / workers;
+#pragma omp parallel for num_threads(workers) schedule(static)
+    for (uint32 w = 0; w < workers; ++w) {
+      const size_t first = (size_t)w * chunk;
+      const size_t last = first + chunk < blocks ? first + chunk : blocks;
+      tu64_to_s64_sse4_2_range(src, dst, first * step, last * step);
+    }
+  } else
 #endif
-  for (i = 0; i < n; i += step) {
-    __m128i v = _mm_loadu_si128((const __m128i_u *)&s[i]);
-    _mm_storeu_si128((__m128i_u *)&d[i], v);
+  {
+    tu64_to_s64_sse4_2_range(src, dst, 0, n);
   }
-#ifdef NOVA_OPENMP
-  i = n;
-#endif
   if (rem > 0) {
-    REMAINING(i, size, d, s, int64)
+    tu64_to_s64_sse4_2_tail(src, dst, n, size);
   }
 
   *status = (novaStatus_t){.err = novaSuccess,
