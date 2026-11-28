@@ -305,7 +305,6 @@ scripts/run-tests.sh cuda -- -R 'MemoryAllocator.*'  # run a filtered test set
 - The Windows job runs `scripts/ci/install-llvm-windows.ps1` before configure: the VS 2026 STL requires Clang 22+, while `windows-2025` ships LLVM 20.1.8. The installer is pinned to an official LLVM release and checked against its published SHA256.
 - Every job that configures a preset installs uv first: `NovaNNRuntime.cmake` calls `uv run` at configure time to list codegen outputs.
 - Required checks are the single aggregate job `ci` and `branch-origin`. Keep job names unique across workflows: GitHub requires that for required checks.
-- The Python job runs `uv run --frozen pytest -q tests`. Do not collect from the repository root, which also picks up the vcpkg submodule tests.
 - Logs are uploaded as artifacts on failure. A cache of `build/` is deliberately not used because logs accumulate and can hide the origin of a failure.
 
 ---
