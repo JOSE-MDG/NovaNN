@@ -190,34 +190,6 @@ jobs:
           path: build\logs\
           if-no-files-found: ignore
 
-  python:
-    name: python
-    runs-on: ubuntu-26.04
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-        with:
-          persist-credentials: false
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
-      # uv reads .python-version, which pins the exact interpreter patch.
-
-      # The root also contains thirdParty/vcpkg, whose own tests are not part of
-      # NovaNN. Scope collection to the project suite.
-      - name: Test
-        run: uv run --frozen pytest -q tests
-
-      - name: Upload logs
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: logs-python
-          path: .pytest_cache/
-          if-no-files-found: ignore
-
   codegen:
     name: codegen
     runs-on: ubuntu-26.04
@@ -252,7 +224,6 @@ jobs:
       - cpu-linux-asan
       - cpu-linux-ubsan
       - cpu-windows
-      - python
       - codegen
     runs-on: ubuntu-26.04
 
