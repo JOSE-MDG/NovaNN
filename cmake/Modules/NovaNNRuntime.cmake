@@ -13,9 +13,9 @@ GTest when ``BUILD_TESTING`` is ``OFF`` or the library is not found.
 
 Finally defines the ``nova_codegen`` custom target (aliased as
 ``nova::codegen``) that runs the auto-code generation command
-``uv run tools/codegen/generate.py gen --all`` at build time.
+``uv run --frozen tools/codegen/generate.py gen --all`` at build time.
 ``NOVA_CODEGEN_FILES``, the ``OUTPUT`` list of that custom command, is
-filled by ``uv run tools/codegen/generate.py gen --all
+filled by ``uv run --frozen tools/codegen/generate.py gen --all
 --list-outputs``, which prints the candidate paths one per line
 without generating anything.
 
@@ -139,7 +139,7 @@ if(BUILD_TESTING)
 endif()
 
 execute_process(
-    COMMAND uv run -q tools/codegen/generate.py gen --all --list-outputs
+    COMMAND uv run --frozen -q tools/codegen/generate.py gen --all --list-outputs
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     RESULT_VARIABLE NOVA_CODEGEN_RC
     OUTPUT_VARIABLE NOVA_CODEGEN_RAW
@@ -150,7 +150,7 @@ if(NOT NOVA_CODEGEN_RC EQUAL 0)
     message(FATAL_ERROR
         "Codegen output discovery failed (exit code ${NOVA_CODEGEN_RC}):\n"
         "${NOVA_CODEGEN_ERR}"
-        "Command: uv run -q tools/codegen/generate.py gen --all "
+        "Command: uv run --frozen -q tools/codegen/generate.py gen --all "
         "--list-outputs\n"
         "Ensure 'uv' is installed and the Python environment is synced "
         "(run 'uv sync' at the project root), then re-run CMake configure."
@@ -172,7 +172,7 @@ if(NOT NOVA_CODEGEN_FILES)
         "Codegen output discovery returned no output files.\n"
         "Check that tools/codegen/scripts/ contains gen_*.py files that "
         "call register_engine() at import time, then run manually:\n"
-        "  uv run tools/codegen/generate.py gen --all --list-outputs"
+        "  uv run --frozen tools/codegen/generate.py gen --all --list-outputs"
     )
 endif()
 
@@ -183,7 +183,7 @@ file(GLOB_RECURSE NOVA_CODEGEN_DEPS CONFIGURE_DEPENDS
 
 add_custom_command(
     OUTPUT ${NOVA_CODEGEN_FILES}
-    COMMAND uv run tools/codegen/generate.py gen --all --keep-going --run-formatters
+    COMMAND uv run --frozen tools/codegen/generate.py gen --all --keep-going --run-formatters
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     DEPENDS ${NOVA_CODEGEN_DEPS}
     COMMENT "Codegen: generating auto-generated code using uv toolchain ..."
