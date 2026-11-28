@@ -36,6 +36,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <ncore/headeronly/macros.h>
+
 /**
  * @struct SIMDCapabilities
  * @brief CPU SIMD capabilities detected at runtime.
@@ -171,17 +173,21 @@ enum : uint32_t {
  *
  * @details
  * Typed tables embed this structure as their first member, so the address
- * of a typed entry and the address of its descriptor coincide. Iterate
- * such tables through @ref SIMD_SELECT, which carries the entry stride.
- * A table whose last entry requires @ref SimdIsaNone always yields a
- * fallback.
+ * of a typed entry and the address of its descriptor coincide. The alignment
+ * matches those entries, whose next member is a function pointer, so the
+ * descriptor pointer can be reinterpreted as a typed entry. Iterate such
+ * tables through @ref SIMD_SELECT, which carries the entry stride. A table
+ * whose last entry requires @ref SimdIsaNone always yields a fallback.
  *
  * @see SIMD_SELECT
  * @see simd_select()
  */
 typedef struct {
-  SimdIsa isa; ///< Instruction sets the variant requires.
+  ALIGN(8) SimdIsa isa; ///< Instruction sets the variant requires.
 } SimdVariant;
+
+static_assert(alignof(SimdVariant) >= alignof(void *),
+              "SimdVariant must match the alignment of typed variant entries");
 
 #ifdef __cplusplus
 extern "C" {
@@ -295,7 +301,8 @@ bool simd_isa_supported(SimdIsa isa, const SIMDCapabilities *caps);
  *
  * @param[in] variants First entry of the table. Must not be null when
  *                     @p count is greater than zero.
- * @param[in] stride   Size in bytes of one typed entry.
+ * @param[in] stride   Size in bytes of one typed entry. Must be a multiple
+ *                     of @c alignof(SimdVariant).
  * @param[in] count    Number of entries in the table.
  * @param[in] caps     Capabilities to test against. Must not be null.
  *
