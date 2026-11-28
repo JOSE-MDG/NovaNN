@@ -136,7 +136,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}\llvm-msi
-          key: llvm-msi-23.1.6
+          key: llvm-msi-23.1.5
 
       - name: Install LLVM
         shell: pwsh
