@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <new>
+#include <vector>
 
 #include <ncore/core/device.h>
 #include <ncore/core/status.h>
@@ -127,7 +129,7 @@ public:
    * @param[out] dst   Destination buffer.
    * @param[in]  bytes Bytes to write.
    *
-   * @return Status with @c err set to @c novaSuccess on success, or
+   * @return Status with @c err set to @c novaSuccess on success,
    *         @c novaInvalidValue for a device fill whose byte count is not
    *         a multiple of four.
    */
@@ -139,8 +141,10 @@ public:
    * @param[in,out] ten Tensor to fill. Its placement must match the
    *                   handle placement.
    *
-   * @return Status with @c err set to @c novaSuccess on success, or
-   *         @c novaInvalidDevice when the placements differ.
+   * @return Status with @c err set to @c novaSuccess on success,
+   *         @c novaInvalidDevice when the placements differ, or
+   *         @c novaInvalidValue for a device tensor whose payload begins
+   *         at an offset that is not a multiple of four bytes.
    */
   [[nodiscard]] novaStatus_t fill(Tensor &ten);
 
@@ -290,27 +294,56 @@ inline novaStatus_t GeneratorCXX::fillU64(uint64_t *dst, size_t n) {
 }
 
 inline novaStatus_t GeneratorCXX::fillBytes(void *dst, size_t bytes) {
-  if (handle_.device == DEVICE_GPU && bytes % 4 != 0) {
-    return novaStatus_t{.err = novaInvalidValue,
-                        .message =
-                            "Device fills go by lanes of four bytes, the tail "
-                            "must be zero.\n"};
+  const size_t lanes = bytes / sizeof(uint32_t);
+  const size_t tail = bytes % sizeof(uint32_t);
+  if (bytes == 0U) {
+    return fillU32(nullptr, 0U);
   }
-  const novaStatus_t head = fillU32(static_cast<uint32_t *>(dst), bytes / 4);
-  if (head.err != novaSuccess) {
+  if (handle_.device == DEVICE_GPU && tail != 0U) {
+    return {.err = novaInvalidValue,
+            .message = "Device fills go by lanes of four bytes, the tail "
+                       "must be zero.\n"};
+  }
+
+  const bool aligned =
+      reinterpret_cast<std::uintptr_t>(dst) % alignof(uint32_t) == 0U;
+  if (handle_.device == DEVICE_GPU && !aligned) {
+    return {.err = novaInvalidValue,
+            .message = "Device fills require a four-byte aligned "
+                       "destination.\n"};
+  }
+
+  novaStatus_t head = {.err = novaSuccess, .message = nullptr};
+  if (aligned) {
+    head = fillU32(static_cast<uint32_t *>(dst), lanes);
+    if (head.err != novaSuccess) {
+      return head;
+    }
+  } else {
+    try {
+      std::vector<uint32_t> staged(lanes);
+      head = fillU32(staged.data(), lanes);
+      if (head.err != novaSuccess) {
+        return head;
+      }
+      if (lanes > 0U) {
+        std::memcpy(dst, staged.data(), lanes * sizeof(uint32_t));
+      }
+    } catch (const std::bad_alloc &) {
+      return {.err = novaOutOfMemory, .message = nullptr};
+    }
+  }
+  if (tail == 0U) {
     return head;
   }
-  const size_t tail = bytes % 4;
-  if (tail == 0) {
-    return head;
-  }
+
   uint32_t lane = 0;
-  const novaStatus_t consumed = fillU32(&lane, 1);
+  const novaStatus_t consumed = fillU32(&lane, 1U);
   if (consumed.err != novaSuccess) {
     return consumed;
   }
-  auto *at = static_cast<uint8_t *>(dst) + ((bytes / 4) * 4);
-  std::memcpy(at, &lane, tail);
+  std::memcpy(static_cast<uint8_t *>(dst) + (lanes * sizeof(uint32_t)), &lane,
+              tail);
   return head;
 }
 
@@ -319,9 +352,9 @@ inline novaStatus_t GeneratorCXX::fill(Tensor &ten) {
     return init_;
   }
   if (ten.device != handle_.device) {
-    return novaStatus_t{.err = novaInvalidDevice,
-                        .message = "The tensor placement must match the "
-                                   "handle placement.\n"};
+    return {.err = novaInvalidDevice,
+            .message = "The tensor placement must match the "
+                       "handle placement.\n"};
   }
   return fillBytes(ten.data.data + ten.offset, ten.size * ten.item_size);
 }
