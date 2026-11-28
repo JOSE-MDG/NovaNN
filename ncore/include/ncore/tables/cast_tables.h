@@ -52,6 +52,9 @@ typedef struct {
   CastFn fn;        ///< Cast kernel entry point.
 } CastVariant;
 
+static_assert(alignof(CastVariant) == alignof(SimdVariant),
+              "CastVariant must match SimdVariant alignment");
+
 /**
  * @brief Dispatch table for float4_e2m1fn_x2 to float8_e4m3fn conversions.
  *

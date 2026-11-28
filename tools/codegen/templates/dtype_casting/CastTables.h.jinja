@@ -52,6 +52,9 @@ typedef struct {
   CastFn fn;        ///< Cast kernel entry point.
 } CastVariant;
 
+static_assert(alignof(CastVariant) == alignof(SimdVariant),
+              "CastVariant must match SimdVariant alignment");
+
 {%- from "utils/DTypes.jinja" import c_type, ptr_member %}
 
 {%- macro emit_comment(table, variants) -%}

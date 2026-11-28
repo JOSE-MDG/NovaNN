@@ -6,15 +6,15 @@
 # put them first in PATH for the later CMake steps.
 #
 # Sources:
-#   https://github.com/llvm/llvm-project/releases/tag/llvmorg-23.1.6
-#   https://github.com/microsoft/winget-pkgs/blob/master/manifests/l/LLVM/LLVM/23.1.6/LLVM.LLVM.installer.yaml
+#   https://github.com/llvm/llvm-project/releases/tag/llvmorg-23.1.5
+#   https://github.com/microsoft/winget-pkgs/blob/master/manifests/l/LLVM/LLVM/23.1.5/LLVM.LLVM.installer.yaml
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$Version = '23.1.6'
-$ProductCode = '{51F7BED8-5264-4FC8-8937-2B7067FF2459}'
-$ExpectedHash = '81F7EB520CA698EB2D5CD8BC4B8F24F7ADD9ED66ED40A6F722A6E6F060737C00'
+$Version = '23.1.5'
+$ProductCode = '{5B1F1A5F-3452-407F-B9AB-32FE05828D46}'
+$ExpectedHash = '288AB326377157A9E02E6FB9724914CC2B55963882D493A405F31DC66E837C12'
 $Url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$Version/LLVM-$Version-win64.msi"
 
 $cacheDir = Join-Path $env:RUNNER_TEMP 'llvm-msi'

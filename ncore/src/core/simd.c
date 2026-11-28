@@ -43,6 +43,7 @@
 #include <immintrin.h>
 #endif
 
+#include <assert.h>
 #include <string.h>
 
 #include <ncore/core/dtype.h>
@@ -570,10 +571,11 @@ const SimdVariant *simd_select_stride(const SimdVariant variants[],
   if (variants == nullptr || caps == nullptr || count == 0) {
     return nullptr;
   }
+  assert(stride % alignof(SimdVariant) == 0);
 
-  const unsigned char *first = (const unsigned char *)variants;
   for (size_t i = 0; i < count; ++i) {
-    const SimdVariant *variant = (const SimdVariant *)(first + (i * stride));
+    const SimdVariant *variant =
+        (const SimdVariant *)((uintptr_t)variants + (i * stride));
     if (simd_isa_supported(variant->isa, caps)) {
       return variant;
     }

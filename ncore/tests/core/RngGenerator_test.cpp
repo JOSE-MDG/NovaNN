@@ -95,6 +95,38 @@ TEST(RngGenerator, ByteFillMapsLanesLittleEndFirst) {
   }
 }
 
+/** A byte fill accepts a destination that is not aligned for uint32_t. */
+TEST(RngGenerator, ByteFillAcceptsUnalignedDestination) {
+  constexpr size_t kBytes = 11;
+  constexpr uint8_t kGuard = 0xA5;
+
+  alignas(4) uint8_t aligned[kBytes + 1] = {};
+  alignas(4) uint8_t storage[kBytes + 2] = {};
+  uint8_t *unaligned = storage + 1;
+  aligned[kBytes] = kGuard;
+  storage[kBytes + 1] = kGuard;
+
+  GeneratorCXX alignedStream = hostGen(kSeed, kSub);
+  expectOk(alignedStream.fillBytes(aligned, kBytes), "aligned byte fill");
+
+  GeneratorCXX unalignedStream = hostGen(kSeed, kSub);
+  expectOk(unalignedStream.fillBytes(unaligned, kBytes), "unaligned byte fill");
+
+  EXPECT_EQ(0, std::memcmp(aligned, unaligned, kBytes));
+  EXPECT_EQ(kGuard, aligned[kBytes]);
+  EXPECT_EQ(kGuard, unaligned[kBytes]);
+
+  // Tail-only demand leaves the staged vector empty but still peels a lane.
+  uint8_t shortAligned[3] = {};
+  uint8_t shortUnaligned[4] = {};
+  GeneratorCXX shortAlignedStream = hostGen(kSeed, kSub);
+  expectOk(shortAlignedStream.fillBytes(shortAligned, 3), "short aligned fill");
+  GeneratorCXX shortUnalignedStream = hostGen(kSeed, kSub);
+  expectOk(shortUnalignedStream.fillBytes(shortUnaligned + 1, 3),
+           "short unaligned fill");
+  EXPECT_EQ(0, std::memcmp(shortAligned, shortUnaligned + 1, 3));
+}
+
 /** A zero demand succeeds without advancing the stream. */
 TEST(RngGenerator, ZeroDemandDoesNotAdvanceTheStream) {
   uint32_t fresh[8] = {};
