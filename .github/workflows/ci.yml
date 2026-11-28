@@ -36,6 +36,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
 
+      - name: Install clang-format 23.1.5
+        run: |
+          uv tool install clang-format==23.1.5
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Configure
         run: scripts/build-presets.sh cpu-test-release-linux
 
@@ -68,6 +73,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
 
+      - name: Install clang-format 23.1.5
+        run: |
+          uv tool install clang-format==23.1.5
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Configure
         run: scripts/build-presets.sh cpu-asan-test-release-linux
 
@@ -99,6 +109,11 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Install clang-format 23.1.5
+        run: |
+          uv tool install clang-format==23.1.5
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Configure
         run: scripts/build-presets.sh cpu-ubsan-test-release-linux
@@ -217,7 +232,12 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
 
-      # clang-format comes with the runner image. ruff comes from uv's dev group.
+      - name: Install clang-format 23.1.5
+        run: |
+          uv tool install clang-format==23.1.5
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # clang-format 23.1.5 is pinned above; ruff comes from uv's dev group.
       - name: Regenerate
         run: uv run --frozen tools/codegen/generate.py gen --all --keep-going --run-formatters
 
